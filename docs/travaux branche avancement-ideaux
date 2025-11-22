@@ -1,120 +1,44 @@
- 22 /11/25 4/01 
- TEMPLATE — PLAN D’IMPLÉMENTATION COPILOT
+22/11/25 11H
+
 Titre de la tâche
-Enrichissement du référentiel alimentaire : ajout d’aliments manquants et clarification des portions
+Adaptation dynamique des portions recommandées selon l’objectif de poids utilisateur, avec comparaison entre portion réelle (référentiel) et portion calculée (Mifflin-St Jeor), validation utilisateur et affichage de l’écart.
 
 Description précise de la modification attendue
-Ajouter les aliments absents : poivrons, pâté de foie, pâté de campagne, rillettes, boudin, saucisson, terrine, etc.
-Vérifier l’absence de doublons avec l’existant (lecture complète du référentiel).
-Ajouter des indications claires pour les portions liquides : “1 verre = 200 ml”, “1 bouteille = 1 L”, “1 tasse = 150 ml”, “1 canette = 330 ml”.
-Rendre le référentiel plus compréhensible pour l’utilisateur (ajout d’un champ “exemple de portion” si pertinent).
+Lors de la saisie d’un repas, afficher pour chaque aliment :
+La portion réelle (issue du référentiel, ex : bouteille, pièce…)
+La portion recommandée calculée dynamiquement selon le besoin calorique objectif (profil utilisateur, formule Mifflin-St Jeor)
+L’écart entre les deux (en % ou valeur absolue)
+Permettre à l’utilisateur de valider la portion qui lui correspond (réelle ou calculée)
+Pendant la période de l’objectif, afficher la portion validée comme recommandation
+Le référentiel reste la base fixe, jamais modifié
 Fichiers concernés
-referentiel.js
+profil.js (calcul du besoin calorique objectif)
+SaisieRepas.js (affichage et validation des portions)
+referentiel.js (base alimentaire, non modifiée)
 Audit des risques préalable
-Risque technique : erreur de format, structure ou syntaxe dans le fichier référentiel.
-Risque UX : confusion sur les portions, mauvaise compréhension utilisateur.
-Risque régression : suppression ou écrasement d’aliments existants.
-Risque accessibilité : indications de portions non adaptées à tous les profils.
-Risque de conflit : modification simultanée du fichier par plusieurs personnes.
-Risque de doublon : ajout d’un aliment déjà présent sous une autre orthographe ou catégorie.
-Sous-checklist à valider systématiquement :
+Risque technique : incohérence entre portions calculées et portions réelles (ex : portions non réalistes)
+Risque UX : surcharge d’informations, confusion utilisateur
+Risque régression : perte de la simplicité de saisie
+Risque accessibilité : affichage non lisible, validation non intuitive
+Risque de non-acceptation : l’utilisateur préfère la portion réelle
+Vérification stricte de la non-modification du référentiel
+Contrôle qualité sur la logique de calcul et l’affichage
+Sous-checklist à valider systématiquement
  Vérification de la présence/import de toutes les fonctions, hooks et variables utilisées dans le code modifié
 Checklist stricte sécurité & qualité (à cocher AVANT toute modification)
- Lecture complète du fichier référentiel pour identifier les doublons et la structure
- Initialisation systématique avant usage (variables, objets)
- Séparation stricte des étapes : d’abord ajout des aliments, puis ajout des indications de portions
- Vérification : toute donnée ajoutée est présente et correctement formatée
- Ordre et portée logiques stricts (jamais déclaration, appel ou usage prématuré)
- Pas de doublons ni de déclarations superflues
- Contrôle d’erreur systématique (compilation, runtime, rendu, accessibilité)
- Test du rendu sur tous les cas d’usage et cas limites
- Préservation stricte des fonctionnalités existantes : aucune suppression destructrice, aucune perte de comportement
- Mise à jour précise et justifiée du pourcentage d’avancement
- Toute anomalie ou erreur ➔ rollback immédiat, rapport d’anomalie avec contexte, date et heure (cf. fichier ANOMALIE)
- Documentation claire de chaque étape, chaque validation, et toute action automatisée (Copilot/IA)
- Validation utilisateur OBLIGATOIRE avant toute implémentation
- Toutes les cases ci-dessus doivent être cochées et documentées avant de poursuivre.
-Contrôles conformité à réaliser en suivant les étapes suivantes
-Lecture des anomalies dans le fichier “Anomalie roll back”
-Vérification de la structure et du format du référentiel
-Test d’affichage des portions et des nouveaux aliments
-Vérification de la non-régression sur les aliments existants
-Test d’accessibilité et de compréhension utilisateur
-Mise à jour de l’avancement
- Non commencé | [ ] En cours | [ ] Terminé
-Avancement précis/Pourcentage réel : 0 %
-Historique des mises à jour : 22/11/2025, plan proposé
-Point de vigilance
-Risque d’erreur de format dans le fichier référentiel
-Risque de confusion sur les portions liquides
-Risque de doublons ou d’écrasement d’aliments existants
-Vérifier la clarté des indications pour tous les profils utilisateurs
-Vérifier la cohérence des unités et des exemples de portions
-Proposition de rollback
-En cas d’erreur ou d’anomalie, revenir à la dernière version fonctionnelle du fichier referentiel.js
-Documenter toute anomalie dans le fichier “Anomalie roll back” avec date et heure
-Rapport Markdown Copilot
-AVANT :
-
-Aliments manquants dans le référentiel : poivrons, pâté de foie, pâté de campagne, rillettes, boudin, saucisson, terrine, etc.
-Portions liquides peu compréhensibles (ex : “100 ml”)
-APRÈS :
-
-Aliments ajoutés (liste ci-dessus, sans doublon)
-Indications claires pour les portions liquides (“1 verre = 200 ml”, “1 bouteille = 1 L”, “1 tasse = 150 ml”, “1 canette = 330 ml”)
-Référentiel plus complet et plus compréhensible
-Amélioration continue (Copilot)
-Relier explicitement chaque action utilisateur (ex : validation d’un aliment) à la mise à jour du référentiel.
-Vérifier systématiquement que chaque étape du plan est traduite en code et testée dans le workflow réel (affichage, activation, réinitialisation, feedback).
-Après chaque modification, tester le parcours complet utilisateur et documenter le résultat (capture, rapport d’exécution).
-Ne jamais supposer qu’un état est synchronisé sans vérification concrète (affichage, console, tests).
-Ajouter un contrôle visuel ou un feedback à chaque action clé pour garantir la conformité UX et métier.
-Documenter toute anomalie ou écart dans le fichier dédié et proposer immédiatement une correction ou un rollback.
-Relire le plan et le template avant chaque implémentation pour s’assurer que toutes les étapes sont respectées.
-Se parler à soi-même (Copilot) : « Ai-je bien relié chaque étape du plan au code ? Ai-je testé le workflow complet ? Ai-je documenté chaque action et chaque anomalie ? »
-Validation explicite de l’utilisateur (OBLIGATOIRE)
- Plan validé par l’utilisateur à la date : ___
-Merci de valider ce plan ou de demander une correction avant toute modification du code.
-Si tu veux ajouter d’autres aliments, précise-les ici avant validation.
-
-
-
-
-
-Voici le plan d’implémentation strict pour ajouter une aide “💡 Indications portions liquides” accessible lors de la saisie du repas (ex : dans le composant SaisieRepas.js) :
-
-🟢 TEMPLATE — PLAN D’IMPLÉMENTATION COPILOT
-Titre de la tâche
-Ajout d’une aide “💡 Indications portions liquides” dans la saisie du repas
-
-Description précise de la modification attendue
-Ajouter une icône ou bouton “💡” dans le composant de saisie du repas (SaisieRepas.js).
-Au clic, afficher les indications pratiques pour les portions liquides (pop-up, encadré ou tooltip).
-Permettre à l’utilisateur d’accéder facilement à ces infos sans quitter la saisie.
-Fichiers concernés
-SaisieRepas.js
-referentiel.js (utilisation de l’objet indicationsPortionsLiquides)
-Audit des risques préalable
-Risque technique : erreur d’import ou d’affichage du pop-up/tooltip.
-Risque UX : aide trop intrusive ou mal positionnée.
-Risque régression : perturbation de la saisie du repas.
-Risque accessibilité : icône non lisible, pop-up non accessible clavier.
-Risque de conflit : modification simultanée du composant.
-Sous-checklist à valider systématiquement :
- Vérification de la présence/import de toutes les fonctions, hooks et variables utilisées dans le code modifié
-Checklist stricte sécurité & qualité (à cocher AVANT toute modification)
- Lecture complète du composant concerné et de ses hooks
+ Lecture complète du code concerné (dépendances, hooks, variables, fonctions…)
  Initialisation systématique avant usage (hooks, variables, handlers)
+ Tous les hooks React sont déclarés uniquement en haut du corps du composant fonctionnel
  Séparation stricte des étapes : initialisation, logique, handlers, rendu
- Vérification de la présence/import de l’objet indicationsPortionsLiquides
+ Vérification de la présence/import de toutes les fonctions, hooks et variables utilisées
  Contrôle d’erreur compilation/runtime/SSR
- Test du rendu sur tous les cas d’usage (mobile, desktop, clavier)
+ Test du rendu sur tous les cas d’usage
  Préservation stricte des fonctionnalités existantes
  Documentation claire de chaque étape et validation utilisateur
  Contrôle visuel ou feedback à chaque action clé
  Test du workflow complet utilisateur et documentation du résultat
  Rollback immédiat en cas d’anomalie
-Contrôles conformité à réaliser
+Contrôles conformité à réaliser en suivant les étapes suivantes
 Lecture des anomalies dans le fichier rollback
 Vérification de la présence de tous les hooks et variables
 Test SSR et rendu Next.js
@@ -122,50 +46,30 @@ Test du debug et du pré-remplissage
 Test du parcours complet utilisateur et documentation
 Mise à jour de l’avancement
  Non commencé | [ ] En cours | [ ] Terminé
-Avancement : 0 %
-Historique : 22/11/2025, plan proposé
+Avancement précis/Pourcentage réel (à MAJ à chaque étape) : ____ %
+Historique des mises à jour : ___
 Point de vigilance
-Risque d’erreur d’import ou d’affichage
-Risque d’aide trop intrusive ou mal positionnée
-Risque d’accessibilité (navigation clavier, contraste)
-Documentation de toute anomalie ou écart dans le fichier dédié
+Vérifier la cohérence entre portion réelle et portion calculée
+S’assurer que l’utilisateur comprend la différence et peut valider simplement
+Ne jamais modifier le référentiel
+Documenter toute anomalie ou écart dans le fichier dédié
+Tester l’affichage sur tous les cas d’usage
 Proposition de rollback
-En cas d’erreur ou d’anomalie, revenir à la dernière version fonctionnelle du composant
-Documenter toute anomalie dans le fichier “Anomalie roll back” avec date et heure
+En cas d’anomalie, revenir à l’affichage des portions réelles uniquement
+Documenter toute anomalie dans le fichier Anomalie roll back avec date et heure
 Rapport Markdown Copilot
-AVANT :
-
-Pas d’aide visuelle pour les portions liquides lors de la saisie du repas
-APRÈS :
-
-Icône “💡” ou bouton ajouté dans la saisie du repas
-Affichage des indications pratiques au clic
-Expérience utilisateur améliorée
+AVANT : Affichage uniquement des portions réelles, aucune adaptation dynamique
+APRÈS : Affichage des deux portions, calcul dynamique, validation utilisateur, indication de l’écart
 Amélioration continue (Copilot)
-Relier explicitement l’action utilisateur (clic sur 💡) à l’affichage des indications
-Vérifier systématiquement le workflow complet (affichage, fermeture, accessibilité)
-Tester sur tous les devices et documenter le résultat
-Contrôle visuel et feedback à chaque action clé
-Documentation de toute anomalie ou écart dans le fichier dédié
-Relecture du plan avant chaque implémentation
+À chaque ajout ou modification, vérifier que la logique d’adaptation des portions reste simple, compréhensible et utile pour l’utilisateur.
+Tester régulièrement l’affichage des portions réelles et calculées sur différents profils et objectifs pour garantir la pertinence des recommandations.
+Recueillir les retours utilisateurs sur la clarté de la comparaison et la facilité de validation.
+Documenter toute anomalie ou écart constaté lors de l’utilisation réelle et proposer immédiatement une correction ou un rollback.
+Prioriser l’essentiel : afficher d’abord la comparaison et la validation, puis enrichir avec des options avancées (historique, feedback personnalisé…).
+Revenir régulièrement sur la logique métier pour l’ajuster selon les retours et l’évolution des besoins.
+Garder la traçabilité des améliorations et des corrections dans le rapport Markdown et le fichier d’anomalies.
+S’assurer que chaque étape du plan est traduite en code et testée dans le workflow réel (affichage, validation, retour utilisateur).
+Ne jamais supposer qu’une portion est adaptée sans vérification concrète (affichage, tests, retours).
+Relire le plan et le template avant chaque implémentation pour garantir le respect de toutes les étapes.
 Validation explicite de l’utilisateur (OBLIGATOIRE)
  Plan validé par l’utilisateur à la date : ___
-Merci de valider ce plan ou de demander une correction avant toute modification du code.
-
-
-
-Rapport Markdown Copilot — enrichissement du référentiel alimentaire
-AVANT MODIFICATION
-Aliments manquants dans le référentiel : poivrons, pâté de foie, pâté de campagne, rillettes, boudin, saucisson, terrine.
-Portions liquides peu compréhensibles (ex : “100 ml” sans équivalent visuel).
-Pas d’indications pratiques centralisées pour les liquides.
-Structure du fichier : tableau principal referentielAliments, pas de section dédiée aux indications liquides.
-APRÈS MODIFICATION
-Aliments ajoutés (sans doublon) : poivrons, pâté de foie, pâté de campagne, rillettes, boudin, saucisson, terrine.
-Ajout d’un objet indicationsPortionsLiquides à la fin du fichier, listant les équivalences visuelles (verre, bouteille, canette, etc.).
-Aucune suppression ni modification des entrées existantes.
-Structure respectée : les nouveaux aliments sont ajoutés via un tableau de correctifs, puis injectés sans doublon.
-Les indications liquides sont accessibles pour affichage dans l’interface.
-Ce rapport respecte la section “Rapport Markdown Copilot” du template.
-Pour chaque nouvelle tâche, je fournirai systématiquement ce rapport AVANT/APRÈS avant toute génération de code.
-Souhaites-tu valider le plan pour l’aide “💡” ou demander une correction ?
