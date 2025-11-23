@@ -11,7 +11,7 @@ const StartPreparationModal = ({ isOpen, onClose, onSave, analyseComportement = 
   // Date de début de préparation (doit être déclarée AVANT tout usage)
   const [startDate, setStartDate] = useState('');
   // Durée du jeûne souhaitée (en jours)
-  const [dureeJeune, setDureeJeune] = useState('');
+  const [dureeJeune, setDureeJeune] = useState(undefined);
   // Analyse automatique des 3 derniers jours de repas
   const [analyse3Jours, setAnalyse3Jours] = useState([]);
   // Analyse synthétique métier (extras, repas tardifs, conseils...)
@@ -220,7 +220,7 @@ const StartPreparationModal = ({ isOpen, onClose, onSave, analyseComportement = 
             </span>
           </div>
           <div style={{marginTop:4}}>
-            <b>🥕 Durée du jeûne souhaitée :</b> <input type="number" min="1" max="21" value={dureeJeune} onChange={e => setDureeJeune(e.target.value)} placeholder="Ex : 5" style={{width:60,marginLeft:6,marginRight:6}} /> jours
+            <b>🥕 Durée du jeûne souhaitée :</b> <input type="number" min="1" max="21" value={dureeJeune === undefined ? '' : dureeJeune} onChange={e => setDureeJeune(e.target.value === '' ? undefined : Number(e.target.value))} placeholder="Ex : 5" style={{width:60,marginLeft:6,marginRight:6}} /> jours
             <span style={{marginLeft:8, color:'#64748b', fontSize:'0.95em'}}>(généralement 5 à 10 jours)</span>
           </div>
           <div><b>🎯 Objectif :</b> <input type="text" value={goal} onChange={e => setGoal(e.target.value)} placeholder="Ex : Jeûne de 5 jours le 15/12/2025" /></div>
@@ -325,12 +325,14 @@ const StartPreparationModal = ({ isOpen, onClose, onSave, analyseComportement = 
           <button type="button" style={{marginTop:8,background:'#fde68a',color:'#92400e',border:'1px solid #fbbf24',borderRadius:4,padding:'2px 10px',fontSize:'0.97em',cursor:'pointer'}}
             onClick={async () => {
               if (typeof window !== 'undefined') {
-                // Forcer la resynchronisation depuis Supabase (sans userId)
                 const todayStr = new Date().toISOString().slice(0,10);
-                const repas = await getAnalyse3DerniersJoursRepas(undefined, todayStr);
+                // Utiliser la même logique que le useEffect principal
+                const demoUserId = userId || '00000000-0000-0000-0000-000000000000';
+                const repas = await getAnalyse3DerniersJoursRepas(demoUserId, todayStr);
                 window.localStorage.setItem('repas', JSON.stringify(repas.flatMap(j => j.repas)));
-                // Rafraîchir l'analyse
-                setAnalyse3Jours(await getAnalyse3DerniersJoursRepas(undefined, todayStr));
+                setAnalyse3Jours(repas);
+                // Mettre à jour aussi l'analyse synthétique
+                setAnalyseSynth(genererAnalyseSynthétiqueRepas(repas));
               }
             }}>
             🔄 Rafraîchir les repas (forcer synchro Supabase → localStorage)
