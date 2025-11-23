@@ -8,6 +8,9 @@ import styles from './StartPreparationModal.module.css';
 
 
 const StartPreparationModal = ({ isOpen, onClose, onSave, analyseComportement = [], userId }) => {
+    // Pour éviter le mismatch SSR/CSR, on affiche les blocs dynamiques seulement côté client
+    const [isClient, setIsClient] = useState(false);
+    useEffect(() => { setIsClient(true); }, []);
   // Date de début de préparation (doit être déclarée AVANT tout usage)
   const [startDate, setStartDate] = useState('');
   // Durée du jeûne souhaitée (en jours)
@@ -206,7 +209,7 @@ const StartPreparationModal = ({ isOpen, onClose, onSave, analyseComportement = 
         {/* Cadre général et header immersif */}
         <div style={{borderBottom:'2px solid #e0e7ef', paddingBottom:'0.5rem', marginBottom:'1.2rem', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
           <h2 id="modal-title" style={{margin:0, fontWeight:700, fontSize:'1.35rem', color:'#0f172a', letterSpacing:'-0.5px'}}>🌙 Démarrer ma préparation au jeûne</h2>
-          {dateHeure.date && dateHeure.heure && (
+          {isClient && dateHeure.date && dateHeure.heure && (
             <span style={{fontSize:'0.98rem', color:'#64748b', fontWeight:500}}>{`Aujourd’hui : ${dateHeure.date} — ${dateHeure.heure}`}</span>
           )}
         </div>
@@ -311,20 +314,20 @@ const StartPreparationModal = ({ isOpen, onClose, onSave, analyseComportement = 
         {/* Séparateur visuel */}
         <hr style={{border:'none', borderTop:'2px dashed #cbd5e1', margin:'1.2rem 0 1.1rem 0'}} />
         {/* DEBUG: Affichage des états pour diagnostic + contenu brut localStorage.repas + bouton de rafraîchissement */}
-        <div style={{background:'#fef9c3',color:'#b45309',fontSize:'0.95em',padding:'4px 8px',borderRadius:6,margin:'8px 0'}}>
-          <b>DEBUG</b> userId: {userId ? userId : <span style={{color:'#c00'}}>non défini</span>} | analyse3Jours: {analyse3Jours.length} | isOpen: {isOpen ? 'oui' : 'non'}<br/>
-          startDate (date métier): <span style={{color:'#0ea5e9'}}>{startDate ? (new Date(startDate)).toLocaleDateString('fr-FR') : <span style={{color:'#c00'}}>non défini</span>}</span><br/>
-          date système: <span style={{color:'#64748b'}}>{(new Date()).toLocaleDateString('fr-FR')}</span><br/>
-          date de référence utilisée pour l'analyse: <span style={{color:'#0ea5e9'}}>{isOpen ? (new Date()).toLocaleDateString('fr-FR') : <span style={{color:'#c00'}}>non analysé</span>}</span>
-          <details style={{marginTop:'6px'}}>
-            <summary style={{cursor:'pointer'}}>Voir contenu brut localStorage.repas</summary>
-            <pre style={{maxHeight:180,overflow:'auto',background:'#fff7ed',color:'#92400e',fontSize:'0.93em',padding:'6px',borderRadius:'4px',marginTop:'4px'}}>
-              {typeof window !== 'undefined' && window.localStorage.getItem('repas') ? window.localStorage.getItem('repas') : 'Aucune entrée "repas" dans localStorage'}
-            </pre>
-          </details>
-          <button type="button" style={{marginTop:8,background:'#fde68a',color:'#92400e',border:'1px solid #fbbf24',borderRadius:4,padding:'2px 10px',fontSize:'0.97em',cursor:'pointer'}}
-            onClick={async () => {
-              if (typeof window !== 'undefined') {
+        {isClient && (
+          <div style={{background:'#fef9c3',color:'#b45309',fontSize:'0.95em',padding:'4px 8px',borderRadius:6,margin:'8px 0'}}>
+            <b>DEBUG</b> userId: {userId ? userId : <span style={{color:'#c00'}}>non défini</span>} | analyse3Jours: {analyse3Jours.length} | isOpen: {isOpen ? 'oui' : 'non'}<br/>
+            startDate (date métier): <span style={{color:'#0ea5e9'}}>{startDate ? (new Date(startDate)).toLocaleDateString('fr-FR') : <span style={{color:'#c00'}}>non défini</span>}</span><br/>
+            date système: <span style={{color:'#64748b'}}>{(new Date()).toLocaleDateString('fr-FR')}</span><br/>
+            date de référence utilisée pour l'analyse: <span style={{color:'#0ea5e9'}}>{isOpen ? (new Date()).toLocaleDateString('fr-FR') : <span style={{color:'#c00'}}>non analysé</span>}</span>
+            <details style={{marginTop:'6px'}}>
+              <summary style={{cursor:'pointer'}}>Voir contenu brut localStorage.repas</summary>
+              <pre style={{maxHeight:180,overflow:'auto',background:'#fff7ed',color:'#92400e',fontSize:'0.93em',padding:'6px',borderRadius:'4px',marginTop:'4px'}}>
+                {window.localStorage.getItem('repas') ? window.localStorage.getItem('repas') : 'Aucune entrée "repas" dans localStorage'}
+              </pre>
+            </details>
+            <button type="button" style={{marginTop:8,background:'#fde68a',color:'#92400e',border:'1px solid #fbbf24',borderRadius:4,padding:'2px 10px',fontSize:'0.97em',cursor:'pointer'}}
+              onClick={async () => {
                 const todayStr = new Date().toISOString().slice(0,10);
                 // Utiliser la même logique que le useEffect principal
                 const demoUserId = userId || '00000000-0000-0000-0000-000000000000';
@@ -333,11 +336,11 @@ const StartPreparationModal = ({ isOpen, onClose, onSave, analyseComportement = 
                 setAnalyse3Jours(repas);
                 // Mettre à jour aussi l'analyse synthétique
                 setAnalyseSynth(genererAnalyseSynthétiqueRepas(repas));
-              }
-            }}>
-            🔄 Rafraîchir les repas (forcer synchro Supabase → localStorage)
-          </button>
-        </div>
+              }}>
+              🔄 Rafraîchir les repas (forcer synchro Supabase → localStorage)
+            </button>
+          </div>
+        )}
         {/* Zone message personnel (texte OU audio/vidéo) */}
         <section className={styles['modal-message']}>
           <h4>📝 Message à toi-même (optionnel)</h4>
