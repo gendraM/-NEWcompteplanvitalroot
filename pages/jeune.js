@@ -102,7 +102,7 @@ const JEUNE_DAYS_CONTENT = {
       "❤️ Ce que tu peux ressentir : Une sensation de vide propre, parfois accompagnée d'une légère tristesse ou nostalgie. C'est normal : tu t'es longtemps rempli pour ne pas sentir ces zones-là. Maintenant, tu les vois.",
       "📿 Sens & conscience : Tu n'es pas en manque, tu es en simplification. Tu apprends à vivre en contact direct avec tes sensations, sans coussin alimentaire par-dessus.",
       "🧰 Outil du jour : Quand l'ennui, la tristesse ou le vide se pointent, au lieu de les fuir, nomme-les : « Là, je ressens du vide », « Là, je ressens de la tristesse ». Tu les regardes, tu ne les manges plus.",
-      "💡 Conseil : Ne rajoute pas 1000 projets pour combler ce vide. Laisse-toi au moins un moment dans la journée où il ne se passe "rien". C'est là que ton jeûne travaille aussi sur ta vie intérieure."
+      "💡 Conseil : Ne rajoute pas 1000 projets pour combler ce vide. Laisse-toi au moins un moment dans la journée où il ne se passe 'rien'. C'est là que ton jeûne travaille aussi sur ta vie intérieure."
     ],
     message: "Tu apprends à ne plus remplir systématiquement le vide. Tu le regardes, et c'est déjà une transformation majeure."
   },
@@ -278,10 +278,23 @@ export default function Jeune() {
   const [planValideCoherent, setPlanValideCoherent] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
 
+  // Hooks pour données Supabase réelles
+  const [repasRecentsSupabase, setRepasRecentsSupabase] = useState([]);
+  const [poidsDepart, setPoidsDepart] = useState(null);
+  const [dernierRepasSupabase, setDernierRepasSupabase] = useState(null);
+  const [loadingDonneesJeune, setLoadingDonneesJeune] = useState(true);
+  const [donneesManquantes, setDonneesManquantes] = useState({ poids: false, repas: false });
+
   // === VARIABLES CALCULÉES ===
-  const repasRecents = getRepasRecents();
+  const repasRecents = loadingDonneesJeune 
+    ? getRepasRecents() 
+    : (repasRecentsSupabase.length > 0 ? repasRecentsSupabase : getRepasRecents());
+  
   const analyse = analyseComportementale(repasRecents);
-  const dernierRepas = getDernierRepas();
+  
+  const dernierRepas = loadingDonneesJeune 
+    ? getDernierRepas() 
+    : (dernierRepasSupabase || getDernierRepas());
 
   // === EFFETS (APRÈS HOOKS) ===
   // Charger depuis localStorage au montage client (évite hydration error)
@@ -341,6 +354,44 @@ export default function Jeune() {
   useEffect(() => { if (isClient) saveState("messagePerso", messagePerso); }, [messagePerso, isClient]);
   useEffect(() => { if (isClient) saveState("outilsJeune", outils); }, [outils, isClient]);
   useEffect(() => { if (isClient) saveState("dateDebutJeune", dateDebutJeune); }, [dateDebutJeune, isClient]);
+
+  // Chargement des données Supabase au montage (mono-utilisateur)
+  useEffect(() => {
+    if (!isClient) return; // Attendre montage client (éviter SSR)
+    
+    async function chargerDonneesJeune() {
+      setLoadingDonneesJeune(true);
+      
+      // Charger en parallèle
+      const [repas, poids, dernierRepas] = await Promise.all([
+        getRepasRecentsAsync(),
+        getPoidsDepart(),
+        getDernierRepasAsync()
+      ]);
+      
+      setRepasRecentsSupabase(repas);
+      setDernierRepasSupabase(dernierRepas);
+      
+      // Détecter données manquantes
+      const manquantes = {
+        poids: poids === null,
+        repas: repas.length === 0
+      };
+      setDonneesManquantes(manquantes);
+      
+      // Si poids manquant, rediriger vers profil
+      if (poids === null) {
+        alert("Veuillez renseigner votre poids de départ pour commencer le jeûne.");
+        router.push('/profil');
+        return;
+      }
+      
+      setPoidsDepart(poids);
+      setLoadingDonneesJeune(false);
+    }
+    
+    chargerDonneesJeune();
+  }, [isClient, router]);
 
   // Initialiser date de début du jeûne si pas définie
   useEffect(() => {
