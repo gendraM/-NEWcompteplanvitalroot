@@ -1143,3 +1143,277 @@ Documenter toute anomalie ou écart dans le fichier dédié et proposer une corr
 Relire le plan et le template avant chaque implémentation pour s’assurer que toutes les étapes sont respectées.
 Merci de valider ce plan ou d’indiquer les points à corriger.
 Aucune modification de code ne sera produite avant validation explicite.
+
+
+
+Voici le plan d’implémentation strictement conforme à la template, incluant toutes les sections et la partie « Amélioration continue (Copilot) » :
+
+21/11/25 15:43 
+
+🟢 TEMPLATE — PLAN D’IMPLÉMENTATION COPILOT (À REMPLIR ET VALIDER AVANT TOUTE MODIF CODE)
+⚠️ AUCUNE modification de code ne doit être produite tant que l’utilisateur n’a pas validé explicitement ce plan d’implémentation rempli par Copilot.
+
+─────────────────────────────────────────────────────────────
+
+Titre de la tâche
+Refonte visuelle et métier de la page préparation au jeûne (preparation-jeune.js)
+
+Description précise de la modification attendue
+Intégrer :
+
+Header immersif avec illustration et titre
+Timeline visuelle avec jalons colorés et icônes (J-30, J-17, J-14, J-12, J-7, J-0)
+Barre de progression animée (pourcentage, critères validés)
+Cartes colorées pour chaque phase (titre, période, objectifs, critères)
+Carte du critère actif du jour (icône, explication, bouton « Voir mes repas du jour »)
+Critères verrouillés (grisés, cadenas, date de déblocage)
+Panneau de feedback immédiat après action
+Barre de navigation claire
+Alerte informative douce si repas hors critère
+Contrastes forts et responsive design
+Objectif : améliorer l’expérience utilisateur et la conformité métier, sans modifier la logique de saisie repas (gérée sur /suivi.js).
+Fichiers concernés
+preparation-jeune.js
+HeaderPreparation.js
+TimelinePreparation.js
+PhaseCard.js
+ProgressBarPreparation.js
+FeedbackPreparation.js
+NavigationPreparation.js
+─────────────────────────────────────────────────────────────
+
+Etape 1
+Audit des risques préalable
+Lister tous les risques : technique, UX, sécurité, conflit, régression, perte de données, robustesse, accessibilité, etc.
+Identifier l’ordre de tous les hooks React (useState, useEffect, etc.) afin de s’assurer qu’ils sont déclarés uniquement en haut du corps du composant fonctionnel, et jamais dans une fonction, une boucle, un map, un if, etc. (respect strict des règles officielles des hooks)
+Documenter ces risques en point de vigilance et à intégrer dans la checklist du contrôle qualité
+─────────────────────────────────────────────────────────────
+
+Etape 2
+1- Sous-checklist à valider systématiquement :
+
+ Vérification de la présence/import de toutes les fonctions, hooks et variables utilisées dans le code modifié
+─────────────────────────────────────────────────────────────
+
+Etape 3
+Checklist stricte sécurité & qualité (à cocher AVANT toute modification)
+ Lecture complète du code concerné (dépendances, hooks, variables, fonctions…)
+ Initialisation systématique avant usage (hooks, variables, handlers)
+ Tous les hooks React (useState, useEffect, etc.) sont déclarés uniquement en haut du corps du composant fonctionnel, jamais dans une fonction, une boucle, un map, un if, etc. (respect strict des règles officielles des hooks)
+ Séparation stricte des étapes : d’abord initialisation (useState, useEffect…), puis logique calculée, puis handlers/fonctions, puis rendu
+ Vérification : toute fonction ou handler utilisé dans le rendu est présent et initialisé avant usage
+ Ordre et portée logiques stricts (jamais déclaration, appel ou usage prématuré)
+ Pas de doublons ni de déclarations superflues
+ Contrôle d’erreur systématique (compilation, runtime, SSR, rendu, accessibilité)
+ Test du rendu sur tous les cas d’usage et cas limites
+ Préservation stricte des fonctionnalités existantes : aucune suppression destructrice, aucune perte de comportement
+ Mise à jour précise et justifiée du pourcentage d’avancement
+ Toute anomalie ou erreur ➔ rollback immédiat, rapport d’anomalie avec contexte, date et heure (cf. fichier ANOMALIE)
+ Documentation claire de chaque étape, chaque validation, et toute action automatisée (Copilot/IA)
+ Validation utilisateur OBLIGATOIRE avant toute implémentation
+ Toutes les cases ci-dessus doivent être cochées et documentées avant de poursuivre.
+─────────────────────────────────────────────────────────────
+
+Etape 4
+Contrôles conformité à réaliser en suivant les étapes suivantes
+Lire toutes les entrées d'anomalies enregistrées dans le fichier anomalies Roll back afin d’identifier les points de vigilance pour anticiper le risque d'erreur similaire lors du codage de cette modification
+Suite à cette analyse, créer une checklist de contrôle à appliquer avant le codage pour s'assurer d'un codage conforme à ajouter dans la section Point de vigilance.
+Ajouter l’analyse de l’audit des risques et s’assurer qu’il n’y a aucune anomalie pour garantir la conformité de la modification
+Si à ce stade anomalie/bug identifié, alors proposition immédiate de rollback à l’endroit où l'anomalie a été détectée (pour revenir à l’état où il n’y avait pas de bug), à confirmer avec l’utilisateur ou revenir à l’état initial du code avant modification, toujours documenter les anomalies rencontrées dans le fichier Anomalie roll back avec date et heure
+─────────────────────────────────────────────────────────────
+
+Etape 5
+Mise à jour de l’avancement
+ Non commencé | [ ] En cours | [ ] Terminé
+Avancement précis/Pourcentage réel (à MAJ à chaque étape) : 0 %
+Historique des mises à jour : 21/11/2025, plan initial relancé
+─────────────────────────────────────────────────────────────
+
+Etape 6
+Point de vigilance
+Rapport lié à la lecture des entrées du fichier anomalie roll back adapté à la mise à jour actuelle :
+Il s’agit ici d’identifier les erreurs similaires que la modification de ce code pourrait générer suite au retour d’expérience documenté dans le fichier afin de permettre de les éviter dans cette section en créant la checklist de vérification point de vigilance, informer l’utilisateur quand cette étape a été réalisée et informer de l’impact de cette action
+─────────────────────────────────────────────────────────────
+
+Etape 7
+Proposition de rollback
+Pour tout risque ou anomalie détecté :
+Décrire l’action de rollback, son contexte (fichier, modification en cause), l’alternative sûre proposée.
+Cette donnée doit être ajoutée dans le fichier ANOMALIE roll back : date, heure, détail complet pour traçabilité.
+─────────────────────────────────────────────────────────────
+
+Etape 8
+Rapport Markdown Copilot
+Générer un rapport structuré AVANT et APRÈS toute modification (structure, fonctions, hooks, changements, etc.).
+Ce rapport doit permettre une validation éclairée, claire et synthétique.
+À valider par l'utilisateur avant code.
+─────────────────────────────────────────────────────────────
+
+Etape 9
+Validation explicite de l’utilisateur (OBLIGATOIRE)
+ Plan validé par l’utilisateur à la date : ___
+─────────────────────────────────────────────────────────────
+
+🟢 Amélioration continue (Copilot)
+Toujours relier explicitement chaque action utilisateur (ex : validation de la modale) à la mise à jour des états métier (activation, initialisation des critères, affichage dynamique).
+Vérifier systématiquement que chaque étape du plan est traduite en code et testée dans le workflow réel (affichage, activation, réinitialisation, feedback).
+Après chaque modification, tester le parcours complet utilisateur et documenter le résultat (capture, rapport d’exécution).
+Ne jamais supposer qu’un état est synchronisé sans vérification concrète (affichage, console, tests).
+Ajouter un contrôle visuel ou un feedback à chaque action clé pour garantir la conformité UX et métier.
+Documenter toute anomalie ou écart dans le fichier dédié et proposer immédiatement une correction ou un rollback.
+Relire le plan et le template avant chaque implémentation pour s’assurer que toutes les étapes sont respectées.
+Se parler à soi-même (Copilot) : « Ai-je bien relié chaque étape du plan au code ? Ai-je testé le workflow complet ? Ai-je documenté chaque action et chaque anomalie ? »
+Merci de valider ce plan ou d’indiquer les points à corriger avant toute action.
+
+
+
+Proposition de rollback
+Pour tout risque ou anomalie détecté :
+Action : revenir à la version précédente du fichier concerné, documenter l’anomalie (date, heure, contexte, fichier, modification en cause) dans /docs/Anomalie roll back
+Alternative sûre : restaurer l’import, replacer les hooks, valider avec l’utilisateur avant toute nouvelle tentative
+
+
+
+22/11/25 11:12 
+🟢 PLAN D’IMPLÉMENTATION COPILOT — Refonte et correction de la modale StartPreparationModal
+Titre de la tâche
+Refonte visuelle, conformité métier et correction de la modale de démarrage de la préparation au jeûne (StartPreparationModal)
+
+Description précise de la modification attendue
+Refonte visuelle moderne et conforme à la fiche métier de la modale StartPreparationModal.
+Correction du calcul des dates et phases selon la saisie utilisateur (date de début, durée, etc.).
+Restauration et affichage complet de toutes les informations de phase attendues dans la modale.
+Robustesse, accessibilité, et traçabilité stricte (audit, rollback, documentation).
+Fichiers concernés
+StartPreparationModal.js
+preparation-jeune.js
+/docs/Anomalie roll back
+Audit des risques préalable
+Risque technique : erreur de calcul des dates/phases, perte d’informations, import manquant, hooks mal placés.
+Risque UX : informations de phase incomplètes, modale non conforme, mauvaise expérience utilisateur.
+Risque accessibilité : modale non accessible, absence d’ARIA-live.
+Risque de régression : perte de fonctionnalités existantes.
+Vérification stricte de l’ordre des hooks React (tous en haut du composant).
+Documentation de chaque risque dans la checklist qualité.
+Sous-checklist à valider systématiquement
+ Vérification de la présence/import de toutes les fonctions, hooks et variables utilisées dans la modale.
+Checklist stricte sécurité & qualité (à cocher AVANT toute modification)
+ Lecture complète du code concerné (dépendances, hooks, variables, fonctions…)
+ Initialisation systématique avant usage (hooks, variables, handlers)
+ Tous les hooks React sont déclarés uniquement en haut du corps du composant fonctionnel
+ Séparation stricte des étapes : initialisation, logique, handlers, rendu
+ Vérification de la présence de chaque fonction/handler utilisé dans le rendu
+ Ordre et portée logiques stricts
+ Pas de doublons ni de déclarations superflues
+ Contrôle d’erreur systématique (compilation, runtime, SSR, accessibilité)
+ Test du rendu sur tous les cas d’usage et cas limites
+ Préservation stricte des fonctionnalités existantes
+ Mise à jour précise et justifiée du pourcentage d’avancement
+ Toute anomalie ou erreur ➔ rollback immédiat, rapport d’anomalie avec contexte, date et heure
+ Documentation claire de chaque étape, validation utilisateur obligatoire avant toute implémentation
+ Toutes les cases ci-dessus doivent être cochées et documentées avant de poursuivre
+Contrôles conformité à réaliser en suivant les étapes suivantes
+Lecture de toutes les entrées d’anomalies dans /docs/Anomalie roll back :
+Import manquant
+Hooks hors composant principal
+Non-respect du template strict
+Création d’une checklist de contrôle pour éviter :
+Oubli d’import
+Hooks mal placés
+Oubli de documentation d’anomalie
+Analyse de l’audit des risques : vigilance sur les imports et la position des hooks.
+Si anomalie détectée, rollback immédiat à l’état antérieur, documentation dans /docs/Anomalie roll back (date, heure, détail).
+Mise à jour de l’avancement
+ Non commencé | [ ] En cours | [ ] Terminé
+Avancement précis/Pourcentage réel : 0 % (plan soumis à validation)
+Historique des mises à jour : 22/11/2025 — Plan initial rédigé, en attente de validation utilisateur
+Point de vigilance
+Rapport : Les dernières anomalies concernaient des imports manquants et des hooks mal placés.
+Checklist de vérification :
+Relire tous les imports après chaque refonte
+Vérifier la position des hooks
+Tester la modale sur tous les cas limites
+Documenter toute anomalie dans /docs/Anomalie roll back immédiatement
+Amélioration continue
+Toute anomalie détectée lors de la refonte ou de la correction de la modale sera systématiquement documentée dans /docs/Anomalie roll back (date, heure, contexte, fichier, détail de l’action corrective).
+Après chaque correction, une relecture manuelle et un audit croisé (automatique + manuel) seront réalisés pour garantir la conformité stricte au template et éviter la réapparition des erreurs passées (ex : import manquant, hooks mal placés).
+Chaque étape d’amélioration ou de correction sera tracée dans l’historique du plan d’implémentation, avec validation utilisateur obligatoire avant clôture.
+Les points de vigilance issus des anomalies précédentes seront intégrés dans la checklist qualité pour renforcer la robustesse du code et du process.
+Proposition de rollback
+Pour tout risque ou anomalie détecté :
+Action : revenir à la version précédente du fichier concerné, documenter l’anomalie (date, heure, contexte, fichier, modification en cause) dans /docs/Anomalie roll back
+Alternative sûre : restaurer l’import, replacer les hooks, valider avec l’utilisateur avant toute nouvelle tentative
+Merci de valider ce plan ou de demander des ajustements avant toute modification du code.
+
+
+
+Rapport Markdown Copilot — État AVANT modification (22/11/2025)
+État actuel du code (avant toute modification)
+La modale StartPreparationModal est fonctionnelle mais :
+Le calcul des dates/phases selon la saisie utilisateur n’est pas toujours fiable (risque d’erreur sur les jalons ou la durée).
+L’affichage des informations de phase n’est pas complet ou manque de clarté métier.
+L’accessibilité (ARIA-live, navigation clavier) n’est pas systématiquement assurée.
+Les imports, hooks et handlers sont en place, mais la robustesse n’a pas été auditée récemment.
+Les dernières anomalies documentées :
+Oubli d’import (StartPreparationModal)
+Hooks mal placés dans le passé (hors composant)
+Non-respect du template strict sur certains cycles précédents
+Diagnostic métier et technique
+Risque de confusion utilisateur si la durée ou la date de début n’est pas cohérente avec les phases métier.
+Risque de perte d’information ou de feedback incomplet lors de la saisie.
+Absence de feedback positif ou de recommandations personnalisées en cas de préparation courte/tardive.
+Contexte métier
+L’utilisateur doit pouvoir saisir une date de début, une durée, un objectif, et voir immédiatement l’impact sur la faisabilité des critères métier.
+Toute anomalie ou écart doit être documenté et traçable pour rollback.
+Ce rapport est à compléter AVANT toute modification, puis à comparer avec l’état APRÈS modification pour garantir la traçabilité et la conformité au template.
+
++-------------------------------------------------------------+
+|   🌙  Démarrer ma préparation au jeûne                      |
+|-------------------------------------------------------------|
+|  📅 Date de début choisie :  [ 22/11/2025 ]                 |
+|  🎯 Objectif : [ Jeûne de 5 jours le 15/12/2025 ]           |
+|  ⏳ Durée de préparation : 30 jours (du 22/11 au 15/12)      |
+|-------------------------------------------------------------|
+|  🗓️  Phases de préparation                                 |
+|  ┌───────────────────────────────────────────────────────┐  |
+|  |  J-30 à J-18 : FONDATIONS                            |  |
+|  |    - Respect strict des quantités                    |  |
+|  |  J-17 : Palier 1                                     |  |
+|  |    - Pas de féculent le soir                         |  |
+|  |    - Action immédiate après repas                    |  |
+|  |  J-14 : Palier 2                                     |  |
+|  |    - Pas de sucrerie                                 |  |
+|  |    - Pas de produit transformé                       |  |
+|  |  J-12 : Palier 3                                     |  |
+|  |    - 2 jours de jeûne plein                          |  |
+|  |  J-7 : Palier 4                                      |  |
+|  |    - 2L d’eau/jour, pas de repas après 19h,          |  |
+|  |      plage alimentaire 45 min                        |  |
+|  |  J-0 : Lancement du jeûne                            |  |
+|  └───────────────────────────────────────────────────────┘  |
+|-------------------------------------------------------------|
+|  📍 Aujourd’hui tu es à : J-30                              |
+|  ➡️  Première étape : Respect strict des quantités          |
+|  💡 Conseil : Prends le temps de peser tes portions         |
+|-------------------------------------------------------------|
+|  📝 Message à toi-même (optionnel)                          |
+|  [ ] Texte   [ ] Audio/vidéo                                |
+|    → Si texte sélectionné :                                 |
+|        "Je me prépare depuis 30 jours. Mon corps est prêt..."|
+|    → Si audio/vidéo sélectionné :                           |
+|        [Bouton Enregistrer un message vocal/vidéo]          |
+|-------------------------------------------------------------|
+|  🌟 Projection sur la réussite (optionnel)                  |
+|  [ ] Texte   [ ] Audio/vidéo                                |
+|    → Si texte sélectionné :                                 |
+|        "Après ce jeûne, je me sentirai..."                  |
+|    → Si audio/vidéo sélectionné :                           |
+|        [Bouton Enregistrer un message vocal/vidéo]          |
+|-------------------------------------------------------------|
+|  ⚠️  Analyse rapide de ton comportement alimentaire         |
+|  - 2 extras cette semaine, 1 repas après 19h                |
+|  - Pense à avancer progressivement l’heure du dîner         |
+|  - [Conseil personnalisé selon l’historique]                |
+|-------------------------------------------------------------|
+|  [ Démarrer ma préparation ]   [ Annuler ]                  |
++-------------------------------------------------------------+

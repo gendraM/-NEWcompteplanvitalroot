@@ -90,10 +90,38 @@
 import Link from "next/link";
 import React, { useEffect, useState } from 'react';
 import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif } from "../lib/validerCriterePreparation";
+import HeaderPreparation from '../components/HeaderPreparation';
+import TimelinePreparation from '../components/TimelinePreparation';
+import ProgressBar from '../components/ProgressBar';
+import PhaseCard from '../components/PhaseCard';
+import Feedback from '../components/Feedback';
+import Navigation from '../components/Navigation';
 import StartPreparationModal from '../components/StartPreparationModal';
-import TimelineProgressionPreparation from '../components/TimelineProgressionPreparation';
+import { useSupabase } from '../lib/supabaseClient';
+// ...existing code...
 
 export default function PreparationJeune() {
+  // Récupération du userId via Supabase
+  const supabase = useSupabase();
+  const [userId, setUserId] = useState(null);
+  const [authError, setAuthError] = useState(null);
+  useEffect(() => {
+    let ignore = false;
+    async function fetchUser() {
+      const { data, error } = await supabase.auth.getUser();
+      if (!ignore) {
+        if (error || !data?.user) {
+          setUserId(null);
+          setAuthError("Vous devez être connecté pour démarrer la préparation et voir l'analyse des repas.");
+        } else {
+          setUserId(data.user.id);
+          setAuthError(null);
+        }
+      }
+    }
+    fetchUser();
+    return () => { ignore = true; };
+  }, [supabase]);
   // === ÉTAT POUR L’EXPANSION/RÉDUCTION DES PHASES ===
   const [phasesOuvertes, setPhasesOuvertes] = useState(phasesMetier.map(() => false));
 
@@ -326,179 +354,108 @@ const DebugPanel = () => (
   }
 
   return (
-    <div className="container-preparation">
-      {/* Affichage de la date de début de jeûne */}
-      <div style={{background:'#e3f2fd',borderRadius:8,padding:'10px 18px',marginBottom:18,fontWeight:600,fontSize:'1.08em',color:'#1976d2'}}>
-        Date de début de jeûne : {dateJeune ? formatDateAffichage(dateJeune) : <span style={{color:'#f00'}}>Non renseignée</span>}
-      </div>
-      {/* Affichage dynamique des périodes pour chaque phase */}
-      {phasesMetier.map((phase, idx) => {
-        const dateDebut = getDateFromJalon(phase.debut);
-        const dateFin = getDateFromJalon(phase.fin);
-        return (
-          <div key={phase.nom} style={{background:'#f9fbe7',borderRadius:8,padding:'8px 14px',marginBottom:10}}>
-            <strong>{phase.nom}</strong> — {phase.explication}<br/>
-            <span style={{color:'#388e3c',fontWeight:500}}>Période : {dateDebut ? formatDateAffichage(dateDebut) : '...'} à {dateFin ? formatDateAffichage(dateFin) : '...'}</span>
-          </div>
-        );
-      })}
-      <h1 style={{ color: "#1976d2", fontWeight: 800, fontSize: "2.2rem", marginBottom: 18 }}>
-        Préparation à mon jeûne
-      </h1>
-      <p style={{ fontSize: "1.15rem", color: "#444", marginBottom: 24 }}>
-        Cette page te guide pas à pas pour préparer ton jeûne dans les meilleures conditions. Suis chaque étape pour maximiser tes chances de réussite et éviter les pièges classiques.
-      </p>
-      <div style={{ background: "#f8f8fc", borderRadius: 14, boxShadow: "0 2px 8px #0001", padding: "1.2rem 1.1rem", marginBottom: "2rem" }}>
-        <h2 style={{ color: "#388e3c", fontWeight: 700, fontSize: "1.15rem", marginBottom: 8 }}>
-          Démarre ta préparation
-        </h2>
-        {!preparationActive ? (
-          <>
-            <p style={{ color: "#555", fontSize: "1.05rem", marginBottom: 12 }}>
-              Clique sur le bouton ci-dessous pour commencer ton suivi de préparation, valider chaque critère et suivre ta progression jour après jour.
-            </p>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              aria-label="Démarrer mon suivi de préparation"
-              style={{
-                background: "linear-gradient(90deg, #43cea2 0%, #185a9d 100%)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "12px 32px",
-                fontWeight: 700,
-                fontSize: 18,
-                cursor: "pointer",
-                marginBottom: 8
-              }}
-              autoFocus
-            >
-              Démarrer mon suivi de préparation
-            </button>
-            <div aria-live="polite" style={{ minHeight: 24, marginTop: 8 }}>
-              {/* Zone de feedback dynamique pour lecteurs d’écran */}
-            </div>
-          </>
-        ) : (
-          <>
-            <p style={{ color: "#388e3c", fontWeight: 600, fontSize: "1.08rem", marginBottom: 0 }} aria-live="polite">
-              ✅ Suivi de préparation activé. Tu peux valider tes critères et suivre ta progression !
-            </p>
-            {preparationActive && (
-              <button onClick={handleResetPreparation} style={{ marginTop: '14px', backgroundColor: '#f44336', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}>
+    <div style={{ background: '#F5F8FA', minHeight: '100vh', paddingBottom: 40 }}>
+      <Navigation />
+      <HeaderPreparation />
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 12px' }}>
+        {/* Feedback global */}
+        {feedbackMessage && (
+          <Feedback type={feedbackMessage.startsWith('✅') ? 'success' : feedbackMessage.startsWith('⛔') || feedbackMessage.startsWith('❌') ? 'error' : 'info'}>
+            {feedbackMessage}
+          </Feedback>
+        )}
+        {/* Date de début de jeûne */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: '14px 22px', marginBottom: 24, fontWeight: 600, fontSize: '1.08em', color: '#4F8FFF', boxShadow: '0 2px 8px 0 rgba(79,143,255,0.07)', border: '1px solid #E3EAF2', maxWidth: 420, marginLeft: 'auto', marginRight: 'auto' }}>
+          Date de début de jeûne : {dateJeune ? formatDateAffichage(dateJeune) : <span style={{ color: '#FF6B6B' }}>Non renseignée</span>}
+        </div>
+        {/* Timeline moderne */}
+        <TimelinePreparation
+          phases={phasesMetier.map(phase => ({
+            nom: phase.nom,
+            debut: phase.debut,
+            fin: phase.fin,
+            icone: phase.nom === 'Fondations' ? '🧱' : phase.nom === 'Intensification' ? '⚡' : '🚀',
+            couleur: phase.nom === 'Fondations' ? '#FFD166' : phase.nom === 'Intensification' ? '#4F8FFF' : '#43D9A3',
+          }))}
+          currentDay={jCourant}
+        />
+        {/* Progression globale */}
+        <ProgressBar value={progression} max={criteresMetier.length} />
+        {/* Phases et critères */}
+        {phasesMetier.map((phase, idx) => (
+          <PhaseCard
+            key={phase.nom}
+            phase={{
+              nom: phase.nom,
+              explication: phase.explication,
+              periode: `${getDateFromJalon(phase.debut) ? formatDateAffichage(getDateFromJalon(phase.debut)) : '...'} à ${getDateFromJalon(phase.fin) ? formatDateAffichage(getDateFromJalon(phase.fin)) : '...'}`
+            }}
+            criteres={criteres.filter(c => c.jalon === phase.debut || c.jalon === phase.fin || (c.jalon <= phase.debut && c.jalon >= phase.fin))}
+            onValider={preparationActive ? validerCritere : undefined}
+          />
+        ))}
+        {/* Message personnel */}
+        <section style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px 0 rgba(79,143,255,0.07)', border: '1px solid #E3EAF2', padding: '18px 22px', margin: '32px 0', maxWidth: 600, marginLeft: 'auto', marginRight: 'auto' }}>
+          <h3 style={{ color: '#4F8FFF', fontWeight: 700, fontSize: '1.13rem', marginBottom: 8 }}>📝 Mon message à moi-même pour le jour du jeûne</h3>
+          <textarea
+            value={messagePerso}
+            onChange={handleMessageChange}
+            placeholder="Écris-toi un message de motivation pour le jour J..."
+            style={{ width: '100%', minHeight: 60, borderRadius: 8, border: '1.5px solid #E3EAF2', padding: 10, fontSize: '1.05em', fontFamily: 'Inter, Roboto, Arial, sans-serif', marginBottom: 6 }}
+          />
+          <div style={{ color: '#6B778C', fontSize: '0.98em' }}>Ce message te sera rappelé le jour J pour renforcer ta motivation.</div>
+        </section>
+        {/* Bloc de démarrage ou de réinitialisation de la préparation */}
+        <div style={{ textAlign: 'center', margin: '32px 0' }}>
+          {!preparationActive ? (
+            <>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                aria-label="Démarrer mon suivi de préparation"
+                style={{
+                  background: 'linear-gradient(90deg, #4F8FFF 0%, #43D9A3 100%)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '14px 36px',
+                  fontWeight: 800,
+                  fontSize: 18,
+                  cursor: 'pointer',
+                  marginBottom: 8,
+                  boxShadow: '0 2px 8px 0 rgba(79,143,255,0.10)',
+                  fontFamily: 'Inter, Roboto, Arial, sans-serif',
+                  letterSpacing: 0.5
+                }}
+                autoFocus
+                type="button"
+              >
+                Démarrer mon suivi de préparation
+              </button>
+              <StartPreparationModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleStartPreparationModal}
+                userId={userId}
+              />
+              {authError && (
+                <div style={{color:'#FF6B6B',fontWeight:700,marginTop:12}}>{authError}</div>
+              )}
+              <div aria-live="polite" style={{ minHeight: 24, marginTop: 8 }}>
+                {/* Zone de feedback dynamique pour lecteurs d’écran */}
+              </div>
+            </>
+          ) : (
+            <>
+              <p style={{ color: '#43D9A3', fontWeight: 700, fontSize: '1.08rem', marginBottom: 0 }} aria-live="polite">
+                ✅ Suivi de préparation activé. Tu peux valider tes critères et suivre ta progression !
+              </p>
+              <button onClick={handleResetPreparation} style={{ marginTop: '14px', backgroundColor: '#FF6B6B', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: 16, fontFamily: 'Inter, Roboto, Arial, sans-serif' }}>
                 Réinitialiser ma préparation
               </button>
-            )}
-          </>
-        )}
-      </div>
-      {/* Timeline de préparation dynamique conforme fiche métier */}
-      {preparationActive && (
-        <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 2px 8px #0001', padding: '1.2rem 1.1rem', marginBottom: '2rem' }}>
-          <h2 style={{ color: '#1976d2', fontWeight: 800, fontSize: '1.3rem', marginBottom: 8 }}>Timeline de préparation</h2>
-          <div style={{ color: '#388e3c', fontWeight: 700, fontSize: '1.08rem', marginBottom: 8 }}>
-            Progression globale : {progression}/9 critères validés
-          </div>
-          <div style={{ height: 8, background: '#e3f2fd', borderRadius: 6, marginBottom: 18 }}>
-            <div style={{ width: `${(progression/9)*100}%`, height: '100%', background: '#1976d2', borderRadius: 6 }}></div>
-          </div>
-          {phasesMetier.map((phase, idx) => (
-            <div key={phase.nom} style={{ marginBottom: 24 }}>
-              <div style={{ fontWeight: 700, color: '#1976d2', fontSize: '1.12rem', marginBottom: 4, cursor: 'pointer', userSelect: 'none' }} onClick={() => togglePhase(idx)}>
-                {phasesOuvertes[idx] ? '−' : '+'} PHASE {phase.nom.toUpperCase()} ({phase.debut === phase.fin ? `J-${phase.debut}` : `J-${phase.debut} à J-${phase.fin}`})
-              </div>
-              {phasesOuvertes[idx] && (
-                <>
-                  <div style={{ color: '#444', fontSize: '1.01rem', marginBottom: 10 }}>{phase.explication}</div>
-                  {phase.criteres.map(critere => {
-                    const estDebloque = jCourant !== null && jCourant <= critere.jalon;
-                    return (
-                      <div key={critere.id} style={{ borderBottom: '1px solid #e0e0e0', paddingBottom: 12, marginBottom: 12 }}>
-                        <div style={{ fontWeight: 700, color: estDebloque ? '#1976d2' : '#888', fontSize: '1.07rem' }}>{critere.titre}</div>
-                        <div style={{ color: '#555', fontSize: '0.99rem', marginBottom: 4 }}>{critere.conseil}</div>
-                        <div style={{ color: '#888', fontSize: '0.97rem', marginBottom: 4 }}>Jalon : J-{critere.jalon}</div>
-                        {!estDebloque ? (
-                          <div style={{ color: '#f44336', fontWeight: 600, fontSize: '0.98rem', display: 'flex', alignItems: 'center', gap: '0.5em' }}>
-                            <span aria-hidden="true" style={{ fontSize: '1.2em' }}>🔒</span>
-                            Critère verrouillé — Débloquage automatique le J-{critere.jalon}
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => validerCritere(critere.id)}
-                            style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 22px', fontWeight: 700, fontSize: 16, cursor: 'pointer', marginTop: 6 }}
-                            disabled={criteres.find(c => c.id === critere.id)?.valide}
-                            aria-label={`Valider le critère ${critere.titre}`}
-                          >
-                            {criteres.find(c => c.id === critere.id)?.valide ? 'Critère validé' : 'Valider ce critère'}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-      {/* Message personnel */}
-      <div style={{ background: '#f8f8fc', borderRadius: 12, boxShadow: '0 1px 6px #e0e0e0', padding: '1.2rem 1.1rem', marginBottom: 18 }}>
-        <h3 style={{ color: '#1976d2', fontWeight: 700, fontSize: '1.1rem', marginBottom: 10 }}>📝 Mon message à moi-même pour le jour du jeûne</h3>
-        <textarea
-          value={messagePerso}
-          onChange={handleMessageChange}
-          placeholder="Je me prépare depuis 30 jours. Mon corps est prêt. Mon esprit est aligné..."
-          style={{ width: '100%', minHeight: 60, borderRadius: 8, border: '1px solid #bdbdbd', padding: 10, fontSize: 15, marginBottom: 8 }}
-        />
-        <div style={{ color: '#888', fontSize: '0.98rem' }}>
-          Ce message te sera rappelé le jour J pour renforcer ta motivation.
+            </>
+          )}
         </div>
       </div>
-      {/* Synthèse finale (affichée si tous les critères sont validés) */}
-      {syntheseVisible && (
-        <div style={{ background: '#e8f5e9', borderRadius: 12, boxShadow: '0 1px 6px #c8e6c9', padding: '1.2rem 1.1rem', marginBottom: 18 }}>
-          <h3 style={{ color: '#388e3c', fontWeight: 700, fontSize: '1.1rem', marginBottom: 10 }}>🎉 Préparation terminée !</h3>
-          <div style={{ color: '#444', fontSize: '1.08rem', marginBottom: 8 }}>
-            Bravo, tu as validé tous les critères de préparation. Tu es prêt(e) pour ton jeûne !
-          </div>
-          <div style={{ color: '#1976d2', fontWeight: 600, marginBottom: 6 }}>Ton message à toi-même :</div>
-          <div style={{ background: '#fff', borderRadius: 8, padding: 10, color: '#333', fontStyle: 'italic', marginBottom: 8 }}>{messagePerso || <span style={{ color: '#888' }}>[Aucun message saisi]</span>}</div>
-        </div>
-      )}
-      {/* Message de feedback */}
-      {feedbackMessage && (
-        <div
-          className="feedback-message"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          style={{ marginBottom: 12, padding: '10px 18px', borderRadius: '8px', background: '#e6f7ff', color: '#005580', fontWeight: 600, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', display: 'flex', alignItems: 'center', gap: '0.7em' }}
-        >
-          <span style={{ fontSize: '1.3em' }} aria-hidden="true">✅</span>
-          <span>{feedbackMessage}</span>
-        </div>
-      )}
-      <div style={{ textAlign: "center", marginTop: 32 }}>
-        <Link href="/">
-          <button style={{
-            background: "#1976d2",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "10px 24px",
-            fontWeight: 600,
-            fontSize: 16,
-            cursor: "pointer"
-          }}>
-            🏠 Retour à l’accueil
-          </button>
-        </Link>
-      </div>
-      <StartPreparationModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleStartPreparationModal}
-      />
     </div>
   );
 }

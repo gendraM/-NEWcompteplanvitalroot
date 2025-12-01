@@ -423,6 +423,8 @@ import { useDefis } from './DefisContext';
 import { defisReferentiel } from '../lib/defisReferentiel';
 import { supabase } from '../lib/supabaseClient';
 
+// Note : supabase importé pour l'enregistrement des défis personnalisés
+
 // Sous-formulaires pour chaque défi (logique spécifique)
 function DefiPasDeDessert({ defi, refreshDefis }) {
     const [confirmation, setConfirmation] = useState(false);
@@ -600,39 +602,136 @@ function DefiChaudDoux({ defi, refreshDefis }) {
 
 export default function SaisieDefisDynamiques() {
     const { defisEnCours, refreshDefis } = useDefis();
-    if (!defisEnCours || defisEnCours.length === 0) return null;
+    // Hooks pour le formulaire personnalisé
+    const [showForm, setShowForm] = useState(false);
+    const [nom, setNom] = useState('');
+    const [description, setDescription] = useState('');
+    const [type, setType] = useState('alimentaire');
+    const [theme, setTheme] = useState('');
+    const [duree, setDuree] = useState('');
+    const [unite, setUnite] = useState('jour');
+    const [criteres, setCriteres] = useState('');
+    const [recurrence, setRecurrence] = useState('unique');
+    const [erreur, setErreur] = useState('');
+    const [message, setMessage] = useState('');
+
+    // Validation simple
+    const isValid = nom.trim() && description.trim() && duree.trim();
+
+    // Handler d'enregistrement avec insertion Supabase
+    const handleSave = async (e) => {
+        e.preventDefault();
+        setErreur(''); setMessage('');
+        if (!isValid) {
+            setErreur('Merci de remplir tous les champs obligatoires.');
+            return;
+        }
+
+        // Insertion dans Supabase
+        const { data, error: insertError } = await supabase
+            .from('defis')
+            .insert([{
+                type: type || 'personnalise',
+                theme: theme || 'Défi perso',
+                nom,
+                description,
+                duree: parseInt(duree, 10),
+                unite: unite || 'jour',
+                status: 'disponible',
+                progress: 0
+            }]);
+
+        if (insertError) {
+            console.error('Erreur insertion défi :', insertError.message);
+            setErreur(`❌ Erreur : ${insertError.message}`);
+            return;
+        }
+
+        setMessage('✅ Défi personnalisé créé avec succès !');
+        await refreshDefis();
+
+        // Réinitialisation après 2 secondes
+        setTimeout(() => {
+            setNom('');
+            setDescription('');
+            setType('alimentaire');
+            setTheme('');
+            setDuree('');
+            setUnite('jour');
+            setCriteres('');
+            setRecurrence('unique');
+            setMessage('');
+            setShowForm(false);
+        }, 2000);
+    };
+
     return (
         <div style={{margin:'24px 0'}}>
-            {defisEnCours.map(defi => {
-                if (defi.nom === '🍎 Pas de dessert par automatisme') {
-                    return <DefiPasDeDessert key={defi.id} defi={defi} refreshDefis={refreshDefis} />;
-                }
-                if (defi.nom === '🧠 Je suis plus fort·e que mes excuses') {
-                    return <DefiExcuses key={defi.id} defi={defi} refreshDefis={refreshDefis} />;
-                }
-                if (defi.nom === '💡 J’écoute mon ventre') {
-                    return <DefiEcouteVentre key={defi.id} defi={defi} refreshDefis={refreshDefis} />;
-                }
-                if (defi.nom === '🚫 Le faux allié') {
-                    return <DefiFauxAllie key={defi.id} defi={defi} refreshDefis={refreshDefis} />;
-                }
-                if (defi.nom === '🌡️ Chaud devant… mais doux !') {
-                    return <DefiChaudDoux key={defi.id} defi={defi} refreshDefis={refreshDefis} />;
-                }
-                if (defi.nom === '🔄 Je brise la chaîne') {
-                    return <DefiBriseChaine key={defi.id} defi={defi} refreshDefis={refreshDefis} />;
-                }
-                if (defi.nom === '🔥 1 vraie faim = 1 vrai repas') {
-                    return <DefiVraieFaim key={defi.id} defi={defi} refreshDefis={refreshDefis} />;
-                }
-                if (defi.nom === '✨ Je me programme du plaisir') {
-                    return <DefiPlaisir key={defi.id} defi={defi} refreshDefis={refreshDefis} />;
-                }
-                if (defi.nom === '💧 1 cru par jour') {
-                    return <DefiUnCru key={defi.id} defi={defi} refreshDefis={refreshDefis} />;
-                }
-                return null;
-            })}
+            <button onClick={() => setShowForm(v => !v)} style={{marginBottom:16, background:'#1976d2', color:'#fff', border:'none', borderRadius:6, padding:'8px 18px', fontWeight:600}}>
+                {showForm ? 'Annuler' : 'Créer un défi personnalisé'}
+            </button>
+            {showForm && (
+                <form onSubmit={handleSave} style={{background:'#f5f5f5', borderRadius:10, padding:18, marginBottom:24, boxShadow:'0 2px 8px #0001'}}>
+                    <h3>Créer un défi personnalisé</h3>
+                    <div style={{marginBottom:10}}>
+                        <label>Nom du défi* :
+                            <input type="text" value={nom} onChange={e => setNom(e.target.value)} style={{marginLeft:8, width:220}} required />
+                        </label>
+                    </div>
+                    <div style={{marginBottom:10}}>
+                        <label>Description* :<br/>
+                            <textarea value={description} onChange={e => setDescription(e.target.value)} style={{marginTop:4, width:320, minHeight:60}} required />
+                        </label>
+                    </div>
+                    <div style={{marginBottom:10}}>
+                        <label>Type :
+                            <select value={type} onChange={e => setType(e.target.value)} style={{marginLeft:8}}>
+                                <option value="alimentaire">Alimentaire</option>
+                                <option value="activité">Activité</option>
+                                <option value="autre">Autre</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div style={{marginBottom:10}}>
+                        <label>Thème :
+                            <input type="text" value={theme} onChange={e => setTheme(e.target.value)} style={{marginLeft:8, width:180}} />
+                        </label>
+                    </div>
+                    <div style={{marginBottom:10}}>
+                        <label>Durée :
+                            <input type="number" value={duree} onChange={e => setDuree(e.target.value)} style={{marginLeft:8, width:80}} min={0} />
+                        </label>
+                        <label style={{marginLeft:16}}>Unité :
+                            <select value={unite} onChange={e => setUnite(e.target.value)} style={{marginLeft:8}}>
+                                <option value="jour">Jour</option>
+                                <option value="semaine">Semaine</option>
+                                <option value="portion">Portion</option>
+                                <option value="minute">Minute</option>
+                                <option value="autre">Autre</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div style={{marginBottom:10}}>
+                        <label>Critères de validation :
+                            <input type="text" value={criteres} onChange={e => setCriteres(e.target.value)} style={{marginLeft:8, width:220}} placeholder="aliment, catégorie, kcal, portion…" />
+                        </label>
+                    </div>
+                    <div style={{marginBottom:10}}>
+                        <label>Récurrence :
+                            <select value={recurrence} onChange={e => setRecurrence(e.target.value)} style={{marginLeft:8}}>
+                                <option value="unique">Unique</option>
+                                <option value="quotidien">Quotidien</option>
+                                <option value="hebdomadaire">Hebdomadaire</option>
+                            </select>
+                        </label>
+                    </div>
+                    {erreur && <p style={{color:'red'}}>{erreur}</p>}
+                    {message && <p style={{color:'green'}}>{message}</p>}
+                    <button type="submit" style={{background:'#388e3c', color:'#fff', border:'none', borderRadius:6, padding:'8px 18px', fontWeight:600, marginTop:8}}>
+                        Enregistrer le défi
+                    </button>
+                </form>
+            )}
         </div>
     );
 }
