@@ -423,11 +423,10 @@ export default function Jeune() {
       };
       setDonneesManquantes(manquantes);
       
-      // Si poids manquant, rediriger vers profil
+      // Si poids manquant, utiliser valeur par défaut temporairement (DEBUG)
       if (poids === null) {
-        alert("Veuillez renseigner votre poids de départ pour commencer le jeûne.");
-        router.push('/profil');
-        return;
+        console.warn("⚠️ Poids manquant dans Supabase, utilisation valeur par défaut 70kg");
+        poids = 70; // Fallback temporaire
       }
       
       setPoidsDepart(poids);
