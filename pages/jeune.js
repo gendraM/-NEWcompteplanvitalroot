@@ -140,7 +140,7 @@ const JEUNE_DAYS_CONTENT = {
       "🧬 Corps (énergie) : Tes réserves de sucre sont à zéro depuis longtemps, mais ton cerveau utilise des corps cétoniques de manière fluide. C'est pour cela que tu peux te sentir plus stable, moins dans le 'haut/bas'.",
       "❤️ Ce que tu peux ressentir : Une sensation de simplicité intérieure. Comme si beaucoup de choses devenaient évidentes sans effort. Parfois aussi un petit vertige face à ce calme.",
       "📿 Sens & conscience : Aujourd'hui, tu vois la réalité de ton corps sans filtre. Pas ce que la faim te dicte, pas ce que les émotions réclament : ce qui est là, vraiment.",
-      "🧰 Outil du jour : Écris une phrase commençant par \"Je me sens…\" et laisse ton corps continuer la phrase. Pas ton mental. Ta sensation. Ton état du moment.",
+      "🧰 Outil du jour : Écris une phrase commençant par \'Je me sens…\' et laisse ton corps continuer la phrase. Pas ton mental. Ta sensation. Ton état du moment.",
       "💡 Conseil : Ne remplis pas ce calme. Laisse-le s'installer. C'est un des plus grands bénéfices du jeûne long : un esprit moins bruyant."
     ],
     message: "Ton corps fait le ménage. Ton esprit voit plus clair parce qu'il n'est plus encombré."
