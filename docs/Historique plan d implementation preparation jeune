@@ -1417,3 +1417,43 @@ Ce rapport est à compléter AVANT toute modification, puis à comparer avec l�
 |-------------------------------------------------------------|
 |  [ Démarrer ma préparation ]   [ Annuler ]                  |
 +-------------------------------------------------------------+
+
+
+
+
+
+Excellente remarque : il est crucial d’afficher clairement à l’utilisateur la phase métier en cours, les critères à valider aujourd’hui, et de garantir que le workflow colle à la réalité métier.
+
+Exemple concret (préparation jeune de 10 jours, début du jeûne le 24/11) :
+Date du jour : 23/11 (J-1)
+Date de début du jeûne : 24/11
+Durée de préparation : 10 jours
+Période de préparation : du 14/11 au 23/11 inclus
+Calcul du J-XX courant
+J = (date début jeûne - date du jour) = 1
+On est à J-1
+Phase affichée aujourd’hui (J-1)
+Selon la fiche métier :
+J-1 = Phase “Intensification” (ou “Palier 4” selon la structure)
+Les critères actifs à J-1 sont ceux dont le jalon est ≥ 1
+Critères à valider aujourd’hui (J-1)
+2 litres d’eau par jour
+Pas de repas après 19h
+Plage alimentaire limitée à 45 min/repas
+(et tout critère dont le jalon est ≤ 1 et non encore validé)
+Affichage attendu sur la page de saisie
+Un bandeau ou encadré “Phase en cours : Intensification (J-1)”
+Liste des critères actifs aujourd’hui, avec leur état (validé automatiquement ou non)
+Les critères des phases passées restent visibles (validés ou verrouillés)
+Les critères des phases futures sont grisés/verrouillés
+Workflow utilisateur
+L’utilisateur saisit ses repas du jour (avec l’heure).
+L’analyse automatique valide ou non les critères du jour.
+L’utilisateur voit en temps réel quels critères sont validés, lesquels restent à atteindre, et dans quelle phase il se trouve.
+Résumé du workflow à garantir :
+
+Calcul dynamique du J-XX et de la phase en cours selon la date du jour.
+Affichage explicite de la phase et des critères actifs à valider aujourd’hui.
+Validation automatique des critères via l’analyse des repas (et heure).
+Feedback métier immédiat et clair.
+Souhaitez-vous que j’implémente ce workflow dynamique et cet affichage explicite sur la page de saisie ?

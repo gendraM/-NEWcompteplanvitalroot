@@ -1,92 +1,14 @@
 // ...existing code...
 
-  // === PHASES MÉTIER STRICTES ===
-  const phasesMetier = [
-    {
-      nom: "Fondations",
-      debut: 30,
-      fin: 18,
-      explication: "Objectif : installer les bases, réapprendre les quantités, commencer à alléger la digestion.",
-      criteres: [
-        {
-          id: "quantites",
-          titre: "Respect strict des quantités à chaque repas",
-          conseil: "Réapprends à ton corps ce qu'est une vraie portion. Une portion = ce qui tient dans ta main fermée.",
-          jalon: 30
-        },
-        {
-          id: "feculent_soir",
-          titre: "Supprimer les féculents le soir (lun-dim)",
-          conseil: "Les féculents le soir ralentissent ta digestion. Prépare tes dîners sans féculents.",
-          jalon: 17
-        },
-        {
-          id: "action_post_repas",
-          titre: "Action immédiate après le repas (marche/ménage)",
-          conseil: "Bouge après chaque repas pour activer la digestion.",
-          jalon: 17
-        },
-        {
-          id: "produits_transformes",
-          titre: "Éliminer tous produits transformés",
-          conseil: "Privilégie le fait maison, évite les plats industriels.",
-          jalon: 14
-        },
-        {
-          id: "sucreries",
-          titre: "Éliminer toutes sucreries",
-          conseil: "Remplace les desserts sucrés par des fruits ou yaourts nature.",
-          jalon: 14
-        }
-      ]
-    },
-    {
-      nom: "Intensification",
-      debut: 12,
-      fin: 1,
-      explication: "Objectif : préparer le métabolisme, tester le jeûne, renforcer l’hydratation et la discipline horaire.",
-      criteres: [
-        {
-          id: "jeune_plein",
-          titre: "2 jours de jeûne plein (préparation métabolique)",
-          conseil: "Aucun aliment solide pendant 48h. Hydratation : eau, thé, café (sans sucre). Repos si besoin.",
-          jalon: 12
-        },
-        {
-          id: "eau",
-          titre: "2 litres d'eau par jour (suivi automatique)",
-          conseil: "Pense à t’hydrater régulièrement, répartis sur la journée.",
-          jalon: 7
-        },
-        {
-          id: "repas_avant_19h",
-          titre: "Pas de repas après 19h00",
-          conseil: "Anticipe progressivement l’heure du dîner.",
-          jalon: 7
-        },
-        {
-          id: "plage_45min",
-          titre: "Plage alimentaire limitée à 45 minutes par repas",
-          conseil: "Prends le temps de manger, mais limite la durée pour habituer ton corps.",
-          jalon: 7
-        }
-      ]
-    },
-    {
-      nom: "Jour J",
-      debut: 0,
-      fin: 0,
-      explication: "Objectif : lancer le jeûne, célébrer la préparation, se reconnecter à l’essentiel.",
-      criteres: [
-        {
-          id: "lancement_jeune",
-          titre: "Lancement de ton jeûne de 5 jours",
-          conseil: "Tu as validé tous les critères, tu es prêt(e) !",
-          jalon: 0
-        }
-      ]
-    }
-  ];
+  // === PHASES MÉTIER PARTAGÉES ===
+  import {
+    getPhasesPreparation,
+    getPhaseDuJour,
+    getCriteresDuJour,
+    validerCriteresDuJour
+  } from '../lib/preparationJeuneMetier';
+
+  const phasesMetier = getPhasesPreparation();
 import Link from "next/link";
 import React, { useEffect, useState } from 'react';
 import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif } from "../lib/validerCriterePreparation";
@@ -101,6 +23,8 @@ import { useSupabase } from '../lib/supabaseClient';
 // ...existing code...
 
 export default function PreparationJeune() {
+  // Hook pour le bouton de démarrage du jeûne (doit être en haut)
+  const [loadingJeune, setLoadingJeune] = useState(false);
   // Récupération du userId via Supabase
   const supabase = useSupabase();
   const [userId, setUserId] = useState(null);
@@ -138,8 +62,11 @@ export default function PreparationJeune() {
   const [jCourant, setJCourant] = useState(null);
   useEffect(() => {
     if (dateJeune) {
-      const diffJours = calculerJourRelatif(dateJeune, new Date());
-      setJCourant(diffJours);
+      // jour relatif = nombre de jours avant J0 (ex: -10)
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const diffJours = Math.max(0, Math.round((dateJeune - today) / (1000 * 60 * 60 * 24)));
+      setJCourant(-diffJours);
     }
   }, [dateJeune]);
 
@@ -374,23 +301,23 @@ const DebugPanel = () => (
             nom: phase.nom,
             debut: phase.debut,
             fin: phase.fin,
-            icone: phase.nom === 'Fondations' ? '🧱' : phase.nom === 'Intensification' ? '⚡' : '🚀',
-            couleur: phase.nom === 'Fondations' ? '#FFD166' : phase.nom === 'Intensification' ? '#4F8FFF' : '#43D9A3',
+            icone: phase.nom?.toLowerCase().includes('fondation') ? '🧱' : phase.nom?.toLowerCase().includes('intensification') ? '⚡' : '🚀',
+            couleur: phase.nom?.toLowerCase().includes('fondation') ? '#FFD166' : phase.nom?.toLowerCase().includes('intensification') ? '#4F8FFF' : '#43D9A3',
           }))}
           currentDay={jCourant}
         />
         {/* Progression globale */}
-        <ProgressBar value={progression} max={criteresMetier.length} />
-        {/* Phases et critères */}
+        <ProgressBar value={progression} max={phasesMetier.reduce((acc, phase) => acc + (phase.criteres?.length || 0), 0)} />
+        {/* Phases et critères (harmonisé avec module métier) */}
         {phasesMetier.map((phase, idx) => (
           <PhaseCard
-            key={phase.nom}
+            key={phase.id || phase.nom}
             phase={{
               nom: phase.nom,
-              explication: phase.explication,
-              periode: `${getDateFromJalon(phase.debut) ? formatDateAffichage(getDateFromJalon(phase.debut)) : '...'} à ${getDateFromJalon(phase.fin) ? formatDateAffichage(getDateFromJalon(phase.fin)) : '...'}`
+              explication: phase.objectif || phase.explication,
+              periode: `${phase.debut !== undefined && phase.fin !== undefined ? `J${phase.debut} à J${phase.fin}` : ''}`
             }}
-            criteres={criteres.filter(c => c.jalon === phase.debut || c.jalon === phase.fin || (c.jalon <= phase.debut && c.jalon >= phase.fin))}
+            criteres={phase.criteres}
             onValider={preparationActive ? validerCritere : undefined}
           />
         ))}
@@ -405,7 +332,7 @@ const DebugPanel = () => (
           />
           <div style={{ color: '#6B778C', fontSize: '0.98em' }}>Ce message te sera rappelé le jour J pour renforcer ta motivation.</div>
         </section>
-        {/* Bloc de démarrage ou de réinitialisation de la préparation */}
+        {/* Bloc de démarrage, réinitialisation ou bilan de la préparation */}
         <div style={{ textAlign: 'center', margin: '32px 0' }}>
           {!preparationActive ? (
             <>
@@ -446,9 +373,108 @@ const DebugPanel = () => (
             </>
           ) : (
             <>
-              <p style={{ color: '#43D9A3', fontWeight: 700, fontSize: '1.08rem', marginBottom: 0 }} aria-live="polite">
-                ✅ Suivi de préparation activé. Tu peux valider tes critères et suivre ta progression !
-              </p>
+              {/* Bilan dynamique de la préparation */}
+              <div style={{background:'#f8fafc',border:'2px solid #38bdf8',borderRadius:12,padding:'24px 18px',maxWidth:520,margin:'0 auto 24px auto',boxShadow:'0 2px 8px 0 rgba(56,189,248,0.07)'}}>
+                <h2 style={{color:'#0ea5e9',fontWeight:800,marginBottom:12}}>🎉 Bilan de ta préparation au jeûne</h2>
+                {/* Points forts */}
+                <div style={{marginBottom:14}}>
+                  <b style={{color:'#22c55e'}}>✅ Points forts</b>
+                  <ul style={{textAlign:'left',margin:'8px 0 0 0',paddingLeft:22}}>
+                    {criteres.filter(c=>c.valide).length > 0 ? criteres.filter(c=>c.valide).map(c=>(
+                      <li key={c.id} style={{color:'#16a34a',fontWeight:600}}>[✔️] {c.label}</li>
+                    )) : <li style={{color:'#64748b'}}>Aucun critère validé cette fois.</li>}
+                  </ul>
+                </div>
+                {/* Axes d’amélioration */}
+                <div style={{marginBottom:14}}>
+                  <b style={{color:'#f59e42'}}>⚠️ Axes d’amélioration</b>
+                  <ul style={{textAlign:'left',margin:'8px 0 0 0',paddingLeft:22}}>
+                    {criteres.filter(c=>!c.valide).length > 0 ? criteres.filter(c=>!c.valide).map(c=>(
+                      <li key={c.id} style={{color:'#f59e42',fontWeight:600}}>[❌] {c.label}</li>
+                    )) : <li style={{color:'#64748b'}}>Tous les critères ont été validés, bravo !</li>}
+                  </ul>
+                </div>
+                {/* Conseils personnalisés */}
+                <div style={{marginBottom:18}}>
+                  <b style={{color:'#0ea5e9'}}>💡 Conseils personnalisés</b>
+                  <ul style={{textAlign:'left',margin:'8px 0 0 0',paddingLeft:22}}>
+                    {criteres.filter(c=>!c.valide).length > 0 ? criteres.filter(c=>!c.valide).map(c=>(
+                      <li key={c.id} style={{color:'#0ea5e9'}}>
+                        {c.label.includes('féculent') && "Essaie d’anticiper tes repas pour éviter les féculents le soir."}
+                        {c.label.includes('jeûne plein') && "Planifie un week-end pour tester le jeûne plein la prochaine fois."}
+                        {c.label.includes('sucreries') && "Remplace les desserts sucrés par des fruits ou yaourts nature."}
+                        {c.label.includes('hydratation') && "Continue à bien t’hydrater : c’est déjà acquis !"}
+                        {!c.label.includes('féculent') && !c.label.includes('jeûne plein') && !c.label.includes('sucreries') && !c.label.includes('hydratation') && "Pense à valider ce critère la prochaine fois pour progresser !"}
+                      </li>
+                    )) : <li style={{color:'#0ea5e9'}}>Continue ainsi, tu es prêt(e) pour le jeûne !</li>}
+                  </ul>
+                </div>
+                <div style={{margin:'18px 0 0 0',fontWeight:600,color:'#0ea5e9',fontSize:'1.08em'}}>🚀 Tu peux maintenant démarrer la phase de jeûne !</div>
+                <div style={{margin:'8px 0 0 0',color:'#64748b',fontSize:'0.98em'}}>Même si tout n’est pas parfait, chaque préparation est un progrès. Tu pourras faire encore mieux la prochaine fois.</div>
+                <button
+                  style={{marginTop:'18px',background:'linear-gradient(90deg,#38bdf8 60%,#0ea5e9 100%)',color:'#fff',fontWeight:700,padding:'12px 32px',border:'none',borderRadius:8,fontSize:'1.1em',cursor:loadingJeune ? 'not-allowed' : 'pointer', opacity:loadingJeune ? 0.7 : 1}}
+                  disabled={loadingJeune}
+                  onClick={async () => {
+                    setLoadingJeune(true);
+                    setFeedbackMessage('⏳ Enregistrement du bilan et démarrage du jeûne...');
+                    try {
+                      // Préparation des données bilan (sans userId si non connecté)
+                      const bilan = {
+                        user_id: userId || null,
+                        date_fin_preparation: new Date().toISOString(),
+                        criteres_valides: criteres.filter(c=>c.valide).map(c=>c.label),
+                        criteres_non_valides: criteres.filter(c=>!c.valide).map(c=>c.label),
+                        message_perso: messagePerso,
+                        axes_amelioration: criteres.filter(c=>!c.valide).map(c=>c.label),
+                        conseils: criteres.filter(c=>!c.valide).map(c=>{
+                          if (c.label.includes('féculent')) return "Essaie d’anticiper tes repas pour éviter les féculents le soir.";
+                          if (c.label.includes('jeûne plein')) return "Planifie un week-end pour tester le jeûne plein la prochaine fois.";
+                          if (c.label.includes('sucreries')) return "Remplace les desserts sucrés par des fruits ou yaourts nature.";
+                          if (c.label.includes('hydratation')) return "Continue à bien t’hydrater : c’est déjà acquis !";
+                          return "Pense à valider ce critère la prochaine fois pour progresser !";
+                        })
+                      };
+                      // Si connecté, insertion en base + localStorage
+                      if (userId) {
+                        const { error: prepError } = await supabase.from('preparations_jeune').insert([bilan]);
+                        if (prepError) throw new Error('Erreur lors de l’enregistrement du bilan : ' + prepError.message);
+                        const debutJeune = {
+                          user_id: userId,
+                          date_debut: new Date().toISOString(),
+                          statut: 'en_cours'
+                        };
+                        const { error: jeuneError } = await supabase.from('jeune').insert([debutJeune]);
+                        if (jeuneError) throw new Error('Erreur lors du démarrage du jeûne : ' + jeuneError.message);
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem('phaseJeuneCommencee', 'true');
+                          localStorage.setItem('dateDebutJeune', new Date().toISOString());
+                          localStorage.setItem('bilanPreparationJeune', JSON.stringify(bilan));
+                        }
+                        setFeedbackMessage('✅ Bilan enregistré et jeûne démarré ! Redirection...');
+                      } else {
+                        // Non connecté : fallback localStorage uniquement
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem('phaseJeuneCommencee', 'true');
+                          localStorage.setItem('dateDebutJeune', new Date().toISOString());
+                          localStorage.setItem('bilanPreparationJeune', JSON.stringify(bilan));
+                        }
+                        setFeedbackMessage('⚠️ Bilan enregistré localement (non connecté). Tu pourras le synchroniser plus tard. Redirection...');
+                      }
+                      setTimeout(() => {
+                        window.location.href = '/jeune';
+                      }, 1200);
+                    } catch (err) {
+                      setFeedbackMessage('❌ ' + err.message);
+                    } finally {
+                      setLoadingJeune(false);
+                    }
+                  }}
+                >
+                  {loadingJeune ? 'Démarrage...' : 'Démarrer mon jeûne'}
+                </button>
+              // Ajout du state pour le bouton et feedback UX
+              const [loadingJeune, setLoadingJeune] = useState(false);
+              </div>
               <button onClick={handleResetPreparation} style={{ marginTop: '14px', backgroundColor: '#FF6B6B', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: 16, fontFamily: 'Inter, Roboto, Arial, sans-serif' }}>
                 Réinitialiser ma préparation
               </button>
