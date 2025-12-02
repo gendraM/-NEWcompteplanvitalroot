@@ -381,3 +381,84 @@ Procédure corrective :
 
 Leçon : AUCUNE ligne de code sans lecture complète fichiers + Anomalie roll back
 ════════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 01/12/2025 — GUILLEMETS IMBRIQUÉS NON ÉCHAPPÉS (RÉCURRENCE)
+════════════════════════════════════════════════════════════════════════
+Date/Heure : 01/12/2025
+Fichier : /pages/jeune.js
+Ligne : 143
+
+Erreur : Expected ',', got 'Je'
+  × Guillemets doubles imbriqués dans une chaîne JSX
+  "🧰 Outil du jour : Écris une phrase commençant par "Je me sens…" et laisse..."
+                                                         ↑        ↑
+                                                    Guillemets non échappés
+
+Contexte : Implémentation remplacement mockdata par Supabase réel
+  - Modification du contenu des jours de jeûne (JEUNE_DAYS_CONTENT)
+  - Jour 11, ligne 143 : texte avec citation "Je me sens…"
+  - Même type d'erreur que ligne 105 (Jour 8) corrigée précédemment
+
+Symptômes :
+  - Build Error Next.js : "Expected ',', got 'Je'"
+  - Compilation bloquée, impossible de démarrer le serveur
+  - Erreur détectée par Webpack au parsing du JSX
+
+Cause racine :
+  - Guillemets doubles (" ") utilisés DANS une chaîne déjà entre guillemets doubles
+  - JavaScript interprète le 2ème guillemet comme fin de chaîne
+  - Le reste du texte ("Je me sens...") devient du code invalide
+
+Solutions tentées :
+  ❌ Remplacement par apostrophes simples UTF-8 (' → ') : Non tenté (échec ligne 105)
+  ✅ Échappement avec backslash (\" \") : SOLUTION RETENUE
+
+Correction appliquée (01/12/2025) :
+  AVANT (ligne 143) :
+  "🧰 Outil du jour : Écris une phrase commençant par "Je me sens…" et laisse ton corps continuer la phrase."
+
+  APRÈS :
+  "🧰 Outil du jour : Écris une phrase commençant par \"Je me sens…\" et laisse ton corps continuer la phrase."
+
+Résultat :
+  ✅ Compilation : Succès (npm run dev)
+  ✅ ESLint : Aucune erreur
+  ✅ Page /jeune accessible
+
+Procédure corrective pour futures modifications :
+  1. **AVANT toute modification de JEUNE_DAYS_CONTENT :**
+     - Rechercher TOUS les guillemets doubles dans le texte
+     - Vérifier chaque occurrence de citation ou dialogue
+     - Identifier les lignes concernées
+  
+  2. **Stratégie d'échappement systématique :**
+     - Guillemets doubles INTERNES → Toujours échapper : \"texte\"
+     - Apostrophes simples → Utiliser \' si nécessaire
+     - Points de suspension … → Vérifier encodage UTF-8 compatible
+  
+  3. **Validation post-modification :**
+     - get_errors après chaque remplacement
+     - Test compilation npm run dev
+     - Vérification visuelle page /jeune
+
+Leçons apprises (récurrence anomalie) :
+  ⚠️ Cette erreur revient régulièrement sur le contenu textuel français
+  ⚠️ Les citations françaises (« », " ") sont particulièrement problématiques
+  ⚠️ Solution universelle : TOUJOURS échapper les guillemets internes avec \"
+  ⚠️ Automatiser la détection : grep '"[^"]*"[^"]*"' avant commit
+
+Étape du plan non respectée :
+  - Checklist qualité Étape 3 : "Pas d'apostrophes UTF-8 (` → ')"
+  - Extension nécessaire : "Pas de guillemets non échappés dans les chaînes JSX"
+
+Action de documentation :
+  ✅ Anomalie ajoutée dans "Anomalie roll back" (01/12/2025)
+  ✅ Mise à jour plan d'implémentation recommandée
+  ✅ Ajout checklist contrôle guillemets dans Template.md (à faire)
+
+Traçabilité Git :
+  - Commit recommandé : "fix(jeune): Échappement guillemets ligne 143 jour 11"
+  - Référence anomalie : Ligne 143 - Jour 11 JEUNE_DAYS_CONTENT
+════════════════════════════════════════════════════════════════════════
+

@@ -102,7 +102,7 @@ const JEUNE_DAYS_CONTENT = {
       "❤️ Ce que tu peux ressentir : Une sensation de vide propre, parfois accompagnée d'une légère tristesse ou nostalgie. C'est normal : tu t'es longtemps rempli pour ne pas sentir ces zones-là. Maintenant, tu les vois.",
       "📿 Sens & conscience : Tu n'es pas en manque, tu es en simplification. Tu apprends à vivre en contact direct avec tes sensations, sans coussin alimentaire par-dessus.",
       "🧰 Outil du jour : Quand l'ennui, la tristesse ou le vide se pointent, au lieu de les fuir, nomme-les : « Là, je ressens du vide », « Là, je ressens de la tristesse ». Tu les regardes, tu ne les manges plus.",
-      "💡 Conseil : Ne rajoute pas 1000 projets pour combler ce vide. Laisse-toi au moins un moment dans la journée où il ne se passe "rien". C'est là que ton jeûne travaille aussi sur ta vie intérieure."
+      "💡 Conseil : Ne rajoute pas 1000 projets pour combler ce vide. Laisse-toi au moins un moment dans la journée où il ne se passe 'rien'. C'est là que ton jeûne travaille aussi sur ta vie intérieure."
     ],
     message: "Tu apprends à ne plus remplir systématiquement le vide. Tu le regardes, et c'est déjà une transformation majeure."
   },
@@ -140,7 +140,7 @@ const JEUNE_DAYS_CONTENT = {
       "🧬 Corps (énergie) : Tes réserves de sucre sont à zéro depuis longtemps, mais ton cerveau utilise des corps cétoniques de manière fluide. C'est pour cela que tu peux te sentir plus stable, moins dans le 'haut/bas'.",
       "❤️ Ce que tu peux ressentir : Une sensation de simplicité intérieure. Comme si beaucoup de choses devenaient évidentes sans effort. Parfois aussi un petit vertige face à ce calme.",
       "📿 Sens & conscience : Aujourd'hui, tu vois la réalité de ton corps sans filtre. Pas ce que la faim te dicte, pas ce que les émotions réclament : ce qui est là, vraiment.",
-      "🧰 Outil du jour : Écris une phrase commençant par "Je me sens…" et laisse ton corps continuer la phrase. Pas ton mental. Ta sensation. Ton état du moment.",
+      "🧰 Outil du jour : Écris une phrase commençant par \'Je me sens…\' et laisse ton corps continuer la phrase. Pas ton mental. Ta sensation. Ton état du moment.",
       "💡 Conseil : Ne remplis pas ce calme. Laisse-le s'installer. C'est un des plus grands bénéfices du jeûne long : un esprit moins bruyant."
     ],
     message: "Ton corps fait le ménage. Ton esprit voit plus clair parce qu'il n'est plus encombré."
@@ -203,6 +203,50 @@ const OUTILS_SUGGESTIONS = [
   "Musique apaisante",
   "Soutien d’un proche"
 ];
+// === FONCTIONS ASYNC SUPABASE (REMPLACENT MOCKDATA) ===
+async function getRepasRecentsAsync() {
+  const { data } = await supabase
+    .from('repas_reels')
+    .select('aliment, categorie, est_extra')
+    .order('date', { ascending: false })
+    .limit(3);
+  
+  return data || [];
+}
+
+async function fetchPoidsDepart() {
+  const { data: profil } = await supabase
+    .from('profil')
+    .select('poids_de_depart')
+    .limit(1)
+    .single();
+  
+  if (profil?.poids_de_depart) return profil.poids_de_depart;
+  
+  const { data: historique } = await supabase
+    .from('historique_poids')
+    .select('poids')
+    .order('date', { ascending: false })
+    .limit(1)
+    .single();
+  
+  if (historique?.poids) return historique.poids;
+  
+  return null;
+}
+
+async function getDernierRepasAsync() {
+  const { data } = await supabase
+    .from('repas_reels')
+    .select('aliment, categorie')
+    .order('date', { ascending: false })
+    .limit(1)
+    .single();
+  
+  return data || null;
+}
+// === FIN FONCTIONS ASYNC ===
+
 
 function analyseComportementale(repasRecents = []) {
   const extras = repasRecents.reduce((acc, r) => acc + (r.est_extra ? 1 : 0), 0);
@@ -263,7 +307,7 @@ export default function Jeune() {
   const [dureeJeune, setDureeJeune] = useState(5);
   const [jourEnCours, setJourEnCours] = useState(1);
   const [joursValides, setJoursValides] = useState([]);
-  const [poidsDepart, setPoidsDepart] = useState(0);
+  const [poidsInitial, setPoidsInitial] = useState(0);
   const [messagePerso, setMessagePerso] = useState("");
   const [showMessagePerso, setShowMessagePerso] = useState(false);
   const [outils, setOutils] = useState({});
@@ -278,10 +322,23 @@ export default function Jeune() {
   const [planValideCoherent, setPlanValideCoherent] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
 
+  // Hooks pour données Supabase réelles
+  const [repasRecentsSupabase, setRepasRecentsSupabase] = useState([]);
+  const [poidsDepart, setPoidsDepart] = useState(null);
+  const [dernierRepasSupabase, setDernierRepasSupabase] = useState(null);
+  const [loadingDonneesJeune, setLoadingDonneesJeune] = useState(true);
+  const [donneesManquantes, setDonneesManquantes] = useState({ poids: false, repas: false });
+
   // === VARIABLES CALCULÉES ===
-  const repasRecents = getRepasRecents();
+  const repasRecents = loadingDonneesJeune 
+    ? getRepasRecents() 
+    : (repasRecentsSupabase.length > 0 ? repasRecentsSupabase : getRepasRecents());
+  
   const analyse = analyseComportementale(repasRecents);
-  const dernierRepas = getDernierRepas();
+  
+  const dernierRepas = loadingDonneesJeune 
+    ? getDernierRepas() 
+    : (dernierRepasSupabase || getDernierRepas());
 
   // === EFFETS (APRÈS HOOKS) ===
   // Charger depuis localStorage au montage client (évite hydration error)
@@ -290,7 +347,7 @@ export default function Jeune() {
     setDureeJeune(loadState("dureeJeune", 5));
     setJourEnCours(loadState("jourEnCours", 1));
     setJoursValides(loadState("joursValides", []));
-    setPoidsDepart(loadState("poidsDepart", getPoidsDepart()));
+    setPoidsInitial(loadState("poidsDepart", 0));
     setMessagePerso(loadState("messagePerso", ""));
     setOutils(loadState("outilsJeune", {}));
     setDateDebutJeune(loadState("dateDebutJeune", null));
@@ -341,6 +398,43 @@ export default function Jeune() {
   useEffect(() => { if (isClient) saveState("messagePerso", messagePerso); }, [messagePerso, isClient]);
   useEffect(() => { if (isClient) saveState("outilsJeune", outils); }, [outils, isClient]);
   useEffect(() => { if (isClient) saveState("dateDebutJeune", dateDebutJeune); }, [dateDebutJeune, isClient]);
+
+  // Chargement des données Supabase au montage (mono-utilisateur)
+  useEffect(() => {
+    if (!isClient) return; // Attendre montage client (éviter SSR)
+    
+    async function chargerDonneesJeune() {
+      setLoadingDonneesJeune(true);
+      
+      // Charger en parallèle
+      const [repas, poids, dernierRepas] = await Promise.all([
+        getRepasRecentsAsync(),
+        fetchPoidsDepart(),
+        getDernierRepasAsync()
+      ]);
+      
+      setRepasRecentsSupabase(repas);
+      setDernierRepasSupabase(dernierRepas);
+      
+      // Détecter données manquantes
+      const manquantes = {
+        poids: poids === null,
+        repas: repas.length === 0
+      };
+      setDonneesManquantes(manquantes);
+      
+      // Si poids manquant, utiliser valeur par défaut temporairement (DEBUG)
+      if (poids === null) {
+        console.warn("⚠️ Poids manquant dans Supabase, utilisation valeur par défaut 70kg");
+        poids = 70; // Fallback temporaire
+      }
+      
+      setPoidsDepart(poids);
+      setLoadingDonneesJeune(false);
+    }
+    
+    chargerDonneesJeune();
+  }, [isClient, router]);
 
   // Initialiser date de début du jeûne si pas définie
   useEffect(() => {
@@ -603,8 +697,44 @@ export default function Jeune() {
         </div>
       )}
 
+      {/* --- Indicateur chargement données --- */}
+      {loadingDonneesJeune && (
+        <div style={{ 
+          padding: '12px', 
+          background: '#fff3cd', 
+          border: '1px solid #ffc107',
+          borderRadius: '8px',
+          marginBottom: '15px',
+          fontSize: '14px',
+          color: '#856404'
+        }}>
+          ⏳ Chargement de vos données personnelles...
+        </div>
+      )}
+
+      {/* --- Invitation saisir repas si données manquantes --- */}
+      {donneesManquantes.repas && jourEnCours === 1 && !loadingDonneesJeune && (
+        <div style={{
+          background: "#e3f2fd", border: "1px solid #64b5f6", borderRadius: 12, padding: 16, marginBottom: 18
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>📋 Améliorer votre analyse</div>
+          <div style={{ marginBottom: 10 }}>
+            Pour une meilleure analyse comportementale, renseignez vos 3 derniers repas avant le jeûne.
+          </div>
+          <button
+            onClick={() => router.push('/suivi')}
+            style={{
+              background: "#2196f3", color: "#fff", border: "none", borderRadius: 8,
+              padding: "10px 18px", cursor: "pointer", fontWeight: 600, fontSize: 14
+            }}
+          >
+            Saisir mes repas
+          </button>
+        </div>
+      )}
+
       {/* --- Analyse comportementale pré-jeûne (Jour 1 uniquement) --- */}
-      {jourEnCours === 1 && (
+      {jourEnCours === 1 && !donneesManquantes.repas && (
         <div style={{
           background: "#fffde7", border: "1px solid #ffe082", borderRadius: 12, padding: 16, marginBottom: 18
         }}>

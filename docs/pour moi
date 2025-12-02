@@ -2,6 +2,14 @@
 Attends ma validation du plan explicitement (je dois cocher ‘Plan validé par l’utilisateur’) avant toute génération de code.
 Si je ne valide pas, propose-moi une version corrigée du plan. AUCUNE modification de code n’est autorisée tant que ce plan n’est pas validé.”
 
+Question a demander a copilot
+
+- as tu suivi toutes etape du plan ou tu as coché par automatisme ?
+- es tu garant de la proposition de code que tu vas intégrer es tu sure que chaque ligne de code ne viole aucune règle de contrôle qualité  ? 
+- tu t e sposé chaques question de la section amélioration continue ? montre tes réponses dans la conversation 
+- analyse le code que tu as fait  pour corriger l anomalie remontée, place toi en tant qu auditeur et identifie risque anomali et ecart au regard d ela Template que tu dois utiliser comme outil de contrôle
+- refais une verification type controle qualité en prenant en compte audit des risque réalisée et retour d experience via entrée du fichier roll back et anomalie et en utilisant le process documenté d amelioration continue dans la template pour t assurer que ta correction est conforme et fonctionnelle coté utilisateur 
+
 
 Règles à garder en tête pour travailler sereinement et efficacement sur mon app :
 

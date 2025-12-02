@@ -1,6 +1,6 @@
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import StartPreparationModal from "../components/StartPreparationModal";
 
@@ -20,6 +20,28 @@ export default function Home() {
     const url = `/preparation-jeune?${params.toString()}`;
     window.open(url, '_blank');
     setShowModal(false);
+  };
+
+  // --- BOUTON DYNAMIQUE JEÛNE ---
+  const [etatJeune, setEtatJeune] = useState({ phase: "aucune" });
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const prepActive = localStorage.getItem('preparationActive') === 'true';
+      const phaseJeune = localStorage.getItem('phaseJeuneCommencee') === 'true';
+      if (phaseJeune) setEtatJeune({ phase: "jeune" });
+      else if (prepActive) setEtatJeune({ phase: "preparation" });
+      else setEtatJeune({ phase: "aucune" });
+    }
+  }, []);
+
+  const handleClickJeune = () => {
+    if (etatJeune.phase === "jeune") {
+      router.push('/jeune');
+    } else if (etatJeune.phase === "preparation") {
+      router.push('/preparation-jeune');
+    } else {
+      router.push('/preparation-jeune');
+    }
   };
 
   return (
@@ -64,8 +86,8 @@ export default function Home() {
           }}>
           🌟 Mes idéaux / routines
         </Link>
-        <a
-          href="/start-preparation"
+        <button
+          onClick={handleClickJeune}
           style={{
             display: 'inline-block',
             padding: '0.75rem 1.5rem',
@@ -78,8 +100,12 @@ export default function Home() {
             cursor: 'pointer'
           }}
         >
-          🧘‍♂️ Me préparer à jeûner
-        </a>
+          {etatJeune.phase === "jeune"
+            ? "🚀 Accéder au suivi du jeûne"
+            : etatJeune.phase === "preparation"
+              ? "📝 Accéder à ma préparation"
+              : "🧘‍♂️ Me préparer à jeûner"}
+        </button>
       </p>
     </div>
   );
