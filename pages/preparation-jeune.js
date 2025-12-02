@@ -1,3 +1,32 @@
+// === DEBUG PERSISTANCE PRÉPARATION JEÛNE ===
+function DebugPreparationJeune() {
+  const [debugData, setDebugData] = useState({});
+  const refreshDebug = () => {
+    if (typeof window !== 'undefined') {
+      setDebugData({
+        preparationActive: localStorage.getItem('preparationActive'),
+        preparationData: localStorage.getItem('preparationData'),
+        criteresPreparation: localStorage.getItem('criteresPreparation'),
+        messagePersoPreparation: localStorage.getItem('messagePersoPreparation'),
+        phaseJeuneCommencee: localStorage.getItem('phaseJeuneCommencee'),
+        dateDebutJeune: localStorage.getItem('dateDebutJeune'),
+        bilanPreparationJeune: localStorage.getItem('bilanPreparationJeune'),
+      });
+    }
+  };
+  useEffect(() => { refreshDebug(); }, []);
+  return (
+    <div style={{background:'#f1f5f9',border:'1px solid #38bdf8',borderRadius:8,padding:12,margin:'18px 0',fontSize:13}}>
+      <b>DEBUG PRÉPARATION JEÛNE (localStorage)</b>
+      <button style={{marginLeft:12,padding:'2px 8px',fontSize:12}} onClick={refreshDebug}>Rafraîchir</button>
+      <ul style={{margin:'8px 0 0 0',paddingLeft:18}}>
+        {Object.entries(debugData).map(([k,v]) => (
+          <li key={k}><b>{k}</b> : <span style={{color:'#0ea5e9'}}>{v ? v : <i>vide</i>}</span></li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 // ...existing code...
 
   // === PHASES MÉTIER PARTAGÉES ===
@@ -285,6 +314,7 @@ const DebugPanel = () => (
       <Navigation />
       <HeaderPreparation />
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 12px' }}>
+        <DebugPreparationJeune />
         {/* Feedback global */}
         {feedbackMessage && (
           <Feedback type={feedbackMessage.startsWith('✅') ? 'success' : feedbackMessage.startsWith('⛔') || feedbackMessage.startsWith('❌') ? 'error' : 'info'}>
