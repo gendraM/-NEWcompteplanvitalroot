@@ -214,7 +214,7 @@ async function getRepasRecentsAsync() {
   return data || [];
 }
 
-async function getPoidsDepart Async() {
+async function fetchPoidsDepart() {
   const { data: profil } = await supabase
     .from('profil')
     .select('poids_de_depart')
@@ -409,7 +409,7 @@ export default function Jeune() {
       // Charger en parallèle
       const [repas, poids, dernierRepas] = await Promise.all([
         getRepasRecentsAsync(),
-        getPoidsDepart Async(),
+        fetchPoidsDepart(),
         getDernierRepasAsync()
       ]);
       
