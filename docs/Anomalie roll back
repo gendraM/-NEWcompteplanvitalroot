@@ -507,3 +507,114 @@ Leçon métier : Toujours utiliser router.push pour la navigation interne dans N
 Traçabilité Git : Commit correctif du 03/12/2025, patch sur index.js, aucune suppression de code, modification strictement additive.
 ═══════════════════════════════════════════════════════════════════════════════
 
+════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 02/12/2025 11:15 — REDIRECTION BLOQUANTE NON CONFORME AU BESOIN
+════════════════════════════════════════════════════════════════════════
+Date/Heure : 02/12/2025 11:15
+Fichier : /pages/jeune.js
+Ligne : 471-476 (code initial après implémentation plan validé)
+
+Erreur : Redirection automatique vers /preparation-jeune bloque utilisateurs légitimes
+  Code problématique :
+  ```javascript
+  if (!dateDebutJeune) {
+    console.warn("⚠️ Date de début manquante. Redirection vers préparation.");
+    router.push('/preparation-jeune'); // ❌ BLOQUE l'accès
+  }
+  ```
+
+Contexte : Implémentation "Récupération données préparation jeûne" selon plan validé
+  - Modification useEffect ligne 345 : Ajout récupération bilanPreparationJeune ✅
+  - Modification useEffect ligne 471 : Ajout validation date de début ❌
+
+Symptômes :
+  - Utilisateur arrive sur /jeune sans passer par /preparation-jeune
+  - Redirection forcée vers /preparation-jeune
+  - Impossible de démarrer un jeûne court (1-2 jours) sans préparation
+  - Workflow légitime bloqué : "Je note mon jeûne quotidien dans /suivi.js"
+
+Cause racine :
+  - Mauvaise compréhension du workflow applicatif
+  - Hypothèse fausse : "Tout jeûne doit passer par /jeune"
+  - Réalité : Jeûnes courts (1-2 jours) → /suivi.js uniquement
+  - Réalité : Jeûnes longs (≥3 jours) → Cycle complet préparation/jeûne/reprise
+  - La page /jeune est pour jeûnes structurés, pas obligatoire pour jeûnes courts
+
+Impact utilisateur :
+  - ❌ Utilisateur veut jeûner 1 jour → Bloqué, redirigé vers préparation inutile
+  - ❌ Utilisateur expérimenté saute préparation volontairement → Bloqué
+  - ❌ Workflow "noter jeûne dans suivi" cassé
+
+Étape du plan non respectée :
+  - Checklist Étape 4.2 : "Test du rendu sur tous les cas d'usage" → ❌ Pas fait
+  - Amélioration continue : "Ne jamais supposer qu'un état est synchronisé sans vérification concrète" → ❌ Violé
+  - Audit des risques Étape 1 : "Risque UX - Perte de données/fonctionnalités" → ❌ Non détecté
+
+Solutions tentées :
+  ❌ Redirection forcée vers /preparation-jeune (code initial)
+  ✅ ROLLBACK + CORRECTION (02/12/2025 11:20)
+
+Correction appliquée (02/12/2025 11:20) :
+  1. Suppression redirection bloquante ligne 471-476
+  2. Remplacement par auto-initialisation date :
+     ```javascript
+     if (!dateDebutJeune && jourEnCours === 1) {
+       const aujourdhui = new Date().toISOString().split('T')[0];
+       setDateDebutJeune(aujourdhui);
+     }
+     ```
+  3. Ajout bandeau informatif UI (Option B) :
+     - Affiché uniquement si dureeJeune > 2 jours ET pas de bilan préparation
+     - Message : "Pour un jeûne de plus de 2 jours, une préparation de 7 jours est recommandée..."
+     - Style : Bandeau jaune (#fff3cd), non bloquant, informatif
+  4. Suppression doublon setDateDebutJeune ligne 383
+
+Résultat après correction :
+  ✅ Compilation : Succès (ESLint 0 erreur)
+  ✅ Utilisateur peut démarrer jeûne sans préparation
+  ✅ Bandeau informatif affiché si jeûne long (>2 jours)
+  ✅ Pas de redirection forcée
+  ✅ Date auto-initialisée si manquante
+
+Procédure corrective pour futures modifications :
+  1. **Toujours clarifier le workflow complet AVANT de coder**
+     - Demander : "Quels sont TOUS les parcours utilisateurs possibles ?"
+     - Identifier : Cas nominal + cas alternatifs légitimes
+     - Valider : Chaque hypothèse avec l'utilisateur
+  
+  2. **Ne JAMAIS bloquer un workflow sans validation explicite**
+     - Redirection forcée = Décision métier critique
+     - Toujours proposer alternative non bloquante
+     - Préférer : Message informatif > Avertissement > Blocage
+  
+  3. **Tester TOUS les cas d'usage AVANT validation**
+     - Checklist Étape 4.2 : Non négociable
+     - Cas limites : Accès direct, données manquantes, workflow alternatif
+     - Runtime test : Obligatoire, pas seulement compilation
+  
+  4. **Audit post-implémentation systématique**
+     - Se poser les questions de la section amélioration continue
+     - Relecture code avec regard critique : "Qu'est-ce qui peut casser ?"
+     - Documentation honnête : Reconnaître les étapes sautées
+
+Leçons apprises (amélioration continue) :
+  ⚠️ Plan validé ≠ Besoin bien compris
+  ⚠️ Checklist complétée ≠ Tests effectués réellement
+  ⚠️ Compilation OK ≠ Code fonctionnel pour l'utilisateur
+  ⚠️ "Validation obligatoire" peut cacher une incompréhension métier
+  ✅ Toujours tester le "pourquoi pas" avant d'ajouter une contrainte
+  ✅ L'utilisateur a raison : Si workflow bloqué, c'est le code qui est faux
+
+Traçabilité Git :
+  - Commit recommandé : "fix(jeune): Rollback redirection bloquante + auto-init date + bandeau informatif"
+  - Référence anomalie : Ligne 471-476 - useEffect validation date
+  - Fichiers modifiés : /pages/jeune.js (lignes 383, 471-476, 641-660)
+  - Documentation : Anomalie roll back (ajout fin de fichier)
+
+Action de documentation :
+  ✅ Anomalie ajoutée dans "Anomalie roll back" (02/12/2025 11:25)
+  ✅ Rollback effectué avec correction conforme
+  ✅ Bandeau UI informatif ajouté (non bloquant)
+  ✅ Doublon setDateDebutJeune supprimé
+════════════════════════════════════════════════════════════════════════
+

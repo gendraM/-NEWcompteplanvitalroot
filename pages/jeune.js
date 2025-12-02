@@ -344,13 +344,43 @@ export default function Jeune() {
   // Charger depuis localStorage au montage client (évite hydration error)
   useEffect(() => {
     setIsClient(true);
-    setDureeJeune(loadState("dureeJeune", 5));
-    setJourEnCours(loadState("jourEnCours", 1));
+    
+    // Récupération du bilan de préparation au jeûne
+    let bilanPrepa = null;
+    try {
+      const bilanStr = loadState("bilanPreparationJeune", null);
+      if (bilanStr) {
+        bilanPrepa = typeof bilanStr === 'string' ? JSON.parse(bilanStr) : bilanStr;
+      }
+    } catch (e) {
+      console.error("⚠️ Bilan préparation corrompu :", e);
+    }
+    
+    // Initialisation avec priorité : bilan > localStorage > défaut
+    setDureeJeune(loadState("dureeJeune", bilanPrepa?.dureeJeune || 5));
+    
+    const dateDebut = loadState("dateDebutJeune", bilanPrepa?.dateDebut || null);
+    setDateDebutJeune(dateDebut);
+    
+    // Calcul du jour en cours depuis la date réelle de début
+    if (dateDebut) {
+      const diffMs = Date.now() - new Date(dateDebut).getTime();
+      const diffJours = Math.floor(diffMs / (1000*60*60*24)) + 1;
+      const duree = loadState("dureeJeune", bilanPrepa?.dureeJeune || 5);
+      const jourCalcule = Math.max(1, Math.min(diffJours, duree));
+      setJourEnCours(jourCalcule);
+    } else {
+      setJourEnCours(loadState("jourEnCours", 1));
+    }
+    
     setJoursValides(loadState("joursValides", []));
-    setPoidsInitial(loadState("poidsDepart", 0));
-    setMessagePerso(loadState("messagePerso", ""));
+    setPoidsInitial(loadState("poidsDepart", bilanPrepa?.poids_depart || 0));
+    
+    // Récupération du message personnel depuis le bilan de préparation
+    const msgPerso = bilanPrepa?.messagePerso || loadState("messagePerso", "");
+    setMessagePerso(msgPerso);
+    
     setOutils(loadState("outilsJeune", {}));
-    setDateDebutJeune(loadState("dateDebutJeune", null));
     const savedProgramme = loadState("programmeReprise", null);
     if (savedProgramme) setProgrammeReprise(savedProgramme);
     // Lire le plan validé si présent et vérifier la cohérence
@@ -436,7 +466,7 @@ export default function Jeune() {
     chargerDonneesJeune();
   }, [isClient, router]);
 
-  // Initialiser date de début du jeûne si pas définie
+  // Auto-initialisation de la date de début si manquante
   useEffect(() => {
     if (typeof window === 'undefined') return; // SSR guard
     if (!dateDebutJeune && jourEnCours === 1) {
@@ -611,6 +641,25 @@ export default function Jeune() {
     <div style={{ maxWidth: 700, margin: "0 auto", padding: 24, fontFamily: "system-ui, Arial, sans-serif" }}>
       <h1 style={{ textAlign: "center", marginBottom: 12 }}>🌙 Mon jeûne en cours</h1>
 
+      {/* Bandeau informatif si jeûne long sans préparation */}
+      {dureeJeune > 2 && !loadState("bilanPreparationJeune", null) && (
+        <div style={{
+          background: "#fff3cd", 
+          border: "1px solid #ffc107", 
+          borderRadius: 8, 
+          padding: 14, 
+          marginBottom: 18,
+          display: "flex",
+          alignItems: "start",
+          gap: 10
+        }}>
+          <span style={{ fontSize: 20 }}>💡</span>
+          <div style={{ flex: 1, fontSize: 14, lineHeight: 1.5, color: "#856404" }}>
+            <strong>Conseil :</strong> Pour un jeûne de plus de 2 jours, une préparation de 7 jours est recommandée pour optimiser les résultats et limiter les risques. Tu pourras en faire une la prochaine fois !
+          </div>
+        </div>
+      )}
+
       {/* --- Accueil du jeûne actif --- */}
       <div style={{
         background: "#e3f2fd", borderRadius: 12, padding: 18, marginBottom: 18, boxShadow: "0 1px 6px #90caf9aa"
@@ -618,6 +667,27 @@ export default function Jeune() {
         <div style={{ fontSize: 20, fontWeight: 700 }}>
           📆 Jour {jourEnCours} / {dureeJeune} – {contenuJour.titre}
         </div>
+        {dateDebutJeune && (
+          <div style={{ marginTop: 8, fontSize: 14, color: "#1565c0", display: "flex", flexDirection: "column", gap: 4 }}>
+            <div>
+              🗓️ Commencé le {new Date(dateDebutJeune).toLocaleDateString('fr-FR', { 
+                day: 'numeric', 
+                month: 'long', 
+                year: 'numeric' 
+              })}
+            </div>
+            <div style={{ fontSize: 13, color: "#64b5f6" }}>
+              Aujourd'hui : {new Date().toLocaleDateString('fr-FR', { 
+                weekday: 'long',
+                day: 'numeric', 
+                month: 'long'
+              })} • Fin prévue le {new Date(new Date(dateDebutJeune).getTime() + (dureeJeune - 1) * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', { 
+                day: 'numeric', 
+                month: 'long'
+              })}
+            </div>
+          </div>
+        )}
         <div style={{ marginTop: 6, color: "#1976d2" }}>
           {contenuJour.message}
         </div>
