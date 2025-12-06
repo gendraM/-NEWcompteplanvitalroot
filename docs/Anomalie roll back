@@ -603,7 +603,7 @@ Option B : Affichage conditionnel différent
   - Au lieu de {dateDebutJeune && (
   - Utiliser {isClient && preparationData?.startDate && (
   - Lire directement depuis localStorage dans le render
-
+resultat solution  - Moins propre mais contourne le problème de state   teste et valider
 Option C : Debug complet du state
   - Ajouter console.log avant/après chaque setDateDebutJeune
   - Vérifier que le composant re-render
@@ -620,3 +620,315 @@ ATTENTE VALIDATION UTILISATEUR avant toute modification.
 Prochaine étape : Validation utilisateur de l'option A, B ou C
 ════════════════════════════════════════════════════════════════════════
 
+
+════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 06/12/2025 — CARTE PHASES REPRISE NON-STICKY (BUG UI)
+════════════════════════════════════════════════════════════════════════
+Date/Heure : 06/12/2025
+Fichier : /pages/reprise-alimentaire-apres-jeune.js
+Contexte : Composant PhasesApercu (aside) affichant phases de reprise alimentaire
+
+Symptôme utilisateur :
+  - "ça bouge tjr" - La carte des phases bouge/scroll avec la page
+  - Comportement attendu : Carte fixe/sticky pendant le scroll
+  - Screenshot fourni : Carte "Phase 1 : Liquides" visible mais scrollable
+
+TENTATIVES RATÉES (à NE PLUS REPRODUIRE) :
+
+❌ Tentative 1 : Modification du mauvais composant
+  - Code modifié : modalAliments (lignes 876-897)
+  - Changement : position:fixed, top:50%, left:50%, transform:translate(-50%, -50%)
+  - Problème : modalAliments = popup modale (déjà bien positionnée)
+  - PhasesApercu = aside sidebar (composant à corriger)
+  - Utilisateur confirme : "non ca bouge tjr"
+  - Rollback : Aucun (modalAliments OK, mais pas le bon composant)
+
+❌ Tentative 2 : Ajout position:sticky au PhasesApercu <aside>
+  - Code modifié : Lignes 45-58 (style de l'aside interne dans PhasesApercu)
+  - Changement ajouté :
+    position: 'sticky', top: '1.5rem', alignSelf: 'flex-start',
+    maxHeight: 'calc(100vh - 3rem)', overflowY: 'auto'
+  - Problème : Composant PhasesApercu wrappé dans <aside> EXTERNE (lignes 465-475)
+  - Le wrapper externe avait position:sticky mais créait conflit
+  - Layout parent : display:flex, flexDirection:row (ligne 376)
+  - Utilisateur confirme : "NON J AI NPM RUN DEV ET LE PROBLEME PERISTE"
+  - Cause : Double wrapper <aside> crée conflit de positionnement
+
+❌ Tentative 3 : Suppression wrapper externe
+  - Code modifié : Lignes 465-475 supprimées
+  - Avant : <aside style={{position:sticky,...}}><PhasesApercu /></aside>
+  - Après : <PhasesApercu /> directement rendu
+  - Rationale : PhasesApercu a son <aside> avec position:sticky (tentative 2)
+  - Conflit résolu : 1 seul aside avec position:sticky au lieu de 2
+  - Utilisateur teste et rapporte : "non le probleme persiste"
+  - Échec : Suppression du wrapper ne résout pas le problème
+
+DIAGNOSTIC EXPERT :
+
+1. ARCHITECTURE ACTUELLE :
+   <div style={{display:'flex', flexDirection:'row'}}>  // Container principal
+     <main>...</main>                                    // Colonne centrale
+     <PhasesApercu />                                    // Colonne droite (à fixer)
+   </div>
+
+   PhasesApercu retourne : <aside style={{position:'sticky', top:'1.5rem', ...}}>
+
+2. PROPRIÉTÉS CSS ACTUELLES (PhasesApercu aside) :
+   ✅ position: 'sticky'
+   ✅ top: '1.5rem'
+   ✅ alignSelf: 'flex-start'
+   ✅ maxHeight: 'calc(100vh - 3rem)'
+   ✅ overflowY: 'auto'
+   ❓ Mais ne fonctionne toujours pas
+
+3. CAUSES POSSIBLES NON TESTÉES :
+   - Container parent a overflow hidden/auto qui casse le sticky
+   - Container parent sans hauteur définie (minHeight insuffisant)
+   - Sticky nécessite parent avec overflow:visible (default)
+   - Position sticky ne fonctionne pas dans flexbox row sans containment
+   - z-index insuffisant
+   - Cache navigateur (hard refresh nécessaire)
+
+4. LIMITATIONS position:sticky :
+   - Ne fonctionne PAS si ancestor a overflow:hidden/auto/scroll
+   - Ne fonctionne PAS si sticky element > container height
+   - Ne fonctionne PAS sans espace de scroll vertical
+   - Nécessite containing block avec overflow:visible
+
+SOLUTIONS NON TESTÉES (ROBUSTES) :
+
+Option 1 : Position fixed (BYPASS containment)
+  Code :
+    position: 'fixed',
+    right: '2rem',
+    top: '2rem',
+    width: '340px',
+    maxHeight: 'calc(100vh - 4rem)',
+    overflowY: 'auto'
+  Avantages : Toujours visible, bypasse flex container
+  Inconvénients : Sort du flux, peut chevaucher contenu
+
+Option 2 : Layout parent en CSS Grid
+  Code container principal :
+    display: 'grid',
+    gridTemplateColumns: '1fr 340px',
+    gap: '2.5rem',
+    alignItems: 'start'
+  PhasesApercu reste position:sticky
+  Avantages : Sticky fonctionne mieux dans grid
+  Inconvénients : Refactoring layout
+
+Option 3 : Wrapper avec overflow-y scroll explicite
+  Code :
+    <div style={{overflowY: 'scroll', height: '100vh'}}>
+      <div style={{display:'flex', flexDirection:'row'}}>
+        <main>...</main>
+        <PhasesApercu />
+      </div>
+    </div>
+  Avantages : Force contexte de scroll
+  Inconvénients : Change scroll behavior page
+
+Option 4 : Debug containment CSS
+  Code PhasesApercu :
+    position: 'sticky',
+    top: '1.5rem',
+    contain: 'layout',
+    isolation: 'isolate'
+  Avantages : Force contexte de stacking
+  Inconvénients : Propriétés CSS avancées
+
+Option 5 : Vérification cache navigateur
+  Action : Hard refresh (Ctrl+Shift+R)
+  Test : Inspecter élément DevTools (Computed styles)
+  Vérifier : position:sticky appliqué ?
+
+RECOMMANDATION EXPERTE (priorité) :
+
+1. DIAGNOSTIC (AVANT modification) :
+   ✅ Inspecter PhasesApercu dans Chrome DevTools
+   ✅ Vérifier position:sticky appliqué (Computed tab)
+   ✅ Vérifier aucun parent avec overflow:hidden/auto
+   ✅ Hard refresh (Ctrl+Shift+R) vider cache
+   ✅ Console.log render du composant
+
+2. SI position:sticky non appliqué → Option 5 (cache)
+3. SI sticky appliqué mais ne fonctionne pas → Option 1 (fixed)
+4. SI besoin layout robuste → Option 2 (grid)
+
+État actuel :
+  - Code : PhasesApercu avec position:sticky (lignes 45-65)
+  - Wrapper externe supprimé (ligne 465)
+  - Comportement : ❌ Carte bouge toujours
+  - Tentatives ratées : 3
+
+Prochaine étape : DIAGNOSTIC DevTools AVANT nouvelle modification
+════════════════════════════════════════════════════════════════════════
+
+❌ Tentative 4 (06/12/2025) : Position fixed avec calcul right dynamique
+  - Code modifié : Lignes 47-66 (style de l'aside dans PhasesApercu)
+  - Changement appliqué :
+    position: 'fixed',
+    right: 'calc((100vw - 1200px) / 2 + 2rem)',
+    top: '2rem',
+    width: 340,
+    maxHeight: 'calc(100vh - 4rem)',
+    overflowY: 'auto',
+    zIndex: 50
+  - Rationale : position fixed bypass tous les problèmes de containment flexbox
+  - Garantie agent : "95% que cette solution va fonctionner"
+  - Utilisateur teste et rapporte : "le probleme persite"
+  - Symptôme EXACT : "la modale bouge egalement c est insupportable"
+  - Problème additionnel : "tu as juste depasser la modale sur le cote gauche"
+  - Échec : Position fixed ne résout PAS le problème de scroll
+  - Cause probable : L'élément qui scroll n'est PAS l'aside mais un PARENT
+
+CONCLUSION DIAGNOSTIC APPROFONDI (06/12/2025) :
+
+🔴 ÉCHEC DE 4 TENTATIVES CONSÉCUTIVES = PROBLÈME MAL DIAGNOSTIQUÉ
+
+Hypothèse INVALIDE : "Le composant PhasesApercu ne reste pas sticky/fixed"
+Symptôme RÉEL : "La modale bouge quand on scroll" + "dépassée sur le côté gauche"
+
+CAUSES RACINES POSSIBLES (NON EXPLORÉES) :
+
+1. MAUVAIS COMPOSANT CIBLÉ (encore) :
+   - L'utilisateur dit "la modale" (pas "la carte" ni "l'aside")
+   - modalAliments (lignes 876-897) pourrait être le vrai problème
+   - PhasesApercu n'est peut-être PAS le composant qui bouge
+
+2. PROBLÈME DE SCROLL PARENT :
+   - Un container parent (body, html, ou wrapper) a un scroll
+   - Position fixed/sticky s'applique mais le PARENT scroll également
+   - L'aside est fixé au viewport MAIS le viewport lui-même scroll
+
+3. PROBLÈME DE Z-INDEX / STACKING CONTEXT :
+   - Un élément avec z-index supérieur passe devant
+   - Le scroll fait apparaître un overlay qui cache l'aside
+   - Transformation CSS crée un nouveau stacking context
+
+4. PROBLÈME DE LAYOUT RESPONSIVE :
+   - Le calcul right: calc((100vw - 1200px) / 2 + 2rem) est incorrect
+   - Sur certains viewports, l'aside est positionné hors écran
+   - "dépassée sur le côté gauche" = calcul right négatif ?
+
+5. PROBLÈME DE HOT RELOAD :
+   - npm run dev ne rebuild pas correctement les styles inline
+   - Le CSS reste en cache malgré les modifications
+   - Hard refresh nécessaire (Ctrl+Shift+R) pas effectué
+
+6. PROBLÈME D'ARCHITECTURE GLOBALE :
+   - _app.js ou layout parent applique un scroll container
+   - Tous les enfants héritent du contexte de scroll
+   - Position fixed ne peut pas échapper à un scroll parent
+
+ACTIONS REQUISES AVANT NOUVELLE TENTATIVE :
+
+✅ 1. IDENTIFIER LE COMPOSANT QUI BOUGE RÉELLEMENT :
+   - Utilisateur doit inspecter DevTools et identifier l'élément exact
+   - "la modale" = modalAliments OU PhasesApercu ?
+   - Screenshot avec DevTools ouvert sur l'élément qui bouge
+
+✅ 2. VÉRIFIER LE CONTEXTE DE SCROLL :
+   - Inspecter TOUS les parents dans DevTools (HTML > Body > div...)
+   - Identifier quel élément a overflow-y: scroll ou auto
+   - Vérifier si <body> ou <html> a un scroll
+
+✅ 3. VÉRIFIER LE REBUILD :
+   - Tuer npm run dev complètement (pkill -f "next dev")
+   - Redémarrer npm run dev
+   - Hard refresh navigateur (Ctrl+Shift+R)
+   - Vider cache navigateur (DevTools > Network > Disable cache)
+
+✅ 4. TESTER AVEC POSITION ABSOLUTE :
+   - Si fixed ne fonctionne pas, absolute non plus
+   - Confirme que le problème est architectural (scroll parent)
+
+✅ 5. LIRE _app.js ET layout.js :
+   - Vérifier si un wrapper global applique des styles
+   - Chercher overflow, position, transform dans les parents
+
+ÉTAT ACTUEL :
+  - Tentatives ratées : 4
+  - Temps passé : ~30 minutes
+  - Confiance diagnostic : ❌ FAIBLE (mauvais composant ciblé ?)
+  - Root cause identifiée : ❌ NON
+  - Solution validée : ❌ AUCUNE
+
+ATTENTE VALIDATION UTILISATEUR :
+  - Screenshot DevTools avec l'élément qui bouge sélectionné
+  - Confirmation : PhasesApercu OU modalAliments qui bouge ?
+  - Test hard refresh effectué ?
+  - Viewport size (largeur écran) ?
+
+AUCUNE NOUVELLE TENTATIVE AVANT DIAGNOSTIC COMPLET.
+════════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
+✅ DIAGNOSTIC UTILISATEUR FOURNI (06/12/2025)
+════════════════════════════════════════════════════════════════════════
+
+ÉLÉMENT INSPECTÉ : <aside> (PhasesApercu)
+
+STYLES APPLIQUÉS (extrait DevTools) :
+  position: fixed ✅
+  right: calc(-600px + 2rem + 50vw) ❌❌❌ ERREUR CRITIQUE
+  top: 2rem ✅
+  width: 340px ✅
+  z-index: 50 ✅
+
+ROOT CAUSE IDENTIFIÉE :
+
+🔴 CALCUL CSS INCORRECT : right: calc(-600px + 2rem + 50vw)
+
+ANALYSE :
+  - Agent a écrit : right: 'calc((100vw - 1200px) / 2 + 2rem)'
+  - JSX inline style a converti : calc(-600px + 2rem + 50vw)
+  - Résultat : -600px + 2rem + 50vw
+  
+CALCUL RÉEL (viewport 1920px exemple) :
+  right = -600px + 2rem + 960px = 360px + 2rem = ~392px
+  → L'aside est positionné à 392px DU BORD DROIT
+  → Sur un écran 1920px, ça place l'aside à 1920 - 392 = 1528px (HORS ÉCRAN)
+
+CALCUL ATTENDU :
+  Sur viewport 1920px avec container maxWidth 1200px :
+  - Marge gauche/droite = (1920 - 1200) / 2 = 360px
+  - right devrait être = 360px + 2rem = ~392px ✅
+  
+  MAIS le calcul est INSTABLE car :
+  - Si viewport < 1200px → right devient NÉGATIF
+  - Si viewport > 1920px → right trop grand
+
+POURQUOI ÇA BOUGE QUAND ON SCROLL :
+  ❌ Position fixed est correcte
+  ❌ Mais right: calc(-600px + 2rem + 50vw) est DYNAMIQUE
+  ❌ Le navigateur recalcule 50vw à chaque frame
+  ❌ Si le viewport change légèrement (zoom, devtools), l'aside se déplace
+
+SOLUTION ROBUSTE (NON TESTÉE) :
+  Option A : right fixe simple (pas de calc)
+    right: '2rem'
+    → Toujours 2rem du bord droit, peu importe viewport
+
+  Option B : Retour au layout flex + sticky avec height parent
+    Modifier le container parent :
+      display: 'flex',
+      flexDirection: 'row',
+      minHeight: '100vh', ← Changer en height: '100vh'
+    Retour à position: 'sticky' dans PhasesApercu
+
+  Option C : Media query pour écrans larges uniquement
+    right: '2rem', (par défaut)
+    @media (min-width: 1200px) { right: calc((100vw - 1200px) / 2 + 2rem) }
+    → Mais nécessite CSS externe, pas inline style
+
+RECOMMANDATION EXPERTE :
+  ✅ OPTION A : right: '2rem' (le plus simple et robuste)
+  - Fonctionne sur TOUS les viewports
+  - Pas de calcul dynamique
+  - Position fixed garantit que ça ne bouge pas
+
+État : ROOT CAUSE IDENTIFIÉE
+Prochaine étape : Appliquer Option A (right: '2rem')
+════════════════════════════════════════════════════════════════════════
