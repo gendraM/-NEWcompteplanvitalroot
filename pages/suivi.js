@@ -31,6 +31,7 @@ import Link from 'next/link';
 import RepasBloc from "../components/RepasBloc";
 import TimelineProgression from "../components/TimelineProgression";
 import SaisieDefiAlimentaire from "../components/SaisieDefiAlimentaire";
+import SaisieRepriseJeune from "../components/SaisieRepriseJeune";
 import { useDefis } from "../components/DefisContext";
 
 // Utilitaire message cyclique
@@ -1025,15 +1026,15 @@ export default function Suivi() {
         </div>
       ) : (
         <>
-          {/* Affichage conditionnel strict selon la checklist */}
-          {(defiAlimentaireActif || repriseActive) ? (
-            <SaisieDefiAlimentaire 
-              modeReprise={repriseActive}
+          {/* Affichage séparé : Reprise OU Défi */}
+          {repriseActive ? (
+            <SaisieRepriseJeune 
               phaseReprise={phaseReprise}
               jourReprise={jourReprise}
               programmeReprise={programmeReprise}
-              alimentsAutorises={alimentsAutorises}
             />
+          ) : defiAlimentaireActif ? (
+            <SaisieDefiAlimentaire />
           ) : (
             !selectedType ? (
               <div style={{ textAlign: "center", margin: "2rem 0" }}>
