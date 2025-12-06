@@ -1249,6 +1249,47 @@ export default function Jeune() {
         <PertePoidsEstimee data={pertePoidsEstimeeData} />
       )}
 
+      {/* 🆕 AJOUT #5 : Bouton Journal Spirituel */}
+      <div style={{
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        borderRadius: 16,
+        padding: 24,
+        marginBottom: 24,
+        boxShadow: "0 8px 24px rgba(102, 126, 234, 0.25)",
+        textAlign: "center"
+      }}>
+        <button
+          onClick={() => router.push('/journal-spirituel')}
+          style={{
+            background: "white",
+            color: "#667eea",
+            border: "none",
+            borderRadius: 12,
+            padding: "16px 32px",
+            fontSize: 18,
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            transition: "all 0.3s ease",
+            width: "100%",
+            maxWidth: 400
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.2)";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+          }}
+        >
+          🎙️ Accéder à ma restauration spirituelle
+        </button>
+        <p style={{ color: "white", marginTop: 12, fontSize: 14, opacity: 0.95 }}>
+          💡 Enregistre tes pensées vocalement, méditations, versets...
+        </p>
+      </div>
+
       {/* --- Bloc “En savoir plus” --- */}
       <div style={{
         background: "#f3e5f5", borderRadius: 12, padding: 16, marginBottom: 18
