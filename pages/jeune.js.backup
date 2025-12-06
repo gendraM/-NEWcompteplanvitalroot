@@ -7,65 +7,56 @@ import { genererEtSauvegarderProgramme } from "../lib/jeuneUtils";
 // --- Données statiques pour chaque jour de jeûne (exemple jusqu'à 10 jours, à compléter si besoin) ---
 const JEUNE_DAYS_CONTENT = {
   1: {
-    titre: "Jour 1 – Sortir du pilotage automatique",
+    titre: "Jour 1 – Lancement du jeûne",
     corps: [
-      "🧠 Esprit : Tu remarques les automatismes, les rituels qui tournent en boucle. C'est normal : pendant des années, tu as relié certaines émotions, certains moments de ta journée, à un geste alimentaire. Là, tu ne réponds plus à ces impulsions.",
-      "🧬 Corps : Ton corps utilise encore les réserves de sucre stockées dans ton foie et tes muscles (glycogène), donc tu n'es pas encore en cétose. Tu peux ressentir une envie de manger, mais c'est plus une habitude de confort qu'un vrai besoin physiologique.",
-      "❤️ Ce que tu peux ressentir : De la faim mentale, un peu d'anxiété, des envies de mâcher, une sensation de manque. Ces signaux ne viennent pas toujours du corps, ils viennent de ton histoire avec la nourriture.",
-      "📿 Sens & conscience : Ce jour-là, tu observes combien de fois tu as envie de manger sans avoir faim physiquement. Tu vois la différence entre un réflexe et un besoin.",
-      "🧰 Outil du jour : Dès qu'une envie de manger surgit, pose-toi trois questions : 'Est-ce que j'ai vraiment faim ?' 'Quelle émotion je ressens maintenant ?' 'Qu'est-ce que je cherche vraiment à remplir ?'",
-      "💡 Conseil : Note chaque fois que tu sens l'envie de manger. Écris ce qui se passait juste avant. Tu vas découvrir des patterns."
+      "🧠 Esprit : Tu entres dans la phase de rupture. Les premières heures sont surtout mentales. Ton corps commence à utiliser ses réserves de glucose.",
+      "🧬 Corps : La glycémie baisse doucement. Tu peux ressentir une légère faim ou des pensées alimentaires récurrentes.",
+      "❤️ Synthèse émotionnelle : C’est le début d’un reset. Observe tes sensations sans jugement.",
+      "📿 Ancrage spirituel : Prends un temps pour poser ton intention.",
+      "🧰 Outil du jour : Respiration profonde, hydratation, marche douce.",
+      "💡 Conseil : Prépare-toi à accueillir les premiers signaux de faim sans y répondre tout de suite."
     ],
-    message: "Tu sors d'un mode automatique. Là, tu vois tes habitudes en face."
+    message: "Le plus dur, c’est de commencer. Tu viens de franchir la première porte. Tiens bon, tu es sur ton chemin."
   },
   2: {
-    titre: "Jour 2 – La transition intérieure commence",
+    titre: "Jour 2 – Bascule métabolique",
     corps: [
-      "🧠 Esprit : Tes pensées sont encore assez bruyantes. Tu peux sentir des doutes (« Pourquoi je fais ça ? »), de l'ennui, ou une envie d'abandonner. C'est le mental qui résiste, parce qu'il a perdu un outil de régulation : la nourriture.",
-      "🧬 Corps : Le glycogène commence à s'épuiser. Ton foie entame la fabrication de cétones (des molécules issues de la dégradation des graisses) pour nourrir ton cerveau. Tu es entre deux mondes : tu n'es plus en mode sucre, mais pas encore pleinement en cétose.",
-      "❤️ Ce que tu peux ressentir : Une petite fatigue, peut-être un léger mal de tête ou une langue chargée. C'est le signe que ton corps passe en mode nettoyage. La faim psychologique peut encore être forte.",
-      "📿 Sens & conscience : C'est le moment où tu vois combien de fois la nourriture était un refuge, un calme artificiel. Tu es en train de perdre ce repère.",
-      "🧰 Outil du jour : Quand une envie forte monte, prends 5 grandes respirations abdominales avant de faire quoi que ce soit. Pose ta main sur ton ventre, connecte-toi à ton corps réel.",
-      "💡 Conseil : Hydrate-toi beaucoup, repose-toi, évite les situations stressantes ou les tentations inutiles. Tu passes une étape fragile."
+      "🧠 Esprit : Les pensées alimentaires diminuent. Tu découvres une nouvelle forme de calme.",
+      "🧬 Corps : Ton foie commence à produire des corps cétoniques. Début de la cétose.",
+      "❤️ Synthèse émotionnelle : Tu peux ressentir de la fierté ou des doutes. C’est normal.",
+      "📿 Ancrage spirituel : Médite sur la patience.",
+      "🧰 Outil du jour : Hydratation ++, sieste courte, lecture inspirante.",
+      "💡 Conseil : Écoute ton corps, repose-toi si besoin."
     ],
-    message: "Tu lâches un ancien réflexe. Ton corps s'adapte, ton mental négocie encore. Ça passera."
+    message: "Tu es en pleine régénération cellulaire. Ton organisme apprend à fonctionner autrement."
   },
   3: {
-    titre: "Jour 3 – Entrer dans le vrai calme du corps",
+    titre: "Jour 3 – L'Adaptation : L'éveil en cétose profonde",
     corps: [
-      "🧠 Esprit : Tes pensées commencent à ralentir. Il y a plus d'espace entre deux idées, moins de bruit de fond. Certaines personnes ressentent une forme de clarté mentale légère, d'autres juste une baisse du brouhaha intérieur.",
-      "🧬 Corps : Tu commences à être en cétose plus stable. Ton foie produit maintenant régulièrement des cétones pour nourrir ton cerveau. L'autophagie (le processus où tes cellules recyclent leurs déchets internes) démarre doucement.",
-      "❤️ Ce que tu peux ressentir : Moins de faim mécanique, une énergie stable (sans les hauts et les bas liés au sucre). Tu peux aussi sentir une sorte de paix inhabituelle, ou au contraire une petite tristesse diffuse.",
-      "📿 Sens & conscience : Ce jour-là, tu réalises que tu peux vivre sans remplir chaque silence, chaque creux. C'est une information essentielle pour la suite.",
-      "🧰 Outil du jour : Prends 10 minutes dans la journée pour t'asseoir dans le silence, sans téléphone, sans distraction. Juste toi et ton souffle.",
-      "💡 Conseil : N'essaie pas de 'combler' cette journée avec mille projets. Laisse le vide être là, c'est lui qui permet au corps de faire son travail."
+      "Félicitations ! Tu es maintenant en cétose stable. Ton corps utilise pleinement les cétones comme source d'énergie, et ton cerveau adore littéralement ce nouveau carburant. Les cétones sont des molécules ultra-efficaces qui traversent la barrière hémato-encéphalique et fournissent une énergie plus propre, plus stable, sans les pics et crashs du glucose. C'est pour cela que beaucoup de jeûneurs parlent d'une clarté mentale exceptionnelle à ce stade.",
+      "Tu peux commencer à ressentir cette fameuse clarté d'esprit, une énergie stable sans fluctuations, une sensation de calme intérieur, voire une forme d'euphorie légère. Certains rapportent aussi une meilleure concentration, une créativité accrue, et une connexion plus fine à leurs pensées. C'est le moment où le jeûne devient souvent plus facile psychologiquement. Continue d'écouter ton corps, de te reposer si besoin, et d'accueillir cette nouvelle conscience qui émerge."
     ],
-    message: "Tu n'es plus en lutte. Tu es en observation. Le calme commence à s'installer."
+    message: "✨ Tu es en cétose profonde. Ton cerveau fonctionne à plein régime. Savoure cette clarté."
   },
   4: {
-    titre: "Jour 4 – Le corps répare, l'esprit respire",
+    titre: "Jour 4 – Brûle le gras profond",
     corps: [
-      "🧠 Esprit : Ton système nerveux commence vraiment à se reposer. Moins de pics de stress, moins de réactions impulsives. Tu peux sentir que tes émotions sont un peu plus stables, ou au contraire qu'une vieille émotion refait surface.",
-      "🧬 Corps : L'autophagie tourne maintenant à fond. Ton organisme démonte les cellules abîmées, les protéines mal formées, les débris accumulés. C'est une réparation intérieure profonde, invisible, mais essentielle.",
-      "❤️ Ce que tu peux ressentir : Parfois une grosse fatigue, une envie de pleurer sans raison, ou au contraire une sensation de libération douce. Le jeûne ne fait pas que nettoyer le corps : il libère aussi des mémoires émotionnelles enfouies.",
-      "📿 Sens & conscience : Ce jour-là, tu peux voir combien tu utilisais la nourriture pour gérer tes émotions. Là, tu les ressens en direct, sans coussin.",
-      "🧰 Outil du jour : Si une émotion monte (tristesse, colère, peur), au lieu de la bloquer, laisse-la traverser. Pose un nom dessus : 'Là, je ressens de la tristesse.' C'est déjà beaucoup.",
-      "💡 Conseil : Repose-toi, limite les stimulations (écrans, bruit, foule). Tu es en réparation intérieure, ton système nerveux a besoin de douceur, pas de dispersion."
+      "🧠 Esprit : Fatigue possible, résistance mentale.",
+      "🧬 Corps : Cétose stabilisée, autophagie active.",
+      "❤️ Synthèse émotionnelle : Détachement des réflexes alimentaires.",
+      "📿 Ancrage spirituel : Reconnexion à l’essentiel.",
+      "🧰 Outil du jour : Respiration, visualisation, soutien.",
+      "💡 Conseil : Hydrate-toi +++, repose-toi."
     ],
-    message: "Tu libères des couches émotionnelles anciennes. C'est normal si c'est intense."
+    message: "Tu es dans la traversée. Ce n’est pas de la privation : c’est de la reconquête."
   },
   5: {
-    titre: "Jour 5 – Nettoyage cellulaire & apaisement profond",
+    titre: "Jour 5 – L'Équilibre : La pleine présence et la stabilité intérieure",
     corps: [
-      "🧠 Esprit : Tu n'es plus dans l'effort. Il y a une forme d'acceptation, de lâcher-prise. Les pensées parasites diminuent. Tu es là, simplement.",
-      "🧬 Corps : L'autophagie continue son travail de tri et de recyclage. Ton corps élimine les cellules endommagées, réduit l'inflammation de fond, répare les tissus. C'est un travail invisible mais fondamental.",
-      "🧬 Corps (inflammation) : L'inflammation chronique commence à baisser. Tes articulations peuvent te sembler plus légères, ta peau plus nette, ton sommeil plus profond.",
-      "❤️ Ce que tu peux ressentir : Une sensation de légèreté, parfois même de joie discrète sans raison. Ou au contraire une grande fatigue, un besoin de dormir beaucoup. Les deux sont normaux.",
-      "📿 Sens & conscience : Tu réalises que tu peux vivre sans te remplir tout le temps. C'est une liberté nouvelle, parfois un peu vertigineuse.",
-      "🧰 Outil du jour : Écris trois choses que ce jeûne t'a déjà apprises sur toi (ton rapport à la nourriture, tes émotions, tes automatismes). C'est précieux pour la suite.",
-      "💡 Conseil : Continue de te reposer, de boire beaucoup, de rester dans la douceur. Tu n'es pas en train de 'performer', tu laisses ton corps faire ce qu'il sait faire."
+      "Tu es maintenant bien installé dans ton jeûne. Ton corps et ton esprit sont alignés, synchronisés dans un état d'équilibre rare. L'énergie est stable, fluide, sans à-coups. La faim mécanique a disparu ou est devenue très discrète – tu n'es plus dans le besoin, mais dans l'observation. Ton système nerveux est apaisé, ton mental est clair, et tu commences peut-être à percevoir une forme de légèreté, voire de joie intérieure, sans raison extérieure. C'est l'état de grâce du jeûneur expérimenté.",
+      "Profite de ce moment précieux pour méditer, te reconnecter à toi-même, ou simplement observer ce nouvel état de conscience. Tu es dans un espace de grande clarté, où les pensées sont moins nombreuses, plus espacées, plus justes. Beaucoup de jeûneurs rapportent des insights profonds à ce stade, des prises de conscience spontanées, ou une compréhension nouvelle de leur vie. C'est aussi le moment idéal pour poser des questions intérieures, écrire dans un journal, ou simplement être dans le silence. Tu es dans l'équilibre. Savoure cet état de grâce, car il est le fruit de ton engagement et de ta confiance."
     ],
-    message: "Tu te libères d'habitudes profondes. Ton corps nettoie, ton esprit s'allège."
+    message: "🌟 Tu es dans l'équilibre parfait. Savoure cet état de grâce et de clarté absolue."
   },
   6: {
     titre: "Jour 6 – Nettoyage profond & tri intérieur",
