@@ -138,12 +138,6 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
                         setErreur(`⚠️ Quantité supérieure à la portion recommandée (${alimentRepriseRef.portionDefaut}).\n\n💡 Conseil : En reprise, il est important de respecter les portions pour éviter la surcharge digestive. Essaie de réduire les quantités progressivement.\n\n✅ Tu peux quand même enregistrer ce repas, mais le critère "Respect des quantités" ne sera pas validé.`);
                         // On continue (pas de return)
                     }
-                    
-                    // 4️⃣ Vérifier la qualité nutritionnelle (QN)
-                    if (alimentRepriseRef.qn !== undefined && alimentRepriseRef.qn < 3) {
-                        setErreur(`⚠️ Aliment ultra-transformé (QN: ${alimentRepriseRef.qn}/5). En reprise après jeûne, privilégie les aliments bruts et naturels (QN ≥ 4).\n\n💡 Conseil : Ton système digestif est particulièrement sensible après le jeûne. Les aliments transformés peuvent provoquer des inconforts digestifs, ballonnements et ralentir ta récupération.\n\n✅ Tu peux quand même enregistrer ce repas, mais le critère "Qualité alimentaire" ne sera pas validé.`);
-                        // On continue (pas de return)
-                    }
                 }
             }
             // ═══════════════════════════════════════════════════════════
@@ -239,52 +233,22 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
         <div style={{ background: '#fffde7', border: '1px solid #ffe082', borderRadius: 10, padding: 24, margin: '24px 0' }}>
             {/* 🌱 BANDEAU REPRISE ALIMENTAIRE */}
             {modeReprise && (
-                <>
-                    <div style={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        color: 'white',
-                        borderRadius: 8,
-                        padding: '12px 16px',
-                        marginBottom: 16,
-                        fontWeight: 600,
-                        fontSize: 15,
-                        boxShadow: '0 2px 8px rgba(102,126,234,0.2)'
-                    }}>
-                        🌱 Reprise alimentaire active — Jour {jourReprise} — Phase {phaseReprise}
-                        <div style={{fontSize: 13, opacity: 0.9, marginTop: 4, fontWeight: 500}}>
-                            ⚠️ Seuls les aliments autorisés pour ta phase seront validés
-                        </div>
+                <div style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    borderRadius: 8,
+                    padding: '12px 16px',
+                    marginBottom: 16,
+                    fontWeight: 600,
+                    fontSize: 15,
+                    boxShadow: '0 2px 8px rgba(102,126,234,0.2)'
+                }}>
+                    🌱 Reprise alimentaire active — Jour {jourReprise} — Phase {phaseReprise}
+                    <div style={{fontSize: 13, opacity: 0.9, marginTop: 4, fontWeight: 500}}>
+                        ⚠️ Seuls les aliments autorisés pour ta phase seront validés
                     </div>
-                    
-                    {/* CRITÈRES DU JOUR */}
-                    <div style={{
-                        background: 'white',
-                        border: '2px solid #667eea',
-                        borderRadius: 8,
-                        padding: '16px',
-                        marginBottom: 16
-                    }}>
-                        <div style={{fontWeight: 'bold', fontSize: 16, marginBottom: 12, color: '#667eea'}}>
-                            ✅ Critères de validation du jour {jourReprise} (Phase {phaseReprise})
-                        </div>
-                        <div style={{fontSize: 14, lineHeight: 1.8}}>
-                            <div style={{marginBottom: 6}}>
-                                <span style={{fontWeight: 600}}>1️⃣ Aliments autorisés :</span> Uniquement les aliments de Phase {phaseReprise} ou inférieure
-                            </div>
-                            <div style={{marginBottom: 6}}>
-                                <span style={{fontWeight: 600}}>2️⃣ Horaires féculents :</span> {phaseReprise >= 4 ? 'Pas de féculents après 19h' : 'Tous horaires autorisés'}
-                            </div>
-                            <div style={{marginBottom: 6}}>
-                                <span style={{fontWeight: 600}}>3️⃣ Quantités :</span> Respecter les portions recommandées
-                            </div>
-                            <div>
-                                <span style={{fontWeight: 600}}>4️⃣ Qualité alimentaire :</span> Privilégier les aliments bruts (QN ≥ 4)
-                            </div>
-                        </div>
-                    </div>
-                </>
+                </div>
             )}
-            
             
             {/* Titre conditionnel : Défi OU Reprise */}
             {defi ? (
@@ -333,25 +297,14 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
                             {alimentsFromReferentiel.map(opt => <option key={opt} value={opt} />)}
                         </datalist>
                     </label>
-                    {/* Afficher la portion recommandée ET le score QN (discret) si trouvé dans le référentiel */}
+                    {/* Afficher la portion recommandée si trouvée dans le référentiel */}
                     {(() => {
                         const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
-                        if (!found) return null;
-                        
-                        return (
-                            <div style={{ fontSize: 12, marginTop: 4, marginBottom: 8, color: '#666' }}>
-                                {found.portionDefaut && (
-                                    <span>
-                                        📏 Portion recommandée : {found.portionDefaut}
-                                    </span>
-                                )}
-                                {found.qn !== undefined && (
-                                    <span style={{ marginLeft: found.portionDefaut ? 12 : 0 }}>
-                                        (QN: {found.qn}/5)
-                                    </span>
-                                )}
+                        return found && found.portionDefaut ? (
+                            <div style={{ fontSize: 12, color: '#666', marginTop: 4, marginBottom: 8 }}>
+                                📏 Portion recommandée : {found.portionDefaut}
                             </div>
-                        );
+                        ) : null;
                     })()}
                 </div>
                 <div style={{ marginBottom: 10 }}>

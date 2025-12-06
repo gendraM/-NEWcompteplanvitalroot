@@ -505,6 +505,63 @@ export default function RepriseAlimentaireApresJeune() {
           </div>
         </div>
       )}
+      
+      {/* 🧪 BOUTON TEST : Activer temporairement la reprise dans /suivi */}
+      {forceSuivi && (
+        <div style={{background:'#e3f2fd', border:'2px solid #1976d2', borderRadius:8, padding:'1rem 1.2rem', marginBottom:'1.5rem'}}>
+          <div style={{fontWeight:700, color:'#1976d2', fontSize:'1.1rem', marginBottom:8}}>🧪 Mode Test Activé</div>
+          <div style={{fontSize:'0.98rem', color:'#555', marginBottom:12}}>
+            Tu peux activer temporairement le comportement de reprise alimentaire dans la page <b>/suivi</b> pour tester sans impacter les données réelles.
+          </div>
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                // Activer flag temporaire dans localStorage (préfixe test_)
+                localStorage.setItem('test_modeRepriseActif', 'true');
+                localStorage.setItem('test_programmeRepriseValide', localStorage.getItem('programmeRepriseValide') || '{}');
+                alert('✅ Mode reprise activé dans /suivi (temporaire)\n\nVa maintenant sur la page /suivi pour voir le bandeau violet et tester la validation des repas.\n\nPour désactiver : clique sur "Désactiver mode test" ci-dessous.');
+              }
+            }}
+            style={{
+              background:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color:'#fff',
+              border:'none',
+              borderRadius:8,
+              padding:'0.7rem 1.5rem',
+              fontWeight:700,
+              fontSize:'1.05rem',
+              cursor:'pointer',
+              marginRight:'1rem',
+              boxShadow:'0 2px 6px rgba(102,126,234,0.3)'
+            }}
+          >
+            🎯 Activer reprise dans /suivi (test)
+          </button>
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem('test_modeRepriseActif');
+                localStorage.removeItem('test_programmeRepriseValide');
+                alert('✅ Mode test désactivé.\n\nLa page /suivi est revenue à son comportement normal.');
+              }
+            }}
+            style={{
+              background:'#f5f5f5',
+              color:'#666',
+              border:'1px solid #bdbdbd',
+              borderRadius:8,
+              padding:'0.7rem 1.5rem',
+              fontWeight:600,
+              fontSize:'1.05rem',
+              cursor:'pointer',
+              boxShadow:'0 1px 3px rgba(0,0,0,0.1)'
+            }}
+          >
+            ❌ Désactiver mode test
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div style={{textAlign:'center', color:'#888', fontSize:'1.2rem'}}>Chargement du plan...</div>
       ) : error ? (
@@ -691,12 +748,12 @@ export default function RepriseAlimentaireApresJeune() {
                       <>
                         <button
                           onClick={() => validerJour(joursAAfficher[selectedJourIdx])}
-                          disabled={validationEnCours || new Date(joursAAfficher[selectedJourIdx].date) > new Date()}
+                          disabled={validationEnCours || (!forceSuivi && new Date(joursAAfficher[selectedJourIdx].date) > new Date())}
                           style={{
-                            background: new Date(joursAAfficher[selectedJourIdx].date) > new Date() 
+                            background: (!forceSuivi && new Date(joursAAfficher[selectedJourIdx].date) > new Date()) 
                               ? '#e0e0e0' 
                               : 'linear-gradient(135deg, #43cea2 0%, #185a9d 100%)',
-                            color: new Date(joursAAfficher[selectedJourIdx].date) > new Date() 
+                            color: (!forceSuivi && new Date(joursAAfficher[selectedJourIdx].date) > new Date()) 
                               ? '#9e9e9e' 
                               : 'white',
                             border: 'none',
@@ -717,7 +774,7 @@ export default function RepriseAlimentaireApresJeune() {
                           {validationEnCours ? '⏳ Validation...' : '✅ Valider ce jour'}
                         </button>
                         
-                        {new Date(joursAAfficher[selectedJourIdx].date) > new Date() && (
+                        {!forceSuivi && new Date(joursAAfficher[selectedJourIdx].date) > new Date() && (
                           <div style={{
                             marginTop: 12,
                             fontSize: '0.95rem',

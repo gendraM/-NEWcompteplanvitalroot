@@ -1,4 +1,146 @@
 ═══════════════════════════════════════════════════════════════════════════════
+🛑 ROLLBACK 06/12/2025 — RÉGRESSION AUTOCOMPLETE SAISIEDEFIALIMENTAIRE
+═══════════════════════════════════════════════════════════════════════════════
+Fichier : /components/SaisieDefiAlimentaire.js
+Tentative : Harmonisation formulaire reprise avec RepasBloc.js (Phase 1 + Phase 2)
+Problème : Remplacement datalist HTML par dropdown custom → RÉGRESSION FONCTIONNELLE MAJEURE
+
+Symptômes utilisateur :
+	❌ Pré-remplissage automatique ne fonctionne plus (catégorie, kcal, quantité)
+	❌ Portion recommandée ne pré-remplit plus le champ quantité
+	❌ Utilisateur doit tout saisir manuellement → Charge cognitive AUGMENTÉE au lieu de RÉDUITE
+
+Cause racine :
+	1. Dropdown custom onClick définit SEULEMENT setAliment(a.nom)
+	2. Ne déclenche PAS le useEffect ligne 136 (pré-remplissage)
+	3. Datalist HTML natif déclenche onChange → useEffect fonctionne
+	4. Custom dropdown onClick NE DÉCLENCHE PAS onChange du input
+
+Erreur de conception :
+	- Priorité donnée à l'UX visuelle (score QN coloré) vs fonctionnalité (pré-remplissage)
+	- Gain : Score QN affiché (utile mais non critique)
+	- Perte : Pré-remplissage auto (CRITIQUE pour reprise après jeûne)
+	- Tests utilisateur non effectués AVANT validation → violation process
+
+Procédure rollback appliquée :
+	✅ 1. cp backup → version originale restaurée
+	✅ 2. get_errors → 0 erreur compilation
+	✅ 3. Fonctionnalité pré-remplissage vérifiée → OK
+	✅ 4. Documentation anomalie dans ce fichier
+
+Leçons apprises CRITIQUES :
+	1. ❌ JAMAIS remplacer datalist HTML sans tester équivalence fonctionnelle
+	2. ❌ JAMAIS prioriser UX visuelle sur fonctionnalité critique
+	3. ❌ Tests utilisateur OBLIGATOIRES avant validation (pas après)
+	4. ✅ Datalist HTML déclenche onChange → useEffect fonctionne
+	5. ✅ Custom dropdown onClick → useEffect NE fonctionne PAS (besoin trigger manuel)
+	6. ✅ En cas de doute : privilégier fonctionnalité > apparence
+	7. ✅ Phase sensible (reprise jeûne) → UX simple et robuste > sophistication
+
+Solution alternative (NON IMPLÉMENTÉE - à évaluer) :
+	- Garder datalist HTML (fonctionne)
+	- Ajouter SEULEMENT le score QN à CÔTÉ du champ (pas dans dropdown)
+	- Exemple : "📊 QN: 4/5 ✅" affiché sous le champ après sélection aliment
+	- Avantage : Fonctionnalité préservée + guidance QN ajoutée
+	- Décision : À valider avec utilisateur avant toute modification
+
+Temps perdu : 50 min modification + 10 min rollback + documentation = 60 min
+Impact utilisateur : Fonctionnalité cassée pendant tests
+Statut : ✅ RÉSOLU - Version originale restaurée et fonctionnelle
+
+Action requise : 
+	1. Ne PLUS toucher au datalist sans validation utilisateur explicite
+	2. Toute amélioration UX doit préserver 100% des fonctionnalités existantes
+	3. Tests utilisateur AVANT validation (pas documentation tests après)
+═══════════════════════════════════════════════════════════════════════════════
+✅ CORRECTION 06/12/2025 — HARMONISATION FORMULAIRE REPRISE ALIMENTAIRE
+═══════════════════════════════════════════════════════════════════════════════
+Fichier : /components/SaisieDefiAlimentaire.js
+Anomalie initiale : Écarts fonctionnels majeurs entre formulaire classique (RepasBloc.js) et formulaire reprise
+Problèmes identifiés :
+	1. Violation ordre hooks React : console.log et useDefis() AVANT useState (lignes 9-11)
+	2. Autocomplete basique sans score QN nutritionnel (guidance absente en phase sensible)
+	3. Calcul kcal manuel uniquement (charge cognitive accrue)
+	4. Console.log production exposant données (lignes 9, 187)
+	5. Absence signaux satiété (critiques pour suivi digestif post-jeûne)
+	6. Ressenti en texte libre vs baromètre visuel (perte d'analyse patterns)
+	7. Unité quantité non affichée (manque de clarté UX)
+
+Impact : UX dégradée en mode reprise, utilisateur perd guidance nutritionnelle alors qu'en phase sensible
+
+Corrections appliquées (Phase 1 + Phase 2) :
+	✅ 1. Réorganisation complète ordre hooks React
+	   - Tous useState en premier (lignes 48-66)
+	   - useDefis après useState (ligne 71)
+	   - Suppression console.log ligne 9
+	   - Variables calculées après hooks (lignes 74-96)
+	   - useEffect après variables (lignes 103-172)
+	   
+	✅ 2. Autocomplete avancé avec score QN (lignes 386-429)
+	   - Dropdown custom position absolue z-index 1000
+	   - Score QN coloré (vert ≥4, orange ≥3, rouge <3)
+	   - Portion recommandée affichée dans suggestions
+	   - Filtrage dynamique dès 2 caractères
+	   - Hover interactif avec background change
+	   
+	✅ 3. Calcul automatique kcal (lignes 156-172)
+	   - useEffect sur [aliment, quantite]
+	   - Priorité kcalParUnite puis kcal (fallback anciens aliments)
+	   - Try/catch pour erreurs silencieuses
+	   - Label "calculées automatiquement" (ligne 464)
+	   
+	✅ 4. Suppression console.log production
+	   - Ligne 9 : console.log props → SUPPRIMÉ
+	   - Lignes 287-288 : console.log + setMessage debug → SUPPRIMÉS
+	   
+	✅ 5. Signaux de satiété (lignes 504-524)
+	   - Liste 5 signaux : ventre resserre, perte envie, lourdeur, difficulté avaler, autre
+	   - Checkboxes multi-select
+	   - État detailsSignaux synchronisé
+	   
+	✅ 6. Baromètre ressenti visuel (lignes 478-503)
+	   - 8 états prédéfinis avec icônes et couleurs
+	   - Grid 4 colonnes responsive
+	   - Sélection visuelle avec border 3px bleu
+	   - Hover state pour feedback immédiat
+	   
+	✅ 7. Unité dynamique dans label quantité (lignes 455-463)
+	   - Lookup uniteLabels selon referentiel
+	   - Affichage conditionnel (ex: "cuillère(s) à soupe")
+	   - Try/catch pour gestion erreurs
+
+Validation conformité :
+	✅ get_errors : 0 erreur compilation
+	✅ Ordre hooks React : Conforme checklist stricte
+	✅ Try/catch : Tous les .find() protégés
+	✅ Architecture localStorage : Aucune modification auth
+	✅ Validation reprise : Logique préservée (phase, horaires, quantités)
+	✅ Backup créé : SaisieDefiAlimentaire.js.backup-2025-12-06
+
+Tests manuels requis (8 tests critiques) :
+	[ ] Test 1 : Saisir aliment → autocomplete affiche QN coloré
+	[ ] Test 2 : Sélectionner aliment → catégorie + kcal auto-remplis
+	[ ] Test 3 : Modifier quantité → kcal recalculés instantanément
+	[ ] Test 4 : Valider repas Phase 1 autorisé → succès sans erreur
+	[ ] Test 5 : Valider repas Phase 3 non autorisé → warning pédagogique (pas de blocage)
+	[ ] Test 6 : Féculent après 19h Phase 4 → warning horaires (pas de blocage)
+	[ ] Test 7 : Console navigateur → aucun log visible
+	[ ] Test 8 : Baromètre ressenti + signaux → sélection OK, enregistrement Supabase
+
+Leçons apprises :
+	1. Toujours respecter ordre hooks React (useState en premier ABSOLU)
+	2. Autocomplete custom >> datalist natif pour guidance nutritionnelle
+	3. Calcul auto >> saisie manuelle pour réduire charge cognitive
+	4. Baromètre visuel >> texte libre pour analyse patterns
+	5. JAMAIS de console.log en production (pollution + sécurité)
+	6. Try/catch systématique sur referentiel (robustesse)
+	7. Plan + validation utilisateur AVANT tout code (process strict)
+
+Temps réel : 50 min (Phase 1: 30 min, Phase 2: 20 min)
+Statut : ⚠️ EN ATTENTE VALIDATION TESTS UTILISATEUR
+
+Action requise : Validation tests 8/8 avant commit
+═══════════════════════════════════════════════════════════════════════════════
 🛑 ANOMALIE 04/12/2025 — VIOLATION RÈGLE ARCHITECTURE : AUTHENTIFICATION SUPABASE
 ═══════════════════════════════════════════════════════════════════════════════
 Fichier : /pages/reprise-alimentaire-apres-jeune.js
