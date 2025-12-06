@@ -18,7 +18,7 @@ export default function Home() {
       goal: data.goal,
     });
     const url = `/preparation-jeune?${params.toString()}`;
-    window.open(url, '_blank');
+    router.push(url);
     setShowModal(false);
   };
 

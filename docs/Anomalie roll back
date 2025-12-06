@@ -1,4 +1,3 @@
-
 ═══════════════════════════════════════════════════════════════════════════════
 🛑 ANOMALIE 04/12/2025 — VIOLATION RÈGLE ARCHITECTURE : AUTHENTIFICATION SUPABASE
 ═══════════════════════════════════════════════════════════════════════════════
@@ -493,4 +492,18 @@ Traçabilité Git :
   - Commit recommandé : "fix(jeune): Échappement guillemets ligne 143 jour 11"
   - Référence anomalie : Ligne 143 - Jour 11 JEUNE_DAYS_CONTENT
 ════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 03/12/2025 — REDIRECTION MODALE /preparation-jeune (404)
+═══════════════════════════════════════════════════════════════════════════════
+Fichiers concernés : /components/StartPreparationModal.js, /pages/index.js
+Erreur : Après validation de la modale de démarrage, la redirection vers /preparation-jeune provoquait une erreur 404.
+Cause : La fonction de redirection utilisait window.open(url, '_blank'), ce qui ouvrait la page dans un nouvel onglet sans contexte Next.js, causant un échec SSR/CSR et un 404.
+Origine : La logique de navigation était gérée dans index.js, pas dans la modale elle-même, pour centraliser le workflow utilisateur.
+Impact : Blocage du workflow, impossibilité d'accéder à la page de préparation après validation de la modale.
+Procédure corrective :
+	1. Remplacement de window.open(url, '_blank') par router.push(url) dans le handler de validation de la modale (index.js).
+	2. Test de la navigation et du workflow complet.
+	3. Documentation de l'anomalie ici et dans l'audit métier.
+Leçon métier : Toujours utiliser router.push pour la navigation interne dans Next.js afin de garantir le contexte SSR/CSR et éviter les erreurs 404.
+Traçabilité Git : Commit correctif du 03/12/2025, patch sur index.js, aucune suppression de code, modification strictement additive.
+═══════════════════════════════════════════════════════════════════════════════
 
