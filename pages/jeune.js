@@ -359,7 +359,29 @@ export default function Jeune() {
     // Initialisation avec priorité : bilan > localStorage > défaut
     setDureeJeune(loadState("dureeJeune", bilanPrepa?.dureeJeune || 5));
     
-    const dateDebut = loadState("dateDebutJeune", bilanPrepa?.dateDebut || null);
+    // CORRECTION: Lire la date depuis preparationData.startDate (source fiable)
+    let dateDebut = null;
+    
+    // Priorité 1 : preparationData.startDate (date de début de préparation = date de début de jeûne)
+    try {
+      const prepDataStr = localStorage.getItem("preparationData");
+      if (prepDataStr) {
+        const prepData = JSON.parse(prepDataStr);
+        dateDebut = prepData.startDate || null;
+      }
+    } catch (e) {
+      console.error("⚠️ preparationData corrompu :", e);
+    }
+    
+    // Priorité 2 : dateDebutJeune dans localStorage
+    if (!dateDebut && typeof window !== "undefined") {
+      const dateFromStorage = localStorage.getItem("dateDebutJeune");
+      if (dateFromStorage) {
+        let dateClean = dateFromStorage.replace(/^"|"$/g, '');
+        dateDebut = dateClean.split('T')[0];
+      }
+    }
+    
     setDateDebutJeune(dateDebut);
     
     // Calcul du jour en cours depuis la date réelle de début
@@ -453,10 +475,11 @@ export default function Jeune() {
       };
       setDonneesManquantes(manquantes);
       
-      // Si poids manquant, utiliser valeur par défaut temporairement (DEBUG)
+      // Si poids manquant, rediriger vers profil
       if (poids === null) {
-        console.warn("⚠️ Poids manquant dans Supabase, utilisation valeur par défaut 70kg");
-        poids = 70; // Fallback temporaire
+        alert("Veuillez renseigner votre poids de départ pour commencer le jeûne.");
+        router.push('/profil');
+        return;
       }
       
       setPoidsDepart(poids);
@@ -466,7 +489,7 @@ export default function Jeune() {
     chargerDonneesJeune();
   }, [isClient, router]);
 
-  // Auto-initialisation de la date de début si manquante
+  // Initialiser date de début du jeûne si pas définie
   useEffect(() => {
     if (typeof window === 'undefined') return; // SSR guard
     if (!dateDebutJeune && jourEnCours === 1) {
@@ -667,27 +690,57 @@ export default function Jeune() {
         <div style={{ fontSize: 20, fontWeight: 700 }}>
           📆 Jour {jourEnCours} / {dureeJeune} – {contenuJour.titre}
         </div>
-        {dateDebutJeune && (
-          <div style={{ marginTop: 8, fontSize: 14, color: "#1565c0", display: "flex", flexDirection: "column", gap: 4 }}>
-            <div>
-              🗓️ Commencé le {new Date(dateDebutJeune).toLocaleDateString('fr-FR', { 
-                day: 'numeric', 
-                month: 'long', 
-                year: 'numeric' 
-              })}
+        {(() => {
+          // SOLUTION OPTION B : Lire directement localStorage sans passer par state React
+          let dateDebut = null;
+          
+          try {
+            // Priorité 1 : preparationData.startDate (source fiable)
+            const prepDataStr = typeof window !== "undefined" ? localStorage.getItem("preparationData") : null;
+            if (prepDataStr) {
+              const prepData = JSON.parse(prepDataStr);
+              dateDebut = prepData?.startDate;
+            }
+          } catch (e) {
+            console.error("⚠️ Erreur lecture preparationData:", e);
+          }
+          
+          // Priorité 2 : dateDebutJeune directe
+          if (!dateDebut && typeof window !== "undefined") {
+            const dateFromStorage = localStorage.getItem("dateDebutJeune");
+            if (dateFromStorage) {
+              let dateClean = dateFromStorage.replace(/^"|"$/g, '');
+              dateDebut = dateClean.split('T')[0];
+            }
+          }
+          
+          if (!dateDebut) return null;
+          
+          const dateDebutObj = new Date(dateDebut);
+          const dateFinPrevue = new Date(dateDebutObj.getTime() + (dureeJeune - 1) * 24 * 60 * 60 * 1000);
+          
+          return (
+            <div style={{ marginTop: 8, fontSize: 14, color: "#1565c0", display: "flex", flexDirection: "column", gap: 4 }}>
+              <div>
+                🗓️ Commencé le {dateDebutObj.toLocaleDateString('fr-FR', { 
+                  day: 'numeric', 
+                  month: 'long', 
+                  year: 'numeric' 
+                })}
+              </div>
+              <div style={{ fontSize: 13, color: "#64b5f6" }}>
+                Aujourd'hui : {new Date().toLocaleDateString('fr-FR', { 
+                  weekday: 'long',
+                  day: 'numeric', 
+                  month: 'long'
+                })} • Fin prévue le {dateFinPrevue.toLocaleDateString('fr-FR', { 
+                  day: 'numeric', 
+                  month: 'long'
+                })}
+              </div>
             </div>
-            <div style={{ fontSize: 13, color: "#64b5f6" }}>
-              Aujourd'hui : {new Date().toLocaleDateString('fr-FR', { 
-                weekday: 'long',
-                day: 'numeric', 
-                month: 'long'
-              })} • Fin prévue le {new Date(new Date(dateDebutJeune).getTime() + (dureeJeune - 1) * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', { 
-                day: 'numeric', 
-                month: 'long'
-              })}
-            </div>
-          </div>
-        )}
+          );
+        })()}
         <div style={{ marginTop: 6, color: "#1976d2" }}>
           {contenuJour.message}
         </div>
