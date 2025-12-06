@@ -417,11 +417,29 @@ export default function Suivi() {
   useEffect(() => {
     async function detecterReprise() {
       try {
+        // 🧪 MODE TEST : Vérifier si test_modeRepriseActif est activé
+        const modeTestActif = localStorage.getItem('test_modeRepriseActif') === 'true';
+        console.log('[REPRISE] Mode test actif:', modeTestActif);
+        
         // 1. Vérifier si programme reprise validé existe
         let prog = null;
         
-        // Essayer Supabase d'abord
-        if (supabase) {
+        // En mode test, lire depuis test_programmeRepriseValide
+        if (modeTestActif) {
+          const programmeTestStr = localStorage.getItem('test_programmeRepriseValide');
+          console.log('[REPRISE] Programme test trouvé:', programmeTestStr ? 'OUI' : 'NON');
+          if (programmeTestStr) {
+            try {
+              prog = JSON.parse(programmeTestStr);
+              console.log('[REPRISE] Programme test parsé:', prog);
+            } catch (e) {
+              console.error('[TEST MODE] Erreur parse programme test:', e);
+            }
+          }
+        }
+        
+        // Essayer Supabase d'abord (uniquement si pas en mode test)
+        if (!modeTestActif && supabase) {
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
             const { data, error } = await supabase
@@ -441,26 +459,44 @@ export default function Suivi() {
         
         // Fallback localStorage si pas en BDD
         if (!prog && typeof window !== 'undefined') {
-          const progLocal = localStorage.getItem('programmeRepriseValide');
+          // 🧪 Utiliser la bonne clé selon le mode
+          const programmeKey = modeTestActif ? 'test_programmeRepriseValide' : 'programmeRepriseValide';
+          const progLocal = localStorage.getItem(programmeKey);
           if (progLocal) {
-            prog = JSON.parse(progLocal);
+            try {
+              prog = JSON.parse(progLocal);
+            } catch (e) {
+              console.error('[REPRISE] Erreur parse programme localStorage:', e);
+            }
           }
         }
 
         if (!prog) {
+          console.log('[REPRISE] Aucun programme trouvé, repriseActive = false');
           setRepriseActive(false);
           return;
         }
+
+        console.log('[REPRISE] Programme trouvé:', prog);
 
         // 2. Calculer le jour actuel de reprise
         const debut = new Date(prog.date_debut_reprise);
         debut.setHours(0, 0, 0, 0);
         const aujourdhui = new Date(selectedDate);
         aujourdhui.setHours(0, 0, 0, 0);
-        const diffJours = Math.floor((aujourdhui - debut) / (1000 * 60 * 60 * 24)) + 1;
+        let diffJours = Math.floor((aujourdhui - debut) / (1000 * 60 * 60 * 24)) + 1;
+
+        // 🧪 MODE TEST : Forcer au minimum Jour 1 pour permettre le test
+        if (modeTestActif && diffJours < 1) {
+          console.log('[REPRISE] Mode test : Forçage diffJours de', diffJours, 'à 1');
+          diffJours = 1;
+        }
+
+        console.log('[REPRISE] Date début:', debut, 'Aujourd\'hui:', aujourdhui, 'Diff jours:', diffJours);
 
         // 3. Vérifier si on est dans la période de reprise
         if (diffJours >= 1 && diffJours <= prog.duree_reprise_jours) {
+          console.log('[REPRISE] ✅ Reprise ACTIVE - Jour', diffJours, '/', prog.duree_reprise_jours);
           setRepriseActive(true);
           setJourReprise(diffJours);
           setProgrammeReprise(prog);
@@ -990,7 +1026,7 @@ export default function Suivi() {
       ) : (
         <>
           {/* Affichage conditionnel strict selon la checklist */}
-          {defiAlimentaireActif ? (
+          {(defiAlimentaireActif || repriseActive) ? (
             <SaisieDefiAlimentaire 
               modeReprise={repriseActive}
               phaseReprise={phaseReprise}
