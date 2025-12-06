@@ -507,3 +507,116 @@ Leçon métier : Toujours utiliser router.push pour la navigation interne dans N
 Traçabilité Git : Commit correctif du 03/12/2025, patch sur index.js, aucune suppression de code, modification strictement additive.
 ═══════════════════════════════════════════════════════════════════════════════
 
+════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 03-06/12/2025 — AFFICHAGE DATES JEÛNE NON FONCTIONNEL
+════════════════════════════════════════════════════════════════════════
+Date/Heure : 03/12/2025 - 06/12/2025 (multiples tentatives)
+Fichier : /pages/jeune.js
+Contexte : Récupération données préparation jeûne (dateDebutJeune, affichage dates)
+
+Symptômes rapportés par utilisateur :
+  - Dates ne s'affichent jamais dans l'interface (bloc "Commencé le..." absent)
+  - Jeûne commencé le 1er décembre 2025, mais affiche Jour 1 au lieu de Jour 6
+  - localStorage contient preparationData.startDate = "2025-12-01" (CORRECT)
+  - localStorage contient dateDebutJeune = timestamp ISO ou date incorrecte
+
+TENTATIVES RATÉES (à NE PLUS REPRODUIRE) :
+
+❌ Tentative 1 (03/12/2025) : Redirection bloquante
+  - Code : if (!dateDebutJeune) router.push('/preparation-jeune')
+  - Problème : Bloque utilisateurs sans préparation (jeûne court 1-2 jours)
+  - Rollback : Suppression redirection
+
+❌ Tentative 2 (03/12/2025) : Auto-initialisation date
+  - Code : if (!dateDebutJeune && jourEnCours === 1) setDateDebutJeune(today)
+  - Problème : Race condition, écrase date réelle (01/12 → 03/12)
+  - Rollback : Suppression auto-init
+
+❌ Tentative 3 (03/12/2025) : Lecture avec loadState()
+  - Code : const dateDebut = loadState("dateDebutJeune", ...)
+  - Problème : JSON.parse() ajoute guillemets doubles ('"2025-12-01"')
+  - new Date('"2025-12-01"') = Invalid Date
+  - Échec : Dates ne s'affichent toujours pas
+
+❌ Tentative 4 (03/12/2025) : localStorage.getItem() direct + .replace()
+  - Code : dateDebut = localStorage.getItem("dateDebutJeune").replace(/^"|"$/g, '')
+  - Problème : Nettoie guillemets mais dateDebutJeune state reste null
+  - Échec : Condition {dateDebutJeune && ( ne passe jamais
+
+❌ Tentative 5 (03/12/2025) : Doublon setDateDebutJeune
+  - Problème : Ligne 363 setDateDebutJeune(dateDebut) + Ligne 385 setDateDebutJeune(loadState(...))
+  - Le 2ème appel écrase le 1er avec JSON.parse corrompu
+  - Rollback : Suppression ligne 385
+
+❌ Tentative 6 (04/12/2025) : .split('T')[0] sur timestamp ISO
+  - Code : dateDebut = dateFromStorage.replace(/^"|"$/g, '').split('T')[0]
+  - Problème : Extrait date du jour (04/12) au lieu de date de début (01/12)
+  - localStorage.getItem('dateDebutJeune') = "2025-12-04T20:52:16.273Z" (écrasé)
+  - Échec : Affiche mauvaise date
+
+❌ Tentative 7 (06/12/2025) : Lecture depuis bilanPreparationJeune.dateDebut
+  - Code : let dateDebut = bilanPrepa?.dateDebut || null
+  - Problème : La clé dateDebut N'EXISTE PAS dans bilanPreparationJeune
+  - bilanPreparationJeune contient seulement date_fin_preparation
+  - Échec : dateDebut reste null
+
+❌ Tentative 8 (06/12/2025) : Lecture depuis preparationData.startDate
+  - Code : const prepData = JSON.parse(localStorage.getItem("preparationData"))
+         dateDebut = prepData.startDate
+  - Problème : preparationData.startDate = "2025-12-01" (CORRECT) mais state ne se met pas à jour
+  - Bloc {dateDebutJeune && ( ne s'affiche toujours pas
+  - Échec : Dates invisibles malgré donnée correcte
+
+DIAGNOSTIC EXPERT (06/12/2025) :
+
+1. SOURCE DE VÉRITÉ IDENTIFIÉE :
+   ✅ localStorage.getItem('preparationData') contient :
+      {"startDate":"2025-12-01","duration":10,...}
+   ✅ Cette date est FIABLE et CORRECTE
+
+2. PROBLÈME TECHNIQUE RÉEL :
+   ❌ Le state React `dateDebutJeune` ne se met JAMAIS à jour correctement
+   ❌ Même si le code fait setDateDebutJeune("2025-12-01"), le state reste null ou undefined
+   ❌ Le bloc JSX {dateDebutJeune && (...)} ne s'affiche jamais car condition false
+
+3. CAUSES POSSIBLES NON TESTÉES :
+   - Ordre d'exécution des useEffect incorrect
+   - Conflit entre plusieurs setDateDebutJeune dans le même useEffect
+   - isClient false au moment du render du bloc dates
+   - State initial undefined qui bloque le render même après setState
+   - Problème de re-render après setState
+
+4. TESTS DE VÉRIFICATION NÉCESSAIRES :
+   - Console.log du state dateDebutJeune APRÈS setDateDebutJeune
+   - Vérifier si le composant re-render après setState
+   - Tester avec un useEffect dédié uniquement pour dateDebutJeune
+   - Vérifier que isClient = true au moment du render du bloc dates
+
+SOLUTION PROPOSÉE (NON TESTÉE, À VALIDER) :
+
+Option A : useEffect dédié avec dependency array
+  - Créer un useEffect séparé qui ne fait QUE charger dateDebutJeune
+  - Dependencies: [isClient] uniquement
+  - Console.log pour tracer l'exécution
+
+Option B : Affichage conditionnel différent
+  - Au lieu de {dateDebutJeune && (
+  - Utiliser {isClient && preparationData?.startDate && (
+  - Lire directement depuis localStorage dans le render
+
+Option C : Debug complet du state
+  - Ajouter console.log avant/après chaque setDateDebutJeune
+  - Vérifier que le composant re-render
+  - Identifier si le problème est setState ou render
+
+ATTENTE VALIDATION UTILISATEUR avant toute modification.
+
+État actuel :
+  - Code : Lecture depuis preparationData.startDate (ligne 360-374)
+  - localStorage : Données correctes (startDate = "2025-12-01")
+  - Affichage : ❌ Dates invisibles (état inchangé)
+  - Cause : State React dateDebutJeune ne se met pas à jour
+
+Prochaine étape : Validation utilisateur de l'option A, B ou C
+════════════════════════════════════════════════════════════════════════
+
