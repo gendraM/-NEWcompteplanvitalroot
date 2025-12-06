@@ -221,6 +221,7 @@ git push
    - Compare : `AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS`
 4. **Créer la Pull Request**
 5. **Merger** après validation
+ @Copilot  repond ici comment laurelle  valide ma pull request ?
 
 #### Option 2 : Laurelle récupère directement
 

@@ -54,7 +54,14 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
       maxWidth: 340,
       width: '100%',
       fontSize: '1.01rem',
-      display: 'flex', flexDirection: 'column', gap: '1.1rem'
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: '1.1rem',
+      position: 'sticky',
+      top: '1.5rem',
+      alignSelf: 'flex-start',
+      maxHeight: 'calc(100vh - 3rem)',
+      overflowY: 'auto'
     }}>
       <div style={{fontWeight:700, color:'#1976d2', fontSize:'1.15rem', marginBottom:4}}>Phases de la reprise</div>
       {phasesToShow.map(phase => (
@@ -218,6 +225,11 @@ export default function RepriseAlimentaireApresJeune() {
     const auj = new Date();
     const diff = Math.floor((auj - debut) / (1000 * 60 * 60 * 24));
     jourReprise = diff + 1;
+  }
+
+  // 🔥 MODE TEST : Forcer au minimum Jour 1 pour permettre le test
+  if (forceSuivi && jourReprise < 1) {
+    jourReprise = 1;
   }
 
   let joursAAfficher = [];
@@ -449,23 +461,12 @@ export default function RepriseAlimentaireApresJeune() {
 
       {/* ASIDE PHASES STICKY (desktop) */}
       {programme && programme.phases && programme.jours_detailles && (
-        <aside style={{
-          position: 'sticky',
-          top: 32,
-          alignSelf: 'flex-start',
-          width: 340,
-          maxWidth: '95vw',
-          zIndex: 10,
-          display: 'block',
-          marginLeft: '2rem',
-        }}>
-          <PhasesApercu
-            phases={programme.phases}
-            jours={programme.jours_detailles}
-            dateAuj={dateAuj}
-            onVoirAliments={phaseNum => setModalAliments(phaseNum)}
-          />
-        </aside>
+        <PhasesApercu
+          phases={programme.phases}
+          jours={programme.jours_detailles}
+          dateAuj={dateAuj}
+          onVoirAliments={phaseNum => setModalAliments(phaseNum)}
+        />
       )}
       {/* Message explicite si prévisualisation */}
       {isPreview && programme && (
@@ -869,8 +870,8 @@ export default function RepriseAlimentaireApresJeune() {
       )}
         {/* Modale aliments phase */}
         {modalAliments && (
-          <div style={{position:'fixed', top:0, left:0, width:'100vw', height:'100vh', background:'#0008', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center'}} onClick={()=>setModalAliments(null)}>
-            <div style={{background:'#fff', borderRadius:12, padding:'2rem 2.5rem', minWidth:320, maxWidth:420, boxShadow:'0 4px 24px #0003', position:'relative'}} onClick={e=>e.stopPropagation()}>
+          <div style={{position:'fixed', top:0, left:0, width:'100vw', height:'100vh', background:'#0008', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden'}} onClick={()=>setModalAliments(null)}>
+            <div style={{background:'#fff', borderRadius:12, padding:'2rem 2.5rem', minWidth:320, maxWidth:420, maxHeight:'80vh', overflowY:'auto', boxShadow:'0 4px 24px #0003', position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)'}} onClick={e=>e.stopPropagation()}>
               <button onClick={()=>setModalAliments(null)} style={{position:'absolute', top:10, right:10, background:'none', border:'none', fontSize:'1.5rem', color:'#1976d2', cursor:'pointer'}}>✖</button>
               <h2 style={{color:'#1976d2', fontWeight:700, fontSize:'1.2rem', marginBottom:10}}>Aliments autorisés – Phase {modalAliments}</h2>
               <ul style={{margin:0, paddingLeft:'1.2rem', color:'#333', fontSize:'1.05rem'}}>
