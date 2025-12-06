@@ -3,112 +3,60 @@ import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
 import { genererProgrammeReprise } from "../lib/genererProgrammeReprise";
 import { genererEtSauvegarderProgramme } from "../lib/jeuneUtils";
-import ChecklistConseilsActivation from "../components/ChecklistConseilsActivation";
-import MessageSoutien from "../components/MessageSoutien";
-import AnalyseComportementale from "../components/AnalyseComportementale";
-import PertePoidsEstimee from "../components/PertePoidsEstimee";
 
 // --- Données statiques pour chaque jour de jeûne (exemple jusqu'à 10 jours, à compléter si besoin) ---
 const JEUNE_DAYS_CONTENT = {
   1: {
-    titre: "Jour 1 – Sortir du pilotage automatique",
+    titre: "Jour 1 – Lancement du jeûne",
     corps: [
-      "🧠 Esprit : Tu remarques les automatismes, les rituels qui tournent en boucle. C'est normal : pendant des années, tu as relié certaines émotions, certains moments de ta journée, à un geste alimentaire. Là, tu ne réponds plus à ces impulsions.",
-      "🧬 Corps : Ton corps utilise encore les réserves de sucre stockées dans ton foie et tes muscles (glycogène), donc tu n'es pas encore en cétose. Tu peux ressentir une envie de manger, mais c'est plus une habitude de confort qu'un vrai besoin physiologique.",
-      "❤️ Ce que tu peux ressentir : De la faim mentale, un peu d'anxiété, des envies de mâcher, une sensation de manque. Ces signaux ne viennent pas toujours du corps, ils viennent de ton histoire avec la nourriture.",
-      "📿 Sens & conscience : Ce jour-là, tu observes combien de fois tu as envie de manger sans avoir faim physiquement. Tu vois la différence entre un réflexe et un besoin.",
-      "🧰 Outil du jour : Dès qu'une envie de manger surgit, pose-toi trois questions : 'Est-ce que j'ai vraiment faim ?' 'Quelle émotion je ressens maintenant ?' 'Qu'est-ce que je cherche vraiment à remplir ?'",
-      "💡 Conseil : Note chaque fois que tu sens l'envie de manger. Écris ce qui se passait juste avant. Tu vas découvrir des patterns."
+      "🧠 Esprit : Tu entres dans la phase de rupture. Les premières heures sont surtout mentales. Ton corps commence à utiliser ses réserves de glucose.",
+      "🧬 Corps : La glycémie baisse doucement. Tu peux ressentir une légère faim ou des pensées alimentaires récurrentes.",
+      "❤️ Synthèse émotionnelle : C’est le début d’un reset. Observe tes sensations sans jugement.",
+      "📿 Ancrage spirituel : Prends un temps pour poser ton intention.",
+      "🧰 Outil du jour : Respiration profonde, hydratation, marche douce.",
+      "💡 Conseil : Prépare-toi à accueillir les premiers signaux de faim sans y répondre tout de suite."
     ],
-    message: "Tu sors d'un mode automatique. Là, tu vois tes habitudes en face.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true }
-      ]
-    }
+    message: "Le plus dur, c’est de commencer. Tu viens de franchir la première porte. Tiens bon, tu es sur ton chemin."
   },
   2: {
-    titre: "Jour 2 – La transition intérieure commence",
+    titre: "Jour 2 – Bascule métabolique",
     corps: [
-      "🧠 Esprit : Tes pensées sont encore assez bruyantes. Tu peux sentir des doutes (« Pourquoi je fais ça ? »), de l'ennui, ou une envie d'abandonner. C'est le mental qui résiste, parce qu'il a perdu un outil de régulation : la nourriture.",
-      "🧬 Corps : Le glycogène commence à s'épuiser. Ton foie entame la fabrication de cétones (des molécules issues de la dégradation des graisses) pour nourrir ton cerveau. Tu es entre deux mondes : tu n'es plus en mode sucre, mais pas encore pleinement en cétose.",
-      "❤️ Ce que tu peux ressentir : Une petite fatigue, peut-être un léger mal de tête ou une langue chargée. C'est le signe que ton corps passe en mode nettoyage. La faim psychologique peut encore être forte.",
-      "📿 Sens & conscience : C'est le moment où tu vois combien de fois la nourriture était un refuge, un calme artificiel. Tu es en train de perdre ce repère.",
-      "🧰 Outil du jour : Quand une envie forte monte, prends 5 grandes respirations abdominales avant de faire quoi que ce soit. Pose ta main sur ton ventre, connecte-toi à ton corps réel.",
-      "💡 Conseil : Hydrate-toi beaucoup, repose-toi, évite les situations stressantes ou les tentations inutiles. Tu passes une étape fragile."
+      "🧠 Esprit : Les pensées alimentaires diminuent. Tu découvres une nouvelle forme de calme.",
+      "🧬 Corps : Ton foie commence à produire des corps cétoniques. Début de la cétose.",
+      "❤️ Synthèse émotionnelle : Tu peux ressentir de la fierté ou des doutes. C’est normal.",
+      "📿 Ancrage spirituel : Médite sur la patience.",
+      "🧰 Outil du jour : Hydratation ++, sieste courte, lecture inspirante.",
+      "💡 Conseil : Écoute ton corps, repose-toi si besoin."
     ],
-    message: "Tu lâches un ancien réflexe. Ton corps s'adapte, ton mental négocie encore. Ça passera.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true }
-      ]
-    }
+    message: "Tu es en pleine régénération cellulaire. Ton organisme apprend à fonctionner autrement."
   },
   3: {
-    titre: "Jour 3 – Entrer dans le vrai calme du corps",
+    titre: "Jour 3 – L'Adaptation : L'éveil en cétose profonde",
     corps: [
-      "🧠 Esprit : Tes pensées commencent à ralentir. Il y a plus d'espace entre deux idées, moins de bruit de fond. Certaines personnes ressentent une forme de clarté mentale légère, d'autres juste une baisse du brouhaha intérieur.",
-      "🧬 Corps : Tu commences à être en cétose plus stable. Ton foie produit maintenant régulièrement des cétones pour nourrir ton cerveau. L'autophagie (le processus où tes cellules recyclent leurs déchets internes) démarre doucement.",
-      "❤️ Ce que tu peux ressentir : Moins de faim mécanique, une énergie stable (sans les hauts et les bas liés au sucre). Tu peux aussi sentir une sorte de paix inhabituelle, ou au contraire une petite tristesse diffuse.",
-      "📿 Sens & conscience : Ce jour-là, tu réalises que tu peux vivre sans remplir chaque silence, chaque creux. C'est une information essentielle pour la suite.",
-      "🧰 Outil du jour : Prends 10 minutes dans la journée pour t'asseoir dans le silence, sans téléphone, sans distraction. Juste toi et ton souffle.",
-      "💡 Conseil : N'essaie pas de 'combler' cette journée avec mille projets. Laisse le vide être là, c'est lui qui permet au corps de faire son travail."
+      "Félicitations ! Tu es maintenant en cétose stable. Ton corps utilise pleinement les cétones comme source d'énergie, et ton cerveau adore littéralement ce nouveau carburant. Les cétones sont des molécules ultra-efficaces qui traversent la barrière hémato-encéphalique et fournissent une énergie plus propre, plus stable, sans les pics et crashs du glucose. C'est pour cela que beaucoup de jeûneurs parlent d'une clarté mentale exceptionnelle à ce stade.",
+      "Tu peux commencer à ressentir cette fameuse clarté d'esprit, une énergie stable sans fluctuations, une sensation de calme intérieur, voire une forme d'euphorie légère. Certains rapportent aussi une meilleure concentration, une créativité accrue, et une connexion plus fine à leurs pensées. C'est le moment où le jeûne devient souvent plus facile psychologiquement. Continue d'écouter ton corps, de te reposer si besoin, et d'accueillir cette nouvelle conscience qui émerge."
     ],
-    message: "Tu n'es plus en lutte. Tu es en observation. Le calme commence à s'installer.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true }
-      ]
-    }
+    message: "✨ Tu es en cétose profonde. Ton cerveau fonctionne à plein régime. Savoure cette clarté."
   },
   4: {
-    titre: "Jour 4 – Le corps répare, l'esprit respire",
+    titre: "Jour 4 – Brûle le gras profond",
     corps: [
-      "🧠 Esprit : Ton système nerveux commence vraiment à se reposer. Moins de pics de stress, moins de réactions impulsives. Tu peux sentir que tes émotions sont un peu plus stables, ou au contraire qu'une vieille émotion refait surface.",
-      "🧬 Corps : L'autophagie tourne maintenant à fond. Ton organisme démonte les cellules abîmées, les protéines mal formées, les débris accumulés. C'est une réparation intérieure profonde, invisible, mais essentielle.",
-      "❤️ Ce que tu peux ressentir : Parfois une grosse fatigue, une envie de pleurer sans raison, ou au contraire une sensation de libération douce. Le jeûne ne fait pas que nettoyer le corps : il libère aussi des mémoires émotionnelles enfouies.",
-      "📿 Sens & conscience : Ce jour-là, tu peux voir combien tu utilisais la nourriture pour gérer tes émotions. Là, tu les ressens en direct, sans coussin.",
-      "🧰 Outil du jour : Si une émotion monte (tristesse, colère, peur), au lieu de la bloquer, laisse-la traverser. Pose un nom dessus : 'Là, je ressens de la tristesse.' C'est déjà beaucoup.",
-      "💡 Conseil : Repose-toi, limite les stimulations (écrans, bruit, foule). Tu es en réparation intérieure, ton système nerveux a besoin de douceur, pas de dispersion."
+      "🧠 Esprit : Fatigue possible, résistance mentale.",
+      "🧬 Corps : Cétose stabilisée, autophagie active.",
+      "❤️ Synthèse émotionnelle : Détachement des réflexes alimentaires.",
+      "📿 Ancrage spirituel : Reconnexion à l’essentiel.",
+      "🧰 Outil du jour : Respiration, visualisation, soutien.",
+      "💡 Conseil : Hydrate-toi +++, repose-toi."
     ],
-    message: "Tu libères des couches émotionnelles anciennes. C'est normal si c'est intense.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true },
-        { id: 3, conseil: "Éviter le stress / drames / tensions", benefice: "↘ stockage ventre", actif: true },
-        { id: 4, conseil: "Faire 45 min de marche douce par jour", benefice: "↗ lipolyse, ↗ énergie", actif: true }
-      ]
-    }
+    message: "Tu es dans la traversée. Ce n’est pas de la privation : c’est de la reconquête."
   },
   5: {
-    titre: "Jour 5 – Nettoyage cellulaire & apaisement profond",
+    titre: "Jour 5 – L'Équilibre : La pleine présence et la stabilité intérieure",
     corps: [
-      "🧠 Esprit : Tu n'es plus dans l'effort. Il y a une forme d'acceptation, de lâcher-prise. Les pensées parasites diminuent. Tu es là, simplement.",
-      "🧬 Corps : L'autophagie continue son travail de tri et de recyclage. Ton corps élimine les cellules endommagées, réduit l'inflammation de fond, répare les tissus. C'est un travail invisible mais fondamental.",
-      "🧬 Corps (inflammation) : L'inflammation chronique commence à baisser. Tes articulations peuvent te sembler plus légères, ta peau plus nette, ton sommeil plus profond.",
-      "❤️ Ce que tu peux ressentir : Une sensation de légèreté, parfois même de joie discrète sans raison. Ou au contraire une grande fatigue, un besoin de dormir beaucoup. Les deux sont normaux.",
-      "📿 Sens & conscience : Tu réalises que tu peux vivre sans te remplir tout le temps. C'est une liberté nouvelle, parfois un peu vertigineuse.",
-      "🧰 Outil du jour : Écris trois choses que ce jeûne t'a déjà apprises sur toi (ton rapport à la nourriture, tes émotions, tes automatismes). C'est précieux pour la suite.",
-      "💡 Conseil : Continue de te reposer, de boire beaucoup, de rester dans la douceur. Tu n'es pas en train de 'performer', tu laisses ton corps faire ce qu'il sait faire."
+      "Tu es maintenant bien installé dans ton jeûne. Ton corps et ton esprit sont alignés, synchronisés dans un état d'équilibre rare. L'énergie est stable, fluide, sans à-coups. La faim mécanique a disparu ou est devenue très discrète – tu n'es plus dans le besoin, mais dans l'observation. Ton système nerveux est apaisé, ton mental est clair, et tu commences peut-être à percevoir une forme de légèreté, voire de joie intérieure, sans raison extérieure. C'est l'état de grâce du jeûneur expérimenté.",
+      "Profite de ce moment précieux pour méditer, te reconnecter à toi-même, ou simplement observer ce nouvel état de conscience. Tu es dans un espace de grande clarté, où les pensées sont moins nombreuses, plus espacées, plus justes. Beaucoup de jeûneurs rapportent des insights profonds à ce stade, des prises de conscience spontanées, ou une compréhension nouvelle de leur vie. C'est aussi le moment idéal pour poser des questions intérieures, écrire dans un journal, ou simplement être dans le silence. Tu es dans l'équilibre. Savoure cet état de grâce, car il est le fruit de ton engagement et de ta confiance."
     ],
-    message: "Tu te libères d'habitudes profondes. Ton corps nettoie, ton esprit s'allège.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true },
-        { id: 3, conseil: "Éviter le stress / drames / tensions", benefice: "↘ stockage ventre", actif: true },
-        { id: 4, conseil: "Faire 45 min de marche douce par jour", benefice: "↗ lipolyse, ↗ énergie", actif: true }
-      ]
-    }
+    message: "🌟 Tu es dans l'équilibre parfait. Savoure cet état de grâce et de clarté absolue."
   },
   6: {
     titre: "Jour 6 – Nettoyage profond & tri intérieur",
@@ -121,16 +69,7 @@ const JEUNE_DAYS_CONTENT = {
       "🧰 Outil du jour : Si la lassitude arrive, pose une main sur ton ventre, respire profondément, et dis-toi : « Là, maintenant, mon corps démonte l'ancien. Je n'ai rien à faire, juste le laisser travailler. »",
       "💡 Conseil : Ne remplis pas ta journée pour fuir. Choisis des activités douces (lecture, marche lente, rangements simples) qui accompagnent ce tri intérieur au lieu de le masquer."
     ],
-    message: "Tu ne forces plus ton corps, tu lui laisses enfin de l'espace pour faire son ménage en profondeur.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true },
-        { id: 3, conseil: "Éviter le stress / drames / tensions", benefice: "↘ stockage ventre", actif: true },
-        { id: 4, conseil: "Faire 45 min de marche douce par jour", benefice: "↗ lipolyse, ↗ énergie", actif: true }
-      ]
-    }
+    message: "Tu ne forces plus ton corps, tu lui laisses enfin de l'espace pour faire son ménage en profondeur."
   },
   7: {
     titre: "Jour 7 – Autophagie maximale & reset de l'inflammation",
@@ -144,16 +83,7 @@ const JEUNE_DAYS_CONTENT = {
       "🧰 Outil du jour : Prends quelques minutes pour noter noir sur blanc ce que tu sens de différent depuis le jour 1 (corps, émotions, pensées). Tu donnes un visage concret à ce que ton jeûne est en train de transformer.",
       "💡 Conseil : Aujourd'hui, l'erreur serait de te dire « bon, c'est bon, j'ai assez fait ». Tu es justement au moment où le travail devient le plus utile en profondeur."
     ],
-    message: "Tu n'es plus dans la lutte contre un ancien toi. Tu commences à vivre avec un corps qui se nettoie vraiment.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true },
-        { id: 3, conseil: "Éviter le stress / drames / tensions", benefice: "↘ stockage ventre", actif: true },
-        { id: 4, conseil: "Faire 45 min de marche douce par jour", benefice: "↗ lipolyse, ↗ énergie", actif: true }
-      ]
-    }
+    message: "Tu n'es plus dans la lutte contre un ancien toi. Tu commences à vivre avec un corps qui se nettoie vraiment."
   },
   8: {
     titre: "Jour 8 – Sobriété intelligente & réparation silencieuse",
@@ -166,17 +96,7 @@ const JEUNE_DAYS_CONTENT = {
       "🧰 Outil du jour : Quand l'ennui, la tristesse ou le vide se pointent, au lieu de les fuir, nomme-les : « Là, je ressens du vide », « Là, je ressens de la tristesse ». Tu les regardes, tu ne les manges plus.",
       "💡 Conseil : Ne rajoute pas 1000 projets pour combler ce vide. Laisse-toi au moins un moment dans la journée où il ne se passe 'rien'. C'est là que ton jeûne travaille aussi sur ta vie intérieure."
     ],
-    message: "Tu apprends à ne plus remplir systématiquement le vide. Tu le regardes, et c'est déjà une transformation majeure.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true },
-        { id: 3, conseil: "Éviter le stress / drames / tensions", benefice: "↘ stockage ventre", actif: true },
-        { id: 4, conseil: "Faire 45 min de marche douce par jour", benefice: "↗ lipolyse, ↗ énergie", actif: true },
-        { id: 5, conseil: "Continuer encore 1-2 jours de jeûne", benefice: "↗ transition vers déstockage profond", actif: true }
-      ]
-    }
+    message: "Tu apprends à ne plus remplir systématiquement le vide. Tu le regardes, et c'est déjà une transformation majeure."
   },
   9: {
     titre: "Jour 9 – Cerveau clair & énergie épurée",
@@ -189,17 +109,7 @@ const JEUNE_DAYS_CONTENT = {
       "🧰 Outil du jour : Note trois choses que tu vois plus clairement aujourd'hui (une vérité sur ton corps, une vérité sur ton alimentation, une vérité sur ta vie). Ce sont des trésors de cette période.",
       "💡 Conseil : Ne prends pas encore de grandes décisions pratiques (rupture, déménagement, etc.). Contente-toi d'observer ce qui se clarifie. Les décisions viendront plus tard, avec la reprise."
     ],
-    message: "Ce n'est pas seulement ton corps qui se nettoie. C'est aussi ta façon de voir ta vie qui devient plus nette.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true },
-        { id: 3, conseil: "Éviter le stress / drames / tensions", benefice: "↘ stockage ventre", actif: true },
-        { id: 4, conseil: "Faire 45 min de marche douce par jour", benefice: "↗ lipolyse, ↗ énergie", actif: true },
-        { id: 5, conseil: "Continuer encore 1-2 jours de jeûne", benefice: "↗ transition vers déstockage profond", actif: true }
-      ]
-    }
+    message: "Ce n'est pas seulement ton corps qui se nettoie. C'est aussi ta façon de voir ta vie qui devient plus nette."
   },
   10: {
     titre: "Jour 10 – Ralentissement sacré & protection de l'avenir",
@@ -212,17 +122,7 @@ const JEUNE_DAYS_CONTENT = {
       "🧰 Outil du jour : Prends un temps au calme pour répondre à ces deux questions : « Qu'est-ce que ce jeûne m'a appris sur mon corps ? » et « Qu'est-ce qu'il m'a appris sur ma façon de me nourrir (au sens large) ? »",
       "💡 Conseil : Commence à préparer intérieurement ta reprise. La façon dont tu vas remettre les aliments compte autant que le jeûne lui-même. Tu n'es pas en train de 'finir un challenge', tu es en train de préparer une nouvelle base."
     ],
-    message: "Tu n'es pas allée 'au bout de toi'. Tu as posé des fondations. La suite va dépendre de la façon dont tu vas en prendre soin.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true },
-        { id: 3, conseil: "Éviter le stress / drames / tensions", benefice: "↘ stockage ventre", actif: true },
-        { id: 4, conseil: "Faire 45 min de marche douce par jour", benefice: "↗ lipolyse, ↗ énergie", actif: true },
-        { id: 5, conseil: "Continuer encore 1-2 jours de jeûne", benefice: "↗ transition vers déstockage profond", actif: true }
-      ]
-    }
+    message: "Tu n'es pas allée 'au bout de toi'. Tu as posé des fondations. La suite va dépendre de la façon dont tu vas en prendre soin."
   },
   11: {
     titre: "Jour 11 – Corps allégé, esprit lucide",
@@ -235,17 +135,7 @@ const JEUNE_DAYS_CONTENT = {
       "🧰 Outil du jour : Écris une phrase commençant par \'Je me sens…\' et laisse ton corps continuer la phrase. Pas ton mental. Ta sensation. Ton état du moment.",
       "💡 Conseil : Ne remplis pas ce calme. Laisse-le s'installer. C'est un des plus grands bénéfices du jeûne long : un esprit moins bruyant."
     ],
-    message: "Ton corps fait le ménage. Ton esprit voit plus clair parce qu'il n'est plus encombré.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true },
-        { id: 3, conseil: "Éviter le stress / drames / tensions", benefice: "↘ stockage ventre", actif: true },
-        { id: 4, conseil: "Faire 45 min de marche douce par jour", benefice: "↗ lipolyse, ↗ énergie", actif: true },
-        { id: 5, conseil: "Continuer encore 1-2 jours de jeûne", benefice: "↗ transition vers déstockage profond", actif: true }
-      ]
-    }
+    message: "Ton corps fait le ménage. Ton esprit voit plus clair parce qu'il n'est plus encombré."
   },
   12: {
     titre: "Jour 12 – Réparation silencieuse & vérité intérieure",
@@ -258,17 +148,7 @@ const JEUNE_DAYS_CONTENT = {
       "🧰 Outil du jour : Demande-toi : « Qu'est-ce que mon corps essaie de me dire aujourd'hui ? ». Juste ça. Et écris la première idée qui vient.",
       "💡 Conseil : Protège ton énergie. Évite les discussions lourdes, les écrans agressifs, les sollicitations inutiles. Tu es en profondeur : reste-y."
     ],
-    message: "Quand ton corps nettoie, ton esprit dit la vérité. C'est une porte précieuse.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true },
-        { id: 3, conseil: "Éviter le stress / drames / tensions", benefice: "↘ stockage ventre", actif: true },
-        { id: 4, conseil: "Faire 45 min de marche douce par jour", benefice: "↗ lipolyse, ↗ énergie", actif: true },
-        { id: 5, conseil: "Continuer encore 1-2 jours de jeûne", benefice: "↗ transition vers déstockage profond", actif: true }
-      ]
-    }
+    message: "Quand ton corps nettoie, ton esprit dit la vérité. C'est une porte précieuse."
   },
   13: {
     titre: "Jour 13 – Transition intérieure & vigilance consciente",
@@ -281,19 +161,9 @@ const JEUNE_DAYS_CONTENT = {
       "🧰 Outil du jour : Prépare ton premier repas dans ta tête. Imagine-le. Visualise-le. Cela t'évite de sortir du jeûne dans la précipitation ou l'incohérence.",
       "💡 Conseil : Aujourd'hui, la vigilance est ta meilleure alliée. Ce n'est pas le moment d'être impulsive ou dispersée. Tu arrives dans une zone sensible."
     ],
-    message: "Tu n'es pas faible. Tu es en transition. Et une transition, ça demande douceur et vigilance.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true },
-        { id: 3, conseil: "Éviter le stress / drames / tensions", benefice: "↘ stockage ventre", actif: true },
-        { id: 4, conseil: "Faire 45 min de marche douce par jour", benefice: "↗ lipolyse, ↗ énergie", actif: true },
-        { id: 5, conseil: "Continuer encore 1-2 jours de jeûne", benefice: "↗ transition vers déstockage profond", actif: true }
-      ]
-    }
+    message: "Tu n'es pas faible. Tu es en transition. Et une transition, ça demande douceur et vigilance."
   },
-  13: {
+  14: {
     titre: "Jour 14 – Zone sacrée & sortie maîtrisée",
     corps: [
       "🧠 Esprit : Tu peux ressentir une forme de paix que tu ne ressens pas souvent. Ce n'est pas un miracle : c'est le résultat de 14 jours sans surcharge, sans pics glycémiques, sans digestion continue.",
@@ -304,17 +174,7 @@ const JEUNE_DAYS_CONTENT = {
       "🧰 Outil du jour : Prépare ton bouillon, tes légumes cuits, ton eau tiède. Prépare aussi ton état d'esprit : reprends comme quelqu'un qui respecte son corps, pas comme quelqu'un qui a 'tenu un challenge'.",
       "💡 Conseil : La sortie du jeûne est une continuité, pas une rupture. Garde le même esprit de connexion pour les premières bouchées. Elles comptent autant que les 14 jours."
     ],
-    message: "Tu quittes le désert. Mais tu n'en perds pas la paix. Ramène-la avec toi dans ton assiette.",
-    conseilsActivation: {
-      titre: "💪 Conseils d'activation (booste les bénéfices)",
-      items: [
-        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
-        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true },
-        { id: 3, conseil: "Éviter le stress / drames / tensions", benefice: "↘ stockage ventre", actif: true },
-        { id: 4, conseil: "Faire 45 min de marche douce par jour", benefice: "↗ lipolyse, ↗ énergie", actif: true },
-        { id: 5, conseil: "Continuer encore 1-2 jours de jeûne", benefice: "↗ transition vers déstockage profond", actif: true }
-      ]
-    }
+    message: "Tu quittes le désert. Mais tu n'en perds pas la paix. Ramène-la avec toi dans ton assiette."
   }
 };
 
@@ -388,7 +248,6 @@ function analyseComportementale(repasRecents = []) {
   });
   let dominant = Object.entries(categories).sort((a, b) => b[1] - a[1])[0]?.[0] || "équilibre";
   return {
-    repasRecents,
     extras,
     dominant,
     message: `Tu avais consommé ${extras} extras sur les 3 derniers jours. Catégorie dominante : ${dominant}. Ce jeûne est une vraie rupture. Tu es en train de couper une boucle.`
@@ -396,17 +255,10 @@ function analyseComportementale(repasRecents = []) {
 }
 
 function pertePoidsEstimee(poids, duree) {
-  if (!poids || !duree) return null;
-  const min = parseFloat((duree * 0.3).toFixed(1));
-  const max = parseFloat((duree * 0.45).toFixed(1));
-  const moyenne = parseFloat(((min + max) / 2).toFixed(1));
-  return {
-    poids,
-    duree,
-    min,
-    max,
-    moyenne
-  };
+  if (!poids) return "";
+  const min = (duree * 0.3).toFixed(1);
+  const max = (duree * 0.45).toFixed(1);
+  return `Si tu restes hydraté(e) et stable, ta perte estimée est de ${min} à ${max} kg (eau + glycogène + graisses actives).`;
 }
 
 function getRepasRecents() {
@@ -468,12 +320,6 @@ export default function Jeune() {
   const [dernierRepasSupabase, setDernierRepasSupabase] = useState(null);
   const [loadingDonneesJeune, setLoadingDonneesJeune] = useState(true);
   const [donneesManquantes, setDonneesManquantes] = useState({ poids: false, repas: false });
-
-  // === NOUVEAUX HOOKS POUR LES 4 AJOUTS ===
-  const [conseilsActivation, setConseilsActivation] = useState({});
-  const [messagePersoJour, setMessagePersoJour] = useState({});
-  const [analyseComportementaleData, setAnalyseComportementaleData] = useState(null);
-  const [pertePoidsEstimeeData, setPertePoidsEstimeeData] = useState(null);
 
   // === VARIABLES CALCULÉES ===
   const repasRecents = loadingDonneesJeune 
@@ -675,49 +521,6 @@ export default function Jeune() {
     }
   }, [dateDebutJeune, dureeJeune, jourEnCours, programmeReprise]);
 
-  // === NOUVEAUX EFFETS POUR LES 4 AJOUTS ===
-  
-  // Charger les conseils d'activation depuis localStorage
-  useEffect(() => {
-    if (isClient) {
-      const conseils = loadState('conseilsActivationJeune', {});
-      setConseilsActivation(conseils);
-    }
-  }, [isClient]);
-
-  // Sauvegarder les conseils d'activation
-  useEffect(() => {
-    if (isClient && Object.keys(conseilsActivation).length > 0) {
-      saveState('conseilsActivationJeune', conseilsActivation);
-    }
-  }, [conseilsActivation, isClient]);
-
-  // Charger les messages personnalisés
-  useEffect(() => {
-    if (isClient) {
-      const messages = loadState('messagesPersoJeune', {});
-      setMessagePersoJour(messages);
-    }
-  }, [isClient]);
-
-  // Sauvegarder les messages personnalisés
-  useEffect(() => {
-    if (isClient && Object.keys(messagePersoJour).length > 0) {
-      saveState('messagesPersoJeune', messagePersoJour);
-    }
-  }, [messagePersoJour, isClient]);
-
-  // Calculer l'analyse comportementale et la perte de poids estimée
-  useEffect(() => {
-    if (repasRecentsSupabase.length > 0 && poidsDepart) {
-      const analyse = analyseComportementale(repasRecentsSupabase);
-      setAnalyseComportementaleData(analyse);
-      
-      const perte = pertePoidsEstimee(poidsDepart, dureeJeune);
-      setPertePoidsEstimeeData(perte);
-    }
-  }, [repasRecentsSupabase, poidsDepart, dureeJeune]);
-
   // === FONCTIONS HANDLERS (AVANT LE RENDER) ===
 
   const validerJour = () => {
@@ -813,27 +616,6 @@ export default function Jeune() {
     localStorage.removeItem("programmeReprise");
   };
 
-  // === NOUVEAUX HANDLERS POUR LES 4 AJOUTS ===
-
-  const toggleConseil = (conseilId) => {
-    setConseilsActivation(prev => ({
-      ...prev,
-      [jourEnCours]: {
-        ...(prev[jourEnCours] || {}),
-        [conseilId]: !(prev[jourEnCours]?.[conseilId])
-      }
-    }));
-  };
-
-  const saveMessagePerso = (message) => {
-    const newMessages = {
-      ...messagePersoJour,
-      [jourEnCours]: message
-    };
-    setMessagePersoJour(newMessages);
-    saveState('messagesPersoJeune', newMessages);
-  };
-
   // === VARIABLES CALCULÉES DE RENDU (APRÈS TOUS LES HOOKS) ===
 
   const isFini = joursValides.length >= dureeJeune;
@@ -855,6 +637,8 @@ export default function Jeune() {
     corps: ["Contenu à compléter pour ce jour."],
     message: SUPPORT_MESSAGES[(jourEnCours - 1) % SUPPORT_MESSAGES.length]
   };
+
+  const perteEstimee = pertePoidsEstimee(poidsDepart, dureeJeune);
 
   // Guard SSR: afficher loader jusqu'au montage client (évite hydration error)
   if (!isClient) {
@@ -1113,6 +897,9 @@ export default function Jeune() {
           <div>
             {analyse.message}
           </div>
+          <div style={{ marginTop: 8, color: "#888" }}>
+            {perteEstimee}
+          </div>
         </div>
       )}
 
@@ -1169,24 +956,6 @@ export default function Jeune() {
         </button>
       </div>
 
-      {/* 🆕 AJOUT #1 : Conseils d'Activation */}
-      {contenuJour.conseilsActivation && (
-        <ChecklistConseilsActivation
-          conseils={contenuJour.conseilsActivation.items}
-          etatConseils={conseilsActivation[jourEnCours] || {}}
-          onToggle={toggleConseil}
-          jourEnCours={jourEnCours}
-        />
-      )}
-
-      {/* 🆕 AJOUT #2 : Message de Soutien */}
-      <MessageSoutien
-        messageDefaut={contenuJour.message}
-        messagePerso={messagePersoJour[jourEnCours] || ""}
-        onSave={saveMessagePerso}
-        jourEnCours={jourEnCours}
-      />
-
       {/* --- Boîte à outils personnelle --- */}
       <div style={{
         background: "#e0f2f1", borderRadius: 12, padding: 16, marginBottom: 18
@@ -1237,57 +1006,6 @@ export default function Jeune() {
             </ul>
           </div>
         )}
-      </div>
-
-      {/* 🆕 AJOUT #3 : Analyse Comportementale */}
-      {analyseComportementaleData && (
-        <AnalyseComportementale data={analyseComportementaleData} />
-      )}
-
-      {/* 🆕 AJOUT #4 : Perte de Poids Estimée */}
-      {pertePoidsEstimeeData && (
-        <PertePoidsEstimee data={pertePoidsEstimeeData} />
-      )}
-
-      {/* 🆕 AJOUT #5 : Bouton Journal Spirituel */}
-      <div style={{
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        borderRadius: 16,
-        padding: 24,
-        marginBottom: 24,
-        boxShadow: "0 8px 24px rgba(102, 126, 234, 0.25)",
-        textAlign: "center"
-      }}>
-        <button
-          onClick={() => router.push('/journal-spirituel')}
-          style={{
-            background: "white",
-            color: "#667eea",
-            border: "none",
-            borderRadius: 12,
-            padding: "16px 32px",
-            fontSize: 18,
-            fontWeight: 600,
-            cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            transition: "all 0.3s ease",
-            width: "100%",
-            maxWidth: 400
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.transform = "translateY(-2px)";
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.2)";
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.transform = "translateY(0)";
-            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-          }}
-        >
-          🎙️ Accéder à ma restauration spirituelle
-        </button>
-        <p style={{ color: "white", marginTop: 12, fontSize: 14, opacity: 0.95 }}>
-          💡 Enregistre tes pensées vocalement, méditations, versets...
-        </p>
       </div>
 
       {/* --- Bloc “En savoir plus” --- */}
