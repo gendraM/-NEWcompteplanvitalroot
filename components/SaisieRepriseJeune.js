@@ -164,37 +164,7 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
             }
         }
 
-        // Enregistrement dans localStorage
-        const alimentToSend = isJeune ? '' : aliment;
-        const quantiteToSend = isJeune ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite));
-        
-        const repasPayload = {
-            id: Date.now().toString(),
-            reprise_id: programmeReprise?.id || null,
-            jour_numero: jourReprise,
-            phase: phaseReprise,
-            moment: type,
-            aliment_nom: alimentToSend,
-            quantite: quantiteToSend,
-            kcal: isJeune ? null : kcal,
-            note,
-            ressenti,
-            conforme: criteresNonValidés.length === 0,
-            consomme_le: new Date().toISOString(),
-            created_at: new Date().toISOString()
-        };
-
-        try {
-            const existing = JSON.parse(localStorage.getItem('reprises_repas_consommes') || '[]');
-            existing.push(repasPayload);
-            localStorage.setItem('reprises_repas_consommes', JSON.stringify(existing));
-            console.log('[SaisieRepriseJeune] Repas enregistré:', repasPayload);
-        } catch (error) {
-            setErreur("Erreur sauvegarde localStorage : " + error.message);
-            return;
-        }
-
-        // Message de confirmation avec détail des critères
+        // Message de confirmation avec détail des critères (AVANT repasPayload)
         const totalCriteres = 4;
         const criteresOK = criteresValidés.filter(c => c.startsWith('✅')).length;
         const criteresKO = criteresNonValidés.length;
@@ -233,7 +203,48 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
                 messageFinal += 'Évite les féculents le soir pour faciliter la digestion nocturne.';
             }
         }
+
+        // Enregistrement dans localStorage
+        const alimentToSend = isJeune ? '' : aliment;
+        const quantiteToSend = isJeune ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite));
+        const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
         
+        const repasPayload = {
+            id: Date.now().toString(),
+            reprise_id: programmeReprise?.id || null,
+            jour_numero: jourReprise,
+            jour_reprise: jourReprise, // Pour compatibilité avec page reprise
+            phase: phaseReprise,
+            phase_reprise: phaseReprise, // Pour compatibilité avec page reprise
+            date: today, // Date du jour pour filtrage
+            moment: type,
+            aliment_nom: alimentToSend,
+            quantite: quantiteToSend,
+            kcal: isJeune ? null : kcal,
+            note,
+            ressenti,
+            conforme: criteresNonValidés.length === 0,
+            validation: {
+                phase_ok: criteresValidés.some(c => c.includes('Phase')),
+                horaire_ok: criteresValidés.some(c => c.includes('Horaire') || c.includes('féculents')),
+                quantite_ok: criteresValidés.some(c => c.includes('Quantité')),
+                qn_ok: criteresValidés.some(c => c.includes('QN') || c.includes('Qualité')),
+                message: messageFinal
+            },
+            consomme_le: new Date().toISOString(),
+            created_at: new Date().toISOString()
+        };
+
+        try {
+            const existing = JSON.parse(localStorage.getItem('reprises_repas_consommes') || '[]');
+            existing.push(repasPayload);
+            localStorage.setItem('reprises_repas_consommes', JSON.stringify(existing));
+            console.log('[SaisieRepriseJeune] Repas enregistré:', repasPayload);
+        } catch (error) {
+            setErreur("Erreur sauvegarde localStorage : " + error.message);
+            return;
+        }
+
         setMessage(messageFinal);
 
         // Réinitialiser le formulaire
@@ -256,12 +267,40 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
                 marginBottom: 16,
                 fontWeight: 600,
                 fontSize: 15,
-                boxShadow: '0 2px 8px rgba(102,126,234,0.2)'
+                boxShadow: '0 2px 8px rgba(102,126,234,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
             }}>
-                🌱 Reprise alimentaire active — Jour {jourReprise} — Phase {phaseReprise}
-                <div style={{fontSize: 13, opacity: 0.9, marginTop: 4, fontWeight: 500}}>
-                    ⚠️ Seuls les aliments autorisés pour ta phase seront validés
+                <div>
+                    🌱 Reprise alimentaire active — Jour {jourReprise} — Phase {phaseReprise}
+                    <div style={{fontSize: 13, opacity: 0.9, marginTop: 4, fontWeight: 500}}>
+                        ⚠️ Seuls les aliments autorisés pour ta phase seront validés
+                    </div>
                 </div>
+                <a
+                    href="/reprise-alimentaire-apres-jeune"
+                    style={{
+                        background: 'rgba(255,255,255,0.25)',
+                        color: 'white',
+                        border: '1px solid rgba(255,255,255,0.4)',
+                        borderRadius: 6,
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.35)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+                >
+                    <span>📋</span> Voir mon plan
+                </a>
             </div>
             
             {/* Critères du jour */}

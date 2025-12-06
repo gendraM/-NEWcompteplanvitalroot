@@ -304,9 +304,8 @@ export default function RepriseAlimentaireApresJeune() {
       }
 
       // 2️⃣ Vérifier les repas conformes dans localStorage
-      const repasStockes = JSON.parse(localStorage.getItem('repasReels') || '[]');
+      const repasStockes = JSON.parse(localStorage.getItem('reprises_repas_consommes') || '[]');
       const repasJour = repasStockes.filter(r => 
-        r.contexte_reprise === true &&
         r.jour_reprise === jourData.jour_numero &&
         r.phase_reprise === jourData.phase &&
         r.date === jourData.date
@@ -389,7 +388,28 @@ export default function RepriseAlimentaireApresJeune() {
       </div>
       {/* COLONNE CENTRALE */}
       <main style={{flex:1, minWidth:0, maxWidth:700, margin:'0 auto'}}>
-        <h1 style={{color:'#1976d2', fontWeight:900, fontSize:'2.3rem', marginBottom:'1.2rem', letterSpacing:'-1px'}}>Reprise alimentaire après jeûne</h1>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.2rem'}}>
+          <h1 style={{color:'#1976d2', fontWeight:900, fontSize:'2.3rem', margin:0, letterSpacing:'-1px'}}>Reprise alimentaire après jeûne</h1>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 8,
+              padding: '0.6rem 1.2rem',
+              fontWeight: 600,
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(102,126,234,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
+            <span style={{fontSize:'1.2em'}}>🔄</span> Actualiser
+          </button>
+        </div>
         
         {/* 🆕 BLOC CONTEXTE JEÛNE */}
         {programme && (
@@ -712,6 +732,97 @@ export default function RepriseAlimentaireApresJeune() {
                 <div style={{color:'#388e3c', marginBottom:6, fontWeight:500}}>
                   {joursAAfficher[selectedJourIdx]?.message_contextuel}
                 </div>
+                
+                {/* 🆕 CRITÈRES DU JOUR - SUIVI EN TEMPS RÉEL */}
+                {!isPreview && joursAAfficher[selectedJourIdx] && (() => {
+                  const repasStockes = JSON.parse(localStorage.getItem('reprises_repas_consommes') || '[]');
+                  const repasJour = repasStockes.filter(r => 
+                    r.jour_reprise === joursAAfficher[selectedJourIdx].jour_numero &&
+                    r.phase_reprise === joursAAfficher[selectedJourIdx].phase &&
+                    r.date === joursAAfficher[selectedJourIdx].date
+                  );
+                  
+                  if (repasJour.length === 0) return null;
+                  
+                  return (
+                    <div style={{
+                      background: '#f3e5f5',
+                      border: '2px solid #ab47bc',
+                      borderRadius: 10,
+                      padding: '1rem 1.2rem',
+                      marginBottom: 12
+                    }}>
+                      <div style={{fontWeight: 700, color: '#6a1b9a', marginBottom: 8, fontSize: '1.05rem'}}>
+                        📊 Critères du jour - Suivi en temps réel
+                      </div>
+                      <div style={{color: '#4a148c', fontSize: '0.95rem', marginBottom: 12}}>
+                        {repasJour.length} repas enregistré(s) aujourd'hui
+                      </div>
+                      
+                      {repasJour.map((repas, idx) => {
+                        const validation = repas.validation || {};
+                        const criteresOK = [
+                          validation.phase_ok,
+                          validation.horaire_ok,
+                          validation.quantite_ok,
+                          validation.qn_ok
+                        ].filter(Boolean).length;
+                        const criteresTotal = 4;
+                        
+                        return (
+                          <div key={idx} style={{
+                            background: 'white',
+                            borderRadius: 8,
+                            padding: '0.8rem',
+                            marginBottom: idx < repasJour.length - 1 ? 8 : 0,
+                            border: '1px solid #e1bee7'
+                          }}>
+                            <div style={{fontWeight: 600, color: '#333', marginBottom: 4}}>
+                              {repas.aliment_nom || repas.aliment} - {repas.moment || repas.type_repas}
+                            </div>
+                            <div style={{fontSize: '0.9rem', color: '#666', marginBottom: 6}}>
+                              {repas.quantite}g ({repas.kcal} kcal)
+                            </div>
+                            <div style={{
+                              fontWeight: 600,
+                              color: criteresOK === criteresTotal ? '#2e7d32' : '#f57c00',
+                              fontSize: '0.95rem'
+                            }}>
+                              {criteresOK === criteresTotal ? '✅' : '📊'} Validation : {criteresOK}/{criteresTotal} critères
+                            </div>
+                            {validation.message && (
+                              <div style={{
+                                fontSize: '0.85rem',
+                                color: '#666',
+                                marginTop: 6,
+                                whiteSpace: 'pre-line',
+                                borderLeft: '3px solid #ab47bc',
+                                paddingLeft: 8,
+                                marginLeft: 4
+                              }}>
+                                {validation.message}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      
+                      <div style={{
+                        marginTop: 12,
+                        paddingTop: 12,
+                        borderTop: '1px dashed #ce93d8',
+                        fontSize: '0.9rem',
+                        color: '#6a1b9a',
+                        fontWeight: 500
+                      }}>
+                        {repasJour.length >= 2 
+                          ? '✅ Au moins 2 repas enregistrés, tu peux valider ce jour' 
+                          : `⏳ Enregistre encore ${2 - repasJour.length} repas pour pouvoir valider ce jour`}
+                      </div>
+                    </div>
+                  );
+                })()}
+                
                 <div style={{marginBottom:4}}>
                   <b>Aliments autorisés :</b>
                   <ul style={{margin:'0.3rem 0 0 1.2rem', color:'#333', fontSize:'1rem'}}>
