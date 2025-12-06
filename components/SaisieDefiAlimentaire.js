@@ -1,19 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { validerCriterePreparation } from '../lib/validerCriterePreparation';
 import { useDefis } from './DefisContext';
-import { supabase } from '../lib/supabaseClient';
 import referentielAliments from '../data/referentiel';
-import alimentsRepriseJeune from '../data/alimentsRepriseJeune';
 
-export default function SaisieDefiAlimentaire({ modeReprise = false, phaseReprise = null, jourReprise = null, programmeReprise = null }) {
-    console.log('[SaisieDefiAlimentaire] Props reçues:', { modeReprise, phaseReprise, jourReprise, programmeReprise });
-    
+export default function SaisieDefiAlimentaire() {
     const { defisEnCours, refreshDefis } = useDefis();
     const defi = defisEnCours.find(d => d.nom === '🧀 1 portion ça suffit');
     
-    // En mode reprise, on force l'affichage même sans défi actif
-    const afficherComposant = modeReprise || defi;
+    if (!defi) return null; // Afficher uniquement si défi actif
+    
     const repasTypes = ["Petit-déjeuner", "Déjeuner", "Collation", "Dîner", "Autre"];
+    
     // Listes dynamiques issues du référentiel
     const categorieOptions = useMemo(() => {
         try {
@@ -23,6 +20,7 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
             return ['Jeûne'];
         }
     }, []);
+    
     const alimentsFromReferentiel = useMemo(() => {
         try {
             return (referentielAliments || []).map(a => a.nom).filter(Boolean);
@@ -30,11 +28,13 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
             return [];
         }
     }, []);
+    
     const getDefaultHeure = () => {
         const now = new Date();
         return now.toTimeString().slice(0,5);
     };
-    // Champs principaux
+    
+    // États du formulaire
     const [type, setType] = useState('Déjeuner');
     const [date, setDate] = useState(new Date().toISOString().slice(0,10));
     const [heure, setHeure] = useState(getDefaultHeure());
@@ -44,11 +44,8 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
     const [kcal, setKcal] = useState('');
     const [note, setNote] = useState('');
     const [ressenti, setRessenti] = useState('');
-    const [confirmation, setConfirmation] = useState(false);
     const [message, setMessage] = useState('');
     const [erreur, setErreur] = useState('');
-
-    if (!afficherComposant) return null;
 
     // Remise à zéro automatique des champs non requis si catégorie = Jeûne
     useEffect(() => {
@@ -59,7 +56,7 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
         }
     }, [categorie]);
 
-    // Si l'utilisateur saisit un aliment reconnu, préremplir la catégorie, les kcal et la portion recommandée
+    // Pré-remplissage automatique lors de la sélection d'un aliment
     useEffect(() => {
         if (!aliment || aliment.trim() === '') return;
         const found = (referentielAliments || []).find(a => a.nom.toLowerCase() === aliment.trim().toLowerCase());
@@ -78,83 +75,27 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
         e.preventDefault();
         setMessage('');
         setErreur('');
-        // Si catégorie = Jeûne, on n'exige pas les champs aliments/quantité/kcal
+        
         const isJeune = categorie === "Jeûne";
         if (!isJeune && !aliment.trim()) {
             setErreur('Merci de saisir un aliment.');
             return;
         }
-        if (!confirmation) {
-            setErreur('Merci de confirmer que tu as respecté une seule portion de chaque aliment.');
-            return;
-        }
-        // Validation automatique du critère « Respect des quantités »
+
+        // Validation du critère « Respect des quantités »
         let critereValide = false;
         if (!isJeune) {
-            // Recherche de l'aliment dans le référentiel
             const found = (referentielAliments || []).find(a => a.nom.toLowerCase() === aliment.trim().toLowerCase());
             if (!found) {
                 setErreur('Aliment non reconnu dans le référentiel.');
                 return;
             }
             
-            // ═══════════════════════════════════════════════════════════
-            // VALIDATION SPÉCIFIQUE REPRISE ALIMENTAIRE
-            // ═══════════════════════════════════════════════════════════
-            if (modeReprise && phaseReprise) {
-                // 1️⃣ Vérifier si aliment autorisé pour la phase actuelle
-                const alimentRepriseRef = alimentsRepriseJeune.find(a => 
-                    a.nom.toLowerCase() === aliment.trim().toLowerCase()
-                );
-                
-                if (alimentRepriseRef) {
-                    // Vérifier que l'aliment est autorisé pour cette phase
-                    if (alimentRepriseRef.phase > phaseReprise) {
-                        setErreur(`ℹ️ Cet aliment n'est pas encore recommandé. Il sera disponible en Phase ${alimentRepriseRef.phase}. Tu es en Phase ${phaseReprise}.\n\n💡 Conseil : Attends quelques jours pour réintroduire cet aliment progressivement.\n\n✅ Tu peux quand même enregistrer ce repas, mais le critère du jour ne sera pas validé.`);
-                        // On continue (pas de return)
-                    }
-                    
-                    // 2️⃣ Vérifier si féculent le soir (interdit après 19h dès Phase 4)
-                    if (alimentRepriseRef.categorie === 'féculent' && phaseReprise >= 4) {
-                        const heureNum = heure ? parseInt(heure.split(':')[0]) : new Date().getHours();
-                        if (heureNum >= 19) {
-                            setErreur(`⚠️ Les féculents après 19h ne sont pas recommandés pendant la reprise alimentaire.\n\n💡 Conseil : Privilégie les légumes, protéines ou lipides pour le soir. Les féculents sont mieux digérés avant 19h.\n\n✅ Tu peux quand même enregistrer ce repas, mais le critère "Respect horaires féculents" ne sera pas validé.`);
-                            // On continue (pas de return)
-                        }
-                    }
-                    
-                    // 3️⃣ Vérifier la quantité par rapport à la portion recommandée
-                    const quantiteNum = quantite === '' ? 0 : isNaN(Number(quantite)) ? 0 : Number(quantite);
-                    const portionDefaut = alimentRepriseRef.portionDefaut || 1;
-                    
-                    // Extraire le nombre de la portionDefaut si c'est une string (ex: "100g" -> 100)
-                    let portionMax = portionDefaut;
-                    if (typeof portionDefaut === 'string') {
-                        const match = portionDefaut.match(/([0-9]+([.,][0-9]+)?)/);
-                        portionMax = match ? parseFloat(match[1].replace(',', '.')) : 1;
-                    }
-                    
-                    if (quantiteNum > portionMax) {
-                        setErreur(`⚠️ Quantité supérieure à la portion recommandée (${alimentRepriseRef.portionDefaut}).\n\n💡 Conseil : En reprise, il est important de respecter les portions pour éviter la surcharge digestive. Essaie de réduire les quantités progressivement.\n\n✅ Tu peux quand même enregistrer ce repas, mais le critère "Respect des quantités" ne sera pas validé.`);
-                        // On continue (pas de return)
-                    }
-                    
-                    // 4️⃣ Vérifier la qualité nutritionnelle (QN)
-                    if (alimentRepriseRef.qn !== undefined && alimentRepriseRef.qn < 3) {
-                        setErreur(`⚠️ Aliment ultra-transformé (QN: ${alimentRepriseRef.qn}/5). En reprise après jeûne, privilégie les aliments bruts et naturels (QN ≥ 4).\n\n💡 Conseil : Ton système digestif est particulièrement sensible après le jeûne. Les aliments transformés peuvent provoquer des inconforts digestifs, ballonnements et ralentir ta récupération.\n\n✅ Tu peux quand même enregistrer ce repas, mais le critère "Qualité alimentaire" ne sera pas validé.`);
-                        // On continue (pas de return)
-                    }
-                }
-            }
-            // ═══════════════════════════════════════════════════════════
-            
-            // Extraction et conversion de la portion maximale
             let portionMax = 1;
             if (found.portionMax) {
                 const match = String(found.portionMax).match(/([0-9]+([.,][0-9]+)?)/);
                 portionMax = match ? parseFloat(match[1].replace(',', '.')) : 1;
             }
-            // Conversion de la quantité saisie
             const quantiteNum = quantite === '' ? 0 : isNaN(Number(quantite)) ? 0 : Number(quantite);
             if (quantiteNum <= portionMax) {
                 critereValide = true;
@@ -162,12 +103,15 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
         } else {
             critereValide = true;
         }
-        // Correction : envoyer null pour quantite et kcal si Jeûne
+
+        // Enregistrement dans localStorage
         const quantiteToSend = isJeune ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite));
         const kcalToSend = isJeune ? null : (kcal === '' ? null : isNaN(Number(kcal)) ? kcal : Number(kcal));
         const alimentToSend = isJeune ? '' : aliment;
         const categorieToSend = isJeune ? 'Jeûne' : categorie;
-        const repasDebugPayload = {
+        
+        const repasPayload = {
+            id: Date.now().toString(),
             type,
             date,
             heure,
@@ -178,25 +122,19 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
             est_extra: false,
             note,
             ressenti,
-            satiete: '',
-            // Métadonnées de reprise alimentaire
-            ...(modeReprise && {
-                contexte_reprise: true,
-                jour_reprise: jourReprise || null,
-                phase_reprise: phaseReprise || null,
-                programme_reprise_id: programmeReprise?.id || null
-            })
+            satiete: ''
         };
-        // DEBUG: log dans la console et affichage UI
-        console.log('[DEBUG SaisieDefiAlimentaire] Insertion repas_reels:', repasDebugPayload);
-        setMessage('[DEBUG] Données envoyées à Supabase: ' + JSON.stringify(repasDebugPayload));
-        const { data, error } = await supabase
-            .from("repas_reels")
-            .insert([repasDebugPayload]);
-        if (error) {
-            setErreur("Erreur Supabase : " + error.message);
+
+        try {
+            const existing = JSON.parse(localStorage.getItem('repasReels') || '[]');
+            existing.push(repasPayload);
+            localStorage.setItem('repasReels', JSON.stringify(existing));
+            console.log('[SaisieDefiAlimentaire] Repas enregistré:', repasPayload);
+        } catch (error) {
+            setErreur("Erreur sauvegarde localStorage : " + error.message);
             return;
         }
+
         // Validation du critère métier
         if (critereValide) {
             validerCriterePreparation('quantites', new Date().toISOString());
@@ -205,99 +143,27 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
             setErreur('Attention, tu as dépassé la portion recommandée pour cet aliment. Critère non validé.');
             return;
         }
-        
-        // 2. Valider l'étape du défi (uniquement si défi actif)
-        if (defi) {
-            const { validerEtapeDefi } = await import('../lib/defisUtils');
-            const res = await validerEtapeDefi(defi);
-            if (res.success) {
-                refreshDefis();
-                setAliment('');
-                setCategorie('');
-                setQuantite('1');
-                setKcal('');
-                setNote('');
-                setRessenti('');
-                setConfirmation(false);
-            } else {
-                setErreur(res.error || 'Erreur lors de la validation du défi.');
-            }
-        } else {
-            // Mode reprise sans défi : juste réinitialiser le formulaire
-            setMessage('✅ Repas enregistré avec succès !');
+
+        // Valider l'étape du défi
+        const { validerEtapeDefi } = await import('../lib/defisUtils');
+        const res = await validerEtapeDefi(defi);
+        if (res.success) {
+            refreshDefis();
             setAliment('');
             setCategorie('');
             setQuantite('1');
             setKcal('');
             setNote('');
             setRessenti('');
-            setConfirmation(false);
+        } else {
+            setErreur(res.error || 'Erreur lors de la validation du défi.');
         }
     };
 
     return (
         <div style={{ background: '#fffde7', border: '1px solid #ffe082', borderRadius: 10, padding: 24, margin: '24px 0' }}>
-            {/* 🌱 BANDEAU REPRISE ALIMENTAIRE */}
-            {modeReprise && (
-                <>
-                    <div style={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        color: 'white',
-                        borderRadius: 8,
-                        padding: '12px 16px',
-                        marginBottom: 16,
-                        fontWeight: 600,
-                        fontSize: 15,
-                        boxShadow: '0 2px 8px rgba(102,126,234,0.2)'
-                    }}>
-                        🌱 Reprise alimentaire active — Jour {jourReprise} — Phase {phaseReprise}
-                        <div style={{fontSize: 13, opacity: 0.9, marginTop: 4, fontWeight: 500}}>
-                            ⚠️ Seuls les aliments autorisés pour ta phase seront validés
-                        </div>
-                    </div>
-                    
-                    {/* CRITÈRES DU JOUR */}
-                    <div style={{
-                        background: 'white',
-                        border: '2px solid #667eea',
-                        borderRadius: 8,
-                        padding: '16px',
-                        marginBottom: 16
-                    }}>
-                        <div style={{fontWeight: 'bold', fontSize: 16, marginBottom: 12, color: '#667eea'}}>
-                            ✅ Critères de validation du jour {jourReprise} (Phase {phaseReprise})
-                        </div>
-                        <div style={{fontSize: 14, lineHeight: 1.8}}>
-                            <div style={{marginBottom: 6}}>
-                                <span style={{fontWeight: 600}}>1️⃣ Aliments autorisés :</span> Uniquement les aliments de Phase {phaseReprise} ou inférieure
-                            </div>
-                            <div style={{marginBottom: 6}}>
-                                <span style={{fontWeight: 600}}>2️⃣ Horaires féculents :</span> {phaseReprise >= 4 ? 'Pas de féculents après 19h' : 'Tous horaires autorisés'}
-                            </div>
-                            <div style={{marginBottom: 6}}>
-                                <span style={{fontWeight: 600}}>3️⃣ Quantités :</span> Respecter les portions recommandées
-                            </div>
-                            <div>
-                                <span style={{fontWeight: 600}}>4️⃣ Qualité alimentaire :</span> Privilégier les aliments bruts (QN ≥ 4)
-                            </div>
-                        </div>
-                    </div>
-                </>
-            )}
-            
-            
-            {/* Titre conditionnel : Défi OU Reprise */}
-            {defi ? (
-                <>
-                    <h3>Défi en cours : {defi.nom}</h3>
-                    <p>{defi.description}</p>
-                </>
-            ) : modeReprise ? (
-                <>
-                    <h3>📝 Saisie repas en mode reprise</h3>
-                    <p>Enregistre tes repas pour suivre ta reprise alimentaire après jeûne.</p>
-                </>
-            ) : null}
+            <h3>Défi en cours : {defi.nom}</h3>
+            <p>{defi.description}</p>
             
             <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom: 10 }}>
@@ -333,23 +199,13 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
                             {alimentsFromReferentiel.map(opt => <option key={opt} value={opt} />)}
                         </datalist>
                     </label>
-                    {/* Afficher la portion recommandée ET le score QN (discret) si trouvé dans le référentiel */}
+                    {/* Affichage portion recommandée */}
                     {(() => {
                         const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
-                        if (!found) return null;
-                        
+                        if (!found || !found.portionDefaut) return null;
                         return (
                             <div style={{ fontSize: 12, marginTop: 4, marginBottom: 8, color: '#666' }}>
-                                {found.portionDefaut && (
-                                    <span>
-                                        📏 Portion recommandée : {found.portionDefaut}
-                                    </span>
-                                )}
-                                {found.qn !== undefined && (
-                                    <span style={{ marginLeft: found.portionDefaut ? 12 : 0 }}>
-                                        (QN: {found.qn}/5)
-                                    </span>
-                                )}
+                                📏 Portion recommandée : {found.portionDefaut}
                             </div>
                         );
                     })()}
@@ -382,18 +238,9 @@ export default function SaisieDefiAlimentaire({ modeReprise = false, phaseRepris
                         <input type="text" value={ressenti} onChange={e => setRessenti(e.target.value)} style={{ marginLeft: 8, width: 180 }} />
                     </label>
                 </div>
-                <div style={{ marginTop: 16 }}>
-                    <label>
-                        <input
-                            type="checkbox"
-                            checked={confirmation}
-                            onChange={e => setConfirmation(e.target.checked)}
-                        /> J’ai respecté une seule portion de chaque aliment pour ce repas.
-                    </label>
-                </div>
                 {erreur && <p style={{ color: 'red' }} aria-live="assertive">{erreur}</p>}
                 {message && <p style={{ color: 'green' }} aria-live="polite">{message}</p>}
-                <button type="submit" style={{ marginTop: 16 }}>Valider l’étape du défi et enregistrer le repas</button>
+                <button type="submit" style={{ marginTop: 16 }}>Valider l'étape du défi et enregistrer le repas</button>
             </form>
         </div>
     );
