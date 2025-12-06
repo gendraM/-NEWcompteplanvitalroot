@@ -53,7 +53,7 @@ git push origin AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS
 git remote add laurelle https://github.com/laurellebaylemankassa-create/-NEWcompteplanvitalroot.git
 
 # 2. Récupérer ses modifications
-git fetch laurelle
+git fetch laurelle/main
 
 # 3. Fusionner sa branche main dans ta branche actuelle
 git merge laurelle/main

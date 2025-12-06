@@ -3,10 +3,14 @@ import { validerCriterePreparation } from '../lib/validerCriterePreparation';
 import { useDefis } from './DefisContext';
 import { supabase } from '../lib/supabaseClient';
 import referentielAliments from '../data/referentiel';
+import alimentsRepriseJeune from '../data/alimentsRepriseJeune';
 
-export default function SaisieDefiAlimentaire() {
+export default function SaisieDefiAlimentaire({ modeReprise = false, phaseReprise = null, jourReprise = null, programmeReprise = null }) {
     const { defisEnCours, refreshDefis } = useDefis();
     const defi = defisEnCours.find(d => d.nom === '🧀 1 portion ça suffit');
+    
+    // En mode reprise, on force l'affichage même sans défi actif
+    const afficherComposant = modeReprise || defi;
     const repasTypes = ["Petit-déjeuner", "Déjeuner", "Collation", "Dîner", "Autre"];
     // Listes dynamiques issues du référentiel
     const categorieOptions = useMemo(() => {
@@ -42,7 +46,7 @@ export default function SaisieDefiAlimentaire() {
     const [message, setMessage] = useState('');
     const [erreur, setErreur] = useState('');
 
-    if (!defi) return null;
+    if (!afficherComposant) return null;
 
     // Remise à zéro automatique des champs non requis si catégorie = Jeûne
     useEffect(() => {
@@ -91,6 +95,51 @@ export default function SaisieDefiAlimentaire() {
                 setErreur('Aliment non reconnu dans le référentiel.');
                 return;
             }
+            
+            // ═══════════════════════════════════════════════════════════
+            // VALIDATION SPÉCIFIQUE REPRISE ALIMENTAIRE
+            // ═══════════════════════════════════════════════════════════
+            if (modeReprise && phaseReprise) {
+                // 1️⃣ Vérifier si aliment autorisé pour la phase actuelle
+                const alimentRepriseRef = alimentsRepriseJeune.find(a => 
+                    a.nom.toLowerCase() === aliment.trim().toLowerCase()
+                );
+                
+                if (alimentRepriseRef) {
+                    // Vérifier que l'aliment est autorisé pour cette phase
+                    if (alimentRepriseRef.phase > phaseReprise) {
+                        setErreur(`⚠️ Cet aliment n'est pas encore autorisé. Il sera disponible en Phase ${alimentRepriseRef.phase}. Tu es actuellement en Phase ${phaseReprise}.`);
+                        return;
+                    }
+                    
+                    // 2️⃣ Vérifier si féculent le soir (interdit Phase 2-4)
+                    if (alimentRepriseRef.categorie === 'féculent' && phaseReprise >= 2) {
+                        const heureNum = parseInt(heure.split(':')[0]);
+                        if (heureNum >= 19) {
+                            setErreur('⚠️ Les féculents sont interdits après 19h pendant la reprise alimentaire. Choisis un aliment d\'une autre catégorie (légume, protéine, lipide).');
+                            return;
+                        }
+                    }
+                    
+                    // 3️⃣ Vérifier la quantité par rapport à la portion recommandée
+                    const quantiteNum = quantite === '' ? 0 : isNaN(Number(quantite)) ? 0 : Number(quantite);
+                    const portionDefaut = alimentRepriseRef.portionDefaut || 1;
+                    
+                    // Extraire le nombre de la portionDefaut si c'est une string (ex: "100g" -> 100)
+                    let portionMax = portionDefaut;
+                    if (typeof portionDefaut === 'string') {
+                        const match = portionDefaut.match(/([0-9]+([.,][0-9]+)?)/);
+                        portionMax = match ? parseFloat(match[1].replace(',', '.')) : 1;
+                    }
+                    
+                    if (quantiteNum > portionMax) {
+                        setErreur(`⚠️ Quantité excessive. Pour cet aliment en reprise, la portion maximale recommandée est ${alimentRepriseRef.portionDefaut}. Respect strict des quantités requis !`);
+                        return;
+                    }
+                }
+            }
+            // ═══════════════════════════════════════════════════════════
+            
             // Extraction et conversion de la portion maximale
             let portionMax = 1;
             if (found.portionMax) {
@@ -122,6 +171,13 @@ export default function SaisieDefiAlimentaire() {
             note,
             ressenti,
             satiete: '',
+            // Métadonnées de reprise alimentaire
+            ...(modeReprise && {
+                contexte_reprise: true,
+                jour_reprise: jourReprise || null,
+                phase_reprise: phaseReprise || null,
+                programme_reprise_id: programmeReprise?.id || null
+            })
         };
         // DEBUG: log dans la console et affichage UI
         console.log('[DEBUG SaisieDefiAlimentaire] Insertion repas_reels:', repasDebugPayload);

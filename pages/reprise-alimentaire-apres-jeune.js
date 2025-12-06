@@ -165,115 +165,25 @@ export default function RepriseAlimentaireApresJeune() {
       setError(null);
       
       try {
-        // 1️⃣ Vérifier l'authentification
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        // 🔑 LECTURE PRIORITAIRE DEPUIS LOCALSTORAGE (pas d'authentification requise)
+        console.log('[DEBUG] Chargement du programme de reprise depuis localStorage...');
+        const prog = localStorage.getItem('programmeRepriseValide');
         
-        if (authError || !user) {
-          setError("Tu dois être connecté pour accéder à ton plan de reprise.\n\n➡️ Redirige-toi vers la page de connexion.");
+        if (!prog) {
+          setError("Aucun plan de reprise validé trouvé.\n\n➡️ Pour accéder à ton plan validé, valide-le d'abord dans l'étape précédente.\n\n↩️ Retour à la validation du plan");
           setLoading(false);
           return;
         }
-
-        console.log('[DEBUG] User authentifié:', user.id);
-
-        // 2️⃣ Récupérer le programme depuis Supabase
-        const { data: programmeData, error: dbError } = await supabase
-          .from('reprises_alimentaires')
-          .select('*')
-          .eq('user_id', user.id)
-          .in('statut', ['plan_valide', 'en_cours', 'termine'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (dbError) {
-          console.error('[ERROR] Erreur Supabase:', dbError);
-          
-          // Fallback vers localStorage si erreur BDD
-          console.warn('[FALLBACK] Tentative de lecture localStorage...');
-          const prog = localStorage.getItem('programmeRepriseValide');
-          if (!prog) {
-            setError("Aucun plan de reprise validé trouvé.\n\n➡️ Pour accéder à ton plan validé, valide-le d'abord dans l'étape précédente.\n\nSi tu viens de valider, vérifie que tu n'as pas vidé le stockage local ou changé d'appareil/navigateur.\n\nTu peux retourner à la validation pour recommencer.");
-            setLoading(false);
-            return;
-          }
-          const parsed = JSON.parse(prog);
-          console.debug('[DEBUG] Chargement depuis localStorage:', parsed);
-          setProgramme(parsed);
-          setJours(parsed.jours_detailles || []);
-          setDateAuj(new Date().toISOString().split('T')[0]);
-          
-          // Générer liste de courses
-          if (parsed.jours_detailles && parsed.jours_detailles.length > 0) {
-            const premiersJours = parsed.jours_detailles.slice(0, 2);
-            const alimentsUniques = {};
-            premiersJours.forEach(jour => {
-              if (jour.aliments_autorises) {
-                jour.aliments_autorises.forEach(alim => {
-                  if (alim && alim.nom) {
-                    const key = alim.nom.toLowerCase();
-                    if (!alimentsUniques[key]) {
-                      alimentsUniques[key] = { nom: alim.nom, portion: alim.portion };
-                    }
-                  }
-                });
-              }
-            });
-            setListeCourses(Object.values(alimentsUniques));
-          }
-          setLoading(false);
-          return;
-        }
-
-        if (!programmeData) {
-          setError("Aucun plan de reprise validé trouvé dans la base de données.\n\n➡️ Valide d'abord ton plan depuis la page /validation-plan-reprise.");
-          setLoading(false);
-          return;
-        }
-
-        console.log('[DEBUG] Programme chargé depuis Supabase:', programmeData);
-
-        // 3️⃣ Restructurer les données pour compatibilité avec l'interface
-        const programmeFormate = {
-          id: programmeData.id,
-          jeune_id: programmeData.jeune_id,
-          duree_jeune_jours: programmeData.duree_jeune_jours,
-          duree_reprise_jours: programmeData.duree_reprise_jours,
-          date_debut_reprise: programmeData.date_debut_reprise,
-          date_fin_reprise: programmeData.date_fin_reprise,
-          date_debut_jeune: programmeData.date_debut_jeune,
-          date_fin_jeune: programmeData.date_fin_jeune,
-          poids_depart: programmeData.poids_depart,
-          poids_fin_jeune: programmeData.poids_fin_jeune, // ✅ Nouveau champ
-          message_personnel: programmeData.message_personnel, // ✅ Nouveau champ
-          phases: programmeData.phases,
-          statut: programmeData.statut,
-          liste_courses: programmeData.liste_courses || [],
-          jours_detailles: [] // À charger depuis reprises_jours_valides
-        };
-
-        // 4️⃣ Charger les jours détaillés depuis reprises_jours_valides
-        const { data: joursData, error: joursError } = await supabase
-          .from('reprises_jours_valides')
-          .select('*')
-          .eq('reprise_id', programmeData.id)
-          .order('jour_numero', { ascending: true });
-
-        if (joursError) {
-          console.error('[ERROR] Erreur chargement jours:', joursError);
-        } else if (joursData && joursData.length > 0) {
-          programmeFormate.jours_detailles = joursData;
-        }
-
-        setProgramme(programmeFormate);
-        setJours(programmeFormate.jours_detailles || []);
+        
+        const parsed = JSON.parse(prog);
+        console.debug('[DEBUG] Chargement depuis localStorage:', parsed);
+        setProgramme(parsed);
+        setJours(parsed.jours_detailles || []);
         setDateAuj(new Date().toISOString().split('T')[0]);
         
-        // Générer la liste de courses pour les 2 premiers jours
-        if (programmeFormate.liste_courses && programmeFormate.liste_courses.length > 0) {
-          setListeCourses(programmeFormate.liste_courses);
-        } else if (programmeFormate.jours_detailles && programmeFormate.jours_detailles.length > 0) {
-          const premiersJours = programmeFormate.jours_detailles.slice(0, 2);
+        // Générer liste de courses
+        if (parsed.jours_detailles && parsed.jours_detailles.length > 0) {
+          const premiersJours = parsed.jours_detailles.slice(0, 2);
           const alimentsUniques = {};
           premiersJours.forEach(jour => {
             if (jour.aliments_autorises) {
@@ -289,7 +199,6 @@ export default function RepriseAlimentaireApresJeune() {
           });
           setListeCourses(Object.values(alimentsUniques));
         }
-
         setLoading(false);
       } catch (e) {
         console.error('[ERROR] Exception:', e);
@@ -366,15 +275,7 @@ export default function RepriseAlimentaireApresJeune() {
     setMessageValidation(null);
 
     try {
-      // 1️⃣ Vérifier l'authentification
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        setMessageValidation({ type: 'error', text: 'Tu dois être connecté pour valider.' });
-        setValidationEnCours(false);
-        return;
-      }
-
-      // 2️⃣ Vérifier que c'est la bonne date
+      // 1️⃣ Vérifier que c'est la bonne date
       const dateJour = new Date(jourData.date);
       const aujourdhui = new Date();
       aujourdhui.setHours(0, 0, 0, 0);
@@ -389,45 +290,45 @@ export default function RepriseAlimentaireApresJeune() {
         return;
       }
 
-      // 3️⃣ Mettre à jour dans reprises_jours_valides
-      const { data: updateData, error: updateError } = await supabase
-        .from('reprises_jours_valides')
-        .update({
-          valide: true,
-          valide_le: new Date().toISOString()
-        })
-        .eq('reprise_id', programme.id)
-        .eq('jour_numero', jourData.jour_numero)
-        .select()
-        .single();
+      // 2️⃣ Vérifier les repas conformes dans localStorage
+      const repasStockes = JSON.parse(localStorage.getItem('repasReels') || '[]');
+      const repasJour = repasStockes.filter(r => 
+        r.contexte_reprise === true &&
+        r.jour_reprise === jourData.jour_numero &&
+        r.phase_reprise === jourData.phase &&
+        r.date === jourData.date
+      );
 
-      if (updateError) {
-        console.error('[ERROR] Erreur validation:', updateError);
-        setMessageValidation({ type: 'error', text: `Erreur: ${updateError.message}` });
+      // Vérifier qu'il y a au moins 2 repas enregistrés
+      if (repasJour.length < 2) {
+        setMessageValidation({ 
+          type: 'error', 
+          text: `⚠️ Tu dois enregistrer au moins 2 repas conformes avant de valider ce jour. Actuellement : ${repasJour.length}/2 repas.` 
+        });
         setValidationEnCours(false);
         return;
       }
 
-      // 4️⃣ Mettre à jour le statut global si premier jour
-      if (jourData.jour_numero === 1 && programme.statut === 'plan_valide') {
-        await supabase
-          .from('reprises_alimentaires')
-          .update({
-            statut: 'en_cours',
-            reprise_commencee_le: new Date().toISOString()
-          })
-          .eq('id', programme.id);
+      // 3️⃣ Marquer le jour comme validé dans localStorage
+      const joursValides = JSON.parse(localStorage.getItem('joursReprisesValides') || '[]');
+      const jourExistant = joursValides.find(j => j.jour_numero === jourData.jour_numero);
+      
+      if (!jourExistant) {
+        joursValides.push({
+          jour_numero: jourData.jour_numero,
+          phase: jourData.phase,
+          date: jourData.date,
+          valide: true,
+          valide_le: new Date().toISOString(),
+          nb_repas: repasJour.length
+        });
+        localStorage.setItem('joursReprisesValides', JSON.stringify(joursValides));
       }
 
-      // 5️⃣ Vérifier si c'est le dernier jour
+      // 4️⃣ Vérifier si c'est le dernier jour de la reprise
       if (jourData.jour_numero === programme.duree_reprise_jours) {
-        await supabase
-          .from('reprises_alimentaires')
-          .update({
-            statut: 'termine',
-            reprise_terminee_le: new Date().toISOString()
-          })
-          .eq('id', programme.id);
+        const programmeMAJ = { ...programme, statut: 'termine', reprise_terminee_le: new Date().toISOString() };
+        localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeMAJ));
 
         setMessageValidation({ 
           type: 'success', 
@@ -440,7 +341,7 @@ export default function RepriseAlimentaireApresJeune() {
         });
       }
 
-      // 6️⃣ Recharger les données
+      // 5️⃣ Recharger les données
       setTimeout(() => {
         window.location.reload();
       }, 2000);
