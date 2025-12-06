@@ -40,7 +40,7 @@ function DebugPreparationJeune() {
   const phasesMetier = getPhasesPreparation();
 import Link from "next/link";
 import React, { useEffect, useState } from 'react';
-import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif } from "../lib/validerCriterePreparation";
+import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif, getFenetreValidation } from "../lib/validerCriterePreparation";
 import HeaderPreparation from '../components/HeaderPreparation';
 import TimelinePreparation from '../components/TimelinePreparation';
 import ProgressBar from '../components/ProgressBar';
@@ -128,21 +128,30 @@ export default function PreparationJeune() {
       const active = window.localStorage.getItem('preparationActive');
       setPreparationActive(active === 'true');
     }
-    // Lecture date du jeûne et durée depuis localStorage (ou valeur par défaut)
-    const dateStr = (typeof window !== 'undefined') ? window.localStorage.getItem('dateJeune') : null;
-    const dureeStr = (typeof window !== 'undefined') ? window.localStorage.getItem('dureeJeune') : null;
-    setDateJeune(dateStr ? new Date(dateStr) : null);
-    setDureeJeune(dureeStr || 'X');
-    setAujourdhui(new Date());
-    // Calcul du J-XX courant
-    if (dateStr) {
-      const diff = calculerJourRelatif(dateStr, new Date());
-      setJCourant(diff);
-      // Déclenchement automatique de la modale de validation métier si la date change
-      setIsModalOpen(true);
-    } else {
-      setFeedbackMessage("⛔ Veuillez renseigner la date de début de jeûne pour activer le suivi et la progression.");
-      setPreparationActive(false);
+    // Lecture date du jeûne et durée depuis preparationData (source unique de vérité)
+    if (typeof window !== 'undefined') {
+      const prepData = window.localStorage.getItem('preparationData');
+      if (prepData) {
+        try {
+          const parsed = JSON.parse(prepData);
+          if (parsed.startDate) {
+            const dateJeuneObj = new Date(parsed.startDate);
+            setDateJeune(dateJeuneObj);
+            setDureeJeune(parsed.duration || 'X');
+            setAujourdhui(new Date());
+            // Calcul du J-XX courant
+            const diff = calculerJourRelatif(parsed.startDate, new Date());
+            setJCourant(diff);
+          }
+        } catch (e) {
+          console.error('Erreur parsing preparationData:', e);
+          setFeedbackMessage("⛔ Erreur de lecture des données de préparation.");
+          setPreparationActive(false);
+        }
+      } else {
+        setFeedbackMessage("⛔ Veuillez renseigner la date de début de jeûne pour activer le suivi et la progression.");
+        setPreparationActive(false);
+      }
     }
     // Initialisation des critères (localStorage ou valeurs métier)
     let criteresInit = criteresMetier.map(c => ({ ...c, valide: false, dateValidation: null }));
@@ -207,13 +216,25 @@ export default function PreparationJeune() {
     }
   }
 
-  // Fonction statut dynamique
+  // Fonction statut dynamique avec fenêtres de validation
   function getStatut(jalonJ) {
     if (jCourant === null) return '[À VENIR]';
-    if (jCourant === jalonJ) return '[EN COURS]';
-    if (jCourant < jalonJ) return '[À VENIR]';
-    if (jCourant > jalonJ) return '[VERROUILLÉ]';
-    return '[À VENIR]';
+    
+    const jalon = jalonJ * -1; // Convertir J-30 → -30
+    const fenetre = getFenetreValidation(jalon);
+    
+    // Critère pas encore atteint
+    if (jCourant < jalon) {
+      return '[À VENIR]';
+    }
+    
+    // Critère dans la fenêtre de validation
+    if (jCourant >= jalon && jCourant <= fenetre) {
+      return jCourant === jalon ? '[EN COURS]' : '[ACTIF]';
+    }
+    
+    // Critère verrouillé (hors fenêtre)
+    return '[VERROUILLÉ]';
   }
 
   // Helpers pour affichage date
@@ -349,6 +370,7 @@ const DebugPanel = () => (
             }}
             criteres={phase.criteres}
             onValider={preparationActive ? validerCritere : undefined}
+            jCourant={jCourant}
           />
         ))}
         {/* Message personnel */}
