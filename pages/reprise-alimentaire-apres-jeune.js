@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
+
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
   const [showAll, setShowAll] = useState(false);
@@ -158,46 +160,54 @@ export default function RepriseAlimentaireApresJeune() {
   }, [router.query]);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    try {
-      const prog = localStorage.getItem('programmeRepriseValide');
-      if (!prog) {
-        // Log du localStorage pour debug
-        console.warn('[DEBUG] programmeRepriseValide absent. localStorage complet :', JSON.stringify(localStorage));
-        setError("Aucun plan de reprise validé trouvé.\n\n➡️ Pour accéder à ton plan validé, valide-le d'abord dans l'étape précédente.\n\nSi tu viens de valider, vérifie que tu n'as pas vidé le stockage local ou changé d'appareil/navigateur.\n\nTu peux retourner à la validation pour recommencer.");
-        setLoading(false);
-        return;
-      }
-      const parsed = JSON.parse(prog);
-      // Debug log pour vérifier le contenu du plan
-      console.debug('[DEBUG] Chargement programmeRepriseValide:', parsed);
-      setProgramme(parsed);
-      setJours(parsed.jours_detailles || []);
-      setDateAuj(new Date().toISOString().split('T')[0]);
-      // Générer la liste de courses pour les 2 premiers jours (Phase 1-2)
-      if (parsed.jours_detailles && parsed.jours_detailles.length > 0) {
-        const premiersJours = parsed.jours_detailles.slice(0, 2); // J+1 et J+2
-        const alimentsUniques = {};
-        premiersJours.forEach(jour => {
-          if (jour.aliments_autorises) {
-            jour.aliments_autorises.forEach(alim => {
-              if (alim && alim.nom) {
-                const key = alim.nom.toLowerCase();
-                if (!alimentsUniques[key]) {
-                  alimentsUniques[key] = { nom: alim.nom, portion: alim.portion };
+    const chargerProgramme = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // 🔑 LECTURE PRIORITAIRE DEPUIS LOCALSTORAGE (pas d'authentification requise)
+        console.log('[DEBUG] Chargement du programme de reprise depuis localStorage...');
+        const prog = localStorage.getItem('programmeRepriseValide');
+        
+        if (!prog) {
+          setError("Aucun plan de reprise validé trouvé.\n\n➡️ Pour accéder à ton plan validé, valide-le d'abord dans l'étape précédente.\n\n↩️ Retour à la validation du plan");
+          setLoading(false);
+          return;
+        }
+        
+        const parsed = JSON.parse(prog);
+        console.debug('[DEBUG] Chargement depuis localStorage:', parsed);
+        setProgramme(parsed);
+        setJours(parsed.jours_detailles || []);
+        setDateAuj(new Date().toISOString().split('T')[0]);
+        
+        // Générer liste de courses
+        if (parsed.jours_detailles && parsed.jours_detailles.length > 0) {
+          const premiersJours = parsed.jours_detailles.slice(0, 2);
+          const alimentsUniques = {};
+          premiersJours.forEach(jour => {
+            if (jour.aliments_autorises) {
+              jour.aliments_autorises.forEach(alim => {
+                if (alim && alim.nom) {
+                  const key = alim.nom.toLowerCase();
+                  if (!alimentsUniques[key]) {
+                    alimentsUniques[key] = { nom: alim.nom, portion: alim.portion };
+                  }
                 }
-              }
-            });
-          }
-        });
-        setListeCourses(Object.values(alimentsUniques));
+              });
+            }
+          });
+          setListeCourses(Object.values(alimentsUniques));
+        }
+        setLoading(false);
+      } catch (e) {
+        console.error('[ERROR] Exception:', e);
+        setError("Erreur lors du chargement du plan de reprise.\n\n" + e.message);
+        setLoading(false);
       }
-      setLoading(false);
-    } catch (e) {
-      setError("Erreur lors du chargement du plan de reprise.\nFormat du plan invalide ou corrompu.");
-      setLoading(false);
-    }
+    };
+
+    chargerProgramme();
   }, []);
 
 
@@ -252,6 +262,98 @@ export default function RepriseAlimentaireApresJeune() {
 
   // Gestion modale aliments phase
   const [modalAliments, setModalAliments] = useState(null); // phaseNum ou null
+
+  // 🆕 État pour la validation quotidienne
+  const [validationEnCours, setValidationEnCours] = useState(false);
+  const [messageValidation, setMessageValidation] = useState(null);
+
+  // 🆕 Fonction de validation d'un jour
+  const validerJour = async (jourData) => {
+    if (!programme || !jourData) return;
+
+    setValidationEnCours(true);
+    setMessageValidation(null);
+
+    try {
+      // 1️⃣ Vérifier que c'est la bonne date
+      const dateJour = new Date(jourData.date);
+      const aujourdhui = new Date();
+      aujourdhui.setHours(0, 0, 0, 0);
+      dateJour.setHours(0, 0, 0, 0);
+
+      if (dateJour > aujourdhui) {
+        setMessageValidation({ 
+          type: 'error', 
+          text: `Ce jour n'est pas encore accessible. Reviens le ${new Date(jourData.date).toLocaleDateString('fr-FR')} 🗓️` 
+        });
+        setValidationEnCours(false);
+        return;
+      }
+
+      // 2️⃣ Vérifier les repas conformes dans localStorage
+      const repasStockes = JSON.parse(localStorage.getItem('repasReels') || '[]');
+      const repasJour = repasStockes.filter(r => 
+        r.contexte_reprise === true &&
+        r.jour_reprise === jourData.jour_numero &&
+        r.phase_reprise === jourData.phase &&
+        r.date === jourData.date
+      );
+
+      // Vérifier qu'il y a au moins 2 repas enregistrés
+      if (repasJour.length < 2) {
+        setMessageValidation({ 
+          type: 'error', 
+          text: `⚠️ Tu dois enregistrer au moins 2 repas conformes avant de valider ce jour. Actuellement : ${repasJour.length}/2 repas.` 
+        });
+        setValidationEnCours(false);
+        return;
+      }
+
+      // 3️⃣ Marquer le jour comme validé dans localStorage
+      const joursValides = JSON.parse(localStorage.getItem('joursReprisesValides') || '[]');
+      const jourExistant = joursValides.find(j => j.jour_numero === jourData.jour_numero);
+      
+      if (!jourExistant) {
+        joursValides.push({
+          jour_numero: jourData.jour_numero,
+          phase: jourData.phase,
+          date: jourData.date,
+          valide: true,
+          valide_le: new Date().toISOString(),
+          nb_repas: repasJour.length
+        });
+        localStorage.setItem('joursReprisesValides', JSON.stringify(joursValides));
+      }
+
+      // 4️⃣ Vérifier si c'est le dernier jour de la reprise
+      if (jourData.jour_numero === programme.duree_reprise_jours) {
+        const programmeMAJ = { ...programme, statut: 'termine', reprise_terminee_le: new Date().toISOString() };
+        localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeMAJ));
+
+        setMessageValidation({ 
+          type: 'success', 
+          text: '🎉 Félicitations ! Tu as terminé ta reprise alimentaire. Direction la phase de consolidation !' 
+        });
+      } else {
+        setMessageValidation({ 
+          type: 'success', 
+          text: `✅ Jour ${jourData.jour_numero} validé ! Continue comme ça 🌱` 
+        });
+      }
+
+      // 5️⃣ Recharger les données
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+
+    } catch (e) {
+      console.error('[ERROR] Exception validation:', e);
+      setMessageValidation({ type: 'error', text: `Erreur: ${e.message}` });
+    } finally {
+      setValidationEnCours(false);
+    }
+  };
+
   // ...existing code...
   return (
     <div style={{
@@ -275,6 +377,53 @@ export default function RepriseAlimentaireApresJeune() {
       {/* COLONNE CENTRALE */}
       <main style={{flex:1, minWidth:0, maxWidth:700, margin:'0 auto'}}>
         <h1 style={{color:'#1976d2', fontWeight:900, fontSize:'2.3rem', marginBottom:'1.2rem', letterSpacing:'-1px'}}>Reprise alimentaire après jeûne</h1>
+        
+        {/* 🆕 BLOC CONTEXTE JEÛNE */}
+        {programme && (
+          <div style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: 12,
+            padding: '1.2rem 1.5rem',
+            marginBottom: '1.5rem',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(102,126,234,0.15)'
+          }}>
+            <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:12}}>
+              <span style={{fontSize:'2rem'}}>🌙</span>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700, fontSize:'1.2rem', marginBottom:4}}>Contexte de ton jeûne</div>
+                {programme.message_personnel && (
+                  <div style={{fontSize:'0.98rem', opacity:0.95, fontStyle:'italic'}}>
+                    "{programme.message_personnel}"
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:12, marginTop:12}}>
+              <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
+                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Durée du jeûne</div>
+                <div style={{fontSize:'1.3rem', fontWeight:800}}>{programme.duree_jeune_jours} jours</div>
+              </div>
+              {programme.poids_fin_jeune && (
+                <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
+                  <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Poids en fin de jeûne</div>
+                  <div style={{fontSize:'1.3rem', fontWeight:800}}>{programme.poids_fin_jeune} kg</div>
+                </div>
+              )}
+              <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
+                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Fin du jeûne</div>
+                <div style={{fontSize:'1.1rem', fontWeight:700}}>
+                  {programme.date_fin_jeune ? new Date(programme.date_fin_jeune).toLocaleDateString('fr-FR', { day:'numeric', month:'short' }) : '-'}
+                </div>
+              </div>
+              <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
+                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Durée reprise</div>
+                <div style={{fontSize:'1.3rem', fontWeight:800}}>{programme.duree_reprise_jours} jours</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Barre de progression globale */}
         {totalJours > 0 && (
           <div style={{
@@ -515,9 +664,94 @@ export default function RepriseAlimentaireApresJeune() {
                     )}
                   </ul>
                 </div>
-                <div style={{color:'#888', fontSize:'0.98rem'}}>
-                  (Lecture seule, tu ne peux pas valider ce jour tant que la date n’est pas atteinte)
-                </div>
+                
+                {/* 🆕 BOUTON VALIDATION QUOTIDIENNE */}
+                {!isPreview && joursAAfficher[selectedJourIdx] && (
+                  <div style={{marginTop: 16, paddingTop: 16, borderTop: '1px solid #e0e0e0'}}>
+                    {joursAAfficher[selectedJourIdx].valide ? (
+                      <div style={{
+                        background: '#e8f5e9',
+                        border: '2px solid #4caf50',
+                        borderRadius: 8,
+                        padding: '0.8rem 1rem',
+                        color: '#2e7d32',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8
+                      }}>
+                        <span style={{fontSize: '1.5rem'}}>✅</span>
+                        <span>
+                          Jour validé le {new Date(joursAAfficher[selectedJourIdx].valide_le).toLocaleDateString('fr-FR')}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => validerJour(joursAAfficher[selectedJourIdx])}
+                          disabled={validationEnCours || new Date(joursAAfficher[selectedJourIdx].date) > new Date()}
+                          style={{
+                            background: new Date(joursAAfficher[selectedJourIdx].date) > new Date() 
+                              ? '#e0e0e0' 
+                              : 'linear-gradient(135deg, #43cea2 0%, #185a9d 100%)',
+                            color: new Date(joursAAfficher[selectedJourIdx].date) > new Date() 
+                              ? '#9e9e9e' 
+                              : 'white',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '0.9rem 1.8rem',
+                            fontWeight: 700,
+                            fontSize: '1.1rem',
+                            cursor: new Date(joursAAfficher[selectedJourIdx].date) > new Date() || validationEnCours 
+                              ? 'not-allowed' 
+                              : 'pointer',
+                            boxShadow: new Date(joursAAfficher[selectedJourIdx].date) > new Date() 
+                              ? 'none' 
+                              : '0 4px 12px rgba(67,206,162,0.2)',
+                            width: '100%',
+                            transition: 'all 0.3s'
+                          }}
+                        >
+                          {validationEnCours ? '⏳ Validation...' : '✅ Valider ce jour'}
+                        </button>
+                        
+                        {new Date(joursAAfficher[selectedJourIdx].date) > new Date() && (
+                          <div style={{
+                            marginTop: 12,
+                            fontSize: '0.95rem',
+                            color: '#f57c00',
+                            textAlign: 'center',
+                            fontWeight: 500
+                          }}>
+                            ⏰ Ce jour sera accessible le {new Date(joursAAfficher[selectedJourIdx].date).toLocaleDateString('fr-FR')}
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Message de feedback */}
+                    {messageValidation && (
+                      <div style={{
+                        marginTop: 12,
+                        padding: '0.8rem 1rem',
+                        borderRadius: 8,
+                        background: messageValidation.type === 'success' ? '#e8f5e9' : '#ffebee',
+                        border: `2px solid ${messageValidation.type === 'success' ? '#4caf50' : '#f44336'}`,
+                        color: messageValidation.type === 'success' ? '#2e7d32' : '#c62828',
+                        fontWeight: 600,
+                        fontSize: '1rem'
+                      }}>
+                        {messageValidation.text}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {isPreview && (
+                  <div style={{color:'#888', fontSize:'0.98rem', marginTop: 12}}>
+                    (Lecture seule, tu ne peux pas valider ce jour tant que la date n'est pas atteinte)
+                  </div>
+                )}
               </div>
             )}
             {/* Bloc anticipation : Repas du lendemain */}
@@ -547,6 +781,86 @@ export default function RepriseAlimentaireApresJeune() {
               </div>
             )}
           </div>
+
+          {/* 🆕 BANNIÈRE FÉLICITATIONS - REPRISE TERMINÉE */}
+          {programme && programme.statut === 'termine' && (
+            <div style={{
+              background: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)',
+              border: '3px solid #ffa000',
+              borderRadius: 12,
+              padding: '1.8rem 2rem',
+              marginTop: 24,
+              marginBottom: 24,
+              textAlign: 'center',
+              boxShadow: '0 6px 20px rgba(255,215,0,0.3)'
+            }}>
+              <div style={{fontSize: '3rem', marginBottom: 12}}>🎉</div>
+              <div style={{fontSize: '1.6rem', fontWeight: 800, color: '#d84315', marginBottom: 12}}>
+                Félicitations !
+              </div>
+              <div style={{fontSize: '1.1rem', color: '#5d4037', marginBottom: 16, lineHeight: 1.5}}>
+                Tu as terminé ta reprise alimentaire de <b>{programme.duree_reprise_jours} jours</b> avec succès ! 🌱
+                <br/>
+                Il est maintenant temps de consolider ces acquis.
+              </div>
+              
+              <div style={{
+                background: 'rgba(255,255,255,0.7)',
+                borderRadius: 8,
+                padding: '1rem 1.2rem',
+                marginBottom: 16,
+                color: '#6d4c41',
+                fontSize: '1rem',
+                textAlign: 'left'
+              }}>
+                <div style={{fontWeight: 600, marginBottom: 8}}>📊 Ton bilan :</div>
+                <div>✅ Durée du jeûne : {programme.duree_jeune_jours} jours</div>
+                <div>✅ Durée de la reprise : {programme.duree_reprise_jours} jours</div>
+                {programme.poids_fin_jeune && (
+                  <div>✅ Poids en fin de jeûne : {programme.poids_fin_jeune} kg</div>
+                )}
+                <div>✅ Date de fin : {new Date(programme.date_fin_reprise).toLocaleDateString('fr-FR')}</div>
+              </div>
+
+              <Link
+                href={{
+                  pathname: '/consolidation-45-jours',
+                  query: {
+                    poids: programme.poids_fin_jeune || programme.poids_depart,
+                    date_fin_reprise: programme.date_fin_reprise,
+                    reprise_id: programme.id
+                  }
+                }}
+                style={{
+                  display: 'inline-block',
+                  background: 'linear-gradient(135deg, #d84315 0%, #bf360c 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 10,
+                  padding: '1rem 2.5rem',
+                  fontWeight: 800,
+                  fontSize: '1.2rem',
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 16px rgba(216,67,21,0.3)',
+                  transition: 'transform 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+              >
+                🚀 Commencer ma phase de consolidation (45 jours)
+              </Link>
+              
+              <div style={{
+                marginTop: 16,
+                fontSize: '0.95rem',
+                color: '#795548',
+                fontStyle: 'italic'
+              }}>
+                La consolidation va te permettre de stabiliser durablement tes résultats
+              </div>
+            </div>
+          )}
 
           <div style={{background:'#fffde7', border:'1px solid #ffe082', borderRadius:10, padding:'1rem 1.2rem', color:'#f57c00', fontWeight:600}}>
             <span role="img" aria-label="info">ℹ️</span> La validation quotidienne de la reprise sera possible uniquement à partir du jour J1. Reviens ici chaque jour pour valider ta progression.

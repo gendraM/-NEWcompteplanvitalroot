@@ -41,3 +41,36 @@ Push la branche main : git push origin main
 💡 Pro tips :
 Sur GitHub, tu peux aussi ouvrir une "Pull Request" de ta branche vers main → bon pour révisions et tests.
 Après le merge, tu peux supprimer ta branche de travail si elle n’est plus utile.
+
+# Récupérer les changements de votre collègue
+git fetch laurelle main
+git merge laurelle/main
+
+# Pousser
+git push origin AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS
+
+# 1. Ajouter le dépôt distant de Laurelle
+git remote add laurelle https://github.com/laurellebaylemankassa-create/-NEWcompteplanvitalroot.git
+
+# 2. Récupérer ses modifications
+git fetch laurelle/main
+
+# 3. Fusionner sa branche main dans ta branche actuelle
+git merge laurelle/main
+
+# 4. Pousser sur ton dépôt
+git push origin AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS
+
+# 1️⃣ D'ABORD : Commit et push TES modifications locales
+git add .
+git commit -m "Ton message de commit"
+git push origin AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS
+
+# 2️⃣ ENSUITE : Récupérer les modifs de Laurelle
+git fetch laurelle
+
+# 3️⃣ PUIS : Merger ses modifications dans ta branche
+git merge laurelle/main
+
+# 4️⃣ ENFIN : Si le merge crée un nouveau commit, le pousser
+git push origin AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS

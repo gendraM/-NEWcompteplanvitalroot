@@ -1,4 +1,36 @@
 ═══════════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 04/12/2025 — VIOLATION RÈGLE ARCHITECTURE : AUTHENTIFICATION SUPABASE
+═══════════════════════════════════════════════════════════════════════════════
+Fichier : /pages/reprise-alimentaire-apres-jeune.js
+Erreur : Message d'erreur « Tu dois être connecté pour accéder à ton plan de reprise » affiché à l'utilisateur
+Cause : Ajout non autorisé de vérifications d'authentification Supabase (supabase.auth.getUser()) dans les fonctions :
+	- chargerProgramme() (ligne 169)
+	- validerJour() (ligne 279)
+Impact : Blocage total du workflow utilisateur, violation de l'architecture localStorage-only
+Règle violée : L'application fonctionne EXCLUSIVEMENT avec localStorage, AUCUNE authentification requise
+Étape du plan non respectée : 
+	- Lecture obligatoire du fichier "Anomalie roll back" avant toute modification
+	- Vérification architecture existante (pas de système d'authentification)
+	- Test du parcours utilisateur avant validation
+
+Procédure corrective appliquée :
+	1. ✅ Suppression complète des appels à supabase.auth.getUser()
+	2. ✅ Suppression des messages d'erreur de connexion
+	3. ✅ Remplacement logique Supabase par localStorage :
+	   - reprises_alimentaires → localStorage.getItem('programmeRepriseValide')
+	   - repas_reels → localStorage.getItem('repasReels')
+	   - reprises_jours_valides → localStorage.getItem('joursReprisesValides')
+	4. ✅ Validation syntaxe (get_errors = 0 erreurs)
+	5. ✅ Documentation de l'anomalie dans ce fichier
+
+Leçon apprise : 
+	- TOUJOURS lire "Anomalie roll back" AVANT toute modification
+	- TOUJOURS vérifier l'architecture existante (grep "auth", "user_id", etc.)
+	- JAMAIS ajouter d'authentification sans validation utilisateur explicite
+	- L'application est 100% localStorage, 0% authentification
+
+Action requise : Relecture systématique des règles d'architecture, test complet du workflow sans connexion
+═══════════════════════════════════════════════════════════════════════════════
 🛑 ANOMALIE 22/11/2025 — IMPORT MANQUANT StartPreparationModal
 ═══════════════════════════════════════════════════════════════════════════════
 Fichier : /pages/preparation-jeune.js

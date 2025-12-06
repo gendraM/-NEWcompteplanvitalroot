@@ -402,6 +402,89 @@ export default function Suivi() {
       setPrepValid(localStorage.getItem('prep_valid_' + selectedDate) === '1');
     }
   }, [selectedDate]);
+
+  // ═══════════════════════════════════════════════════════════
+  // DÉTECTION PHASE REPRISE ALIMENTAIRE
+  // ═══════════════════════════════════════════════════════════
+  
+  const [repriseActive, setRepriseActive] = useState(false);
+  const [phaseReprise, setPhaseReprise] = useState(null);
+  const [jourReprise, setJourReprise] = useState(null);
+  const [programmeReprise, setProgrammeReprise] = useState(null);
+  const [alimentsAutorises, setAlimentsAutorises] = useState([]);
+
+  // Charger et détecter la reprise alimentaire active
+  useEffect(() => {
+    async function detecterReprise() {
+      try {
+        // 1. Vérifier si programme reprise validé existe
+        let prog = null;
+        
+        // Essayer Supabase d'abord
+        if (supabase) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data, error } = await supabase
+              .from('reprises_alimentaires')
+              .select('*, jours:reprises_jours_valides(*)')
+              .eq('user_id', user.id)
+              .in('statut', ['plan_valide', 'en_cours'])
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            
+            if (!error && data) {
+              prog = data;
+            }
+          }
+        }
+        
+        // Fallback localStorage si pas en BDD
+        if (!prog && typeof window !== 'undefined') {
+          const progLocal = localStorage.getItem('programmeRepriseValide');
+          if (progLocal) {
+            prog = JSON.parse(progLocal);
+          }
+        }
+
+        if (!prog) {
+          setRepriseActive(false);
+          return;
+        }
+
+        // 2. Calculer le jour actuel de reprise
+        const debut = new Date(prog.date_debut_reprise);
+        debut.setHours(0, 0, 0, 0);
+        const aujourdhui = new Date(selectedDate);
+        aujourdhui.setHours(0, 0, 0, 0);
+        const diffJours = Math.floor((aujourdhui - debut) / (1000 * 60 * 60 * 24)) + 1;
+
+        // 3. Vérifier si on est dans la période de reprise
+        if (diffJours >= 1 && diffJours <= prog.duree_reprise_jours) {
+          setRepriseActive(true);
+          setJourReprise(diffJours);
+          setProgrammeReprise(prog);
+
+          // 4. Déterminer la phase et les aliments autorisés
+          const jourData = prog.jours_detailles 
+            ? prog.jours_detailles.find(j => j.jour_numero === diffJours)
+            : prog.jours?.find(j => j.jour_numero === diffJours);
+
+          if (jourData) {
+            setPhaseReprise(jourData.phase);
+            setAlimentsAutorises(jourData.aliments_autorises || []);
+          }
+        } else {
+          setRepriseActive(false);
+        }
+      } catch (error) {
+        console.error('[REPRISE] Erreur détection:', error);
+        setRepriseActive(false);
+      }
+    }
+
+    detecterReprise();
+  }, [selectedDate, supabase]);
   // Import du contexte défis pour savoir si un défi alimentaire est en cours
   // Respecte la checklist : hooks, logique, handlers déclarés avant le rendu
   // Utilisation du hook useDefis pour la réactivité
@@ -908,7 +991,13 @@ export default function Suivi() {
         <>
           {/* Affichage conditionnel strict selon la checklist */}
           {defiAlimentaireActif ? (
-            <SaisieDefiAlimentaire />
+            <SaisieDefiAlimentaire 
+              modeReprise={repriseActive}
+              phaseReprise={phaseReprise}
+              jourReprise={jourReprise}
+              programmeReprise={programmeReprise}
+              alimentsAutorises={alimentsAutorises}
+            />
           ) : (
             !selectedType ? (
               <div style={{ textAlign: "center", margin: "2rem 0" }}>
@@ -952,6 +1041,64 @@ export default function Suivi() {
                         ✅ Valider le critère du jour
                       </button>
                     )}
+                  </div>
+                )}
+
+                {/* ═══════════════════════════════════════════════════════════
+                    BANNIÈRE REPRISE ALIMENTAIRE (si active)
+                    ═══════════════════════════════════════════════════════════ */}
+                {repriseActive && (
+                  <div style={{
+                    margin: '32px auto 0',
+                    maxWidth: 520,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: '2px solid #667eea',
+                    borderRadius: 12,
+                    padding: '20px 24px',
+                    color: 'white',
+                    boxShadow: '0 4px 16px rgba(102,126,234,0.25)',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: 0.5}}>
+                      🌱 Reprise alimentaire après jeûne
+                    </div>
+                    <div style={{fontSize: 16, fontWeight: 600, marginBottom: 8, opacity: 0.95}}>
+                      Jour {jourReprise} / {programmeReprise?.duree_reprise_jours} — Phase {phaseReprise}
+                    </div>
+                    <div style={{
+                      background: 'rgba(255,255,255,0.15)',
+                      borderRadius: 8,
+                      padding: '12px 16px',
+                      marginBottom: 12,
+                      fontSize: 15,
+                      fontWeight: 600
+                    }}>
+                      🎯 Critère du jour : <b>Respect strict des quantités</b>
+                    </div>
+                    <div style={{fontSize: 14, opacity: 0.9, marginBottom: 4, fontWeight: 500}}>
+                      📍 Aliments autorisés aujourd'hui :
+                    </div>
+                    <div style={{
+                      background: 'rgba(255,255,255,0.1)',
+                      borderRadius: 8,
+                      padding: '10px 14px',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      lineHeight: 1.5,
+                      maxHeight: 60,
+                      overflow: 'auto'
+                    }}>
+                      {alimentsAutorises.slice(0, 8).map(a => a.nom).join(', ')}
+                      {alimentsAutorises.length > 8 && ` et ${alimentsAutorises.length - 8} autres`}
+                    </div>
+                    <div style={{
+                      marginTop: 14,
+                      fontSize: 13,
+                      opacity: 0.85,
+                      fontStyle: 'italic'
+                    }}>
+                      💡 Vérifie que chaque aliment saisi est autorisé et que les quantités sont respectées
+                    </div>
                   </div>
                 )}
               </div>

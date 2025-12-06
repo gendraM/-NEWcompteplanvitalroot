@@ -1,0 +1,75 @@
+22/11/25 11H
+
+Titre de la tâche
+Adaptation dynamique des portions recommandées selon l’objectif de poids utilisateur, avec comparaison entre portion réelle (référentiel) et portion calculée (Mifflin-St Jeor), validation utilisateur et affichage de l’écart.
+
+Description précise de la modification attendue
+Lors de la saisie d’un repas, afficher pour chaque aliment :
+La portion réelle (issue du référentiel, ex : bouteille, pièce…)
+La portion recommandée calculée dynamiquement selon le besoin calorique objectif (profil utilisateur, formule Mifflin-St Jeor)
+L’écart entre les deux (en % ou valeur absolue)
+Permettre à l’utilisateur de valider la portion qui lui correspond (réelle ou calculée)
+Pendant la période de l’objectif, afficher la portion validée comme recommandation
+Le référentiel reste la base fixe, jamais modifié
+Fichiers concernés
+profil.js (calcul du besoin calorique objectif)
+SaisieRepas.js (affichage et validation des portions)
+referentiel.js (base alimentaire, non modifiée)
+Audit des risques préalable
+Risque technique : incohérence entre portions calculées et portions réelles (ex : portions non réalistes)
+Risque UX : surcharge d’informations, confusion utilisateur
+Risque régression : perte de la simplicité de saisie
+Risque accessibilité : affichage non lisible, validation non intuitive
+Risque de non-acceptation : l’utilisateur préfère la portion réelle
+Vérification stricte de la non-modification du référentiel
+Contrôle qualité sur la logique de calcul et l’affichage
+Sous-checklist à valider systématiquement
+ Vérification de la présence/import de toutes les fonctions, hooks et variables utilisées dans le code modifié
+Checklist stricte sécurité & qualité (à cocher AVANT toute modification)
+ Lecture complète du code concerné (dépendances, hooks, variables, fonctions…)
+ Initialisation systématique avant usage (hooks, variables, handlers)
+ Tous les hooks React sont déclarés uniquement en haut du corps du composant fonctionnel
+ Séparation stricte des étapes : initialisation, logique, handlers, rendu
+ Vérification de la présence/import de toutes les fonctions, hooks et variables utilisées
+ Contrôle d’erreur compilation/runtime/SSR
+ Test du rendu sur tous les cas d’usage
+ Préservation stricte des fonctionnalités existantes
+ Documentation claire de chaque étape et validation utilisateur
+ Contrôle visuel ou feedback à chaque action clé
+ Test du workflow complet utilisateur et documentation du résultat
+ Rollback immédiat en cas d’anomalie
+Contrôles conformité à réaliser en suivant les étapes suivantes
+Lecture des anomalies dans le fichier rollback
+Vérification de la présence de tous les hooks et variables
+Test SSR et rendu Next.js
+Test du debug et du pré-remplissage
+Test du parcours complet utilisateur et documentation
+Mise à jour de l’avancement
+ Non commencé | [ ] En cours | [ ] Terminé
+Avancement précis/Pourcentage réel (à MAJ à chaque étape) : ____ %
+Historique des mises à jour : ___
+Point de vigilance
+Vérifier la cohérence entre portion réelle et portion calculée
+S’assurer que l’utilisateur comprend la différence et peut valider simplement
+Ne jamais modifier le référentiel
+Documenter toute anomalie ou écart dans le fichier dédié
+Tester l’affichage sur tous les cas d’usage
+Proposition de rollback
+En cas d’anomalie, revenir à l’affichage des portions réelles uniquement
+Documenter toute anomalie dans le fichier Anomalie roll back avec date et heure
+Rapport Markdown Copilot
+AVANT : Affichage uniquement des portions réelles, aucune adaptation dynamique
+APRÈS : Affichage des deux portions, calcul dynamique, validation utilisateur, indication de l’écart
+Amélioration continue (Copilot)
+À chaque ajout ou modification, vérifier que la logique d’adaptation des portions reste simple, compréhensible et utile pour l’utilisateur.
+Tester régulièrement l’affichage des portions réelles et calculées sur différents profils et objectifs pour garantir la pertinence des recommandations.
+Recueillir les retours utilisateurs sur la clarté de la comparaison et la facilité de validation.
+Documenter toute anomalie ou écart constaté lors de l’utilisation réelle et proposer immédiatement une correction ou un rollback.
+Prioriser l’essentiel : afficher d’abord la comparaison et la validation, puis enrichir avec des options avancées (historique, feedback personnalisé…).
+Revenir régulièrement sur la logique métier pour l’ajuster selon les retours et l’évolution des besoins.
+Garder la traçabilité des améliorations et des corrections dans le rapport Markdown et le fichier d’anomalies.
+S’assurer que chaque étape du plan est traduite en code et testée dans le workflow réel (affichage, validation, retour utilisateur).
+Ne jamais supposer qu’une portion est adaptée sans vérification concrète (affichage, tests, retours).
+Relire le plan et le template avant chaque implémentation pour garantir le respect de toutes les étapes.
+Validation explicite de l’utilisateur (OBLIGATOIRE)
+ Plan validé par l’utilisateur à la date : ___
