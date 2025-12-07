@@ -257,24 +257,36 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
     };
 
     return (
-        <div style={{ background: '#fffde7', border: '1px solid #ffe082', borderRadius: 10, padding: 24, margin: '24px 0' }}>
+        <div style={{ 
+            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', 
+            border: '1px solid #e0e7ff', 
+            borderRadius: 16, 
+            padding: '28px', 
+            margin: '24px 0',
+            boxShadow: '0 4px 16px rgba(102,126,234,0.1)'
+        }}>
             {/* Bandeau reprise alimentaire */}
             <div style={{
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 color: 'white',
-                borderRadius: 8,
-                padding: '12px 16px',
-                marginBottom: 16,
+                borderRadius: 12,
+                padding: '16px 20px',
+                marginBottom: 24,
                 fontWeight: 600,
                 fontSize: 15,
-                boxShadow: '0 2px 8px rgba(102,126,234,0.2)',
+                boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between'
             }}>
                 <div>
-                    🌱 Reprise alimentaire active — Jour {jourReprise} — Phase {phaseReprise}
-                    <div style={{fontSize: 13, opacity: 0.9, marginTop: 4, fontWeight: 500}}>
+                    <div style={{fontSize: 18, fontWeight: 700, marginBottom: 6}}>
+                        🌱 Reprise alimentaire active
+                    </div>
+                    <div style={{fontSize: 14, opacity: 0.95}}>
+                        Jour {jourReprise} — Phase {phaseReprise}
+                    </div>
+                    <div style={{fontSize: 12, opacity: 0.85, marginTop: 6, fontWeight: 500}}>
                         ⚠️ Seuls les aliments autorisés pour ta phase seront validés
                     </div>
                 </div>
@@ -306,119 +318,446 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
             {/* Critères du jour */}
             <div style={{
                 background: 'white',
-                border: '2px solid #667eea',
-                borderRadius: 8,
-                padding: '16px',
-                marginBottom: 16
+                border: '2px solid #a5b4fc',
+                borderRadius: 12,
+                padding: '20px',
+                marginBottom: 24,
+                boxShadow: '0 2px 8px rgba(165,180,252,0.15)'
             }}>
-                <div style={{fontWeight: 'bold', fontSize: 16, marginBottom: 12, color: '#667eea'}}>
-                    ✅ Critères de validation du jour {jourReprise} (Phase {phaseReprise})
+                <div style={{
+                    fontWeight: 700, 
+                    fontSize: 17, 
+                    marginBottom: 16, 
+                    color: '#4f46e5',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                }}>
+                    <span>✅</span> Critères de validation du jour {jourReprise} (Phase {phaseReprise})
                 </div>
-                <div style={{fontSize: 14, lineHeight: 1.8}}>
-                    <div style={{marginBottom: 6}}>
-                        <span style={{fontWeight: 600}}>1️⃣ Aliments autorisés :</span> Uniquement les aliments de Phase {phaseReprise} ou inférieure
+                <div style={{fontSize: 14, lineHeight: 2}}>
+                    <div style={{
+                        marginBottom: 8,
+                        padding: '8px 12px',
+                        background: '#f0f9ff',
+                        borderRadius: 6,
+                        borderLeft: '3px solid #3b82f6'
+                    }}>
+                        <span style={{fontWeight: 600, color: '#1e40af'}}>1️⃣ Aliments autorisés :</span>{' '}
+                        <span style={{color: '#475569'}}>Phase {phaseReprise} ou inférieure uniquement</span>
                     </div>
-                    <div style={{marginBottom: 6}}>
-                        <span style={{fontWeight: 600}}>2️⃣ Horaires féculents :</span> {phaseReprise >= 4 ? 'Pas de féculents après 19h' : 'Tous horaires autorisés'}
+                    <div style={{
+                        marginBottom: 8,
+                        padding: '8px 12px',
+                        background: '#fef3c7',
+                        borderRadius: 6,
+                        borderLeft: '3px solid #f59e0b'
+                    }}>
+                        <span style={{fontWeight: 600, color: '#92400e'}}>2️⃣ Horaires féculents :</span>{' '}
+                        <span style={{color: '#475569'}}>{phaseReprise >= 4 ? 'Pas de féculents après 19h' : 'Tous horaires autorisés'}</span>
                     </div>
-                    <div style={{marginBottom: 6}}>
-                        <span style={{fontWeight: 600}}>3️⃣ Quantités :</span> Respecter les portions recommandées
+                    <div style={{
+                        marginBottom: 8,
+                        padding: '8px 12px',
+                        background: '#f0fdf4',
+                        borderRadius: 6,
+                        borderLeft: '3px solid #10b981'
+                    }}>
+                        <span style={{fontWeight: 600, color: '#065f46'}}>3️⃣ Quantités :</span>{' '}
+                        <span style={{color: '#475569'}}>Respecter les portions recommandées</span>
                     </div>
-                    <div>
-                        <span style={{fontWeight: 600}}>4️⃣ Qualité alimentaire :</span> Privilégier les aliments bruts (QN ≥ 4)
+                    <div style={{
+                        padding: '8px 12px',
+                        background: '#fef2f2',
+                        borderRadius: 6,
+                        borderLeft: '3px solid #ef4444'
+                    }}>
+                        <span style={{fontWeight: 600, color: '#991b1b'}}>4️⃣ Qualité alimentaire :</span>{' '}
+                        <span style={{color: '#475569'}}>Privilégier les aliments bruts (QN ≥ 4)</span>
                     </div>
                 </div>
             </div>
             
-            <h3>📝 Saisie repas en mode reprise</h3>
-            <p>Enregistre tes repas pour suivre ta reprise alimentaire après jeûne.</p>
+            {/* Formulaire de saisie */}
+            <div style={{
+                background: 'white',
+                borderRadius: 12,
+                padding: '24px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+            }}>
+                <h3 style={{
+                    margin: '0 0 8px 0',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: '#1e293b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                }}>
+                    <span>📝</span> Saisie repas en mode reprise
+                </h3>
+                <p style={{margin: '0 0 20px 0', color: '#64748b', fontSize: 14}}>
+                    Enregistre tes repas pour suivre ta reprise alimentaire après jeûne.
+                </p>
             
-            <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: 10 }}>
-                    <label>Type de repas :
-                        <select value={type} onChange={e => setType(e.target.value)} style={{ marginLeft: 8 }}>
+            <form onSubmit={handleSubmit} style={{display: 'flex', flexDirection: 'column', gap: 16}}>
+                <div style={{display: 'flex', gap: 16, flexWrap: 'wrap'}}>
+                    <div style={{flex: '1 1 200px'}}>
+                        <label style={{display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 14, color: '#374151'}}>
+                            Type de repas
+                        </label>
+                        <select 
+                            value={type} 
+                            onChange={e => setType(e.target.value)} 
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: 8,
+                                border: '2px solid #e5e7eb',
+                                fontSize: 14,
+                                outline: 'none',
+                                transition: 'border-color 0.2s'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                        >
                             {repasTypes.map(rt => <option key={rt}>{rt}</option>)}
                         </select>
-                    </label>
+                    </div>
+                    <div style={{flex: '1 1 150px'}}>
+                        <label style={{display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 14, color: '#374151'}}>
+                            Date
+                        </label>
+                        <input 
+                            type="date" 
+                            value={date} 
+                            onChange={e => setDate(e.target.value)} 
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: 8,
+                                border: '2px solid #e5e7eb',
+                                fontSize: 14,
+                                outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                        />
+                    </div>
+                    <div style={{flex: '1 1 130px'}}>
+                        <label style={{display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 14, color: '#374151'}}>
+                            Heure <span style={{fontSize: 12, fontWeight: 400, color: '#9ca3af'}}>(optionnel)</span>
+                        </label>
+                        <input 
+                            type="time" 
+                            value={heure} 
+                            onChange={e => setHeure(e.target.value)} 
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: 8,
+                                border: '2px solid #e5e7eb',
+                                fontSize: 14,
+                                outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                        />
+                    </div>
                 </div>
-                <div style={{ marginBottom: 10 }}>
-                    <label>Date :
-                        <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ marginLeft: 8 }} />
+                <div>
+                    <label style={{display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 14, color: '#374151'}}>
+                        Aliment mangé
                     </label>
-                </div>
-                <div style={{ marginBottom: 10 }}>
-                    <label>Heure de prise du repas (optionnel) :
-                        <input type="time" value={heure} onChange={e => setHeure(e.target.value)} style={{ marginLeft: 8, width: 110 }} />
-                        <span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>(pré-rempli à l'heure actuelle, modifiable)</span>
-                    </label>
-                </div>
-                <div style={{ marginBottom: 10 }}>
-                    <label>Aliment mangé :
-                        <input
+                    <input
                             list="alimentOptions"
                             type="text"
                             value={aliment}
                             onChange={e => setAliment(e.target.value)}
                             placeholder="Saisissez ou sélectionnez un aliment"
-                            style={{ marginLeft: 8 }}
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: 8,
+                                border: '2px solid #e5e7eb',
+                                fontSize: 14,
+                                outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                             required={categorie !== "Jeûne"}
                         />
                         <datalist id="alimentOptions">
                             {alimentsFromReferentiel.map(opt => <option key={opt} value={opt} />)}
                         </datalist>
-                    </label>
                     {/* Affichage portion + QN */}
                     {(() => {
                         const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
                         if (!found) return null;
                         return (
-                            <div style={{ fontSize: 12, marginTop: 4, marginBottom: 8, color: '#666' }}>
+                            <div style={{
+                                fontSize: 13,
+                                marginTop: 8,
+                                padding: '8px 12px',
+                                background: '#f0f9ff',
+                                borderRadius: 6,
+                                color: '#1e40af',
+                                border: '1px solid #bfdbfe'
+                            }}>
                                 {found.portionDefaut && (
-                                    <span>📏 Portion recommandée : {found.portionDefaut}</span>
+                                    <span>📏 Portion recommandée : <strong>{found.portionDefaut}</strong></span>
                                 )}
                                 {found.qn !== undefined && (
                                     <span style={{ marginLeft: found.portionDefaut ? 12 : 0 }}>
-                                        (QN: {found.qn}/5)
+                                        QN: <strong>{found.qn}/5</strong>
                                     </span>
                                 )}
                             </div>
                         );
                     })()}
                 </div>
-                <div style={{ marginBottom: 10 }}>
-                    <label>Catégorie :
-                        <input list="categorieOptions" type="text" value={categorie} onChange={e => setCategorie(e.target.value)} style={{ marginLeft: 8 }} />
+                <div style={{display: 'flex', gap: 16, flexWrap: 'wrap'}}>
+                    <div style={{flex: '1 1 200px'}}>
+                        <label style={{display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 14, color: '#374151'}}>
+                            Catégorie
+                        </label>
+                        <input 
+                            list="categorieOptions" 
+                            type="text" 
+                            value={categorie} 
+                            onChange={e => setCategorie(e.target.value)} 
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: 8,
+                                border: '2px solid #e5e7eb',
+                                fontSize: 14,
+                                outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                        />
                         <datalist id="categorieOptions">
                             {categorieOptions.map(opt => <option key={opt} value={opt} />)}
                         </datalist>
-                    </label>
+                    </div>
+                    <div style={{flex: '1 1 120px'}}>
+                        <label style={{display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 14, color: '#374151'}}>
+                            Quantité (g)
+                        </label>
+                        <input 
+                            type="text" 
+                            value={quantite} 
+                            onChange={e => setQuantite(e.target.value)} 
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: 8,
+                                border: '2px solid #e5e7eb',
+                                fontSize: 14,
+                                outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                            required={categorie !== "Jeûne"} 
+                        />
+                    </div>
+                    <div style={{flex: '1 1 100px'}}>
+                        <label style={{display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 14, color: '#374151'}}>
+                            Kcal
+                        </label>
+                        <input 
+                            type="number" 
+                            value={kcal} 
+                            onChange={e => setKcal(e.target.value)} 
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: 8,
+                                border: '2px solid #e5e7eb',
+                                fontSize: 14,
+                                outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                            required={categorie !== "Jeûne"} 
+                        />
+                    </div>
                 </div>
-                <div style={{ marginBottom: 10 }}>
-                    <label>Quantité :
-                        <input type="text" value={quantite} onChange={e => setQuantite(e.target.value)} style={{ marginLeft: 8, width: 60 }} required={categorie !== "Jeûne"} />
-                    </label>
+                <div style={{display: 'flex', gap: 16, flexWrap: 'wrap'}}>
+                    <div style={{flex: '1 1 300px'}}>
+                        <label style={{display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 14, color: '#374151'}}>
+                            Note <span style={{fontSize: 12, fontWeight: 400, color: '#9ca3af'}}>(contexte, réflexion...)</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            value={note} 
+                            onChange={e => setNote(e.target.value)} 
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: 8,
+                                border: '2px solid #e5e7eb',
+                                fontSize: 14,
+                                outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                        />
+                    </div>
+                    <div style={{flex: '1 1 250px'}}>
+                        <label style={{display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 14, color: '#374151'}}>
+                            Ressenti physique après le repas
+                        </label>
+                        <input 
+                            type="text" 
+                            value={ressenti} 
+                            onChange={e => setRessenti(e.target.value)} 
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: 8,
+                                border: '2px solid #e5e7eb',
+                                fontSize: 14,
+                                outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                        />
+                    </div>
                 </div>
-                <div style={{ marginBottom: 10 }}>
-                    <label>Kcal :
-                        <input type="number" value={kcal} onChange={e => setKcal(e.target.value)} style={{ marginLeft: 8, width: 80 }} required={categorie !== "Jeûne"} />
-                    </label>
-                </div>
-                <div style={{ marginBottom: 10 }}>
-                    <label>Note (contexte, réflexion, etc.) :
-                        <input type="text" value={note} onChange={e => setNote(e.target.value)} style={{ marginLeft: 8, width: 220 }} />
-                    </label>
-                </div>
-                <div style={{ marginBottom: 10 }}>
-                    <label>Ressenti physique après le repas :
-                        <input type="text" value={ressenti} onChange={e => setRessenti(e.target.value)} style={{ marginLeft: 8, width: 180 }} />
-                    </label>
-                </div>
-                {erreur && <p style={{ color: 'red', whiteSpace: 'pre-wrap' }} aria-live="assertive">{erreur}</p>}
-                {message && <p style={{ color: 'green', whiteSpace: 'pre-wrap' }} aria-live="polite">{message}</p>}
-                <button type="submit" style={{ marginTop: 16, padding: '10px 20px', fontSize: 16, fontWeight: 600, background: '#667eea', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
-                    Enregistrer le repas
+                {erreur && (
+                    <div style={{
+                        marginTop: 16,
+                        padding: '12px 16px',
+                        background: '#fee2e2',
+                        border: '1px solid #fca5a5',
+                        borderRadius: 8,
+                        color: '#991b1b',
+                        fontSize: 14,
+                        whiteSpace: 'pre-wrap'
+                    }} aria-live="assertive">
+                        {erreur}
+                    </div>
+                )}
+                {message && (
+                    <div style={{
+                        marginTop: 16,
+                        padding: 20,
+                        background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                        border: '2px solid #86efac',
+                        borderRadius: 12,
+                        boxShadow: '0 4px 12px rgba(134,239,172,0.2)'
+                    }} aria-live="polite">
+                        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12}}>
+                            <span style={{fontSize: 24}}>📋</span>
+                            <div>
+                                <h4 style={{margin: 0, fontSize: 16, fontWeight: 700, color: '#065f46'}}>
+                                    Repas enregistré avec réserves
+                                </h4>
+                                <p style={{margin: '4px 0 0 0', fontSize: 13, color: '#047857'}}>
+                                    {message?.match(/Validation des critères : (\d+)\/4/)?.[1] || '0'}/4 critères validés
+                                </p>
+                            </div>
+                        </div>
+                        
+                        {message?.includes('❌') && (
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 10,
+                                marginTop: 12,
+                                padding: 12,
+                                background: 'white',
+                                borderRadius: 8,
+                                border: '1px solid #fca5a5'
+                            }}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4}}>
+                                    <span style={{fontSize: 16}}>⚠️</span>
+                                    <strong style={{fontSize: 14, color: '#991b1b'}}>Points d'attention :</strong>
+                                </div>
+                                {message?.split('\n').filter(line => line.includes('❌')).map((line, i) => (
+                                    <div key={i} style={{
+                                        display: 'flex',
+                                        alignItems: 'start',
+                                        gap: 8,
+                                        padding: '8px 12px',
+                                        background: '#fef2f2',
+                                        borderRadius: 6,
+                                        fontSize: 13,
+                                        color: '#991b1b'
+                                    }}>
+                                        <span>❌</span>
+                                        <span style={{flex: 1}}>{line.replace('❌', '').trim()}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        
+                        {message?.includes('💡') && (
+                            <div style={{
+                                marginTop: 12,
+                                padding: 12,
+                                background: '#fef3c7',
+                                borderRadius: 8,
+                                border: '1px solid #fbbf24',
+                                fontSize: 13,
+                                color: '#92400e'
+                            }}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>
+                                    <span style={{fontSize: 16}}>💡</span>
+                                    <strong>Conseil :</strong>
+                                </div>
+                                {message?.split('\n').find(line => line.includes('💡'))?.replace('💡', '').trim()}
+                            </div>
+                        )}
+                        
+                        <button 
+                            onClick={() => window.location.href = '/reprise-alimentaire-apres-jeune'}
+                            style={{
+                                marginTop: 16,
+                                padding: '10px 20px',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 8,
+                                cursor: 'pointer',
+                                width: '100%',
+                                boxShadow: '0 2px 8px rgba(102,126,234,0.3)',
+                                transition: 'transform 0.2s'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                        >
+                            📊 Voir mon plan détaillé
+                        </button>
+                    </div>
+                )}
+                <button 
+                    type="submit" 
+                    style={{
+                        marginTop: 20,
+                        padding: '12px 32px',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 10,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
+                        transition: 'transform 0.2s',
+                        width: '100%'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                    ✅ Enregistrer le repas
                 </button>
             </form>
+            </div>
         </div>
     );
 }

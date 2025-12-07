@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabaseClient';
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
   const [showAll, setShowAll] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  
   // Regrouper les jours par phase
   const phasesArray = Object.entries(phases).map(([key, phase], idx) => {
     const joursPhase = jours.filter(j => j.phase === idx + 1);
@@ -44,26 +46,55 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
   }
 
   return (
-    <aside style={{
-      background: '#f8f8fc',
-      borderRadius: 14,
-      boxShadow: '0 2px 8px #0001',
-      padding: '1.2rem 1.1rem',
-      marginBottom: '2rem',
-      marginTop: '1.5rem',
-      maxWidth: 340,
-      width: 340,
-      fontSize: '1.01rem',
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: '1.1rem',
-      position: 'fixed',
-      left: '2rem',
-      top: '2rem',
-      maxHeight: 'calc(100vh - 4rem)',
-      overflowY: 'auto',
-      zIndex: 50
-    }}>
+    <>
+      {/* 🔘 Bouton toggle mobile */}
+      <button
+        onClick={() => setIsMobileOpen(!isMobileOpen)}
+        style={{
+          display: 'none',
+          position: 'fixed',
+          top: '1rem',
+          left: '1rem',
+          zIndex: 100,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          border: 'none',
+          borderRadius: 8,
+          padding: '0.6rem 1rem',
+          fontWeight: 700,
+          fontSize: '0.95rem',
+          cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(102,126,234,0.4)',
+          '@media (max-width: 768px)': { display: 'block' }
+        }}
+        className="mobile-toggle-btn"
+      >
+        {isMobileOpen ? '✕ Fermer' : '☰ Phases'}
+      </button>
+
+      <aside 
+        className={isMobileOpen ? 'phases-sidebar mobile-open' : 'phases-sidebar'}
+        style={{
+          background: '#f8f8fc',
+          borderRadius: 14,
+          boxShadow: '0 2px 8px #0001',
+          padding: '1.2rem 1.1rem',
+          marginBottom: '2rem',
+          marginTop: '1.5rem',
+          maxWidth: 340,
+          width: 340,
+          fontSize: '1.01rem',
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '1.1rem',
+          position: 'fixed',
+          left: '2rem',
+          top: '2rem',
+          maxHeight: 'calc(100vh - 4rem)',
+          overflowY: 'auto',
+          zIndex: 50
+        }}
+      >
       <div style={{fontWeight:700, color:'#1976d2', fontSize:'1.15rem', marginBottom:4}}>Phases de la reprise</div>
       {phasesToShow.map(phase => (
         <div key={phase.key} style={{
@@ -143,7 +174,8 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
           − Réduire
         </button>
       )}
-    </aside>
+      </aside>
+    </>
   );
 }
 import { useRouter } from 'next/router';
@@ -160,12 +192,19 @@ export default function RepriseAlimentaireApresJeune() {
 
   // Permettre un mode test/forçage via ?test=1 dans l'URL
   const [forceSuivi, setForceSuivi] = useState(false);
+  const [repriseMode, setRepriseMode] = useState('normal'); // 'test' ou 'normal'
 
   useEffect(() => {
     if (router && router.query && router.query.test === '1') {
       setForceSuivi(true);
     }
   }, [router.query]);
+
+  // Détecter le mode de reprise (test ou normal)
+  useEffect(() => {
+    const modeActuel = localStorage.getItem('repriseMode') || 'normal';
+    setRepriseMode(modeActuel);
+  }, []);
 
   useEffect(() => {
     const chargerProgramme = async () => {
@@ -185,6 +224,41 @@ export default function RepriseAlimentaireApresJeune() {
         
         const parsed = JSON.parse(prog);
         console.debug('[DEBUG] Chargement depuis localStorage:', parsed);
+        
+        // 🆕 AUTO-POPULATION : Enrichir avec les données du jeûne si manquantes
+        if (!parsed.duree_jeune_jours || !parsed.poids_fin_jeune || !parsed.date_fin_jeune) {
+          console.log('[AUTO-POPULATION] Récupération des données depuis /jeune...');
+          
+          try {
+            const dureeJeune = localStorage.getItem('dureeJeune');
+            const poidsDepart = localStorage.getItem('poidsDepart');
+            const dateDebutJeune = localStorage.getItem('dateDebutJeune');
+            
+            if (!parsed.duree_jeune_jours && dureeJeune) {
+              parsed.duree_jeune_jours = JSON.parse(dureeJeune);
+              console.log('[AUTO-POPULATION] Durée jeûne:', parsed.duree_jeune_jours);
+            }
+            
+            if (!parsed.poids_fin_jeune && poidsDepart) {
+              parsed.poids_fin_jeune = JSON.parse(poidsDepart);
+              console.log('[AUTO-POPULATION] Poids fin jeûne:', parsed.poids_fin_jeune);
+            }
+            
+            if (!parsed.date_fin_jeune && dateDebutJeune && dureeJeune) {
+              const dateDebut = new Date(JSON.parse(dateDebutJeune));
+              const duree = JSON.parse(dureeJeune);
+              const dateFin = new Date(dateDebut.getTime() + (duree - 1) * 24 * 60 * 60 * 1000);
+              parsed.date_fin_jeune = dateFin.toISOString().split('T')[0];
+              console.log('[AUTO-POPULATION] Date fin jeûne:', parsed.date_fin_jeune);
+            }
+            
+            // Sauvegarder le programme enrichi
+            localStorage.setItem('programmeRepriseValide', JSON.stringify(parsed));
+          } catch (err) {
+            console.warn('[AUTO-POPULATION] Erreur lors de la récupération:', err);
+          }
+        }
+        
         setProgramme(parsed);
         setJours(parsed.jours_detailles || []);
         setDateAuj(new Date().toISOString().split('T')[0]);
@@ -304,7 +378,8 @@ export default function RepriseAlimentaireApresJeune() {
       }
 
       // 2️⃣ Vérifier les repas conformes dans localStorage
-      const repasStockes = JSON.parse(localStorage.getItem('reprises_repas_consommes') || '[]');
+      const cleRepas = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
+      const repasStockes = JSON.parse(localStorage.getItem(cleRepas) || '[]');
       const repasJour = repasStockes.filter(r => 
         r.jour_reprise === jourData.jour_numero &&
         r.phase_reprise === jourData.phase &&
@@ -387,7 +462,7 @@ export default function RepriseAlimentaireApresJeune() {
         </Link>
       </div>
       {/* COLONNE CENTRALE */}
-      <main style={{flex:1, minWidth:0, maxWidth:700, margin:'0 auto'}}>
+      <main className="main-content" style={{flex:1, minWidth:0, maxWidth:700, margin:'0 auto'}}>
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.2rem'}}>
           <h1 style={{color:'#1976d2', fontWeight:900, fontSize:'2.3rem', margin:0, letterSpacing:'-1px'}}>Reprise alimentaire après jeûne</h1>
           <button
@@ -409,6 +484,26 @@ export default function RepriseAlimentaireApresJeune() {
           >
             <span style={{fontSize:'1.2em'}}>🔄</span> Actualiser
           </button>
+        </div>
+        
+        {/* 📅 DATE DU JOUR (vraie date système) */}
+        <div style={{
+          background: '#e3f2fd',
+          border: '1px solid #90caf9',
+          borderRadius: 10,
+          padding: '0.6rem 1rem',
+          marginBottom: '1.2rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10
+        }}>
+          <span style={{fontSize: '1.3rem'}}>📅</span>
+          <div>
+            <span style={{fontSize: '0.85rem', color: '#1565c0', fontWeight: 500, marginRight: 8}}>Aujourd'hui :</span>
+            <span style={{fontSize: '1rem', fontWeight: 600, color: '#0d47a1'}}>
+              {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            </span>
+          </div>
         </div>
         
         {/* 🆕 BLOC CONTEXTE JEÛNE */}
@@ -529,56 +624,137 @@ export default function RepriseAlimentaireApresJeune() {
       {/* 🧪 BOUTON TEST : Activer temporairement la reprise dans /suivi */}
       {forceSuivi && (
         <div style={{background:'#e3f2fd', border:'2px solid #1976d2', borderRadius:8, padding:'1rem 1.2rem', marginBottom:'1.5rem'}}>
-          <div style={{fontWeight:700, color:'#1976d2', fontSize:'1.1rem', marginBottom:8}}>🧪 Mode Test Activé</div>
+          <div style={{fontWeight:700, color:'#1976d2', fontSize:'1.1rem', marginBottom:8}}>
+            🧪 Mode Test Activé {repriseMode === 'test' && <span style={{background:'#ff9800', color:'white', padding:'2px 8px', borderRadius:4, fontSize:'0.85rem', marginLeft:8}}>TEST</span>}
+          </div>
           <div style={{fontSize:'0.98rem', color:'#555', marginBottom:12}}>
             Tu peux activer temporairement le comportement de reprise alimentaire dans la page <b>/suivi</b> pour tester sans impacter les données réelles.
           </div>
-          <button
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                // Activer flag temporaire dans localStorage (préfixe test_)
-                localStorage.setItem('test_modeRepriseActif', 'true');
-                localStorage.setItem('test_programmeRepriseValide', localStorage.getItem('programmeRepriseValide') || '{}');
-                alert('✅ Mode reprise activé dans /suivi (temporaire)\n\nVa maintenant sur la page /suivi pour voir le bandeau violet et tester la validation des repas.\n\nPour désactiver : clique sur "Désactiver mode test" ci-dessous.');
-              }
-            }}
-            style={{
-              background:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color:'#fff',
-              border:'none',
-              borderRadius:8,
-              padding:'0.7rem 1.5rem',
-              fontWeight:700,
-              fontSize:'1.05rem',
-              cursor:'pointer',
-              marginRight:'1rem',
-              boxShadow:'0 2px 6px rgba(102,126,234,0.3)'
-            }}
-          >
-            🎯 Activer reprise dans /suivi (test)
-          </button>
-          <button
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                localStorage.removeItem('test_modeRepriseActif');
-                localStorage.removeItem('test_programmeRepriseValide');
-                alert('✅ Mode test désactivé.\n\nLa page /suivi est revenue à son comportement normal.');
-              }
-            }}
-            style={{
-              background:'#f5f5f5',
-              color:'#666',
-              border:'1px solid #bdbdbd',
-              borderRadius:8,
-              padding:'0.7rem 1.5rem',
-              fontWeight:600,
-              fontSize:'1.05rem',
-              cursor:'pointer',
-              boxShadow:'0 1px 3px rgba(0,0,0,0.1)'
-            }}
-          >
-            ❌ Désactiver mode test
-          </button>
+          
+          {repriseMode === 'test' && (
+            <div style={{background:'#fff3cd', border:'1px solid #ffb74d', borderRadius:6, padding:12, marginBottom:12, fontSize:'0.95rem'}}>
+              ⚠️ <b>Mode TEST actif</b> : Les repas sont enregistrés dans une zone isolée (<code>test_*</code>).
+              <br/>
+              Pour passer en production, clique sur "✅ Valider et basculer en production" ci-dessous.
+            </div>
+          )}
+          
+          <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  // Activer flag temporaire dans localStorage (préfixe test_)
+                  localStorage.setItem('test_modeRepriseActif', 'true');
+                  localStorage.setItem('repriseMode', 'test');
+                  localStorage.setItem('test_programmeRepriseValide', localStorage.getItem('programmeRepriseValide') || '{}');
+                  alert('✅ Mode reprise TEST activé dans /suivi\n\nVa maintenant sur la page /suivi pour voir le bandeau violet et tester la validation des repas.\n\nPour désactiver : clique sur "Désactiver mode test" ci-dessous.');
+                  window.location.reload();
+                }
+              }}
+              style={{
+                background:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color:'#fff',
+                border:'none',
+                borderRadius:8,
+                padding:'0.7rem 1.5rem',
+                fontWeight:700,
+                fontSize:'1.05rem',
+                cursor:'pointer',
+                boxShadow:'0 2px 6px rgba(102,126,234,0.3)'
+              }}
+            >
+              🎯 Activer mode TEST
+            </button>
+            
+            {repriseMode === 'test' && (
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    const confirmation = confirm(
+                      '🚀 MIGRATION TEST → PRODUCTION\n\n' +
+                      'Cette action va :\n' +
+                      '1. Copier TOUS les repas test vers la production\n' +
+                      '2. Archiver les données test en backup\n' +
+                      '3. Basculer en mode NORMAL\n\n' +
+                      '⚠️ Cette action est IRRÉVERSIBLE.\n\n' +
+                      'Continuer ?'
+                    );
+                    
+                    if (!confirmation) return;
+                    
+                    try {
+                      // 1. Copier repas test → normal
+                      const repasTest = JSON.parse(localStorage.getItem('test_reprises_repas_consommes') || '[]');
+                      localStorage.setItem('reprises_repas_consommes', JSON.stringify(repasTest));
+                      
+                      // 2. Archiver les données test
+                      const timestamp = new Date().toISOString();
+                      localStorage.setItem('backup_test_reprises_' + timestamp, JSON.stringify(repasTest));
+                      
+                      // 3. Copier programme test → normal
+                      const progTest = localStorage.getItem('test_programmeRepriseValide');
+                      if (progTest) {
+                        localStorage.setItem('programmeRepriseValide', progTest);
+                      }
+                      
+                      // 4. Basculer en mode normal
+                      localStorage.setItem('repriseMode', 'normal');
+                      localStorage.removeItem('test_modeRepriseActif');
+                      
+                      alert(
+                        '✅ MIGRATION RÉUSSIE !\n\n' +
+                        `${repasTest.length} repas copiés vers la production\n` +
+                        'Backup créé : backup_test_reprises_' + timestamp + '\n\n' +
+                        '🎉 Tu es maintenant en MODE NORMAL'
+                      );
+                      
+                      window.location.reload();
+                    } catch (error) {
+                      alert('❌ Erreur lors de la migration : ' + error.message);
+                    }
+                  }
+                }}
+                style={{
+                  background:'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color:'#fff',
+                  border:'none',
+                  borderRadius:8,
+                  padding:'0.7rem 1.5rem',
+                  fontWeight:700,
+                  fontSize:'1.05rem',
+                  cursor:'pointer',
+                  boxShadow:'0 2px 6px rgba(16,185,129,0.3)'
+                }}
+              >
+                ✅ Valider et basculer en production
+              </button>
+            )}
+            
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  localStorage.removeItem('test_modeRepriseActif');
+                  localStorage.removeItem('repriseMode');
+                  localStorage.setItem('repriseMode', 'normal');
+                  alert('✅ Mode test désactivé.\n\nLa page /suivi est revenue à son comportement normal.');
+                  window.location.reload();
+                }
+              }}
+              style={{
+                background:'#f5f5f5',
+                color:'#666',
+                border:'1px solid #bdbdbd',
+                borderRadius:8,
+                padding:'0.7rem 1.5rem',
+                fontWeight:600,
+                fontSize:'1.05rem',
+                cursor:'pointer',
+                boxShadow:'0 1px 3px rgba(0,0,0,0.1)'
+              }}
+            >
+              ❌ Désactiver mode test
+            </button>
+          </div>
         </div>
       )}
 
@@ -724,7 +900,10 @@ export default function RepriseAlimentaireApresJeune() {
             {joursAAfficher.length > 0 && (
               <div style={{background:'#fff', border:'1px solid #b3e5fc', borderRadius:10, marginBottom:18, padding:'1.1rem 1.2rem'}}>
                 <div style={{fontWeight:700, color:'#1976d2', fontSize:'1.1rem', marginBottom:4}}>
-                  Jour {joursAAfficher[selectedJourIdx]?.jour_numero} – {joursAAfficher[selectedJourIdx]?.date}
+                  Jour {joursAAfficher[selectedJourIdx]?.jour_numero}
+                </div>
+                <div style={{fontSize:'0.9rem', color:'#888', marginBottom:6}}>
+                  Date prévue au plan : {joursAAfficher[selectedJourIdx]?.date}
                 </div>
                 <div style={{color:'#444', marginBottom:6}}>
                   <b>Phase {joursAAfficher[selectedJourIdx]?.phase}</b>
@@ -735,17 +914,46 @@ export default function RepriseAlimentaireApresJeune() {
                 
                 {/* 🆕 CRITÈRES DU JOUR - SUIVI EN TEMPS RÉEL */}
                 {!isPreview && joursAAfficher[selectedJourIdx] && (() => {
-                  const repasStockes = JSON.parse(localStorage.getItem('reprises_repas_consommes') || '[]');
+                  const cleRepas = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
+                  const repasStockes = JSON.parse(localStorage.getItem(cleRepas) || '[]');
+                  const todayStr = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+                  
+                  // Debug
+                  console.log('🔍 DEBUG Critères du jour:', {
+                    totalRepasStockes: repasStockes.length,
+                    jourRecherche: joursAAfficher[selectedJourIdx].jour_numero,
+                    phaseRecherche: joursAAfficher[selectedJourIdx].phase,
+                    dateRecherche: joursAAfficher[selectedJourIdx].date,
+                    dateAujourdhui: todayStr,
+                    premiersRepas: repasStockes.slice(0, 3)
+                  });
+                  
+                  // Filtre par jour_numero et phase uniquement (pas par date pour éviter problèmes de format)
                   const repasJour = repasStockes.filter(r => 
                     r.jour_reprise === joursAAfficher[selectedJourIdx].jour_numero &&
-                    r.phase_reprise === joursAAfficher[selectedJourIdx].phase &&
-                    r.date === joursAAfficher[selectedJourIdx].date
+                    r.phase_reprise === joursAAfficher[selectedJourIdx].phase
                   );
                   
-                  if (repasJour.length === 0) return null;
+                  console.log('🔍 Repas trouvés pour ce jour:', repasJour.length);
+                  
+                  if (repasJour.length === 0) {
+                    return (
+                      <div style={{
+                        background: '#fff3e0',
+                        border: '2px dashed #ff9800',
+                        borderRadius: 10,
+                        padding: '1rem 1.2rem',
+                        marginBottom: 12,
+                        color: '#e65100',
+                        fontSize: '0.95rem'
+                      }}>
+                        ℹ️ Aucun repas enregistré pour ce jour. Va sur <a href="/suivi" style={{color: '#1976d2', fontWeight: 600}}>la page /suivi</a> pour enregistrer tes repas.
+                      </div>
+                    );
+                  }
                   
                   return (
-                    <div style={{
+                    <div className="criteres-bloc" style={{
                       background: '#f3e5f5',
                       border: '2px solid #ab47bc',
                       borderRadius: 10,
@@ -756,7 +964,15 @@ export default function RepriseAlimentaireApresJeune() {
                         📊 Critères du jour - Suivi en temps réel
                       </div>
                       <div style={{color: '#4a148c', fontSize: '0.95rem', marginBottom: 12}}>
-                        {repasJour.length} repas enregistré(s) aujourd'hui
+                        {repasJour.length} repas enregistré(s) pour le Jour {joursAAfficher[selectedJourIdx].jour_numero}
+                        {repasJour.length > 0 && repasJour[0].date && (
+                          <span style={{marginLeft: 8, color: '#7b1fa2', fontSize: '0.9rem'}}>
+                            (enregistré le {(() => {
+                              const [y, m, d] = repasJour[0].date.split('-');
+                              return `${d}/${m}/${y}`;
+                            })()})
+                          </span>
+                        )}
                       </div>
                       
                       {repasJour.map((repas, idx) => {
@@ -1056,6 +1272,101 @@ export default function RepriseAlimentaireApresJeune() {
           </div>
         )}
       </main>
+      
+      {/* 📱 CSS RESPONSIVE */}
+      <style jsx global>{`
+        @media (max-width: 768px) {
+          /* Bouton toggle visible */}
+          .mobile-toggle-btn {
+            display: block !important;
+          }
+          
+          /* Sidebar responsive */}
+          .phases-sidebar {
+            position: fixed !important;
+            left: -100% !important;
+            top: 0 !important;
+            width: 85% !important;
+            max-width: 320px !important;
+            height: 100vh !important;
+            max-height: 100vh !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            transition: left 0.3s ease !important;
+            z-index: 999 !important;
+            padding-top: 3rem !important;
+          }
+          
+          .phases-sidebar.mobile-open {
+            left: 0 !important;
+            box-shadow: 4px 0 12px rgba(0,0,0,0.3) !important;
+          }
+          
+          /* Main content sans marge */
+          .main-content {
+            margin: 0 !important;
+            padding: 0.5rem !important;
+            max-width: 100% !important;
+          }
+          
+          /* Titre principal */
+          .main-content h1 {
+            font-size: 1.5rem !important;
+            margin-bottom: 0.8rem !important;
+          }
+          
+          /* Bouton actualiser mobile */
+          .main-content button {
+            padding: 0.5rem 0.8rem !important;
+            font-size: 0.85rem !important;
+          }
+          
+          /* Bloc contexte jeûne */
+          .main-content > div[style*="linear-gradient"] {
+            padding: 1rem !important;
+            border-radius: 8px !important;
+          }
+          
+          .main-content > div[style*="linear-gradient"] > div[style*="grid"] {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+          }
+          
+          /* Critères bloc */
+          .criteres-bloc {
+            padding: 0.8rem !important;
+          }
+          
+          /* Navigation jours */
+          .main-content > div > div[style*="flexWrap"] {
+            gap: 6px !important;
+          }
+          
+          .main-content > div > div[style*="flexWrap"] button {
+            min-width: 32px !important;
+            padding: 0.3rem 0.5rem !important;
+            font-size: 0.9rem !important;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          /* Très petits écrans */
+          .mobile-toggle-btn {
+            top: 0.5rem !important;
+            left: 0.5rem !important;
+            padding: 0.5rem 0.8rem !important;
+            font-size: 0.85rem !important;
+          }
+          
+          .main-content h1 {
+            font-size: 1.3rem !important;
+          }
+          
+          .phases-sidebar {
+            width: 90% !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
