@@ -270,9 +270,10 @@ function handler() {
 
 ### État initial
 - [x] ~~Non commencé~~ → **EN COURS**
-- Avancement : **10% → Phase 1 TERMINÉE ✅**
+- Avancement : **20% → Phase 2 TERMINÉE ✅**
 - Date début : **06/12/2025 - Mode PHASE PAR PHASE**
-- Phase 1 complétée : **06/12/2025 à 14h52** - ⏳ **En attente validation utilisateur**
+- Phase 1 complétée : **06/12/2025 à 14h52** - ✅ Validée
+- Phase 2 complétée : **06/12/2025 à 15h05** - ⏳ **En attente validation utilisateur**
 
 ### Phases d'implémentation (9 phases)
 
@@ -282,13 +283,13 @@ function handler() {
 - [x] Ajouter bouton dans `jeune.js` (ligne ~1240) ✅ (ZÉRO suppression, ajout #5 seulement)
 - [x] Tester routing aller-retour ✅ (Build réussi 0 erreurs, page 1.56 kB + 1.15 kB CSS)
 
-**Phase 2 : Onglet Méditation (2h) — 20%**
-- [ ] Créer `OngletMeditation.js`
-- [ ] Créer `TimerMeditation.js` (cercle progression)
-- [ ] Implémenter sélection durée + types
-- [ ] Implémenter zone notes + ressenti
-- [ ] Historique méditations localStorage
-- [ ] Tests fonctionnels
+**Phase 2 : Onglet Méditation (2h) — 20%** ✅ **TERMINÉE**
+- [x] Créer `OngletMeditation.js` ✅ (286 lignes, config + timer + formulaire + historique)
+- [x] Créer `TimerMeditation.js` (cercle progression) ✅ (133 lignes, SVG timer circulaire)
+- [x] Implémenter sélection durée + types ✅ (5/10/15/20/30 min + 4 types)
+- [x] Implémenter zone notes + ressenti ✅ (textarea illimitée + 5 ressentis)
+- [x] Historique méditations localStorage ✅ (liste + suppression)
+- [x] Tests fonctionnels ✅ (Build réussi 0 erreurs, page 4.41 kB + 2.86 kB CSS)
 
 **Phase 3 : Onglet Versets (1.5h) — 30%**
 - [ ] Créer `OngletVersets.js`
