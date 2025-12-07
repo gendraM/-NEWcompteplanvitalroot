@@ -106,15 +106,43 @@ export default function PreparationJeune() {
   const [preparationData, setPreparationData] = useState(null);
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const criteresMetier = [
-    { id: 1, label: "Respect strict des quantités à chaque repas", jalon: 30, description: "Réapprendre à ton corps ce qu'est une vraie portion" },
-    { id: 2, label: "Supprimer les féculents le soir (lun-dim)", jalon: 17, description: "Alléger la digestion le soir pour préparer le jeûne" },
-    { id: 3, label: "Action immédiate après le repas (marche/ménage)", jalon: 17, description: "Activer la digestion et éviter le stockage" },
-    { id: 4, label: "Éliminer tous produits transformés", jalon: 14, description: "Limiter les toxines et l'inflammation" },
-    { id: 5, label: "Éliminer toutes sucreries", jalon: 14, description: "Stabiliser la glycémie et l'énergie" },
-    { id: 6, label: "2 jours de jeûne plein (préparation métabolique)", jalon: 12, description: "Tester la tolérance au jeûne" },
-    { id: 7, label: "2 litres d’eau par jour (suivi automatique)", jalon: 7, description: "Hydratation optimale avant le jeûne" },
-    { id: 8, label: "Pas de repas après 19h00", jalon: 7, description: "Préparer le système digestif au jeûne" },
-    { id: 9, label: "Plage alimentaire limitée à 45 minutes par repas", jalon: 7, description: "Limiter le grignotage et améliorer la digestion" },
+    { id: 1, label: "Respect strict des quantités à chaque repas", jalon: 30, description: "Réapprendre à ton corps ce qu'est une vraie portion", titre: "Respect strict des quantités", conseil: "Réapprendre à ton corps ce qu'est une vraie portion" },
+    { id: 2, label: "Supprimer les féculents le soir (lun-dim)", jalon: 17, description: "Alléger la digestion le soir pour préparer le jeûne", titre: "Supprimer les féculents le soir", conseil: "Alléger la digestion le soir pour préparer le jeûne" },
+    { id: 3, label: "Action immédiate après le repas (marche/ménage)", jalon: 17, description: "Activer la digestion et éviter le stockage", titre: "Action immédiate après le repas", conseil: "Activer la digestion et éviter le stockage (marche/ménage)" },
+    { id: 4, label: "Éliminer tous produits transformés", jalon: 14, description: "Limiter les toxines et l'inflammation", titre: "Éliminer tous produits transformés", conseil: "Limiter les toxines et l'inflammation" },
+    { id: 5, label: "Éliminer toutes sucreries", jalon: 14, description: "Stabiliser la glycémie et l'énergie", titre: "Éliminer toutes sucreries", conseil: "Stabiliser la glycémie et l'énergie" },
+    { id: 6, label: "2 jours de jeûne plein (préparation métabolique)", jalon: 12, description: "Tester la tolérance au jeûne", titre: "2 jours de jeûne plein", conseil: "Tester la tolérance au jeûne (préparation métabolique)" },
+    { id: 7, label: "2 litres d'eau par jour (suivi automatique)", jalon: 7, description: "Hydratation optimale avant le jeûne", titre: "2 litres d'eau par jour", conseil: "Hydratation optimale avant le jeûne (suivi automatique)" },
+    { id: 8, label: "Pas de repas après 19h00", jalon: 7, description: "Préparer le système digestif au jeûne", titre: "Pas de repas après 19h00", conseil: "Préparer le système digestif au jeûne" },
+    { id: 9, label: "Plage alimentaire limitée à 45 minutes par repas", jalon: 7, description: "Limiter le grignotage et améliorer la digestion", titre: "Plage alimentaire 45 min max", conseil: "Limiter le grignotage et améliorer la digestion" },
+  ];
+
+  // Organisation des critères par phase (selon les jalons)
+  const phasesAvecCriteres = [
+    {
+      id: 'phase1-fondation',
+      nom: 'Phase 1 : Allègement',
+      debut: -30,
+      fin: -18,
+      objectif: 'Rééquilibrer l\'alimentation et limiter les excès',
+      criteres: criteresMetier.filter(c => c.jalon === 30)
+    },
+    {
+      id: 'phase2-intensification',
+      nom: 'Phase 2 : Végétalisation',
+      debut: -17,
+      fin: -8,
+      objectif: 'Alléger la digestion et supprimer les toxines',
+      criteres: criteresMetier.filter(c => [17, 14, 12].includes(c.jalon))
+    },
+    {
+      id: 'phase3-prejeune',
+      nom: 'Phase 3 : Pré-jeûne',
+      debut: -7,
+      fin: 0,
+      objectif: 'Préparer le corps au jeûne immédiat',
+      criteres: criteresMetier.filter(c => c.jalon === 7)
+    }
   ];
   const [criteres, setCriteres] = useState([]); // Liste dynamique avec statut validé
   const [progression, setProgression] = useState(0); // Nombre de critères validés
@@ -348,19 +376,19 @@ const DebugPanel = () => (
         </div>
         {/* Timeline moderne */}
         <TimelinePreparation
-          phases={phasesMetier.map(phase => ({
+          phases={phasesAvecCriteres.map(phase => ({
             nom: phase.nom,
             debut: phase.debut,
             fin: phase.fin,
-            icone: phase.nom?.toLowerCase().includes('fondation') ? '🧱' : phase.nom?.toLowerCase().includes('intensification') ? '⚡' : '🚀',
-            couleur: phase.nom?.toLowerCase().includes('fondation') ? '#FFD166' : phase.nom?.toLowerCase().includes('intensification') ? '#4F8FFF' : '#43D9A3',
+            icone: phase.nom?.toLowerCase().includes('allègement') ? '🧱' : phase.nom?.toLowerCase().includes('végétalisation') ? '⚡' : '🚀',
+            couleur: phase.nom?.toLowerCase().includes('allègement') ? '#FFD166' : phase.nom?.toLowerCase().includes('végétalisation') ? '#4F8FFF' : '#43D9A3',
           }))}
           currentDay={jCourant}
         />
         {/* Progression globale */}
-        <ProgressBar value={progression} max={phasesMetier.reduce((acc, phase) => acc + (phase.criteres?.length || 0), 0)} />
+        <ProgressBar value={progression} max={criteresMetier.length} />
         {/* Phases et critères (harmonisé avec module métier) */}
-        {phasesMetier.map((phase, idx) => (
+        {phasesAvecCriteres.map((phase, idx) => (
           <PhaseCard
             key={phase.id || phase.nom}
             phase={{
