@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import styles from '../styles/JournalSpirituel.module.css';
 import OngletMeditation from '../components/OngletMeditation';
+import OngletVersets from '../components/OngletVersets';
 
 export default function JournalSpirituel() {
   // ==========================================
@@ -157,10 +158,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-versets"
             className={styles.panel}
           >
-            <h2>📖 Versets & Citations</h2>
-            <p className={styles.placeholder}>
-              Composant OngletVersets à créer (Phase 3)
-            </p>
+            <OngletVersets jourJeune={jourJeune} />
           </div>
         )}
 
