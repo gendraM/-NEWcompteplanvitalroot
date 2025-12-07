@@ -463,27 +463,49 @@ export default function RepriseAlimentaireApresJeune() {
       </div>
       {/* COLONNE CENTRALE */}
       <main className="main-content" style={{flex:1, minWidth:0, maxWidth:700, margin:'0 auto'}}>
-        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.2rem'}}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.2rem', flexWrap:'wrap', gap:12}}>
           <h1 style={{color:'#1976d2', fontWeight:900, fontSize:'2.3rem', margin:0, letterSpacing:'-1px'}}>Reprise alimentaire après jeûne</h1>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 8,
-              padding: '0.6rem 1.2rem',
-              fontWeight: 600,
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(102,126,234,0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <span style={{fontSize:'1.2em'}}>🔄</span> Actualiser
-          </button>
+          <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+            <Link 
+              href="/suivi"
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 8,
+                padding: '0.6rem 1.2rem',
+                fontWeight: 600,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(16,185,129,0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                textDecoration: 'none'
+              }}
+            >
+              <span style={{fontSize:'1.2em'}}>✏️</span> Saisir un repas
+            </Link>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 8,
+                padding: '0.6rem 1.2rem',
+                fontWeight: 600,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(102,126,234,0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <span style={{fontSize:'1.2em'}}>🔄</span> Actualiser
+            </button>
+          </div>
         </div>
         
         {/* 📅 DATE DU JOUR (vraie date système) */}
@@ -912,6 +934,81 @@ export default function RepriseAlimentaireApresJeune() {
                   {joursAAfficher[selectedJourIdx]?.message_contextuel}
                 </div>
                 
+                {/* 🆕 MES SCORES */}
+                {!isPreview && joursAAfficher[selectedJourIdx] && (() => {
+                  const cleRepas = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
+                  const repasStockes = JSON.parse(localStorage.getItem(cleRepas) || '[]');
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  
+                  // Calcul scores (identique à /suivi.js)
+                  const repasTypes = ["Petit-déjeuner", "Déjeuner", "Collation", "Dîner"];
+                  const repasJourCourant = repasStockes.filter(r => r.date === todayStr);
+                  const nbRepasSaisis = repasTypes.reduce((acc, type) => acc + (repasJourCourant.some(r => r.moment === type) ? 1 : 0), 0);
+                  const scoreRegularite = Math.round((nbRepasSaisis / repasTypes.length) * 100);
+                  
+                  // Score calories du jour
+                  const caloriesDuJour = repasJourCourant.reduce((sum, r) => sum + (parseFloat(r.kcal) || 0), 0);
+                  const objectifCalorique = 1800; // Valeur par défaut (à adapter selon profil)
+                  const scoreCalorique = objectifCalorique > 0 ? Math.round((caloriesDuJour / objectifCalorique) * 100) : 0;
+                  
+                  // Score discipline (repas conformes)
+                  const repasConformes = repasJourCourant.filter(r => r.conforme === true || r.validation?.phase_ok).length;
+                  const scoreDiscipline = repasJourCourant.length > 0 ? Math.round((repasConformes / repasJourCourant.length) * 100) : 0;
+                  
+                  return (
+                    <>
+                      {/* Bloc Mes scores */}
+                      <div style={{
+                        marginTop: 18,
+                        marginBottom: 18,
+                        background: "#fafafa",
+                        borderRadius: 12,
+                        padding: "20px 16px",
+                        boxShadow: "0 1px 5px rgba(0,0,0,0.03)"
+                      }}>
+                        <h2 style={{ margin: "0 0 16px 0" }}>Mes scores</h2>
+                        
+                        <div style={{ marginBottom: 12 }}>
+                          <span style={{ fontWeight: 500 }}>Score de régularité de saisie : </span>
+                          <span style={{ fontWeight: 700, color: "#8e24aa", fontSize: 18 }}>{scoreRegularite}%</span>
+                          <div style={{ background: "#e0e0e0", borderRadius: 8, height: 16, width: "100%", marginTop: 6 }}>
+                            <div style={{ width: `${Math.min(scoreRegularite, 100)}%`, height: "100%", background: "#8e24aa", borderRadius: 8, transition: "width 0.5s" }}></div>
+                          </div>
+                          <div style={{ fontSize: 13, color: scoreRegularite === 100 ? '#43a047' : '#888', marginTop: 4 }}>
+                            {scoreRegularite === 100
+                              ? "Bravo, tu as saisi tous tes repas principaux aujourd'hui !"
+                              : `Repas saisis aujourd'hui : ${nbRepasSaisis} / ${repasTypes.length}`}
+                          </div>
+                        </div>
+                        
+                        <div style={{ marginBottom: 12 }}>
+                          <span style={{ fontWeight: 500 }}>Score calorique du jour : </span>
+                          <span style={{ fontWeight: 700, color: "#ff9800", fontSize: 18 }}>{scoreCalorique}%</span>
+                          <div style={{ background: "#e0e0e0", borderRadius: 8, height: 16, width: "100%", marginTop: 6 }}>
+                            <div style={{ width: `${Math.min(scoreCalorique, 100)}%`, height: "100%", background: "#ff9800", borderRadius: 8, transition: "width 0.5s" }}></div>
+                          </div>
+                          <div style={{ fontSize: 14, color: "#888", marginTop: 4 }}>
+                            Objectif : {objectifCalorique} kcal — Consommé : {Math.round(caloriesDuJour)} kcal
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <span style={{ fontWeight: 500 }}>Score discipline (repas alignés) : </span>
+                          <span style={{ fontWeight: 700, color: "#1976d2", fontSize: 18 }}>{scoreDiscipline}%</span>
+                          <div style={{ background: "#e0e0e0", borderRadius: 8, height: 16, width: "100%", marginTop: 6 }}>
+                            <div style={{ width: `${Math.min(scoreDiscipline, 100)}%`, height: "100%", background: "#1976d2", borderRadius: 8, transition: "width 0.5s" }}></div>
+                          </div>
+                          <div style={{ fontSize: 13, color: scoreDiscipline >= 75 ? '#43a047' : '#888', marginTop: 4 }}>
+                            {repasJourCourant.length === 0 
+                              ? "Aucun repas saisi aujourd'hui"
+                              : `${repasConformes} / ${repasJourCourant.length} repas conformes`}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+
                 {/* 🆕 CRITÈRES DU JOUR - SUIVI EN TEMPS RÉEL */}
                 {!isPreview && joursAAfficher[selectedJourIdx] && (() => {
                   const cleRepas = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';

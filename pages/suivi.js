@@ -568,12 +568,43 @@ export default function Suivi() {
   // Chargement automatique des repas et du plan depuis Supabase
   useEffect(() => {
     async function fetchRepasEtPlan() {
-      // Repas réels
-      const { data: repasData, error: repasError } = await supabase
-        .from('repas_reels')
-        .select('*')
-        .order('date', { ascending: false });
-      if (!repasError && Array.isArray(repasData)) {
+      let repasData = [];
+      
+      // 🆕 SI REPRISE ACTIVE : Charger depuis localStorage reprises_repas_consommes
+      if (repriseActive) {
+        console.log('[SCORES] Reprise active détectée, lecture depuis reprises_repas_consommes');
+        const cleRepas = 'reprises_repas_consommes'; // Clé principale
+        const repasRepriseStr = localStorage.getItem(cleRepas);
+        if (repasRepriseStr) {
+          try {
+            const repasReprise = JSON.parse(repasRepriseStr);
+            // Transformer format reprise → format classique pour scores
+            repasData = repasReprise.map(r => ({
+              date: r.date,
+              type: r.moment, // moment → type
+              aliment: r.aliment_nom,
+              kcal: r.kcal || 0,
+              est_extra: false, // Pas d'extras en reprise
+              repas_planifie_respecte: r.conforme || false
+            }));
+            console.log('[SCORES] Repas reprise chargés:', repasData.length);
+          } catch (e) {
+            console.error('[SCORES] Erreur parse reprises_repas_consommes:', e);
+          }
+        }
+      } else {
+        // Mode normal : Charger depuis Supabase repas_reels
+        const { data, error: repasError } = await supabase
+          .from('repas_reels')
+          .select('*')
+          .order('date', { ascending: false });
+        if (!repasError && Array.isArray(data)) {
+          repasData = data;
+        }
+      }
+      
+      // Mettre à jour les états
+      if (Array.isArray(repasData)) {
         setRepasSemaine(repasData);
         // Calculer les calories du jour à partir des repas du jour
         const repasDuJour = repasData.filter(r => r.date === selectedDate);
@@ -597,7 +628,7 @@ export default function Suivi() {
       }
     }
     fetchRepasEtPlan();
-  }, [selectedDate]);
+  }, [selectedDate, repriseActive]); // 🆕 Ajout repriseActive pour recharger quand statut change
   // Calcul de l'historique hebdomadaire (client only pour éviter hydration error)
   const [weeklyHistory, setWeeklyHistory] = useState([]);
   useEffect(() => {
