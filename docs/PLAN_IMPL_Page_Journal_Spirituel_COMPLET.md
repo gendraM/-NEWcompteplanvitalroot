@@ -270,10 +270,12 @@ function handler() {
 
 ### État initial
 - [x] ~~Non commencé~~ → **EN COURS**
-- Avancement : **20% → Phase 2 TERMINÉE ✅**
+- Avancement : **40% → Phase 4 TERMINÉE ✅**
 - Date début : **06/12/2025 - Mode PHASE PAR PHASE**
 - Phase 1 complétée : **06/12/2025 à 14h52** - ✅ Validée
-- Phase 2 complétée : **06/12/2025 à 15h05** - ⏳ **En attente validation utilisateur**
+- Phase 2 complétée : **06/12/2025 à 15h05** - ✅ Validée
+- Phase 3 complétée : **06/12/2025 à 15h20** - ✅ Validée
+- Phase 4 complétée : **07/12/2025 à 15h45** - ⏳ **En attente validation utilisateur**
 
 ### Phases d'implémentation (9 phases)
 
@@ -299,14 +301,15 @@ function handler() {
 - [ ] localStorage persistance
 - [ ] Tests fonctionnels
 
-**Phase 4 : Onglet Questions (1.5h) — 40%**
-- [ ] Créer `OngletQuestions.js`
-- [ ] Questions guidées par jour (8 questions)
-- [ ] Zone réponse libre
-- [ ] Historique réflexions J1-J14
-- [ ] Ajout questions personnalisées
-- [ ] localStorage persistance
-- [ ] Tests fonctionnels
+**Phase 4 : Onglet Questions (1.5h) — 40%** ✅ **TERMINÉE**
+- [x] Créer `OngletQuestions.js` ✅ (324 lignes, 8 questions guidées J1-J14)
+- [x] Questions guidées par jour (8 questions) ✅ (rotation selon jour de jeûne)
+- [x] Zone réponse libre ✅ (textarea illimitée avec compteur)
+- [x] Historique réflexions J1-J14 ✅ (liste triée par date + affichage question)
+- [x] Ajout questions personnalisées ✅ (formulaire + suppression)
+- [x] localStorage persistance ✅ (questionsReponses + questionsPersonnalisees)
+- [x] Tests fonctionnels ✅ (Build réussi, page 8.95 kB + 4.98 kB CSS)
+- [x] Anomalie corrigée ✅ (Import doublon OngletVersets documenté dans 'Anomalie roll back')
 
 **Phase 5 : Onglet Intentions (1.5h) — 50%**
 - [ ] Créer `OngletIntentions.js`

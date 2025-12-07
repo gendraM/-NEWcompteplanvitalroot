@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import styles from '../styles/JournalSpirituel.module.css';
 import OngletMeditation from '../components/OngletMeditation';
 import OngletVersets from '../components/OngletVersets';
+import OngletQuestions from '../components/OngletQuestions';
 
 export default function JournalSpirituel() {
   // ==========================================
@@ -169,10 +170,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-questions"
             className={styles.panel}
           >
-            <h2>💭 Questions Profondes</h2>
-            <p className={styles.placeholder}>
-              Composant OngletQuestions à créer (Phase 4)
-            </p>
+            <OngletQuestions jourJeune={jourJeune} />
           </div>
         )}
 

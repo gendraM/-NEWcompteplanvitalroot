@@ -31,6 +31,43 @@ Leçon apprise :
 
 Action requise : Relecture systématique des règles d'architecture, test complet du workflow sans connexion
 ═══════════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 07/12/2025 — IMPORT EN DOUBLE OngletVersets
+═══════════════════════════════════════════════════════════════════════════════
+Fichier : /pages/journal-spirituel.js
+Erreur : Module parse failed: Identifier 'OngletVersets' has already been declared (ligne 7 et 9)
+Cause : Import dupliqué du composant OngletVersets lors de l'ajout progressif des composants (Phase 3 puis Phase 4)
+Impact : Erreur de build, impossibilité de compiler la page journal-spirituel, page inaccessible (500 error)
+Étape du plan non respectée : 
+	- Vérification des imports existants avant ajout de nouveaux imports
+	- Respect de l'ordre strict des déclarations (pas de doublons)
+	- Test de build après chaque modification
+
+Code erroné :
+```javascript
+import OngletMeditation from '../components/OngletMeditation';
+import OngletVersets from '../components/OngletVersets';      // ← Première déclaration
+import OngletQuestions from '../components/OngletQuestions';
+import OngletVersets from '../components/OngletVersets';      // ← DOUBLON (ligne 7)
+```
+
+Procédure corrective appliquée :
+	1. ✅ Suppression du deuxième import OngletVersets (ligne 7)
+	2. ✅ Conservation de l'ordre strict des imports :
+	   - React hooks (useState, useEffect)
+	   - Router (useRouter)
+	   - Styles (module.css)
+	   - Composants (ordre : Meditation → Versets → Questions → Intentions → Audios → Ecriture)
+	3. ✅ Validation syntaxe (get_errors après correction)
+	4. ✅ Test build (npm run build)
+
+Leçon apprise : 
+	- TOUJOURS vérifier les imports existants avec read_file AVANT d'ajouter de nouveaux imports
+	- JAMAIS faire de replace_string_in_file sur la section imports sans voir le contexte complet
+	- Respecter ordre strict : React → Router → Styles → Composants (ordre alphabétique ou logique métier)
+	- Test build systématique après modification des imports
+
+Action requise : Implémenter checklist pré-modification imports, build automatique après chaque ajout de composant
+═══════════════════════════════════════════════════════════════════════════════
 🛑 ANOMALIE 22/11/2025 — IMPORT MANQUANT StartPreparationModal
 ═══════════════════════════════════════════════════════════════════════════════
 Fichier : /pages/preparation-jeune.js
