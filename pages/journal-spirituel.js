@@ -5,6 +5,7 @@ import OngletMeditation from '../components/OngletMeditation';
 import OngletVersets from '../components/OngletVersets';
 import OngletQuestions from '../components/OngletQuestions';
 import OngletIntentions from '../components/OngletIntentions';
+import OngletAudios from '../components/OngletAudios';
 
 export default function JournalSpirituel() {
   // ==========================================
@@ -193,10 +194,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-audios"
             className={styles.panel}
           >
-            <h2>🎤 Audios</h2>
-            <p className={styles.placeholder}>
-              Composant OngletAudios à créer (Phase 6)
-            </p>
+            <OngletAudios jourJeune={jourJeune} />
           </div>
         )}
 
