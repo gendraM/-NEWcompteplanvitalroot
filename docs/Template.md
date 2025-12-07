@@ -3,6 +3,8 @@
 **⚠️  AUCUNE modification de code ne doit être produite tant que l’utilisateur n’a pas validé explicitement ce plan d’implémentation rempli et relu par Copilot.**
 
 ─────────────────────────────────────────────────────────────
+Attention ce fichier template ne doit jamais être modifier !!
+1 Créer un nouveau fichier afin de réaliser les actions ci dessous : 
 
 ## Titre de la tâche  
 _EXEMPLE : Enrichir la page préparation jeûne (`/pages/preparation-jeune.js`)_
