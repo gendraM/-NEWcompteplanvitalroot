@@ -762,6 +762,7 @@ ATTENTE VALIDATION UTILISATEUR avant toute modification.
 Prochaine étape : Validation utilisateur de l'option A, B ou C
 ════════════════════════════════════════════════════════════════════════
 
+<<<<<<< HEAD
 
 ════════════════════════════════════════════════════════════════════════
 🛑 ANOMALIE 06/12/2025 — CARTE PHASES REPRISE NON-STICKY (BUG UI)
@@ -1074,3 +1075,166 @@ RECOMMANDATION EXPERTE :
 État : ROOT CAUSE IDENTIFIÉE
 Prochaine étape : Appliquer Option A (right: '2rem')
 ════════════════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 06/12/2025 — COMPORTEMENT VERROUILLAGE CRITÈRES NON CONFORME
+═══════════════════════════════════════════════════════════════════════════════
+Date/heure : 6 décembre 2025, 16:45
+Fichier concerné : /components/PhaseCard.js et /pages/preparation-jeune.js
+Module : Préparation au jeûne - Verrouillage dynamique des critères
+
+**CONTEXTE DE LA MODIFICATION :**
+Implémentation du système de verrouillage des critères selon les scénarios utilisateurs :
+- Scénario 1 (J-30) : Démarrage idéal → Tous critères accessibles
+- Scénario 2 (J-25) : Léger retard → Critère J-30 encore validable (fenêtre jusqu'à J-18)
+- Scénario 3 (J-20) : Tardif → Critère J-30 verrouillé, 8 critères accessibles
+- Scénario 4 (J-9) : Très tardif → 6 critères verrouillés, 3 critères J-7 accessibles
+- Scénario 5 (J-2) : Extrême → Tous critères verrouillés
+
+**PROBLÈME 1 : Date de jeûne non renseignée malgré localStorage valide**
+Symptôme observé (Image 1) :
+- Debug localStorage montre : preparationData = {"startDate":"2025-12-25","duration":"10","goal":"TEST",...}
+- preparationActive = true
+- criteresPreparation contient 9 critères valides (valide:false)
+- Affichage page : "Date de début de jeûne : Non renseignée" (en rouge)
+
+Analyse :
+- localStorage contient bien la date : startDate = "2025-12-25"
+- Le state React `dateJeune` n'est pas initialisé depuis localStorage
+- La fonction de lecture dans preparation-jeune.js (lignes 132-134) lit 'dateJeune' au lieu de 'preparationData.startDate'
+
+Code actuel erroné :
+```javascript
+const dateStr = window.localStorage.getItem('dateJeune');
+setDateJeune(dateStr ? new Date(dateStr) : null);
+```
+
+Code attendu :
+```javascript
+const prepData = window.localStorage.getItem('preparationData');
+if (prepData) {
+  const parsed = JSON.parse(prepData);
+  setDateJeune(parsed.startDate ? new Date(parsed.startDate) : null);
+}
+```
+
+Impact :
+- jCourant reste à null (car dépend de dateJeune)
+- Tous les critères affichent "À VENIR" au lieu du statut réel
+- Système de verrouillage non fonctionnel
+
+**PROBLÈME 2 : Affichage "À VENIR" au lieu des statuts dynamiques**
+Symptôme observé (Image 2) :
+- Timeline affichée correctement (Phase 1, 2, 3)
+- Progression : 0/6
+- Tous les critères affichent "À VENIR" (badge gris)
+- Aucun badge [EN COURS], [ACTIF] ou [VERROUILLÉ] visible
+
+Analyse :
+- PhaseCard.js calcule bien le statut (lignes 44-60 modifiées)
+- MAIS : jCourant est null à cause du Problème 1
+- La condition `if (jCourant !== null && jCourant !== undefined)` n'est jamais vraie
+- Le statut reste par défaut "À VENIR"
+
+Code PhaseCard.js (lignes 44-48) :
+```javascript
+if (jCourant !== null && jCourant !== undefined) {
+  // Calcul statut dynamique
+} else {
+  // Par défaut : À VENIR
+}
+```
+
+Impact :
+- Utilisateur ne voit jamais les critères verrouillés
+- Pas de distinction entre "trop tôt" et "trop tard"
+- Boutons "Valider" ne sont jamais désactivés
+- Messages pédagogiques jamais affichés
+
+**CAUSE RACINE :**
+1. Incohérence dans les clés localStorage :
+   - StartPreparationModal sauvegarde dans 'preparationData' (objet complet)
+   - preparation-jeune.js lit depuis 'dateJeune' (clé directe)
+   
+2. Validation modale non synchronisée :
+   - handleStartPreparationModal() sauvegarde bien 'preparationData'
+   - MAIS useEffect initial (ligne 132) lit depuis 'dateJeune'
+   
+3. État React non mis à jour :
+   - setDateJeune() jamais appelé avec la bonne source
+   - jCourant reste null
+   - Tous les calculs de statut échouent
+
+**ÉTAPE DU PLAN NON RESPECTÉE :**
+- ✅ Etape 1-4 : Audit et checklist correctement réalisés
+- ❌ Etape 5-8 : Implémentation sans vérification du data flow complet
+- ❌ Etape 9 : Tests des 5 scénarios non réalisés en environnement réel (seulement tests unitaires Node.js)
+- ❌ Checklist qualité : "Test du rendu sur tous les cas d'usage" non validé
+
+**PROCÉDURE CORRECTIVE REQUISE :**
+
+Option A : Uniformiser sur 'preparationData' (RECOMMANDÉ)
+1. Modifier preparation-jeune.js useEffect ligne 132 :
+```javascript
+const prepData = localStorage.getItem('preparationData');
+if (prepData) {
+  const parsed = JSON.parse(prepData);
+  setDateJeune(parsed.startDate ? new Date(parsed.startDate) : null);
+  setDureeJeune(parsed.duration || 'X');
+}
+```
+
+2. Vérifier que tous les composants lisent depuis 'preparationData'
+
+3. Tester le parcours complet :
+   - Ouvrir modale
+   - Entrer date (ex: dans 25 jours)
+   - Valider
+   - Vérifier affichage date
+   - Vérifier statuts critères (J-30 doit être ACTIF)
+
+Option B : Dédoubler les sauvegardes (localStorage.setItem des deux clés)
+```javascript
+localStorage.setItem('preparationData', JSON.stringify(data));
+localStorage.setItem('dateJeune', data.startDate);
+localStorage.setItem('dureeJeune', data.duration);
+```
+
+**RÈGLE VIOLÉE :**
+- Template Copilot Etape 9 : "Test du rendu sur tous les cas d'usage et cas limites"
+- Amélioration continue : "Après chaque modification, tester le parcours complet utilisateur"
+- Checklist stricte : "Test tous cas d'usage : Scénario 1 à 5 ✅" → NON TESTÉ EN RÉEL
+
+**ACTION REQUISE :**
+1. Validation utilisateur de l'Option A ou B
+2. Implémentation de la correction
+3. Test OBLIGATOIRE du parcours complet :
+   - Démarrer préparation
+   - Entrer date J-30 (dans 30 jours)
+   - Vérifier affichage date ✅
+   - Vérifier critère J-30 = [EN COURS] ✅
+   - Changer date à J-20 (dans 20 jours)
+   - Vérifier critère J-30 = [ACTIF] ✅
+   - Changer date à J-10 (dans 10 jours)
+   - Vérifier critère J-30 = [VERROUILLÉ] 🔒 ✅
+
+4. Documentation du test réussi dans ce fichier
+
+**LEÇON APPRISE :**
+- ⚠️ Tests unitaires Node.js ≠ Tests en environnement réel React
+- ⚠️ Toujours vérifier la source de données (localStorage keys)
+- ⚠️ Tracer le data flow complet : Modal → localStorage → State → Rendu
+- ⚠️ Ne JAMAIS valider une implémentation sans test visuel dans le navigateur
+- ⚠️ Utiliser les outils de debug React (console.log state, localStorage viewer)
+
+**PROCHAINE ÉTAPE :**
+ATTENTE VALIDATION UTILISATEUR pour Option A ou B avant correction.
+
+État actuel :
+- Code : Logique de verrouillage implémentée ✅
+- localStorage : Données correctes ✅
+- State React : dateJeune = null ❌
+- Affichage : Date "Non renseignée" ❌
+- Statuts : Tous "À VENIR" ❌
+- Comportement attendu : NON ATTEINT ❌
+═══════════════════════════════════════════════════════════════════════════════
