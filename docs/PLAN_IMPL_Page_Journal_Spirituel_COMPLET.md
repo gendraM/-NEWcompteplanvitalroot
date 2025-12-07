@@ -270,12 +270,13 @@ function handler() {
 
 ### État initial
 - [x] ~~Non commencé~~ → **EN COURS**
-- Avancement : **40% → Phase 4 TERMINÉE ✅**
+- Avancement : **50% → Phase 5 TERMINÉE ✅**
 - Date début : **06/12/2025 - Mode PHASE PAR PHASE**
 - Phase 1 complétée : **06/12/2025 à 14h52** - ✅ Validée
 - Phase 2 complétée : **06/12/2025 à 15h05** - ✅ Validée
 - Phase 3 complétée : **06/12/2025 à 15h20** - ✅ Validée
-- Phase 4 complétée : **07/12/2025 à 15h45** - ⏳ **En attente validation utilisateur**
+- Phase 4 complétée : **07/12/2025 à 15h45** - ✅ Validée
+- Phase 5 complétée : **07/12/2025 à 16h15** - ⏳ **En attente validation utilisateur**
 
 ### Phases d'implémentation (9 phases)
 
@@ -311,13 +312,14 @@ function handler() {
 - [x] Tests fonctionnels ✅ (Build réussi, page 8.95 kB + 4.98 kB CSS)
 - [x] Anomalie corrigée ✅ (Import doublon OngletVersets documenté dans 'Anomalie roll back')
 
-**Phase 5 : Onglet Intentions (1.5h) — 50%**
-- [ ] Créer `OngletIntentions.js`
-- [ ] Formulaire nouvelle intention
-- [ ] Liste intentions actives + progression
-- [ ] Liste intentions accomplies
-- [ ] localStorage persistance
-- [ ] Tests fonctionnels
+**Phase 5 : Onglet Intentions (1.5h) — 50%** ✅ **TERMINÉE**
+- [x] Créer `OngletIntentions.js` ✅ (285 lignes, formulaire + gestion progression)
+- [x] Formulaire nouvelle intention ✅ (textarea + ajout/annuler)
+- [x] Liste intentions actives + progression ✅ (barre progression + boutons ±10% + marquer accomplie)
+- [x] Liste intentions accomplies ✅ (toggle + badge date complétion + réactiver)
+- [x] localStorage persistance ✅ (intentions avec toutes les métadonnées)
+- [x] Tests fonctionnels ✅ (Build réussi, page 10.8 kB + CSS)
+- [x] Statistiques ✅ (Total/En cours/Accomplies/Taux de réussite)
 
 **Phase 6 : Onglet Audios (4h) — 70%** ⭐ COMPLEXE
 - [ ] Créer `audioStorage.js` (IndexedDB)

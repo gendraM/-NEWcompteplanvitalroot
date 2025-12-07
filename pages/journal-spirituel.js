@@ -4,6 +4,7 @@ import styles from '../styles/JournalSpirituel.module.css';
 import OngletMeditation from '../components/OngletMeditation';
 import OngletVersets from '../components/OngletVersets';
 import OngletQuestions from '../components/OngletQuestions';
+import OngletIntentions from '../components/OngletIntentions';
 
 export default function JournalSpirituel() {
   // ==========================================
@@ -181,10 +182,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-intentions"
             className={styles.panel}
           >
-            <h2>🎯 Intentions Spirituelles</h2>
-            <p className={styles.placeholder}>
-              Composant OngletIntentions à créer (Phase 5)
-            </p>
+            <OngletIntentions jourJeune={jourJeune} />
           </div>
         )}
 
