@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import styles from '../styles/JournalSpirituel.module.css';
+import OngletMeditation from '../components/OngletMeditation';
+import OngletVersets from '../components/OngletVersets';
+import OngletQuestions from '../components/OngletQuestions';
+import OngletIntentions from '../components/OngletIntentions';
+import OngletAudios from '../components/OngletAudios';
+import OngletEcriture from '../components/OngletEcriture';
 
 export default function JournalSpirituel() {
   // ==========================================
@@ -145,10 +151,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-meditation"
             className={styles.panel}
           >
-            <h2>📿 Méditation</h2>
-            <p className={styles.placeholder}>
-              Composant OngletMeditation à créer (Phase 2)
-            </p>
+            <OngletMeditation jourJeune={jourJeune} />
           </div>
         )}
 
@@ -159,10 +162,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-versets"
             className={styles.panel}
           >
-            <h2>📖 Versets & Citations</h2>
-            <p className={styles.placeholder}>
-              Composant OngletVersets à créer (Phase 3)
-            </p>
+            <OngletVersets jourJeune={jourJeune} />
           </div>
         )}
 
@@ -173,10 +173,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-questions"
             className={styles.panel}
           >
-            <h2>💭 Questions Profondes</h2>
-            <p className={styles.placeholder}>
-              Composant OngletQuestions à créer (Phase 4)
-            </p>
+            <OngletQuestions jourJeune={jourJeune} />
           </div>
         )}
 
@@ -187,10 +184,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-intentions"
             className={styles.panel}
           >
-            <h2>🎯 Intentions Spirituelles</h2>
-            <p className={styles.placeholder}>
-              Composant OngletIntentions à créer (Phase 5)
-            </p>
+            <OngletIntentions jourJeune={jourJeune} />
           </div>
         )}
 
@@ -201,10 +195,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-audios"
             className={styles.panel}
           >
-            <h2>🎤 Audios</h2>
-            <p className={styles.placeholder}>
-              Composant OngletAudios à créer (Phase 6)
-            </p>
+            <OngletAudios jourJeune={jourJeune} />
           </div>
         )}
 
@@ -215,10 +206,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-ecriture"
             className={styles.panel}
           >
-            <h2>✍️ Écriture Libre</h2>
-            <p className={styles.placeholder}>
-              Composant OngletEcriture à créer (Phase 7)
-            </p>
+            <OngletEcriture jourJeune={jourJeune} />
           </div>
         )}
       </main>

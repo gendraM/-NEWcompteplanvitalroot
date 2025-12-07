@@ -270,9 +270,13 @@ function handler() {
 
 ### État initial
 - [x] ~~Non commencé~~ → **EN COURS**
-- Avancement : **10% → Phase 1 TERMINÉE ✅**
+- Avancement : **50% → Phase 5 TERMINÉE ✅**
 - Date début : **06/12/2025 - Mode PHASE PAR PHASE**
-- Phase 1 complétée : **06/12/2025 à 14h52** - ⏳ **En attente validation utilisateur**
+- Phase 1 complétée : **06/12/2025 à 14h52** - ✅ Validée
+- Phase 2 complétée : **06/12/2025 à 15h05** - ✅ Validée
+- Phase 3 complétée : **06/12/2025 à 15h20** - ✅ Validée
+- Phase 4 complétée : **07/12/2025 à 15h45** - ✅ Validée
+- Phase 5 complétée : **07/12/2025 à 16h15** - ⏳ **En attente validation utilisateur**
 
 ### Phases d'implémentation (9 phases)
 
@@ -282,13 +286,13 @@ function handler() {
 - [x] Ajouter bouton dans `jeune.js` (ligne ~1240) ✅ (ZÉRO suppression, ajout #5 seulement)
 - [x] Tester routing aller-retour ✅ (Build réussi 0 erreurs, page 1.56 kB + 1.15 kB CSS)
 
-**Phase 2 : Onglet Méditation (2h) — 20%**
-- [ ] Créer `OngletMeditation.js`
-- [ ] Créer `TimerMeditation.js` (cercle progression)
-- [ ] Implémenter sélection durée + types
-- [ ] Implémenter zone notes + ressenti
-- [ ] Historique méditations localStorage
-- [ ] Tests fonctionnels
+**Phase 2 : Onglet Méditation (2h) — 20%** ✅ **TERMINÉE**
+- [x] Créer `OngletMeditation.js` ✅ (286 lignes, config + timer + formulaire + historique)
+- [x] Créer `TimerMeditation.js` (cercle progression) ✅ (133 lignes, SVG timer circulaire)
+- [x] Implémenter sélection durée + types ✅ (5/10/15/20/30 min + 4 types)
+- [x] Implémenter zone notes + ressenti ✅ (textarea illimitée + 5 ressentis)
+- [x] Historique méditations localStorage ✅ (liste + suppression)
+- [x] Tests fonctionnels ✅ (Build réussi 0 erreurs, page 4.41 kB + 2.86 kB CSS)
 
 **Phase 3 : Onglet Versets (1.5h) — 30%**
 - [ ] Créer `OngletVersets.js`
@@ -298,22 +302,24 @@ function handler() {
 - [ ] localStorage persistance
 - [ ] Tests fonctionnels
 
-**Phase 4 : Onglet Questions (1.5h) — 40%**
-- [ ] Créer `OngletQuestions.js`
-- [ ] Questions guidées par jour (8 questions)
-- [ ] Zone réponse libre
-- [ ] Historique réflexions J1-J14
-- [ ] Ajout questions personnalisées
-- [ ] localStorage persistance
-- [ ] Tests fonctionnels
+**Phase 4 : Onglet Questions (1.5h) — 40%** ✅ **TERMINÉE**
+- [x] Créer `OngletQuestions.js` ✅ (324 lignes, 8 questions guidées J1-J14)
+- [x] Questions guidées par jour (8 questions) ✅ (rotation selon jour de jeûne)
+- [x] Zone réponse libre ✅ (textarea illimitée avec compteur)
+- [x] Historique réflexions J1-J14 ✅ (liste triée par date + affichage question)
+- [x] Ajout questions personnalisées ✅ (formulaire + suppression)
+- [x] localStorage persistance ✅ (questionsReponses + questionsPersonnalisees)
+- [x] Tests fonctionnels ✅ (Build réussi, page 8.95 kB + 4.98 kB CSS)
+- [x] Anomalie corrigée ✅ (Import doublon OngletVersets documenté dans 'Anomalie roll back')
 
-**Phase 5 : Onglet Intentions (1.5h) — 50%**
-- [ ] Créer `OngletIntentions.js`
-- [ ] Formulaire nouvelle intention
-- [ ] Liste intentions actives + progression
-- [ ] Liste intentions accomplies
-- [ ] localStorage persistance
-- [ ] Tests fonctionnels
+**Phase 5 : Onglet Intentions (1.5h) — 50%** ✅ **TERMINÉE**
+- [x] Créer `OngletIntentions.js` ✅ (285 lignes, formulaire + gestion progression)
+- [x] Formulaire nouvelle intention ✅ (textarea + ajout/annuler)
+- [x] Liste intentions actives + progression ✅ (barre progression + boutons ±10% + marquer accomplie)
+- [x] Liste intentions accomplies ✅ (toggle + badge date complétion + réactiver)
+- [x] localStorage persistance ✅ (intentions avec toutes les métadonnées)
+- [x] Tests fonctionnels ✅ (Build réussi, page 10.8 kB + CSS)
+- [x] Statistiques ✅ (Total/En cours/Accomplies/Taux de réussite)
 
 **Phase 6 : Onglet Audios (4h) — 70%** ⭐ COMPLEXE
 - [ ] Créer `audioStorage.js` (IndexedDB)

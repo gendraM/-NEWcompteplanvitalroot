@@ -1,0 +1,417 @@
+.ongletContainer {
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.subTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+/* Bouton ajouter */
+.btnAjouter {
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 18px;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  cursor: pointer;
+  margin-bottom: 24px;
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btnAjouter:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* Formulaire */
+.formulaire {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.requis {
+  color: #e74c3c;
+  font-weight: 700;
+}
+
+.textarea,
+.input {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.textarea:focus,
+.input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.formActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btnValider,
+.btnAnnuler {
+  flex: 1;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btnValider {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+}
+
+.btnValider:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(17, 153, 142, 0.4);
+}
+
+.btnAnnuler {
+  background: white;
+  color: #666;
+  border: 2px solid #e0e0e0;
+}
+
+.btnAnnuler:hover {
+  border-color: #999;
+  color: #333;
+}
+
+/* Filtres */
+.filtres {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.inputRecherche {
+  flex: 1;
+  min-width: 250px;
+  padding: 12px 16px;
+  font-size: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.inputRecherche:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.btnFiltreFavoris {
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.btnFiltreFavoris:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.btnFiltreFavoris.actif {
+  border-color: #f39c12;
+  background: #f39c12;
+  color: white;
+}
+
+/* Liste versets */
+.listeVersets {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.emptyMessage {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 40px 20px;
+  background: white;
+  border-radius: 12px;
+  border: 2px dashed #e0e0e0;
+}
+
+.versetCard {
+  background: white;
+  border: 2px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.versetCard:hover {
+  border-color: #667eea;
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.btnFavori {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: transform 0.3s ease;
+}
+
+.btnFavori:hover {
+  transform: scale(1.2);
+}
+
+.cardActions {
+  display: flex;
+  gap: 12px;
+}
+
+.btnAction {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.btnAction:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.versetTexte {
+  font-size: 17px;
+  line-height: 1.7;
+  color: #333;
+  font-style: italic;
+  margin: 0 0 16px 0;
+  padding: 16px;
+  background: #f8f9ff;
+  border-left: 4px solid #667eea;
+  border-radius: 8px;
+}
+
+.versetReference {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reference {
+  font-size: 15px;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.lienExterne {
+  font-size: 14px;
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.lienExterne:hover {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tag {
+  background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+  color: #667eea;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #667eea30;
+}
+
+.versetMeta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #999;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  flex-wrap: wrap;
+}
+
+/* Statistiques */
+.statistiques {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  justify-content: center;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 24px;
+}
+
+.statValeur {
+  font-size: 32px;
+  font-weight: 700;
+  color: #667eea;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.statLabel {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Responsive mobile */
+@media (max-width: 768px) {
+  .ongletContainer {
+    padding: 16px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .filtres {
+    flex-direction: column;
+  }
+
+  .inputRecherche {
+    min-width: 100%;
+  }
+
+  .btnFiltreFavoris {
+    width: 100%;
+  }
+
+  .formActions {
+    flex-direction: column;
+  }
+
+  .btnValider,
+  .btnAnnuler {
+    width: 100%;
+  }
+
+  .versetCard {
+    padding: 16px;
+  }
+
+  .versetTexte {
+    font-size: 15px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .formulaire {
+    padding: 16px;
+  }
+
+  .btnFavori {
+    font-size: 24px;
+  }
+
+  .btnAction {
+    font-size: 18px;
+  }
+
+  .statistiques {
+    gap: 8px;
+    padding: 16px;
+  }
+
+  .stat {
+    padding: 8px 16px;
+  }
+
+  .statValeur {
+    font-size: 24px;
+  }
+}

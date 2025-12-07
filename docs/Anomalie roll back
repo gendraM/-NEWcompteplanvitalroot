@@ -1,4 +1,5 @@
 ═══════════════════════════════════════════════════════════════════════════════
+<<<<<<< HEAD
 🛑 ROLLBACK 06/12/2025 — RÉGRESSION AUTOCOMPLETE SAISIEDEFIALIMENTAIRE
 ═══════════════════════════════════════════════════════════════════════════════
 Fichier : /components/SaisieDefiAlimentaire.js
@@ -140,6 +141,73 @@ Temps réel : 50 min (Phase 1: 30 min, Phase 2: 20 min)
 Statut : ⚠️ EN ATTENTE VALIDATION TESTS UTILISATEUR
 
 Action requise : Validation tests 8/8 avant commit
+
+═══════════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 07/12/2025 — VIOLATION ARCHITECTURE : AUTH SUPABASE JOURNAL SPIRITUEL
+═══════════════════════════════════════════════════════════════════════════════
+Fichier : /lib/journalSpirituelAPI.js + composants Journal Spirituel
+Erreur : AuthSessionMissingError "Auth session missing!" lors de l'utilisation des composants
+Cause : Ajout de supabase.auth.getUser() dans tous les composants du Journal Spirituel sans respecter l'architecture existante
+Impact : Plantage total de l'onglet Journal Spirituel, impossibilité d'accéder aux données
+Règle violée : L'application fonctionne SANS authentification (localStorage uniquement)
+Étape du plan non respectée :
+	- Lecture obligatoire du fichier "Anomalie roll back" AVANT migration Supabase
+	- Vérification architecture existante (100% localStorage, 0% auth)
+	- Anomalie du 04/12/2025 identique NON relue
+
+Code erroné :
+```javascript
+// ❌ ERREUR : Utilisation auth.getUser()
+export const getCurrentUser = async () => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  return user;
+};
+export const getMeditations = async () => {
+  const user = await getCurrentUser();  // ← Bloque tout
+  const { data, error } = await supabase
+    .from('journal_spirituel_meditations')
+    .select('*')
+    .eq('user_id', user.id)  // ← user.id inexistant
+```
+
+Procédure corrective appliquée :
+	1. ✅ Suppression TOTALE de getCurrentUser() et supabase.auth.getUser()
+	2. ✅ Remplacement par getLocalUserId() utilisant localStorage :
+	   ```javascript
+	   const getLocalUserId = () => {
+	     let userId = localStorage.getItem('journal_user_id');
+	     if (!userId) {
+	       userId = `local_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+	       localStorage.setItem('journal_user_id', userId);
+	     }
+	     return userId;
+	   };
+	   ```
+	3. ✅ Modification SQL : user_id TEXT au lieu de UUID REFERENCES auth.users(id)
+	4. ✅ Désactivation RLS sur toutes les tables (ALTER TABLE ... DISABLE ROW LEVEL SECURITY)
+	5. ✅ Création nouveau fichier SQL : /docs/SQL_JOURNAL_SPIRITUEL_NO_AUTH.sql
+	6. ✅ Validation syntaxe (get_errors = 0 erreurs)
+	7. ✅ Documentation de l'anomalie dans ce fichier
+
+Architecture corrigée :
+	- user_id = String généré localement (localStorage.getItem('journal_user_id'))
+	- Supabase = Base de données SANS authentification (RLS désactivé)
+	- Accès public aux tables (filtrage par user_id local uniquement)
+	- Multi-appareils possible via export/import du user_id
+
+Leçon apprise :
+	- RELIRE "Anomalie roll back" AVANT TOUTE migration Supabase
+	- VÉRIFIER architecture (grep "auth", "localStorage", "user") AVANT de coder
+	- TESTER en local AVANT commit
+	- L'application est 100% localStorage, même avec Supabase comme BDD
+	- Supabase ≠ Authentification obligatoire
+
+Action requise : 
+	- Exécuter SQL_JOURNAL_SPIRITUEL_NO_AUTH.sql dans Supabase
+	- Tester workflow complet sans connexion
+	- Valider que user_id local persiste entre sessions
+>>>>>>> laurelle/main
 ═══════════════════════════════════════════════════════════════════════════════
 🛑 ANOMALIE 04/12/2025 — VIOLATION RÈGLE ARCHITECTURE : AUTHENTIFICATION SUPABASE
 ═══════════════════════════════════════════════════════════════════════════════
@@ -172,6 +240,43 @@ Leçon apprise :
 	- L'application est 100% localStorage, 0% authentification
 
 Action requise : Relecture systématique des règles d'architecture, test complet du workflow sans connexion
+═══════════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 07/12/2025 — IMPORT EN DOUBLE OngletVersets
+═══════════════════════════════════════════════════════════════════════════════
+Fichier : /pages/journal-spirituel.js
+Erreur : Module parse failed: Identifier 'OngletVersets' has already been declared (ligne 7 et 9)
+Cause : Import dupliqué du composant OngletVersets lors de l'ajout progressif des composants (Phase 3 puis Phase 4)
+Impact : Erreur de build, impossibilité de compiler la page journal-spirituel, page inaccessible (500 error)
+Étape du plan non respectée : 
+	- Vérification des imports existants avant ajout de nouveaux imports
+	- Respect de l'ordre strict des déclarations (pas de doublons)
+	- Test de build après chaque modification
+
+Code erroné :
+```javascript
+import OngletMeditation from '../components/OngletMeditation';
+import OngletVersets from '../components/OngletVersets';      // ← Première déclaration
+import OngletQuestions from '../components/OngletQuestions';
+import OngletVersets from '../components/OngletVersets';      // ← DOUBLON (ligne 7)
+```
+
+Procédure corrective appliquée :
+	1. ✅ Suppression du deuxième import OngletVersets (ligne 7)
+	2. ✅ Conservation de l'ordre strict des imports :
+	   - React hooks (useState, useEffect)
+	   - Router (useRouter)
+	   - Styles (module.css)
+	   - Composants (ordre : Meditation → Versets → Questions → Intentions → Audios → Ecriture)
+	3. ✅ Validation syntaxe (get_errors après correction)
+	4. ✅ Test build (npm run build)
+
+Leçon apprise : 
+	- TOUJOURS vérifier les imports existants avec read_file AVANT d'ajouter de nouveaux imports
+	- JAMAIS faire de replace_string_in_file sur la section imports sans voir le contexte complet
+	- Respecter ordre strict : React → Router → Styles → Composants (ordre alphabétique ou logique métier)
+	- Test build systématique après modification des imports
+
+Action requise : Implémenter checklist pré-modification imports, build automatique après chaque ajout de composant
 ═══════════════════════════════════════════════════════════════════════════════
 🛑 ANOMALIE 22/11/2025 — IMPORT MANQUANT StartPreparationModal
 ═══════════════════════════════════════════════════════════════════════════════

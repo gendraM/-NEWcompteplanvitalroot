@@ -1,0 +1,141 @@
+.timerContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 20px;
+}
+
+.circleWrapper {
+  position: relative;
+  width: 220px;
+  height: 220px;
+}
+
+.circleSvg {
+  display: block;
+}
+
+.progressCircle {
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.timeDisplay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.timeText {
+  font-size: 48px;
+  font-weight: 700;
+  color: #667eea;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.progressText {
+  font-size: 18px;
+  color: #666;
+  font-weight: 500;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btnControl {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btnControl:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.btnControl:active {
+  transform: translateY(0);
+}
+
+.btnControl:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btnSecondary {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.completionMessage {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+  animation: fadeInScale 0.5s ease;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive mobile */
+@media (max-width: 480px) {
+  .circleWrapper {
+    width: 180px;
+    height: 180px;
+  }
+
+  .circleSvg {
+    width: 180px;
+    height: 180px;
+  }
+
+  .timeText {
+    font-size: 36px;
+  }
+
+  .progressText {
+    font-size: 14px;
+  }
+
+  .btnControl {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .completionMessage {
+    font-size: 16px;
+    padding: 12px 16px;
+  }
+}

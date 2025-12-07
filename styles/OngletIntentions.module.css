@@ -1,0 +1,466 @@
+.ongletContainer {
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Info Section */
+.infoSection {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+}
+
+.infoText {
+  color: white;
+  font-size: 15px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Bouton ajout principal */
+.btnAjoutPrincipal {
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 18px;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  cursor: pointer;
+  margin-bottom: 24px;
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btnAjoutPrincipal:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* Formulaire ajout */
+.formulaireAjout {
+  background: white;
+  border: 3px solid #667eea;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.formTitre {
+  font-size: 20px;
+  font-weight: 600;
+  color: #667eea;
+  margin: 0 0 16px 0;
+}
+
+.textarea {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.6;
+  transition: border-color 0.3s ease;
+  margin-bottom: 16px;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.formActions {
+  display: flex;
+  gap: 12px;
+}
+
+.btnSauvegarder {
+  flex: 1;
+  padding: 14px 24px;
+  font-size: 17px;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btnSauvegarder:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(17, 153, 142, 0.4);
+}
+
+.btnAnnuler {
+  padding: 14px 24px;
+  font-size: 17px;
+  font-weight: 600;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btnAnnuler:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+/* Sections */
+.intentionsSection {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 20px 0;
+}
+
+/* Intentions List */
+.intentionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.intentionCard,
+.intentionCardComplete {
+  background: #fafafa;
+  border: 2px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.intentionCard:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+}
+
+.intentionCardComplete {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cardHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cardHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardJour {
+  background: #667eea;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cardDate {
+  font-size: 12px;
+  color: #666;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.intentionTexte {
+  font-size: 16px;
+  color: #333;
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+  font-weight: 500;
+}
+
+/* Progression */
+.progressionSection {
+  background: white;
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+}
+
+.progressionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.progressionLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+}
+
+.progressionPourcentage {
+  font-size: 18px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.progressBar {
+  width: 100%;
+  height: 12px;
+  background: #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 6px;
+  transition: width 0.5s ease;
+}
+
+.progressionControls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btnProgression {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 2px solid #667eea;
+  border-radius: 6px;
+  background: white;
+  color: #667eea;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btnProgression:hover:not(:disabled) {
+  background: #667eea;
+  color: white;
+}
+
+.btnProgression:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btnCompletee {
+  flex: 1;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btnCompletee:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+}
+
+/* Boutons mini */
+.btnDeleteMini,
+.btnReactiver {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+.btnDeleteMini:hover {
+  opacity: 1;
+  background: #ffe6e6;
+}
+
+.btnReactiver:hover {
+  opacity: 1;
+  background: #fff4e6;
+}
+
+.badgeComplete {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.completionBadge {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 12px;
+}
+
+/* Toggle completes */
+.btnToggleCompletes {
+  width: 100%;
+  padding: 16px 20px;
+  font-size: 17px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  background: #f5f5f5;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  margin-bottom: 16px;
+}
+
+.btnToggleCompletes:hover {
+  background: #ebebeb;
+}
+
+.toggleIcon {
+  font-size: 14px;
+  color: #667eea;
+}
+
+.emptyMessage {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 20px;
+}
+
+/* Statistiques */
+.statsSection {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+}
+
+.statCard {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  color: white;
+}
+
+.statValeur {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.statLabel {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ongletContainer {
+    padding: 16px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .formActions {
+    flex-direction: column;
+  }
+
+  .btnAnnuler {
+    width: 100%;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .intentionsSection,
+  .formulaireAjout,
+  .statsSection {
+    padding: 16px;
+  }
+
+  .intentionCard,
+  .intentionCardComplete {
+    padding: 16px;
+  }
+
+  .progressionControls {
+    flex-direction: column;
+  }
+
+  .btnProgression {
+    width: 100%;
+  }
+
+  .cardHeaderLeft {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .statValeur {
+    font-size: 28px;
+  }
+}
