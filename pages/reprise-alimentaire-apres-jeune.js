@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import Link from 'next/link';
 
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
@@ -179,7 +180,6 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
   );
 }
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 
 export default function RepriseAlimentaireApresJeune() {
   const router = useRouter();
@@ -189,6 +189,9 @@ export default function RepriseAlimentaireApresJeune() {
   const [jours, setJours] = useState([]);
   const [dateAuj, setDateAuj] = useState(null);
   const [listeCourses, setListeCourses] = useState([]);
+  
+  // 🆕 State pour la saisie du poids final
+  const [poidsFinal, setPoidsFinal] = useState('');
 
   // Permettre un mode test/forçage via ?test=1 dans l'URL
   const [forceSuivi, setForceSuivi] = useState(false);
@@ -354,6 +357,37 @@ export default function RepriseAlimentaireApresJeune() {
   const [validationEnCours, setValidationEnCours] = useState(false);
   const [messageValidation, setMessageValidation] = useState(null);
 
+  // 🆕 Fonction de sauvegarde du poids final
+  const handleSauvegarderPoidsFinal = () => {
+    if (!poidsFinal || parseFloat(poidsFinal) < 30 || parseFloat(poidsFinal) > 200) {
+      alert('⚠️ Entre un poids valide (entre 30 et 200 kg)');
+      return;
+    }
+
+    const poidsValue = parseFloat(poidsFinal);
+    
+    // Mettre à jour le programme avec le poids final
+    const progUpdated = { ...programme };
+    if (!progUpdated.bilan_reprise) {
+      progUpdated.bilan_reprise = {};
+    }
+    
+    progUpdated.bilan_reprise.poids_fin_reprise = poidsValue;
+    progUpdated.bilan_reprise.evolution_poids = (
+      poidsValue - (progUpdated.bilan_reprise.poids_debut_reprise || progUpdated.poids_fin_jeune || progUpdated.poids_depart)
+    ).toFixed(1);
+    
+    // Sauvegarder dans localStorage
+    localStorage.setItem('programmeRepriseValide', JSON.stringify(progUpdated));
+    localStorage.setItem('bilanRepriseAlimentaire', JSON.stringify(progUpdated.bilan_reprise));
+    
+    // Mettre à jour le state pour rafraîchir l'affichage
+    setProgramme(progUpdated);
+    setPoidsFinal('');
+    
+    alert('✅ Poids final enregistré avec succès !');
+  };
+
   // 🆕 Fonction de validation d'un jour
   const validerJour = async (jourData) => {
     if (!programme || !jourData) return;
@@ -414,12 +448,67 @@ export default function RepriseAlimentaireApresJeune() {
 
       // 4️⃣ Vérifier si c'est le dernier jour de la reprise
       if (jourData.jour_numero === programme.duree_reprise_jours) {
-        const programmeMAJ = { ...programme, statut: 'termine', reprise_terminee_le: new Date().toISOString() };
+        // 🆕 CALCULER LE BILAN COMPLET DE LA REPRISE
+        const cleRepas = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
+        const tousRepasReprise = JSON.parse(localStorage.getItem(cleRepas) || '[]');
+        const joursValidesReprise = JSON.parse(localStorage.getItem('joursReprisesValides') || '[]');
+        
+        // Statistiques de conformité
+        const totalRepas = tousRepasReprise.length;
+        const repasConformes = tousRepasReprise.filter(r => r.conforme === true).length;
+        const tauxConformite = totalRepas > 0 ? Math.round((repasConformes / totalRepas) * 100) : 0;
+        const nbJoursValides = joursValidesReprise.length;
+        const tauxValidation = Math.round((nbJoursValides / programme.duree_reprise_jours) * 100);
+        
+        // Poids de fin (à demander ou récupérer)
+        const poidsActuel = localStorage.getItem('poidsActuel') 
+          ? parseFloat(localStorage.getItem('poidsActuel')) 
+          : programme.poids_fin_jeune || null;
+        
+        // 🎯 BILAN COMPLET POUR CRISTALLISATION
+        const bilanReprise = {
+          // Données programme
+          duree_jeune_jours: programme.duree_jeune_jours,
+          duree_reprise_jours: programme.duree_reprise_jours,
+          date_debut_reprise: programme.date_debut_reprise,
+          date_fin_reprise: new Date().toISOString().split('T')[0],
+          
+          // Poids
+          poids_debut_reprise: programme.poids_fin_jeune,
+          poids_fin_reprise: poidsActuel,
+          evolution_poids: poidsActuel && programme.poids_fin_jeune 
+            ? (poidsActuel - programme.poids_fin_jeune).toFixed(1) 
+            : null,
+          
+          // Statistiques conformité
+          total_repas_saisis: totalRepas,
+          repas_conformes: repasConformes,
+          taux_conformite: tauxConformite,
+          jours_valides: nbJoursValides,
+          taux_validation: tauxValidation,
+          
+          // Validation
+          statut: 'termine',
+          termine_le: new Date().toISOString(),
+          reprise_reussie: tauxConformite >= 70 && tauxValidation >= 80 // Critères succès
+        };
+        
+        // Sauvegarder le bilan
+        localStorage.setItem('bilanRepriseAlimentaire', JSON.stringify(bilanReprise));
+        console.log('[BILAN REPRISE] Bilan calculé et sauvegardé:', bilanReprise);
+        
+        // Mettre à jour le programme
+        const programmeMAJ = { 
+          ...programme, 
+          statut: 'termine', 
+          reprise_terminee_le: new Date().toISOString(),
+          bilan_reprise: bilanReprise
+        };
         localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeMAJ));
 
         setMessageValidation({ 
           type: 'success', 
-          text: '🎉 Félicitations ! Tu as terminé ta reprise alimentaire. Direction la phase de consolidation !' 
+          text: `🎉 Félicitations ! Tu as terminé ta reprise alimentaire avec ${tauxConformite}% de conformité. Direction la phase de cristallisation !` 
         });
       } else {
         setMessageValidation({ 
@@ -1282,10 +1371,73 @@ export default function RepriseAlimentaireApresJeune() {
                 Félicitations !
               </div>
               <div style={{fontSize: '1.1rem', color: '#5d4037', marginBottom: 16, lineHeight: 1.5}}>
-                Tu as terminé ta reprise alimentaire de <b>{programme.duree_reprise_jours} jours</b> avec succès ! 🌱
+                Tu as terminé ta reprise alimentaire de <b>{programme.duree_reprise_jours} jours</b> {programme.duree_reprise_jours <= 4 ? '⚡' : programme.duree_reprise_jours <= 8 ? '🌱' : '🌳'} avec succès !
                 <br/>
-                Il est maintenant temps de consolider ces acquis.
+                {programme.duree_jeune_jours > 0 && (
+                  <>Après ton jeûne de <b>{programme.duree_jeune_jours} jours</b>, tu as su réintroduire les aliments progressivement. </>
+                )}
+                Il est maintenant temps de consolider ces acquis et d'ancrer durablement tes nouvelles habitudes.
               </div>
+              
+              {/* 🆕 Formulaire de saisie du poids final si manquant */}
+              {!programme.bilan_reprise?.poids_fin_reprise && (
+                <div style={{
+                  background: 'rgba(255,255,255,0.9)',
+                  borderRadius: 8,
+                  padding: '1rem 1.2rem',
+                  marginBottom: 16,
+                  border: '2px dashed #f57c00'
+                }}>
+                  <label style={{
+                    fontWeight: 600,
+                    color: '#5d4037',
+                    display: 'block',
+                    marginBottom: 8,
+                    fontSize: '1rem'
+                  }}>
+                    ⚖️ Entre ton poids actuel pour finaliser le bilan :
+                  </label>
+                  <div style={{display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center'}}>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="30"
+                      max="200"
+                      placeholder="Ex: 76.2"
+                      value={poidsFinal}
+                      onChange={(e) => setPoidsFinal(e.target.value)}
+                      style={{
+                        padding: '0.7rem 1rem',
+                        borderRadius: 8,
+                        border: '2px solid #f57c00',
+                        fontSize: '1rem',
+                        width: '150px',
+                        textAlign: 'center',
+                        fontWeight: 600
+                      }}
+                    />
+                    <button
+                      onClick={handleSauvegarderPoidsFinal}
+                      style={{
+                        background: 'linear-gradient(135deg, #43a047 0%, #2e7d32 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '0.7rem 1.5rem',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(67,160,71,0.3)',
+                        transition: 'transform 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                      onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                    >
+                      ✔️ Valider
+                    </button>
+                  </div>
+                </div>
+              )}
               
               <div style={{
                 background: 'rgba(255,255,255,0.7)',
@@ -1296,22 +1448,153 @@ export default function RepriseAlimentaireApresJeune() {
                 fontSize: '1rem',
                 textAlign: 'left'
               }}>
-                <div style={{fontWeight: 600, marginBottom: 8}}>📊 Ton bilan :</div>
-                <div>✅ Durée du jeûne : {programme.duree_jeune_jours} jours</div>
-                <div>✅ Durée de la reprise : {programme.duree_reprise_jours} jours</div>
-                {programme.poids_fin_jeune && (
-                  <div>✅ Poids en fin de jeûne : {programme.poids_fin_jeune} kg</div>
+                <div style={{fontWeight: 600, marginBottom: 12, fontSize: '1.1rem'}}>📊 Ton bilan complet :</div>
+                
+                {/* Durées */}
+                <div style={{marginBottom: 8}}>✅ Durée du jeûne : <strong>{programme.duree_jeune_jours} jours</strong></div>
+                <div style={{marginBottom: 8}}>✅ Durée de la reprise : <strong>{programme.duree_reprise_jours} jours</strong></div>
+                
+                {/* Poids */}
+                {programme.bilan_reprise?.poids_debut_reprise && (
+                  <div style={{marginBottom: 8}}>
+                    ⚖️ Poids début reprise : <strong>{programme.bilan_reprise.poids_debut_reprise} kg</strong>
+                  </div>
                 )}
-                <div>✅ Date de fin : {new Date(programme.date_fin_reprise).toLocaleDateString('fr-FR')}</div>
+                {programme.bilan_reprise?.poids_fin_reprise && (
+                  <div style={{marginBottom: 8}}>
+                    ⚖️ Poids fin reprise : <strong>{programme.bilan_reprise.poids_fin_reprise} kg</strong>
+                    {programme.bilan_reprise.evolution_poids && (
+                      <span style={{
+                        marginLeft: 8,
+                        color: parseFloat(programme.bilan_reprise.evolution_poids) > 0 ? '#f57c00' : '#43a047',
+                        fontWeight: 600
+                      }}>
+                        ({parseFloat(programme.bilan_reprise.evolution_poids) > 0 ? '+' : ''}{programme.bilan_reprise.evolution_poids} kg)
+                      </span>
+                    )}
+                  </div>
+                )}
+                
+                {/* Statistiques conformité */}
+                {programme.bilan_reprise && (
+                  <>
+                    <div style={{marginBottom: 8}}>
+                      📈 Conformité repas : <strong style={{color: programme.bilan_reprise.taux_conformite >= 70 ? '#43a047' : '#f57c00'}}>
+                        {programme.bilan_reprise.taux_conformite}%
+                      </strong> ({programme.bilan_reprise.repas_conformes}/{programme.bilan_reprise.total_repas_saisis} repas)
+                    </div>
+                    <div style={{marginBottom: 8}}>
+                      ✔️ Jours validés : <strong style={{color: programme.bilan_reprise.taux_validation >= 80 ? '#43a047' : '#f57c00'}}>
+                        {programme.bilan_reprise.taux_validation}%
+                      </strong> ({programme.bilan_reprise.jours_valides}/{programme.duree_reprise_jours} jours)
+                    </div>
+                    {/* 🆕 ANALYSE DÉTAILLÉE AVEC FEEDBACK PERSONNALISÉ */}
+                    <div style={{
+                      marginTop: 16,
+                      padding: '12px 16px',
+                      background: programme.bilan_reprise.reprise_reussie ? '#e8f5e9' : '#fff3e0',
+                      borderRadius: 8,
+                      border: `2px solid ${programme.bilan_reprise.reprise_reussie ? '#4caf50' : '#ff9800'}`
+                    }}>
+                      {programme.bilan_reprise.reprise_reussie ? (
+                        <>
+                          <div style={{color: '#2e7d32', fontWeight: 700, fontSize: '1.05rem', marginBottom: 8}}>
+                            🏆 Reprise réussie ! Tu es prêt·e pour la cristallisation
+                          </div>
+                          
+                          {/* Points forts */}
+                          <div style={{color: '#2e7d32', fontSize: '0.95rem', marginTop: 8}}>
+                            <strong>💪 Tes points forts :</strong>
+                            <ul style={{marginLeft: 20, marginTop: 4, marginBottom: 8}}>
+                              {programme.bilan_reprise.taux_conformite >= 85 && (
+                                <li>Excellente conformité alimentaire ({programme.bilan_reprise.taux_conformite}%)</li>
+                              )}
+                              {programme.bilan_reprise.taux_validation >= 90 && (
+                                <li>Régularité exemplaire ({programme.bilan_reprise.taux_validation}% des jours validés)</li>
+                              )}
+                              <li>Tu as respecté {programme.bilan_reprise.repas_conformes} repas sur {programme.bilan_reprise.total_repas_saisis} !</li>
+                            </ul>
+                          </div>
+                          
+                          {/* Conseils pour cristallisation */}
+                          <div style={{color: '#5d4037', fontSize: '0.92rem', marginTop: 10, padding: '8px 10px', background: 'rgba(255,255,255,0.6)', borderRadius: 6}}>
+                            <strong>🎯 Pour la cristallisation (45 jours) :</strong>
+                            <ul style={{marginLeft: 20, marginTop: 4, marginBottom: 0}}>
+                              <li>Continue les bonnes habitudes que tu as prises</li>
+                              <li>Envisage 1 jeûne ponctuel par semaine (optionnel)</li>
+                              <li>Reste à l'écoute de ton corps et de tes sensations</li>
+                            </ul>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{color: '#e65100', fontWeight: 700, fontSize: '1.05rem', marginBottom: 8}}>
+                            ⚠️ Reprise terminée - Points d'amélioration identifiés
+                          </div>
+                          
+                          {/* Points à améliorer */}
+                          <div style={{color: '#5d4037', fontSize: '0.95rem', marginTop: 8}}>
+                            <strong>📋 Analyse de ta reprise :</strong>
+                            <ul style={{marginLeft: 20, marginTop: 4, marginBottom: 8}}>
+                              {programme.bilan_reprise.taux_conformite < 70 && (
+                                <li>Conformité des repas : {programme.bilan_reprise.taux_conformite}% (objectif : ≥70%)</li>
+                              )}
+                              {programme.bilan_reprise.taux_validation < 80 && (
+                                <li>Régularité : {programme.bilan_reprise.taux_validation}% (objectif : ≥80%)</li>
+                              )}
+                              {programme.bilan_reprise.evolution_poids && parseFloat(programme.bilan_reprise.evolution_poids) > 2 && (
+                                <li>Évolution du poids : +{programme.bilan_reprise.evolution_poids} kg (surveiller)</li>
+                              )}
+                            </ul>
+                          </div>
+                          
+                          {/* Points positifs malgré tout */}
+                          {(programme.bilan_reprise.taux_conformite >= 50 || programme.bilan_reprise.taux_validation >= 60) && (
+                            <div style={{color: '#2e7d32', fontSize: '0.95rem', marginTop: 8}}>
+                              <strong>💚 Points positifs :</strong>
+                              <ul style={{marginLeft: 20, marginTop: 4, marginBottom: 8}}>
+                                {programme.bilan_reprise.taux_conformite >= 50 && (
+                                  <li>Tu as quand même maintenu {programme.bilan_reprise.taux_conformite}% de conformité</li>
+                                )}
+                                {programme.bilan_reprise.taux_validation >= 60 && (
+                                  <li>Tu as validé {programme.bilan_reprise.jours_valides}/{programme.duree_reprise_jours} jours</li>
+                                )}
+                                <li>Tu es allé·e au bout de ta reprise ! 🎉</li>
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {/* Conseils pour cristallisation */}
+                          <div style={{color: '#5d4037', fontSize: '0.92rem', marginTop: 10, padding: '8px 10px', background: 'rgba(255,255,255,0.6)', borderRadius: 6}}>
+                            <strong>🎯 Conseils pour la cristallisation :</strong>
+                            <ul style={{marginLeft: 20, marginTop: 4, marginBottom: 0}}>
+                              <li>Fixe-toi des objectifs réalistes (1 jour à la fois)</li>
+                              <li>La cristallisation est l'occasion de consolider tes acquis</li>
+                              <li>Surveille ton poids chaque semaine (max +2kg)</li>
+                              <li>N'hésite pas à demander du soutien si besoin</li>
+                            </ul>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+                
+                <div style={{marginTop: 12}}>📅 Date de fin : {new Date(programme.date_fin_reprise || new Date()).toLocaleDateString('fr-FR')}</div>
               </div>
 
               <Link
                 href={{
                   pathname: '/consolidation-45-jours',
                   query: {
-                    poids: programme.poids_fin_jeune || programme.poids_depart,
-                    date_fin_reprise: programme.date_fin_reprise,
-                    reprise_id: programme.id
+                    // Transmettre TOUTES les données à la cristallisation
+                    bilan_reprise: JSON.stringify(programme.bilan_reprise || {}),
+                    duree_jeune: programme.duree_jeune_jours,
+                    duree_reprise: programme.duree_reprise_jours,
+                    poids_actuel: programme.bilan_reprise?.poids_fin_reprise || programme.poids_fin_jeune || programme.poids_depart,
+                    date_fin_reprise: programme.date_fin_reprise || new Date().toISOString().split('T')[0],
+                    reprise_id: programme.id,
+                    taux_conformite: programme.bilan_reprise?.taux_conformite || 0
                   }
                 }}
                 style={{
