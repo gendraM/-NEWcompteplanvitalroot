@@ -1,4 +1,69 @@
 ═══════════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 07/12/2025 — VIOLATION ARCHITECTURE : AUTH SUPABASE JOURNAL SPIRITUEL
+═══════════════════════════════════════════════════════════════════════════════
+Fichier : /lib/journalSpirituelAPI.js + composants Journal Spirituel
+Erreur : AuthSessionMissingError "Auth session missing!" lors de l'utilisation des composants
+Cause : Ajout de supabase.auth.getUser() dans tous les composants du Journal Spirituel sans respecter l'architecture existante
+Impact : Plantage total de l'onglet Journal Spirituel, impossibilité d'accéder aux données
+Règle violée : L'application fonctionne SANS authentification (localStorage uniquement)
+Étape du plan non respectée :
+	- Lecture obligatoire du fichier "Anomalie roll back" AVANT migration Supabase
+	- Vérification architecture existante (100% localStorage, 0% auth)
+	- Anomalie du 04/12/2025 identique NON relue
+
+Code erroné :
+```javascript
+// ❌ ERREUR : Utilisation auth.getUser()
+export const getCurrentUser = async () => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  return user;
+};
+export const getMeditations = async () => {
+  const user = await getCurrentUser();  // ← Bloque tout
+  const { data, error } = await supabase
+    .from('journal_spirituel_meditations')
+    .select('*')
+    .eq('user_id', user.id)  // ← user.id inexistant
+```
+
+Procédure corrective appliquée :
+	1. ✅ Suppression TOTALE de getCurrentUser() et supabase.auth.getUser()
+	2. ✅ Remplacement par getLocalUserId() utilisant localStorage :
+	   ```javascript
+	   const getLocalUserId = () => {
+	     let userId = localStorage.getItem('journal_user_id');
+	     if (!userId) {
+	       userId = `local_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+	       localStorage.setItem('journal_user_id', userId);
+	     }
+	     return userId;
+	   };
+	   ```
+	3. ✅ Modification SQL : user_id TEXT au lieu de UUID REFERENCES auth.users(id)
+	4. ✅ Désactivation RLS sur toutes les tables (ALTER TABLE ... DISABLE ROW LEVEL SECURITY)
+	5. ✅ Création nouveau fichier SQL : /docs/SQL_JOURNAL_SPIRITUEL_NO_AUTH.sql
+	6. ✅ Validation syntaxe (get_errors = 0 erreurs)
+	7. ✅ Documentation de l'anomalie dans ce fichier
+
+Architecture corrigée :
+	- user_id = String généré localement (localStorage.getItem('journal_user_id'))
+	- Supabase = Base de données SANS authentification (RLS désactivé)
+	- Accès public aux tables (filtrage par user_id local uniquement)
+	- Multi-appareils possible via export/import du user_id
+
+Leçon apprise :
+	- RELIRE "Anomalie roll back" AVANT TOUTE migration Supabase
+	- VÉRIFIER architecture (grep "auth", "localStorage", "user") AVANT de coder
+	- TESTER en local AVANT commit
+	- L'application est 100% localStorage, même avec Supabase comme BDD
+	- Supabase ≠ Authentification obligatoire
+
+Action requise : 
+	- Exécuter SQL_JOURNAL_SPIRITUEL_NO_AUTH.sql dans Supabase
+	- Tester workflow complet sans connexion
+	- Valider que user_id local persiste entre sessions
+═══════════════════════════════════════════════════════════════════════════════
 🛑 ANOMALIE 04/12/2025 — VIOLATION RÈGLE ARCHITECTURE : AUTHENTIFICATION SUPABASE
 ═══════════════════════════════════════════════════════════════════════════════
 Fichier : /pages/reprise-alimentaire-apres-jeune.js

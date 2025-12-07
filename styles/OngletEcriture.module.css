@@ -1,0 +1,328 @@
+.ongletContainer {
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* Formulaire */
+.formulaire {
+  background: white;
+  border: 3px solid #667eea;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.formHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.formTitre {
+  font-size: 20px;
+  font-weight: 600;
+  color: #667eea;
+  margin: 0;
+}
+
+.btnAnnulerEdition {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 2px solid #e74c3c;
+  border-radius: 8px;
+  background: white;
+  color: #e74c3c;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btnAnnulerEdition:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.input {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.textarea {
+  width: 100%;
+  padding: 16px;
+  font-size: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.8;
+  transition: border-color 0.3s ease;
+  min-height: 300px;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.compteur {
+  text-align: right;
+  font-size: 13px;
+  color: #999;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+.btnSauvegarder {
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 17px;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btnSauvegarder:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(17, 153, 142, 0.4);
+}
+
+/* Historique */
+.historiqueSection {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.historiqueTitre {
+  font-size: 22px;
+  font-weight: 700;
+  color: #667eea;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.emptyMessage {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 40px 20px;
+  line-height: 1.6;
+}
+
+.ecritsListe {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Écrit Card */
+.ecritCard {
+  background: #fafafa;
+  border: 2px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.ecritCard:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+}
+
+.ecritHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.ecritHeaderLeft {
+  flex: 1;
+}
+
+.ecritTitre {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.ecritMeta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #666;
+}
+
+.ecritMeta span {
+  background: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.modifie {
+  color: #f39c12 !important;
+  font-weight: 600;
+}
+
+.ecritActions {
+  display: flex;
+  gap: 8px;
+}
+
+.btnAction {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+.btnAction:hover {
+  opacity: 1;
+  background: #f0f0f0;
+}
+
+.btnAction:nth-child(1):hover {
+  background: #3498db;
+  color: white;
+}
+
+.btnAction:nth-child(2):hover {
+  background: #e74c3c;
+  color: white;
+}
+
+.ecritTexte {
+  font-size: 15px;
+  color: #333;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.ecritTexte::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ecritTexte::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+.ecritTexte::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 4px;
+}
+
+.ecritTexte::-webkit-scrollbar-thumb:hover {
+  background: #764ba2;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ongletContainer {
+    padding: 16px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .formulaire,
+  .historiqueSection {
+    padding: 16px;
+  }
+
+  .formHeader {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .btnAnnulerEdition {
+    width: 100%;
+  }
+
+  .textarea {
+    min-height: 250px;
+  }
+
+  .ecritCard {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ecritHeader {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ecritActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .ecritMeta {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ecritTexte {
+    max-height: 300px;
+    font-size: 14px;
+  }
+}

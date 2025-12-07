@@ -6,6 +6,7 @@ import OngletVersets from '../components/OngletVersets';
 import OngletQuestions from '../components/OngletQuestions';
 import OngletIntentions from '../components/OngletIntentions';
 import OngletAudios from '../components/OngletAudios';
+import OngletEcriture from '../components/OngletEcriture';
 
 export default function JournalSpirituel() {
   // ==========================================
@@ -205,10 +206,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-ecriture"
             className={styles.panel}
           >
-            <h2>✍️ Écriture Libre</h2>
-            <p className={styles.placeholder}>
-              Composant OngletEcriture à créer (Phase 7)
-            </p>
+            <OngletEcriture jourJeune={jourJeune} />
           </div>
         )}
       </main>

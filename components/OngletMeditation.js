@@ -1,29 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useMeditations } from '../lib/useJournalSpirituel';
 import TimerMeditation from './TimerMeditation';
 import styles from '../styles/OngletMeditation.module.css';
 
 export default function OngletMeditation({ jourJeune }) {
+  const { meditations: historique, chargement, modeSupabase, ajouter, supprimer } = useMeditations();
   const [dureeSelectionnee, setDureeSelectionnee] = useState(5);
   const [typeMeditation, setTypeMeditation] = useState('priere');
   const [meditationEnCours, setMeditationEnCours] = useState(false);
   const [notes, setNotes] = useState('');
   const [ressenti, setRessenti] = useState('');
-  const [historique, setHistorique] = useState([]);
   const [afficherHistorique, setAfficherHistorique] = useState(false);
   const [modePersonnalise, setModePersonnalise] = useState(false);
   const [minutesPersonnalisees, setMinutesPersonnalisees] = useState('');
-
-  // Chargement historique depuis localStorage
-  useEffect(() => {
-    const historiqueStocke = localStorage.getItem('meditationsHistorique');
-    if (historiqueStocke) {
-      try {
-        setHistorique(JSON.parse(historiqueStocke));
-      } catch (e) {
-        console.error('Erreur chargement historique méditations:', e);
-      }
-    }
-  }, []);
 
   // Options de durée (en secondes)
   const dureesDisponibles = [
@@ -90,42 +79,42 @@ export default function OngletMeditation({ jourJeune }) {
     setMeditationEnCours(false);
   };
 
-  // Sauvegarder méditation
-  const sauvegarderMeditation = () => {
+  // Sauvegarder méditation (localStorage temporaire)
+  const sauvegarderMeditation = async () => {
     if (!notes.trim() && !ressenti) {
       alert('Veuillez ajouter au moins une note ou un ressenti');
       return;
     }
 
-    const nouvelleMeditation = {
-      id: Date.now(),
-      date: new Date().toISOString(),
+    const meditation = {
       jourJeune: jourJeune,
       duree: dureeSelectionnee,
       type: typeMeditation,
-      typeLabel: typesMeditation.find(t => t.id === typeMeditation)?.label || '',
       notes: notes,
-      ressenti: ressenti,
-      ressentiLabel: ressentisDisponibles.find(r => r.id === ressenti)?.label || ''
+      ressenti: ressenti
     };
 
-    const nouvelHistorique = [nouvelleMeditation, ...historique];
-    setHistorique(nouvelHistorique);
-    localStorage.setItem('meditationsHistorique', JSON.stringify(nouvelHistorique));
-
-    // Réinitialiser formulaire
-    setNotes('');
-    setRessenti('');
-    alert('✅ Méditation sauvegardée !');
+    try {
+      await ajouter(meditation);
+      // Réinitialiser formulaire
+      setNotes('');
+      setRessenti('');
+      alert(`✅ Méditation sauvegardée ${modeSupabase ? '(Supabase)' : '(Local)'}`);
+    } catch (error) {
+      console.error('Erreur sauvegarde:', error);
+      alert('❌ Erreur lors de la sauvegarde');
+    }
   };
 
-  // Supprimer méditation
-  const supprimerMeditation = (id) => {
+  const supprimerMeditationLocal = async (id) => {
     if (!confirm('Supprimer cette méditation ?')) return;
     
-    const nouvelHistorique = historique.filter(m => m.id !== id);
-    setHistorique(nouvelHistorique);
-    localStorage.setItem('meditationsHistorique', JSON.stringify(nouvelHistorique));
+    try {
+      await supprimer(id);
+    } catch (error) {
+      console.error('Erreur suppression:', error);
+      alert('❌ Erreur lors de la suppression');
+    }
   };
 
   // Formater date
@@ -148,7 +137,10 @@ export default function OngletMeditation({ jourJeune }) {
 
   return (
     <div className={styles.ongletContainer}>
-      <h2 className={styles.title}>🧘 Méditation & Prière</h2>
+      <h2 className={styles.title}>
+        🧘 Méditation & Prière
+        {modeSupabase ? <span style={{color: '#10b981', fontSize: '0.75em', marginLeft: '8px'}}>☁️ Sync</span> : <span style={{color: '#f59e0b', fontSize: '0.75em', marginLeft: '8px'}}>💾 Local</span>}
+      </h2>
       
       {!meditationEnCours ? (
         <>
@@ -308,11 +300,13 @@ export default function OngletMeditation({ jourJeune }) {
                 <div key={meditation.id} className={styles.meditationCard}>
                   <div className={styles.cardHeader}>
                     <div className={styles.cardInfo}>
-                      <span className={styles.cardType}>{meditation.typeLabel}</span>
+                      <span className={styles.cardType}>
+                        {typesMeditation.find(t => t.id === meditation.type_meditation)?.label || meditation.type_meditation}
+                      </span>
                       <span className={styles.cardDate}>{formaterDate(meditation.date)}</span>
                     </div>
                     <button
-                      onClick={() => supprimerMeditation(meditation.id)}
+                      onClick={() => supprimerMeditationLocal(meditation.id)}
                       className={styles.btnDelete}
                       title="Supprimer"
                     >
@@ -323,9 +317,9 @@ export default function OngletMeditation({ jourJeune }) {
                   <div className={styles.cardBody}>
                     <div className={styles.cardMeta}>
                       <span>⏱️ {formaterDuree(meditation.duree)}</span>
-                      <span>📅 J{meditation.jourJeune}</span>
-                      {meditation.ressentiLabel && (
-                        <span>{meditation.ressentiLabel}</span>
+                      <span>📅 J{meditation.jour_jeune}</span>
+                      {meditation.ressenti && (
+                        <span>{ressentisDisponibles.find(r => r.id === meditation.ressenti)?.label || meditation.ressenti}</span>
                       )}
                     </div>
                     
@@ -339,6 +333,16 @@ export default function OngletMeditation({ jourJeune }) {
           </div>
         )}
       </div>
+
+      {chargement && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', zIndex: 9999
+        }}>
+          <div style={{color: 'white', fontSize: '1.5em'}}>⏳ Synchronisation...</div>
+        </div>
+      )}
     </div>
   );
 }
