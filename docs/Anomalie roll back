@@ -1,4 +1,58 @@
 ═══════════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 08/12/2025 — JOURS VALIDÉS AUTOMATIQUEMENT + DONNÉES CORROMPUES
+═══════════════════════════════════════════════════════════════════════════════
+Fichier : /pages/jeune.js
+Erreur : Progression affiche "9/10 jours validés" alors que l'utilisateur n'a rien validé
+Symptômes :
+	- Jour 8 affiché mais progression à 9/10
+	- Aucune validation manuelle effectuée
+	- Données de sessions précédentes persistent
+Cause 1 : Changement de durée de jeûne (5 → 10 jours) sans reset de joursValides[]
+Cause 2 : Aucune détection de "nouvelle préparation" lors du chargement
+Impact : Progression faussée, utilisateur confus, jeûne terminé prématurément
+
+Code problématique :
+```javascript
+// ❌ AVANT : Pas de détection de changement de préparation
+setJoursValides(loadState("joursValides", [])); // ← Charge 9 jours d'une ancienne session
+```
+
+Procédure corrective appliquée :
+  1. ✅ Ajout détection de "nouvelle préparation" via ID unique (startDate_duration)
+  2. ✅ Reset automatique de joursValides[] si changement de préparation
+  3. ✅ Nettoyage des jours validés > durée actuelle (protection corruption)
+  4. ✅ Log console pour debug: "📊 Initialisation: X jours validés sur Y jours total"
+
+Code corrigé :
+```javascript
+// ✅ APRÈS : Détection nouvelle préparation
+let joursValidesActuels = loadState("joursValides", []);
+const prepDataStr = localStorage.getItem("preparationData");
+const dernierePrepStr = localStorage.getItem("dernierePreparationId");
+
+if (prepDataStr) {
+  const prepData = JSON.parse(prepDataStr);
+  const prepId = `${prepData.startDate}_${prepData.duration}`;
+  
+  if (dernierePrepStr !== prepId) {
+    console.log("🔄 Nouvelle préparation détectée, réinitialisation");
+    joursValidesActuels = [];
+    localStorage.setItem("dernierePreparationId", prepId);
+  }
+}
+
+// Nettoyer jours > durée
+joursValidesActuels = joursValidesActuels.filter(j => j <= dureeFiable);
+```
+
+Résultat attendu :
+  - Progression : 0/10 jours validés (nouveau jeûne)
+  - Bouton "Valider ce jour" activé
+  - Aucune validation automatique
+
+Leçon apprise : Ajouter un identifiant unique de session de jeûne pour détecter les changements
+
+═══════════════════════════════════════════════════════════════════════════════
 🛑 ANOMALIE 07/12/2025 — VIOLATION ARCHITECTURE : AUTH SUPABASE JOURNAL SPIRITUEL
 ═══════════════════════════════════════════════════════════════════════════════
 Fichier : /lib/journalSpirituelAPI.js + composants Journal Spirituel

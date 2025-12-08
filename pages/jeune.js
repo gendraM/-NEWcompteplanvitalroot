@@ -502,10 +502,23 @@ export default function Jeune() {
       console.error("⚠️ Bilan préparation corrompu :", e);
     }
     
-    // Initialisation avec priorité : bilan > localStorage > défaut
-    setDureeJeune(loadState("dureeJeune", bilanPrepa?.dureeJeune || 5));
+    // CORRECTION: Lire la durée depuis preparationData.duration (source fiable)
+    let dureeFiable = bilanPrepa?.dureeJeune || 5;
+    try {
+      const prepDataStr = localStorage.getItem("preparationData");
+      if (prepDataStr) {
+        const prepData = JSON.parse(prepDataStr);
+        if (prepData.duration) {
+          dureeFiable = prepData.duration;
+        }
+      }
+    } catch (e) {
+      console.error("⚠️ preparationData corrompu lors lecture durée :", e);
+    }
     
-    // CORRECTION: Lire la date depuis preparationData.startDate (source fiable)
+    setDureeJeune(loadState("dureeJeune", dureeFiable));
+    
+    // Lire la date depuis preparationData.startDate (source fiable)
     let dateDebut = null;
     
     // Priorité 1 : preparationData.startDate (date de début de préparation = date de début de jeûne)
@@ -534,14 +547,46 @@ export default function Jeune() {
     if (dateDebut) {
       const diffMs = Date.now() - new Date(dateDebut).getTime();
       const diffJours = Math.floor(diffMs / (1000*60*60*24)) + 1;
-      const duree = loadState("dureeJeune", bilanPrepa?.dureeJeune || 5);
+      const duree = loadState("dureeJeune", dureeFiable); // Utiliser la durée déjà calculée
       const jourCalcule = Math.max(1, Math.min(diffJours, duree));
       setJourEnCours(jourCalcule);
     } else {
       setJourEnCours(loadState("jourEnCours", 1));
     }
     
-    setJoursValides(loadState("joursValides", []));
+    // CORRECTION: Vérifier si c'est une nouvelle préparation (reset nécessaire)
+    let joursValidesActuels = loadState("joursValides", []);
+    try {
+      const prepDataStr = localStorage.getItem("preparationData");
+      const dernierePrepStr = localStorage.getItem("dernierePreparationId");
+      
+      if (prepDataStr) {
+        const prepData = JSON.parse(prepDataStr);
+        const prepId = `${prepData.startDate}_${prepData.duration}`;
+        
+        // Si changement de préparation (date ou durée différente), reset
+        if (dernierePrepStr !== prepId) {
+          console.log("🔄 Nouvelle préparation détectée, réinitialisation des jours validés");
+          joursValidesActuels = [];
+          localStorage.setItem("dernierePreparationId", prepId);
+          localStorage.setItem("joursValides", JSON.stringify([]));
+        }
+      }
+    } catch (e) {
+      console.error("⚠️ Erreur détection nouvelle préparation:", e);
+    }
+    
+    // Nettoyer les jours validés supérieurs à la durée actuelle (données corrompues)
+    const joursValidesNettoyes = joursValidesActuels.filter(j => j <= dureeFiable);
+    if (joursValidesNettoyes.length !== joursValidesActuels.length) {
+      console.log(`🧹 Nettoyage: ${joursValidesActuels.length - joursValidesNettoyes.length} jours invalides supprimés`);
+      joursValidesActuels = joursValidesNettoyes;
+      localStorage.setItem("joursValides", JSON.stringify(joursValidesNettoyes));
+    }
+    
+    setJoursValides(joursValidesActuels);
+    console.log(`📊 Initialisation: ${joursValidesActuels.length} jours validés sur ${dureeFiable} jours total`);
+    
     setPoidsInitial(loadState("poidsDepart", bilanPrepa?.poids_depart || 0));
     
     // Récupération du message personnel depuis le bilan de préparation
@@ -638,7 +683,12 @@ export default function Jeune() {
   // Initialiser date de début du jeûne si pas définie
   useEffect(() => {
     if (typeof window === 'undefined') return; // SSR guard
-    if (!dateDebutJeune && jourEnCours === 1) {
+    
+    // Ne pas écraser si date vient de preparationData
+    const prepDataStr = localStorage.getItem("preparationData");
+    const hasPreparationDate = prepDataStr && JSON.parse(prepDataStr)?.startDate;
+    
+    if (!dateDebutJeune && jourEnCours === 1 && !hasPreparationDate) {
       const aujourdhui = new Date().toISOString().split('T')[0];
       setDateDebutJeune(aujourdhui);
     }
@@ -1157,16 +1207,6 @@ export default function Jeune() {
         <div style={{ marginTop: 12, fontStyle: "italic", color: "#1976d2" }}>
           {SUPPORT_MESSAGES[((jourEnCours - 1 + SUPPORT_MESSAGES.length) % SUPPORT_MESSAGES.length)]}
         </div>
-        <button
-          style={{
-            marginTop: 18, background: "#43a047", color: "#fff", border: "none",
-            borderRadius: 8, padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer"
-          }}
-          onClick={validerJour}
-          disabled={joursValides.includes(jourEnCours)}
-        >
-          {joursValides.includes(jourEnCours) ? "Jour validé ✅" : "Valider ce jour"}
-        </button>
       </div>
 
       {/* 🆕 AJOUT #1 : Conseils d'Activation */}
@@ -1537,6 +1577,18 @@ export default function Jeune() {
             ? "Valide chaque jour pour suivre ta progression."
             : "Jeûne terminé ! Prends soin de ta reprise."}
         </div>
+        
+        <button
+          style={{
+            marginTop: 16, background: "#43a047", color: "#fff", border: "none",
+            borderRadius: 8, padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer",
+            opacity: joursValides.includes(jourEnCours) ? 0.6 : 1
+          }}
+          onClick={validerJour}
+          disabled={joursValides.includes(jourEnCours)}
+        >
+          {joursValides.includes(jourEnCours) ? "Jour validé ✅" : "Valider ce jour"}
+        </button>
       </div>
 
       {/* --- Paramètres et reset (pour tests) --- */}
