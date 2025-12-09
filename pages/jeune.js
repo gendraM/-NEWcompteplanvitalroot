@@ -771,10 +771,34 @@ export default function Jeune() {
   // === FONCTIONS HANDLERS (AVANT LE RENDER) ===
 
   const validerJour = () => {
+    // Vérifier que le jour affiché n'est pas dans le futur
+    if (dateDebutJeune) {
+      const aujourdhui = new Date();
+      const debut = new Date(dateDebutJeune);
+      const joursEcoules = Math.floor((aujourdhui - debut) / (1000*60*60*24)) + 1;
+      
+      if (jourEnCours > joursEcoules) {
+        alert(`⚠️ Tu ne peux pas valider le jour ${jourEnCours} car nous sommes seulement au jour ${joursEcoules} du jeûne.`);
+        return;
+      }
+    }
+    
+    // Vérification séquentielle : tous les jours précédents doivent être validés
+    for (let j = 1; j < jourEnCours; j++) {
+      if (!joursValides.includes(j)) {
+        alert(`⚠️ Tu dois d'abord valider le jour ${j} avant de valider le jour ${jourEnCours}.\n\nUtilise les boutons "← Jour précédent" pour revenir en arrière.`);
+        return;
+      }
+    }
+    
     if (!joursValides.includes(jourEnCours)) {
       const nv = [...joursValides, jourEnCours].sort((a, b) => a - b);
       setJoursValides(nv);
-      if (jourEnCours < dureeJeune) setJourEnCours(jourEnCours + 1);
+      
+      // Avancer automatiquement au jour suivant si possible
+      if (jourEnCours < dureeJeune) {
+        setJourEnCours(jourEnCours + 1);
+      }
     }
   };
 
@@ -1580,15 +1604,53 @@ export default function Jeune() {
         
         <button
           style={{
-            marginTop: 16, background: "#43a047", color: "#fff", border: "none",
-            borderRadius: 8, padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer",
-            opacity: joursValides.includes(jourEnCours) ? 0.6 : 1
+            marginTop: 16, 
+            background: joursValides.includes(jourEnCours) ? "#9e9e9e" : "#43a047", 
+            color: "#fff", 
+            border: "none",
+            borderRadius: 8, 
+            padding: "12px 28px", 
+            fontWeight: 700, 
+            fontSize: 16, 
+            cursor: joursValides.includes(jourEnCours) ? "not-allowed" : "pointer"
           }}
           onClick={validerJour}
           disabled={joursValides.includes(jourEnCours)}
         >
-          {joursValides.includes(jourEnCours) ? "Jour validé ✅" : "Valider ce jour"}
+          {joursValides.includes(jourEnCours) 
+            ? `✅ Jour ${jourEnCours} déjà validé` 
+            : `Valider le jour ${jourEnCours}`}
         </button>
+        
+        {/* Aide visuelle */}
+        {!joursValides.includes(jourEnCours) && (() => {
+          // Vérifier s'il manque des jours précédents
+          const joursManquants = [];
+          for (let j = 1; j < jourEnCours; j++) {
+            if (!joursValides.includes(j)) {
+              joursManquants.push(j);
+            }
+          }
+          
+          if (joursManquants.length > 0) {
+            return (
+              <div style={{ 
+                marginTop: 8, 
+                fontSize: 13, 
+                color: "#f57c00", 
+                background: "#fff3e0", 
+                padding: "8px 12px", 
+                borderRadius: 6,
+                border: "1px solid #ffb74d"
+              }}>
+                ⚠️ Valide d'abord {joursManquants.length === 1 ? 'le jour' : 'les jours'} {joursManquants.join(', ')} 
+                {' '}(utilise "← Jour précédent")
+              </div>
+            );
+          }
+          
+          return null;
+        })()}
       </div>
 
       {/* --- Paramètres et reset (pour tests) --- */}
