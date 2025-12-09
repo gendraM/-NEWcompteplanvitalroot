@@ -189,6 +189,7 @@ export default function RepriseAlimentaireApresJeune() {
   const [jours, setJours] = useState([]);
   const [dateAuj, setDateAuj] = useState(null);
   const [listeCourses, setListeCourses] = useState([]);
+  const [dateDebutJeune, setDateDebutJeune] = useState(null);
   
   // 🆕 State pour la saisie du poids final
   const [poidsFinal, setPoidsFinal] = useState('');
@@ -229,13 +230,13 @@ export default function RepriseAlimentaireApresJeune() {
         console.debug('[DEBUG] Chargement depuis localStorage:', parsed);
         
         // 🆕 AUTO-POPULATION : Enrichir avec les données du jeûne si manquantes
-        if (!parsed.duree_jeune_jours || !parsed.poids_fin_jeune || !parsed.date_fin_jeune) {
+        if (!parsed.duree_jeune_jours || !parsed.poids_fin_jeune || !parsed.date_fin_jeune || !parsed.date_debut_reprise) {
           console.log('[AUTO-POPULATION] Récupération des données depuis /jeune...');
           
           try {
             const dureeJeune = localStorage.getItem('dureeJeune');
             const poidsDepart = localStorage.getItem('poidsDepart');
-            const dateDebutJeune = localStorage.getItem('dateDebutJeune');
+            const dateDebutJeuneRaw = localStorage.getItem('dateDebutJeune');
             
             if (!parsed.duree_jeune_jours && dureeJeune) {
               parsed.duree_jeune_jours = JSON.parse(dureeJeune);
@@ -247,18 +248,44 @@ export default function RepriseAlimentaireApresJeune() {
               console.log('[AUTO-POPULATION] Poids fin jeûne:', parsed.poids_fin_jeune);
             }
             
-            if (!parsed.date_fin_jeune && dateDebutJeune && dureeJeune) {
-              const dateDebut = new Date(JSON.parse(dateDebutJeune));
-              const duree = JSON.parse(dureeJeune);
-              const dateFin = new Date(dateDebut.getTime() + (duree - 1) * 24 * 60 * 60 * 1000);
-              parsed.date_fin_jeune = dateFin.toISOString().split('T')[0];
-              console.log('[AUTO-POPULATION] Date fin jeûne:', parsed.date_fin_jeune);
+            // Charger dateDebutJeune dans le state
+            if (dateDebutJeuneRaw) {
+              const dateDebutStr = dateDebutJeuneRaw.startsWith('"') ? JSON.parse(dateDebutJeuneRaw) : dateDebutJeuneRaw;
+              setDateDebutJeune(dateDebutStr.split('T')[0]);
+              console.log('[AUTO-POPULATION] Date début jeûne:', dateDebutStr.split('T')[0]);
+              
+              // Calculer date_fin_jeune si manquante
+              if (!parsed.date_fin_jeune && dureeJeune) {
+                const dateDebut = new Date(dateDebutStr);
+                const duree = JSON.parse(dureeJeune);
+                const dateFin = new Date(dateDebut);
+                dateFin.setDate(dateDebut.getDate() + duree - 1);
+                parsed.date_fin_jeune = dateFin.toISOString().split('T')[0];
+                console.log('[AUTO-POPULATION] Date fin jeûne calculée:', parsed.date_fin_jeune);
+              }
+              
+              // Calculer date_debut_reprise si manquante
+              if (!parsed.date_debut_reprise && dureeJeune) {
+                const dateDebut = new Date(dateDebutStr);
+                const duree = JSON.parse(dureeJeune);
+                const dateDebutReprise = new Date(dateDebut);
+                dateDebutReprise.setDate(dateDebut.getDate() + duree);
+                parsed.date_debut_reprise = dateDebutReprise.toISOString().split('T')[0];
+                console.log('[AUTO-POPULATION] Date début reprise calculée:', parsed.date_debut_reprise);
+              }
             }
             
             // Sauvegarder le programme enrichi
             localStorage.setItem('programmeRepriseValide', JSON.stringify(parsed));
           } catch (err) {
             console.warn('[AUTO-POPULATION] Erreur lors de la récupération:', err);
+          }
+        } else if (parsed.date_fin_jeune) {
+          // Charger dateDebutJeune même si le programme est déjà complet
+          const dateDebutJeuneRaw = localStorage.getItem('dateDebutJeune');
+          if (dateDebutJeuneRaw) {
+            const dateDebutStr = dateDebutJeuneRaw.startsWith('"') ? JSON.parse(dateDebutJeuneRaw) : dateDebutJeuneRaw;
+            setDateDebutJeune(dateDebutStr.split('T')[0]);
           }
         }
         
@@ -640,8 +667,20 @@ export default function RepriseAlimentaireApresJeune() {
             </div>
             <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:12, marginTop:12}}>
               <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
+                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Début du jeûne</div>
+                <div style={{fontSize:'1.1rem', fontWeight:700}}>
+                  {dateDebutJeune ? new Date(dateDebutJeune + 'T12:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'short' }) : '-'}
+                </div>
+              </div>
+              <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
                 <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Durée du jeûne</div>
                 <div style={{fontSize:'1.3rem', fontWeight:800}}>{programme.duree_jeune_jours} jours</div>
+              </div>
+              <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
+                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Fin du jeûne</div>
+                <div style={{fontSize:'1.1rem', fontWeight:700}}>
+                  {programme.date_fin_jeune ? new Date(programme.date_fin_jeune).toLocaleDateString('fr-FR', { day:'numeric', month:'short' }) : '-'}
+                </div>
               </div>
               {programme.poids_fin_jeune && (
                 <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
@@ -649,15 +688,28 @@ export default function RepriseAlimentaireApresJeune() {
                   <div style={{fontSize:'1.3rem', fontWeight:800}}>{programme.poids_fin_jeune} kg</div>
                 </div>
               )}
+            </div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:12, marginTop:12}}>
               <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
-                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Fin du jeûne</div>
+                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Début reprise</div>
                 <div style={{fontSize:'1.1rem', fontWeight:700}}>
-                  {programme.date_fin_jeune ? new Date(programme.date_fin_jeune).toLocaleDateString('fr-FR', { day:'numeric', month:'short' }) : '-'}
+                  {programme.date_debut_reprise ? new Date(programme.date_debut_reprise).toLocaleDateString('fr-FR', { day:'numeric', month:'short' }) : '-'}
                 </div>
               </div>
               <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
                 <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Durée reprise</div>
                 <div style={{fontSize:'1.3rem', fontWeight:800}}>{programme.duree_reprise_jours} jours</div>
+              </div>
+              <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
+                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Fin prévue</div>
+                <div style={{fontSize:'1.1rem', fontWeight:700}}>
+                  {programme.date_debut_reprise && programme.duree_reprise_jours ? (() => {
+                    const dateDebut = new Date(programme.date_debut_reprise);
+                    const dateFin = new Date(dateDebut);
+                    dateFin.setDate(dateDebut.getDate() + programme.duree_reprise_jours - 1);
+                    return dateFin.toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+                  })() : '-'}
+                </div>
               </div>
             </div>
           </div>
