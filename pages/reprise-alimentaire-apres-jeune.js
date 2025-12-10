@@ -52,7 +52,6 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
         style={{
-          display: 'none',
           position: 'fixed',
           top: '1rem',
           left: '1rem',
@@ -66,7 +65,7 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
           fontSize: '0.95rem',
           cursor: 'pointer',
           boxShadow: '0 2px 8px rgba(102,126,234,0.4)',
-          '@media (max-width: 768px)': { display: 'block' }
+          display: 'none'
         }}
         className="mobile-toggle-btn"
       >
@@ -108,7 +107,7 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
           marginBottom: 2
         }}>
           <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:2}}>
-            <span style={{fontSize:'1.25em', fontWeight:700}}>{['💧','🥬','🥚','🍚'][phase.phaseNum-1]}</span>
+            <span style={{fontSize:'1.25em', fontWeight:700}}>{['💧','🥬','🥚','🍚','🍽️'][phase.phaseNum-1]}</span>
             <span style={{fontWeight:600}}>Phase {phase.phaseNum} : {phase.nom}</span>
             {phase.verrouille && <span title="Phase verrouillée" style={{marginLeft:6, color:'#c62828', fontSize:'1.2em'}}>🔒</span>}
           </div>
@@ -119,7 +118,10 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
             Statut : {phase.statut}
           </div>
           <button
-            onClick={() => onVoirAliments(phase.phaseNum)}
+            onClick={() => {
+              onVoirAliments(phase.phaseNum);
+              setIsMobileOpen(false); // Fermer l'overlay sur mobile
+            }}
             disabled={phase.verrouille}
             style={{
               background: phase.verrouille ? '#eee' : 'linear-gradient(135deg, #43cea2 0%, #185a9d 100%)',
@@ -189,7 +191,6 @@ export default function RepriseAlimentaireApresJeune() {
   const [jours, setJours] = useState([]);
   const [dateAuj, setDateAuj] = useState(null);
   const [listeCourses, setListeCourses] = useState([]);
-  const [dateDebutJeune, setDateDebutJeune] = useState(null);
   
   // 🆕 State pour la saisie du poids final
   const [poidsFinal, setPoidsFinal] = useState('');
@@ -230,13 +231,13 @@ export default function RepriseAlimentaireApresJeune() {
         console.debug('[DEBUG] Chargement depuis localStorage:', parsed);
         
         // 🆕 AUTO-POPULATION : Enrichir avec les données du jeûne si manquantes
-        if (!parsed.duree_jeune_jours || !parsed.poids_fin_jeune || !parsed.date_fin_jeune || !parsed.date_debut_reprise) {
+        if (!parsed.duree_jeune_jours || !parsed.poids_fin_jeune || !parsed.date_fin_jeune) {
           console.log('[AUTO-POPULATION] Récupération des données depuis /jeune...');
           
           try {
             const dureeJeune = localStorage.getItem('dureeJeune');
             const poidsDepart = localStorage.getItem('poidsDepart');
-            const dateDebutJeuneRaw = localStorage.getItem('dateDebutJeune');
+            const dateDebutJeune = localStorage.getItem('dateDebutJeune');
             
             if (!parsed.duree_jeune_jours && dureeJeune) {
               parsed.duree_jeune_jours = JSON.parse(dureeJeune);
@@ -248,44 +249,18 @@ export default function RepriseAlimentaireApresJeune() {
               console.log('[AUTO-POPULATION] Poids fin jeûne:', parsed.poids_fin_jeune);
             }
             
-            // Charger dateDebutJeune dans le state
-            if (dateDebutJeuneRaw) {
-              const dateDebutStr = dateDebutJeuneRaw.startsWith('"') ? JSON.parse(dateDebutJeuneRaw) : dateDebutJeuneRaw;
-              setDateDebutJeune(dateDebutStr.split('T')[0]);
-              console.log('[AUTO-POPULATION] Date début jeûne:', dateDebutStr.split('T')[0]);
-              
-              // Calculer date_fin_jeune si manquante
-              if (!parsed.date_fin_jeune && dureeJeune) {
-                const dateDebut = new Date(dateDebutStr);
-                const duree = JSON.parse(dureeJeune);
-                const dateFin = new Date(dateDebut);
-                dateFin.setDate(dateDebut.getDate() + duree - 1);
-                parsed.date_fin_jeune = dateFin.toISOString().split('T')[0];
-                console.log('[AUTO-POPULATION] Date fin jeûne calculée:', parsed.date_fin_jeune);
-              }
-              
-              // Calculer date_debut_reprise si manquante
-              if (!parsed.date_debut_reprise && dureeJeune) {
-                const dateDebut = new Date(dateDebutStr);
-                const duree = JSON.parse(dureeJeune);
-                const dateDebutReprise = new Date(dateDebut);
-                dateDebutReprise.setDate(dateDebut.getDate() + duree);
-                parsed.date_debut_reprise = dateDebutReprise.toISOString().split('T')[0];
-                console.log('[AUTO-POPULATION] Date début reprise calculée:', parsed.date_debut_reprise);
-              }
+            if (!parsed.date_fin_jeune && dateDebutJeune && dureeJeune) {
+              const dateDebut = new Date(JSON.parse(dateDebutJeune));
+              const duree = JSON.parse(dureeJeune);
+              const dateFin = new Date(dateDebut.getTime() + (duree - 1) * 24 * 60 * 60 * 1000);
+              parsed.date_fin_jeune = dateFin.toISOString().split('T')[0];
+              console.log('[AUTO-POPULATION] Date fin jeûne:', parsed.date_fin_jeune);
             }
             
             // Sauvegarder le programme enrichi
             localStorage.setItem('programmeRepriseValide', JSON.stringify(parsed));
           } catch (err) {
             console.warn('[AUTO-POPULATION] Erreur lors de la récupération:', err);
-          }
-        } else if (parsed.date_fin_jeune) {
-          // Charger dateDebutJeune même si le programme est déjà complet
-          const dateDebutJeuneRaw = localStorage.getItem('dateDebutJeune');
-          if (dateDebutJeuneRaw) {
-            const dateDebutStr = dateDebutJeuneRaw.startsWith('"') ? JSON.parse(dateDebutJeuneRaw) : dateDebutJeuneRaw;
-            setDateDebutJeune(dateDebutStr.split('T')[0]);
           }
         }
         
@@ -667,20 +642,8 @@ export default function RepriseAlimentaireApresJeune() {
             </div>
             <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:12, marginTop:12}}>
               <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
-                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Début du jeûne</div>
-                <div style={{fontSize:'1.1rem', fontWeight:700}}>
-                  {dateDebutJeune ? new Date(dateDebutJeune + 'T12:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'short' }) : '-'}
-                </div>
-              </div>
-              <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
                 <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Durée du jeûne</div>
                 <div style={{fontSize:'1.3rem', fontWeight:800}}>{programme.duree_jeune_jours} jours</div>
-              </div>
-              <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
-                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Fin du jeûne</div>
-                <div style={{fontSize:'1.1rem', fontWeight:700}}>
-                  {programme.date_fin_jeune ? new Date(programme.date_fin_jeune).toLocaleDateString('fr-FR', { day:'numeric', month:'short' }) : '-'}
-                </div>
               </div>
               {programme.poids_fin_jeune && (
                 <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
@@ -688,28 +651,15 @@ export default function RepriseAlimentaireApresJeune() {
                   <div style={{fontSize:'1.3rem', fontWeight:800}}>{programme.poids_fin_jeune} kg</div>
                 </div>
               )}
-            </div>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:12, marginTop:12}}>
               <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
-                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Début reprise</div>
+                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Fin du jeûne</div>
                 <div style={{fontSize:'1.1rem', fontWeight:700}}>
-                  {programme.date_debut_reprise ? new Date(programme.date_debut_reprise).toLocaleDateString('fr-FR', { day:'numeric', month:'short' }) : '-'}
+                  {programme.date_fin_jeune ? new Date(programme.date_fin_jeune).toLocaleDateString('fr-FR', { day:'numeric', month:'short' }) : '-'}
                 </div>
               </div>
               <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
                 <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Durée reprise</div>
                 <div style={{fontSize:'1.3rem', fontWeight:800}}>{programme.duree_reprise_jours} jours</div>
-              </div>
-              <div style={{background:'rgba(255,255,255,0.15)', borderRadius:8, padding:'0.7rem 0.9rem'}}>
-                <div style={{fontSize:'0.85rem', opacity:0.85, marginBottom:4}}>Fin prévue</div>
-                <div style={{fontSize:'1.1rem', fontWeight:700}}>
-                  {programme.date_debut_reprise && programme.duree_reprise_jours ? (() => {
-                    const dateDebut = new Date(programme.date_debut_reprise);
-                    const dateFin = new Date(dateDebut);
-                    dateFin.setDate(dateDebut.getDate() + programme.duree_reprise_jours - 1);
-                    return dateFin.toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
-                  })() : '-'}
-                </div>
               </div>
             </div>
           </div>
@@ -1718,20 +1668,22 @@ export default function RepriseAlimentaireApresJeune() {
             position: fixed !important;
             left: -100% !important;
             top: 0 !important;
-            width: 85% !important;
-            max-width: 320px !important;
+            width: 100vw !important;
+            max-width: 100vw !important;
             height: 100vh !important;
             max-height: 100vh !important;
             margin: 0 !important;
             border-radius: 0 !important;
             transition: left 0.3s ease !important;
             z-index: 999 !important;
-            padding-top: 3rem !important;
+            padding: 4rem 1.5rem 1.5rem 1.5rem !important;
+            background: #ffffff !important;
+            overflow-y: auto !important;
           }
           
           .phases-sidebar.mobile-open {
             left: 0 !important;
-            box-shadow: 4px 0 12px rgba(0,0,0,0.3) !important;
+            box-shadow: none !important;
           }
           
           /* Main content sans marge */

@@ -624,6 +624,264 @@ const alimentsRepriseJeune = [
     favoriseCetose: false,
     conseil: "Sans gluten, digeste, midi"
   },
+
+  // ═══════════════════════════════════════════════════════════
+  // 🍽️ PHASE 5 - ALIMENTATION NORMALE CONTRÔLÉE (~30% durée reprise)
+  // Objectif : Stabilisation durable, consolidation acquis
+  // ═══════════════════════════════════════════════════════════
+  
+  { 
+    nom: "Pain complet bio", 
+    categorie: "feculent", 
+    sousCategorie: "Pain", 
+    kcal: 250,
+    qn: 3,
+    portionDefaut: "80g",
+    unite: "g",
+    kcalParUnite: 3.125,
+    mesureRecommandee: "2 tranches",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Levain naturel, bien cuit, 1x/jour maximum"
+  },
+  { 
+    nom: "Pâtes complètes", 
+    categorie: "feculent", 
+    sousCategorie: "Pâtes", 
+    kcal: 350,
+    qn: 3,
+    portionDefaut: "100g",
+    unite: "g",
+    kcalParUnite: 3.5,
+    mesureRecommandee: "Portion moyenne",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Al dente, midi uniquement, bien mastiquer"
+  },
+  { 
+    nom: "Lentilles vertes", 
+    categorie: "legumineuse", 
+    sousCategorie: "Légumineuses", 
+    kcal: 115,
+    qn: 4,
+    portionDefaut: "100g",
+    unite: "g",
+    kcalParUnite: 1.15,
+    mesureRecommandee: "100g cuites",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Bien cuites, digestion progressive, excellentes protéines végétales"
+  },
+  { 
+    nom: "Pois chiches", 
+    categorie: "legumineuse", 
+    sousCategorie: "Légumineuses", 
+    kcal: 164,
+    qn: 4,
+    portionDefaut: "100g",
+    unite: "g",
+    kcalParUnite: 1.64,
+    mesureRecommandee: "100g cuits",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Bien cuits, idéal midi, riche en fibres"
+  },
+  { 
+    nom: "Haricots rouges", 
+    categorie: "legumineuse", 
+    sousCategorie: "Légumineuses", 
+    kcal: 127,
+    qn: 4,
+    portionDefaut: "100g",
+    unite: "g",
+    kcalParUnite: 1.27,
+    mesureRecommandee: "100g cuits",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Trempage 12h, cuisson longue, excellent pour stabilisation"
+  },
+  { 
+    nom: "Fromage chèvre frais", 
+    categorie: "produit_laitier", 
+    sousCategorie: "Fromage", 
+    kcal: 268,
+    qn: 3,
+    portionDefaut: "50g",
+    unite: "g",
+    kcalParUnite: 5.36,
+    mesureRecommandee: "Portion individuelle",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Bio de préférence, 2-3x/semaine maximum"
+  },
+  { 
+    nom: "Fromage comté AOP", 
+    categorie: "produit_laitier", 
+    sousCategorie: "Fromage", 
+    kcal: 417,
+    qn: 3,
+    portionDefaut: "40g",
+    unite: "g",
+    kcalParUnite: 10.425,
+    mesureRecommandee: "Portion fromage",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Affiné 12 mois minimum, riche en calcium"
+  },
+  { 
+    nom: "Yaourt nature fermenté", 
+    categorie: "produit_laitier", 
+    sousCategorie: "Yaourt", 
+    kcal: 61,
+    qn: 4,
+    portionDefaut: "125g",
+    unite: "g",
+    kcalParUnite: 0.488,
+    mesureRecommandee: "1 pot",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Probiotiques naturels, sans sucre ajouté"
+  },
+  { 
+    nom: "Pomme crue bio", 
+    categorie: "fruit", 
+    sousCategorie: "Fruit frais", 
+    kcal: 52,
+    qn: 4,
+    portionDefaut: "120g",
+    unite: "g",
+    kcalParUnite: 0.433,
+    mesureRecommandee: "1 pomme moyenne",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Avec peau si bio, 1-2x/jour, entre repas"
+  },
+  { 
+    nom: "Poire crue", 
+    categorie: "fruit", 
+    sousCategorie: "Fruit frais", 
+    kcal: 57,
+    qn: 4,
+    portionDefaut: "120g",
+    unite: "g",
+    kcalParUnite: 0.475,
+    mesureRecommandee: "1 poire moyenne",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Bien mûre, digestion douce, riche en fibres"
+  },
+  { 
+    nom: "Kiwi", 
+    categorie: "fruit", 
+    sousCategorie: "Fruit frais", 
+    kcal: 61,
+    qn: 5,
+    portionDefaut: "100g",
+    unite: "g",
+    kcalParUnite: 0.61,
+    mesureRecommandee: "2 kiwis",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Excellent vitamine C, 1-2 par jour, stimule transit"
+  },
+  { 
+    nom: "Sarrasin", 
+    categorie: "feculent", 
+    sousCategorie: "Céréale", 
+    kcal: 343,
+    qn: 4,
+    portionDefaut: "80g",
+    unite: "g",
+    kcalParUnite: 4.2875,
+    mesureRecommandee: "Portion moyenne",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Sans gluten, complet, excellent midi"
+  },
+  { 
+    nom: "Épeautre complet", 
+    categorie: "feculent", 
+    sousCategorie: "Céréale", 
+    kcal: 338,
+    qn: 4,
+    portionDefaut: "80g",
+    unite: "g",
+    kcalParUnite: 4.225,
+    mesureRecommandee: "Portion moyenne",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Céréale ancienne, digeste, riche en minéraux"
+  },
+  { 
+    nom: "Bœuf maigre (5% MG)", 
+    categorie: "viande", 
+    sousCategorie: "Viande rouge", 
+    kcal: 250,
+    qn: 3,
+    portionDefaut: "150g",
+    unite: "g",
+    kcalParUnite: 1.667,
+    mesureRecommandee: "Portion viande",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "1-2x/semaine maximum, bio ou label rouge, bien cuit"
+  },
+  { 
+    nom: "Saumon sauvage", 
+    categorie: "poisson", 
+    sousCategorie: "Poisson gras", 
+    kcal: 208,
+    qn: 4,
+    portionDefaut: "120g",
+    unite: "g",
+    kcalParUnite: 1.733,
+    mesureRecommandee: "Pavé",
+    phase: 5,
+    favoriseCetose: true,
+    conseil: "Oméga-3, 2-3x/semaine, vapeur ou papillote"
+  },
+  { 
+    nom: "Maquereau frais", 
+    categorie: "poisson", 
+    sousCategorie: "Poisson gras", 
+    kcal: 305,
+    qn: 5,
+    portionDefaut: "150g",
+    unite: "g",
+    kcalParUnite: 2.033,
+    mesureRecommandee: "1 filet",
+    phase: 5,
+    favoriseCetose: true,
+    conseil: "Riche oméga-3, économique, 2-3x/semaine"
+  },
+  { 
+    nom: "Chocolat noir 85%", 
+    categorie: "douceur", 
+    sousCategorie: "Chocolat", 
+    kcal: 598,
+    qn: 3,
+    portionDefaut: "20g",
+    unite: "g",
+    kcalParUnite: 29.9,
+    mesureRecommandee: "2 carrés",
+    phase: 5,
+    favoriseCetose: false,
+    conseil: "Dégustation plaisir, 1x/jour max, antioxydants"
+  },
+  { 
+    nom: "Noix de cajou nature", 
+    categorie: "oleagineux", 
+    sousCategorie: "Noix", 
+    kcal: 553,
+    qn: 3,
+    portionDefaut: "30g",
+    unite: "g",
+    kcalParUnite: 18.433,
+    mesureRecommandee: "Poignée",
+    phase: 5,
+    favoriseCetose: true,
+    conseil: "Non grillées, non salées, collation, magnésium"
+  },
 ];
 
 // Export par défaut
@@ -638,7 +896,7 @@ export { alimentsRepriseJeune };
 
 /**
  * Récupère les aliments d'une phase spécifique
- * @param {number} phase - Numéro de la phase (1-4)
+ * @param {number} phase - Numéro de la phase (1-5)
  * @returns {Array} - Tableau des aliments de la phase
  */
 export function getAlimentsParPhase(phase) {

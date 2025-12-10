@@ -55,6 +55,7 @@ export default function TestReprise() {
             <li>Phase 2 (Fibres): J{phases.phase2.debut}-J{phases.phase2.fin} ({phases.phase2.fin - phases.phase2.debut + 1} jours)</li>
             <li>Phase 3 (Protéines): J{phases.phase3.debut}-J{phases.phase3.fin} ({phases.phase3.fin - phases.phase3.debut + 1} jours)</li>
             <li>Phase 4 (Féculents): J{phases.phase4.debut}-J{phases.phase4.fin} ({phases.phase4.fin - phases.phase4.debut + 1} jours)</li>
+            <li>Phase 5 (Alimentation normale contrôlée): J{phases.phase5.debut}-J{phases.phase5.fin} ({phases.phase5.fin - phases.phase5.debut + 1} jours)</li>
           </ul>
         </div>
         <button 

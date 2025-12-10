@@ -175,12 +175,12 @@ export default function ValidationPlanReprise() {
         }}
       >
         <h2 style={{ margin: '1.2rem 0 1.2rem 0', fontSize: '1.3rem', color: '#333', textAlign:'center' }}>
-          🗓️ Les 4 phases de ta reprise (scroll vertical)
+          🗓️ Les 5 phases de ta reprise (scroll vertical)
         </h2>
         {programme.phases && Object.entries(programme.phases).map(([phaseKey, phase], idx) => {
           const phaseNum = parseInt(phaseKey.replace('phase', ''))
-          const couleurs = ['#E3F2FD', '#F3E5F5', '#FFF3E0', '#E8F5E9']
-          const couleursBordure = ['#2196F3', '#9C27B0', '#FF9800', '#4CAF50']
+          const couleurs = ['#E3F2FD', '#F3E5F5', '#FFF3E0', '#E8F5E9', '#FFF8E1']
+          const couleursBordure = ['#2196F3', '#9C27B0', '#FF9800', '#4CAF50', '#FFB300']
           const alimentsPhase = alimentsRepriseJeune
             .filter(a => a.phase === phaseNum)
             .sort((a, b) => (b.favoriseCetose ? 1 : 0) - (a.favoriseCetose ? 1 : 0))
@@ -199,7 +199,8 @@ export default function ValidationPlanReprise() {
             ["Bouillon de légumes clair", "Eau citronnée", "Jus de carotte dilué"],
             ["Purée de courgette", "Compote maison", "Carottes vapeur"],
             ["Œuf mollet", "Avocat écrasé", "Légumes vapeur"],
-            ["Riz complet", "Patate douce", "Flocons d’avoine", "Légumes cuits"]
+            ["Riz complet", "Patate douce", "Flocons d'avoine", "Légumes cuits"],
+            ["Pain complet bio", "Lentilles vertes", "Fromage chèvre", "Pomme bio", "Saumon vapeur"]
           ]
           // Semaine-type par phase (rappel explicite de la phase)
           const semainesType = [
@@ -238,6 +239,15 @@ export default function ValidationPlanReprise() {
               "Vendredi : Légumes, céréales douces, fruits cuits",
               "Samedi : Légumes, œuf, compote",
               "Dimanche : Riz, légumes, fruits cuits"
+            ],
+            [
+              "Lundi : Pain complet, lentilles vertes, légumes vapeur",
+              "Mardi : Pâtes complètes, saumon vapeur, salade verte",
+              "Mercredi : Fromage chèvre, sarrasin, légumes cuits",
+              "Jeudi : Pois chiches, légumes, pomme bio",
+              "Vendredi : Épeautre complet, maquereau, légumes vapeur",
+              "Samedi : Yaourt fermenté, fruits frais, noix de cajou",
+              "Dimanche : Bœuf maigre, légumes variés, kiwi"
             ]
           ]
           return (
@@ -267,7 +277,7 @@ export default function ValidationPlanReprise() {
                 <div style={{
                   width:48, height:48, borderRadius:'50%', background:couleursBordure[phaseNum-1],
                   display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'2rem', fontWeight:700
-                }}>{['💧','🥬','🥚','🍚'][phaseNum-1]}</div>
+                }}>{['💧','🥬','🥚','🍒','🍽️'][phaseNum-1]}</div>
                 <div style={{fontWeight:700, fontSize:'1.2rem', color:'#222'}}>Phase {phaseNum} <span style={{fontWeight:400, fontSize:'1rem', color:'#666'}}>J{phase.debut} à J{phase.fin} ({phase.fin - phase.debut + 1} jours)</span></div>
               </div>
               <div style={{fontWeight:600, color:'#333', fontSize:'1.1rem', display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.5rem'}}>
