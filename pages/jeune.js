@@ -7,6 +7,7 @@ import ChecklistConseilsActivation from "../components/ChecklistConseilsActivati
 import MessageSoutien from "../components/MessageSoutien";
 import AnalyseComportementale from "../components/AnalyseComportementale";
 import PertePoidsEstimee from "../components/PertePoidsEstimee";
+import BilanJeune from "../components/BilanJeune";
 
 // --- Données statiques pour chaque jour de jeûne (exemple jusqu'à 10 jours, à compléter si besoin) ---
 const JEUNE_DAYS_CONTENT = {
@@ -461,6 +462,8 @@ export default function Jeune() {
   const [planRepriseValide, setPlanRepriseValide] = useState(null);
   const [planValideCoherent, setPlanValideCoherent] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
+  const [bilanJeune, setBilanJeune] = useState(null);
+  const [showBilan, setShowBilan] = useState(false);
 
   // Hooks pour données Supabase réelles
   const [repasRecentsSupabase, setRepasRecentsSupabase] = useState([]);
@@ -674,6 +677,7 @@ export default function Jeune() {
       }
       
       setPoidsDepart(poids);
+      setPoidsInitial(poids); // CORRECTION: Synchroniser avec poidsInitial pour le bilan
       setLoadingDonneesJeune(false);
     }
     
@@ -769,6 +773,89 @@ export default function Jeune() {
   }, [repasRecentsSupabase, poidsDepart, dureeJeune]);
 
   // === FONCTIONS HANDLERS (AVANT LE RENDER) ===
+
+  // Générer le bilan détaillé du jeûne
+  const genererBilanJeune = () => {
+    const aujourdhui = new Date().toISOString().split('T')[0];
+    
+    // Calculer perte de poids (si poids final renseigné)
+    let pertePoids = null;
+    let poidsActuel = null;
+    if (typeof window !== 'undefined') {
+      const savedPoidsFinal = localStorage.getItem(`poids_jour_${dureeJeune}`);
+      if (savedPoidsFinal && poidsInitial > 0) {
+        poidsActuel = parseFloat(savedPoidsFinal);
+        pertePoids = poidsInitial - poidsActuel;
+      }
+    }
+    
+    // Analyser les outils utilisés
+    const outilsComptes = {};
+    Object.values(outils).flat().forEach(outil => {
+      outilsComptes[outil] = (outilsComptes[outil] || 0) + 1;
+    });
+    const outilsPopulaires = Object.entries(outilsComptes)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+    
+    // Taux de complétion
+    const tauxCompletion = Math.round((joursValides.length / dureeJeune) * 100);
+    
+    // Durée réelle du jeûne
+    let dureeReelle = dureeJeune;
+    if (dateDebutJeune) {
+      const debut = new Date(dateDebutJeune);
+      const fin = new Date();
+      dureeReelle = Math.floor((fin - debut) / (1000*60*60*24)) + 1;
+    }
+    
+    const bilan = {
+      user_id: null, // À remplir si Supabase auth activé
+      date_debut: dateDebutJeune,
+      date_fin: aujourdhui,
+      duree_prevue: dureeJeune,
+      duree_reelle: dureeReelle,
+      jours_valides: joursValides.length,
+      taux_completion: tauxCompletion,
+      poids_initial: poidsInitial || null,
+      poids_final: poidsActuel,
+      perte_poids: pertePoids,
+      outils_utilises: outils,
+      outils_populaires: outilsPopulaires.map(([nom, count]) => ({ nom, count })),
+      message_personnel: messagePerso || "",
+      created_at: aujourdhui
+    };
+    
+    // Sauvegarder dans localStorage
+    localStorage.setItem('bilanJeune', JSON.stringify(bilan));
+    
+    // === PHASE 3 : Historique multi-jeûnes ===
+    // Récupérer l'historique existant
+    let historique = [];
+    try {
+      const historiqueStr = localStorage.getItem('historiqueBilansJeune');
+      if (historiqueStr) {
+        historique = JSON.parse(historiqueStr);
+        // Sécurité : s'assurer que c'est bien un array
+        if (!Array.isArray(historique)) {
+          historique = [];
+        }
+      }
+    } catch (e) {
+      console.error('❌ Erreur lecture historique:', e);
+      historique = [];
+    }
+    
+    // Ajouter le bilan actuel
+    historique.push(bilan);
+    
+    // Sauvegarder l'historique mis à jour
+    localStorage.setItem('historiqueBilansJeune', JSON.stringify(historique));
+    
+    console.log(`📚 Bilan ajouté à l'historique (total: ${historique.length})`);
+    
+    return bilan;
+  };
 
   const validerJour = () => {
     // Vérifier que le jour affiché n'est pas dans le futur
@@ -912,15 +999,24 @@ export default function Jeune() {
 
   const isFini = joursValides.length >= dureeJeune;
 
+  // Générer le bilan automatiquement quand le jeûne est terminé
+  useEffect(() => {
+    if (isFini && !bilanJeune) {
+      const bilan = genererBilanJeune();
+      setBilanJeune(bilan);
+      setShowBilan(true); // Afficher automatiquement le bilan
+    }
+  }, [isFini, joursValides.length]);
+
   // Redirection automatique vers la page de reprise alimentaire après jeûne quand le jeûne est fini
   useEffect(() => {
-    if (isFini && programmeReprise) {
+    if (isFini && programmeReprise && !showBilan) {
       // Sauvegarder le plan validé dans localStorage (clé dédiée)
       localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeReprise));
       // Rediriger automatiquement (URL conforme Next.js)
       window.location.href = '/reprise-alimentaire-apres-jeune';
     }
-  }, [isFini, programmeReprise]);
+  }, [isFini, programmeReprise, showBilan]);
   // Affiche la préparation à la reprise à partir de la moitié du jeûne ou du J4
   const showReprise = !isFini && (jourEnCours >= Math.max(4, Math.ceil(dureeJeune / 2)));
 
@@ -1523,56 +1619,56 @@ export default function Jeune() {
         </div>
       )}
 
+      {/* --- Bilan détaillé du jeûne (Composant Modal) --- */}
+      {isFini && bilanJeune && showBilan && (
+        <BilanJeune
+          bilan={bilanJeune}
+          outils={outils}
+          onClose={() => setShowBilan(false)}
+          onAccederReprise={() => {
+            setShowBilan(false);
+            if (programmeReprise) {
+              localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeReprise));
+              window.location.href = '/reprise-alimentaire-apres-jeune';
+            }
+          }}
+        />
+      )}
+
       {/* --- Passerelle automatique vers la reprise --- */}
-      {isFini && (
+      {isFini && !showBilan && (
         <div style={{
           background: "#e8f5e9", border: "1px solid #a5d6a7", borderRadius: 12, padding: 20, marginBottom: 18
         }}>
           <div style={{ fontWeight: 700, fontSize: 18, color: "#388e3c", marginBottom: 8 }}>
-            🎉 Bravo, tu as terminé ton jeûne !
+            🎉 Bravo, tu as terminé ton jeûne !
           </div>
-          <div>
+          <div style={{ marginBottom: 16 }}>
             Demain, tu commences ta reprise guidée de {dureeJeune * 2} jours.<br />
-            Les repas sont déjà préparés dans ton planning. Tu n’as plus qu’à les suivre.
+            Les repas sont déjà préparés dans ton planning.
           </div>
-          {messagePerso && (
-            <div style={{
-              marginTop: 14, background: "#fff", borderRadius: 8, padding: 12, border: "1px solid #bdbdbd"
-            }}>
-              <b>Ton message à toi-même :</b>
-              <div style={{ marginTop: 6, color: "#4d148c" }}>{messagePerso}</div>
-            </div>
-          )}
-          {Object.keys(outils).length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <b>Voici les outils que tu as mobilisés pendant ton jeûne :</b>
-              <ul style={{ margin: 0, paddingLeft: 18 }}>
-                {Object.entries(outils).map(([jour, outs]) =>
-                  outs.map((o, i) => (
-                    <li key={jour + "-" + i}>
-                      Jour {jour} : {o}
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
-          )}
-          {/* Bouton d'accès manuel à la reprise alimentaire */}
-          <div style={{ marginTop: 24, textAlign: 'center' }}>
+          
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <button
+              style={{
+                background: '#1976d2', color: 'white', border: 'none',
+                borderRadius: 8, padding: '12px 24px', fontWeight: 600, cursor: 'pointer'
+              }}
+              onClick={() => setShowBilan(true)}
+            >
+              📊 Voir mon bilan détaillé
+            </button>
             <button
               style={{
                 background: 'linear-gradient(135deg, #43cea2 0%, #185a9d 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: 8,
-                padding: '0.75rem 2rem',
-                fontWeight: 600,
-                fontSize: '1rem',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(67,206,162,0.08)'
+                color: 'white', border: 'none', borderRadius: 8,
+                padding: '12px 24px', fontWeight: 600, cursor: 'pointer'
               }}
               onClick={() => {
-                window.location.href = '/reprise-alimentaire-apres-jeune';
+                if (programmeReprise) {
+                  localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeReprise));
+                  window.location.href = '/reprise-alimentaire-apres-jeune';
+                }
               }}
             >
               👀 Accéder à ma reprise alimentaire
