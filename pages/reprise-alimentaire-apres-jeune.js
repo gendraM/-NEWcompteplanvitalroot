@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Link from 'next/link';
 import NotificationsPhase1 from '../components/NotificationsPhase1';
+import NotificationsPhase2 from '../components/NotificationsPhase2';
 import RecettesPhase1Modal from '../components/RecettesPhase1Modal';
+import RecettesPhase2Modal from '../components/RecettesPhase2Modal';
 
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
@@ -201,6 +203,9 @@ export default function RepriseAlimentaireApresJeune() {
   // 🆕 États pour fonctionnalités Phase 1
   const [modalRecettes, setModalRecettes] = useState({ isOpen: false, type: 'bouillon' });
   const [notificationsActives, setNotificationsActives] = useState(false);
+
+  // 🆕 États pour fonctionnalités Phase 2
+  const [modalRecettesPhase2, setModalRecettesPhase2] = useState({ isOpen: false, type: 'compote' });
 
   // Permettre un mode test/forçage via ?test=1 dans l'URL
   const [forceSuivi, setForceSuivi] = useState(false);
@@ -1696,6 +1701,36 @@ export default function RepriseAlimentaireApresJeune() {
                               🥘 Recette
                             </button>
                           )}
+                          {/* Bouton recettes pour aliments Phase 2 spécifiques */}
+                          {modalAliments === 2 && (a.nom.includes('Compote') || a.nom.includes('Purée') || a.nom.includes('Fruit cuit') || a.nom.includes('Bouillon')) && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setModalAliments(null);
+                                let recetteType = 'compote';
+                                if (a.nom.includes('Purée')) recetteType = 'puree';
+                                else if (a.nom.includes('Fruit cuit') || a.nom.includes('Pomme') || a.nom.includes('Poire')) recetteType = 'fruitcuit';
+                                else if (a.nom.includes('Bouillon')) recetteType = 'bouillon';
+                                setModalRecettesPhase2({ 
+                                  isOpen: true, 
+                                  type: recetteType
+                                });
+                              }}
+                              style={{
+                                background: 'linear-gradient(135deg, #4CAF50, #66BB6A)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '4px 8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                marginLeft: '8px'
+                              }}
+                            >
+                              🥘 Recette Phase 2
+                            </button>
+                          )}
                         </li>
                       ))}
                       {/* Bouton notifications Phase 1 */}
@@ -1725,6 +1760,33 @@ export default function RepriseAlimentaireApresJeune() {
                           </div>
                         </li>
                       )}
+                      {/* Bouton notifications Phase 2 */}
+                      {modalAliments === 2 && (
+                        <li style={{ marginTop: '16px', padding: '12px', background: '#e8f5e8', borderRadius: 8 }}>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setNotificationsActives(!notificationsActives);
+                            }}
+                            style={{
+                              background: notificationsActives ? 'linear-gradient(135deg, #4CAF50, #66BB6A)' : 'linear-gradient(135deg, #66BB6A, #4CAF50)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: '8px 16px',
+                              fontSize: '0.9rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              width: '100%'
+                            }}
+                          >
+                            {notificationsActives ? '🔕 Désactiver' : '🔔 Activer'} notifications Phase 2
+                          </button>
+                          <div style={{ fontSize: '0.8rem', color: '#4CAF50', marginTop: '4px', textAlign: 'center' }}>
+                            Horaires fibres douces : 8h (compote+huile), 11h (bouillon), 13h/19h (purée), 16h (fruit cuit)
+                          </div>
+                        </li>
+                      )}
                     </>
                   );
                 })()}
@@ -1740,11 +1802,25 @@ export default function RepriseAlimentaireApresJeune() {
           isActive={notificationsActives}
         />
 
-        {/* 🥘 Modal recettes détaillées */}
+        {/* 🔔 Notifications Phase 2 */}
+        <NotificationsPhase2 
+          phase={jours.length > 0 && selectedJourIdx >= 0 ? jours[selectedJourIdx]?.phase : null}
+          jourNum={selectedJourIdx + 1}
+          isActive={notificationsActives}
+        />
+
+        {/* 🥘 Modal recettes détaillées Phase 1 */}
         <RecettesPhase1Modal 
           isOpen={modalRecettes.isOpen}
           recetteType={modalRecettes.type}
           onClose={() => setModalRecettes({ isOpen: false, type: 'bouillon' })}
+        />
+
+        {/* 🥘 Modal recettes détaillées Phase 2 */}
+        <RecettesPhase2Modal 
+          isOpen={modalRecettesPhase2.isOpen}
+          recetteType={modalRecettesPhase2.type}
+          onClose={() => setModalRecettesPhase2({ isOpen: false, type: 'compote' })}
         />
       </main>
       
