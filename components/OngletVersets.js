@@ -1,8 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useVersets } from '../lib/useJournalSpirituel';
 import styles from '../styles/OngletVersets.module.css';
 
 export default function OngletVersets({ jourJeune }) {
-  const [versets, setVersets] = useState([]);
+  // Hook Supabase avec fallback localStorage
+  const { versets, loading, mode, ajouter, modifier, supprimer } = useVersets();
+  
+  // États locaux pour le formulaire
   const [modeEdition, setModeEdition] = useState(false);
   const [versetEnCours, setVersetEnCours] = useState(null);
   const [texte, setTexte] = useState('');
@@ -12,25 +16,13 @@ export default function OngletVersets({ jourJeune }) {
   const [filtreRecherche, setFiltreRecherche] = useState('');
   const [filtreFavoris, setFiltreFavoris] = useState(false);
 
-  // Chargement versets depuis localStorage
-  useEffect(() => {
-    const versetsStockes = localStorage.getItem('versets');
-    if (versetsStockes) {
-      try {
-        setVersets(JSON.parse(versetsStockes));
-      } catch (e) {
-        console.error('Erreur chargement versets:', e);
-      }
-    }
-  }, []);
-
-  // Sauvegarder dans localStorage
-  const sauvegarderStorage = (nouveauxVersets) => {
-    localStorage.setItem('versets', JSON.stringify(nouveauxVersets));
-  };
+  // Afficher loading pendant chargement
+  if (loading) {
+    return <div style={{ padding: 20, textAlign: 'center' }}>Chargement des versets...</div>;
+  }
 
   // Ajouter/Modifier verset
-  const handleSoumettre = (e) => {
+  const handleSoumettre = async (e) => {
     e.preventDefault();
     
     if (!texte.trim() || !reference.trim()) {
@@ -42,28 +34,26 @@ export default function OngletVersets({ jourJeune }) {
 
     if (versetEnCours) {
       // Modification
-      const versetsModifies = versets.map(v => 
-        v.id === versetEnCours.id 
-          ? { ...v, texte, reference, lienExterne, tags: tagsList, dateModif: new Date().toISOString() }
-          : v
-      );
-      setVersets(versetsModifies);
-      sauvegarderStorage(versetsModifies);
+      const versetModifie = {
+        ...versetEnCours,
+        texte,
+        reference,
+        lienExterne,
+        tags: tagsList,
+        dateModif: new Date().toISOString()
+      };
+      await modifier(versetEnCours.id, versetModifie);
     } else {
       // Ajout
       const nouveauVerset = {
-        id: Date.now(),
         texte,
         reference,
         lienExterne,
         tags: tagsList,
         favori: false,
-        dateCreation: new Date().toISOString(),
         jourJeune
       };
-      const nouveauxVersets = [nouveauVerset, ...versets];
-      setVersets(nouveauxVersets);
-      sauvegarderStorage(nouveauxVersets);
+      await ajouter(nouveauVerset);
     }
 
     // Reset formulaire
@@ -92,21 +82,18 @@ export default function OngletVersets({ jourJeune }) {
   };
 
   // Supprimer verset
-  const handleSupprimer = (id) => {
+  const handleSupprimer = async (id) => {
     if (!confirm('Supprimer ce verset ?')) return;
     
-    const nouveauxVersets = versets.filter(v => v.id !== id);
-    setVersets(nouveauxVersets);
-    sauvegarderStorage(nouveauxVersets);
+    await supprimer(id);
   };
 
   // Toggle favori
-  const toggleFavori = (id) => {
-    const versetsModifies = versets.map(v => 
-      v.id === id ? { ...v, favori: !v.favori } : v
-    );
-    setVersets(versetsModifies);
-    sauvegarderStorage(versetsModifies);
+  const toggleFavori = async (id) => {
+    const verset = versets.find(v => v.id === id);
+    if (verset) {
+      await modifier(id, { ...verset, favori: !verset.favori });
+    }
   };
 
   // Filtrer versets
@@ -139,7 +126,9 @@ export default function OngletVersets({ jourJeune }) {
 
   return (
     <div className={styles.ongletContainer}>
-      <h2 className={styles.title}>📖 Versets & Citations</h2>
+      <h2 className={styles.title}>
+        📖 Versets & Citations {mode === 'supabase' ? '☁️' : '💾'}
+      </h2>
       
       {/* Bouton ajouter */}
       {!modeEdition && (

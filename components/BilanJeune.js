@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useMeditations, useVersets, useQuestions, useIntentions, useEcrits } from '../lib/useJournalSpirituel';
 
 export default function BilanJeune({ bilan, outils, onClose, onAccederReprise }) {
   if (!bilan) return null;
@@ -7,6 +8,46 @@ export default function BilanJeune({ bilan, outils, onClose, onAccederReprise })
   const [bilanActuel, setBilanActuel] = useState(bilan);
   const [poidsSaisi, setPoidsSaisi] = useState(bilanActuel.poids_final || '');
   const [messageConfirmation, setMessageConfirmation] = useState('');
+
+  // Hooks pour données spirituelles
+  const { meditations, loading: loadingMed } = useMeditations();
+  const { versets, loading: loadingVers } = useVersets();
+  const { questions, loading: loadingQuest } = useQuestions();
+  const { intentions, loading: loadingInt } = useIntentions();
+  const { ecrits, loading: loadingEcr } = useEcrits();
+
+  // Filtrer données spirituelles sur période du jeûne
+  const dateDebut = bilanActuel.date_debut ? new Date(bilanActuel.date_debut) : null;
+  const dateFin = bilanActuel.date_fin ? new Date(bilanActuel.date_fin) : null;
+
+  const meditationsDuJeune = dateDebut && dateFin ? meditations.filter(m => {
+    const date = new Date(m.created_at);
+    return date >= dateDebut && date <= dateFin;
+  }) : [];
+
+  const versetsDuJeune = dateDebut && dateFin ? versets.filter(v => {
+    const date = new Date(v.created_at);
+    return date >= dateDebut && date <= dateFin;
+  }) : [];
+
+  const questionsDuJeune = dateDebut && dateFin ? questions.filter(q => {
+    const date = new Date(q.created_at);
+    return date >= dateDebut && date <= dateFin;
+  }) : [];
+
+  const intentionsDuJeune = dateDebut && dateFin ? intentions.filter(i => {
+    const date = new Date(i.created_at);
+    return date >= dateDebut && date <= dateFin;
+  }) : [];
+
+  const ecritsDuJeune = dateDebut && dateFin ? ecrits.filter(e => {
+    const date = new Date(e.created_at);
+    return date >= dateDebut && date <= dateFin;
+  }) : [];
+
+  const intentionsCompletes = intentionsDuJeune.filter(i => i.completee).length;
+  const totalActivitesSpirituel = meditationsDuJeune.length + versetsDuJeune.length + 
+                                   questionsDuJeune.length + intentionsDuJeune.length + ecritsDuJeune.length;
 
   const sauvegarderPoids = () => {
     const poids = parseFloat(poidsSaisi);
@@ -350,6 +391,126 @@ export default function BilanJeune({ bilan, outils, onClose, onAccederReprise })
             </details>
           );
         })()}
+
+        {/* === Bilan Spirituel === */}
+        {totalActivitesSpirituel > 0 && (
+          <details style={{
+            background: 'linear-gradient(135deg, #e1f5fe 0%, #f3e5f5 100%)',
+            borderRadius: 12,
+            padding: 16,
+            marginBottom: 16,
+            border: '1px solid #81d4fa',
+            cursor: 'pointer'
+          }}>
+            <summary style={{ fontWeight: 600, fontSize: 16, marginBottom: 12 }}>
+              📿 Bilan Spirituel ({totalActivitesSpirituel} activité{totalActivitesSpirituel > 1 ? 's' : ''})
+            </summary>
+            <div style={{ marginTop: 12 }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 12,
+                marginBottom: 12
+              }}>
+                {meditationsDuJeune.length > 0 && (
+                  <div style={{
+                    background: 'white',
+                    borderRadius: 8,
+                    padding: 12,
+                    border: '1px solid #b39ddb'
+                  }}>
+                    <div style={{ fontSize: 24, marginBottom: 4 }}>🧘</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#673ab7' }}>
+                      {meditationsDuJeune.length}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#666' }}>
+                      méditation{meditationsDuJeune.length > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                )}
+
+                {versetsDuJeune.length > 0 && (
+                  <div style={{
+                    background: 'white',
+                    borderRadius: 8,
+                    padding: 12,
+                    border: '1px solid #81c784'
+                  }}>
+                    <div style={{ fontSize: 24, marginBottom: 4 }}>📖</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#388e3c' }}>
+                      {versetsDuJeune.length}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#666' }}>
+                      verset{versetsDuJeune.length > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                )}
+
+                {questionsDuJeune.length > 0 && (
+                  <div style={{
+                    background: 'white',
+                    borderRadius: 8,
+                    padding: 12,
+                    border: '1px solid #90caf9'
+                  }}>
+                    <div style={{ fontSize: 24, marginBottom: 4 }}>💭</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#1976d2' }}>
+                      {questionsDuJeune.length}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#666' }}>
+                      question{questionsDuJeune.length > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                )}
+
+                {intentionsDuJeune.length > 0 && (
+                  <div style={{
+                    background: 'white',
+                    borderRadius: 8,
+                    padding: 12,
+                    border: '1px solid #ffb74d'
+                  }}>
+                    <div style={{ fontSize: 24, marginBottom: 4 }}>🎯</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#f57c00' }}>
+                      {intentionsCompletes}/{intentionsDuJeune.length}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#666' }}>
+                      intention{intentionsDuJeune.length > 1 ? 's' : ''} accomplie{intentionsCompletes > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                )}
+
+                {ecritsDuJeune.length > 0 && (
+                  <div style={{
+                    background: 'white',
+                    borderRadius: 8,
+                    padding: 12,
+                    border: '1px solid #ce93d8'
+                  }}>
+                    <div style={{ fontSize: 24, marginBottom: 4 }}>✍️</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#8e24aa' }}>
+                      {ecritsDuJeune.length}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#666' }}>
+                      écrit{ecritsDuJeune.length > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{
+                marginTop: 12,
+                padding: '10px 12px',
+                background: 'rgba(255,255,255,0.7)',
+                borderRadius: 8,
+                fontSize: 13,
+                color: '#555'
+              }}>
+                💡 <strong>Félicitations !</strong> Tu as nourri ton esprit pendant ce jeûne. Ces pratiques spirituelles sont un trésor à conserver.
+              </div>
+            </div>
+          </details>
+        )}
 
         {/* Message personnel */}
         {bilanActuel.message_personnel && (

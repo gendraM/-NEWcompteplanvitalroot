@@ -1,13 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuestions } from '../lib/useJournalSpirituel';
 import styles from '../styles/OngletQuestions.module.css';
 
 export default function OngletQuestions({ jourJeune }) {
+  // Hook Supabase avec fallback localStorage
+  const { questions: reponsesStockees, loading, mode, ajouter, modifier, supprimer } = useQuestions();
+  
+  // États locaux pour le formulaire
   const [questionActive, setQuestionActive] = useState(null);
   const [reponse, setReponse] = useState('');
-  const [reponses, setReponses] = useState({});
   const [afficherHistorique, setAfficherHistorique] = useState(false);
   const [questionPersonnalisee, setQuestionPersonnalisee] = useState('');
   const [modeAjoutQuestion, setModeAjoutQuestion] = useState(false);
+
+  // Afficher loading pendant chargement
+  if (loading) {
+    return <div style={{ padding: 20, textAlign: 'center' }}>Chargement des questions...</div>;
+  }
 
   // Questions guidées par jour (8 questions rotatives sur J1-J14)
   const questionsGuidees = [
@@ -61,36 +70,20 @@ export default function OngletQuestions({ jourJeune }) {
     }
   ];
 
-  // Charger les réponses depuis localStorage
-  useEffect(() => {
-    const reponsesStockees = localStorage.getItem('questionsReponses');
-    if (reponsesStockees) {
-      try {
-        setReponses(JSON.parse(reponsesStockees));
-      } catch (e) {
-        console.error('Erreur chargement réponses:', e);
-      }
-    }
-  }, []);
+  // Charger les réponses depuis le hook (format compatible)
+  const reponses = {};
+  reponsesStockees.forEach(r => {
+    const cle = `${r.questionId}_J${r.jourJeune}`;
+    reponses[cle] = r;
+  });
 
   // Questions disponibles pour le jour actuel
   const questionsDisponibles = jourJeune 
     ? questionsGuidees.filter(q => q.jours.includes(jourJeune))
     : questionsGuidees.filter(q => q.jours.includes(1)); // Par défaut J1
 
-  // Questions personnalisées
-  const [questionsPerso, setQuestionsPerso] = useState([]);
-
-  useEffect(() => {
-    const questionsPersoStockees = localStorage.getItem('questionsPersonnalisees');
-    if (questionsPersoStockees) {
-      try {
-        setQuestionsPerso(JSON.parse(questionsPersoStockees));
-      } catch (e) {
-        console.error('Erreur chargement questions perso:', e);
-      }
-    }
-  }, []);
+  // Questions personnalisées (filtrées du hook)
+  const questionsPerso = reponsesStockees.filter(r => r.type === 'personnalisee');
 
   // Ouvrir question
   const ouvrirQuestion = (questionId) => {
@@ -101,25 +94,20 @@ export default function OngletQuestions({ jourJeune }) {
   };
 
   // Sauvegarder réponse
-  const sauvegarderReponse = () => {
+  const sauvegarderReponse = async () => {
     if (!reponse.trim()) {
       alert('Veuillez écrire une réponse');
       return;
     }
 
-    const cleReponse = `${questionActive}_J${jourJeune}`;
-    const nouvellesReponses = {
-      ...reponses,
-      [cleReponse]: {
-        texte: reponse,
-        date: new Date().toISOString(),
-        jourJeune: jourJeune,
-        questionId: questionActive
-      }
+    const nouvelleReponse = {
+      texte: reponse,
+      jourJeune: jourJeune,
+      questionId: questionActive,
+      type: 'guidee'
     };
 
-    setReponses(nouvellesReponses);
-    localStorage.setItem('questionsReponses', JSON.stringify(nouvellesReponses));
+    await ajouter(nouvelleReponse);
     
     alert('✅ Réponse sauvegardée !');
     setQuestionActive(null);
@@ -127,28 +115,18 @@ export default function OngletQuestions({ jourJeune }) {
   };
 
   // Ajouter question personnalisée
-  const ajouterQuestionPerso = () => {
+  const ajouterQuestionPerso = async () => {
     if (!questionPersonnalisee.trim()) {
       alert('Veuillez saisir une question');
       return;
     }
 
-    const maintenant = new Date();
     const nouvelleQuestion = {
-      id: `perso_${Date.now()}`,
       question: questionPersonnalisee,
-      type: 'personnalisee',
-      dateCreation: maintenant.toISOString(),
-      dateCreationFormatee: maintenant.toLocaleDateString('fr-FR', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric'
-      })
+      type: 'personnalisee'
     };
 
-    const nouvellesQuestions = [...questionsPerso, nouvelleQuestion];
-    setQuestionsPerso(nouvellesQuestions);
-    localStorage.setItem('questionsPersonnalisees', JSON.stringify(nouvellesQuestions));
+    await ajouter(nouvelleQuestion);
 
     setQuestionPersonnalisee('');
     setModeAjoutQuestion(false);
@@ -156,12 +134,10 @@ export default function OngletQuestions({ jourJeune }) {
   };
 
   // Supprimer question personnalisée
-  const supprimerQuestionPerso = (id) => {
+  const supprimerQuestionPerso = async (id) => {
     if (!confirm('Supprimer cette question ?')) return;
 
-    const nouvellesQuestions = questionsPerso.filter(q => q.id !== id);
-    setQuestionsPerso(nouvellesQuestions);
-    localStorage.setItem('questionsPersonnalisees', JSON.stringify(nouvellesQuestions));
+    await supprimer(id);
   };
 
   // Formater date
@@ -187,7 +163,9 @@ export default function OngletQuestions({ jourJeune }) {
 
   return (
     <div className={styles.ongletContainer}>
-      <h2 className={styles.title}>💭 Questions Profondes</h2>
+      <h2 className={styles.title}>
+        💭 Questions Profondes {mode === 'supabase' ? '☁️' : '💾'}
+      </h2>
       
       <div className={styles.infoJour}>
         <span className={styles.jourBadge}>Jour {jourJeune || 1}</span>

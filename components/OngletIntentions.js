@@ -1,50 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useIntentions } from '../lib/useJournalSpirituel';
 import styles from '../styles/OngletIntentions.module.css';
 
 export default function OngletIntentions({ jourJeune }) {
+  // Hook Supabase avec fallback localStorage
+  const { intentions, loading, mode, ajouter, modifier, supprimer } = useIntentions();
+  
+  // États locaux pour le formulaire
   const [nouvelleIntention, setNouvelleIntention] = useState('');
-  const [intentions, setIntentions] = useState([]);
   const [afficherCompletes, setAfficherCompletes] = useState(false);
   const [modeAjout, setModeAjout] = useState(false);
 
-  // Charger intentions depuis localStorage
-  useEffect(() => {
-    const intentionsStockees = localStorage.getItem('intentions');
-    if (intentionsStockees) {
-      try {
-        setIntentions(JSON.parse(intentionsStockees));
-      } catch (e) {
-        console.error('Erreur chargement intentions:', e);
-      }
-    }
-  }, []);
+  // Afficher loading pendant chargement
+  if (loading) {
+    return <div style={{ padding: 20, textAlign: 'center' }}>Chargement des intentions...</div>;
+  }
 
   // Ajouter intention
-  const ajouterIntention = () => {
+  const ajouterIntention = async () => {
     if (!nouvelleIntention.trim()) {
       alert('Veuillez saisir une intention');
       return;
     }
 
-    const maintenant = new Date();
     const intention = {
-      id: Date.now(),
       texte: nouvelleIntention,
-      dateCreation: maintenant.toISOString(),
-      dateCreationFormatee: maintenant.toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }),
       jourJeuneCreation: jourJeune,
       completee: false,
-      dateCompletion: null,
       progression: 0
     };
 
-    const nouvellesIntentions = [intention, ...intentions];
-    setIntentions(nouvellesIntentions);
-    localStorage.setItem('intentions', JSON.stringify(nouvellesIntentions));
+    await ajouter(intention);
 
     setNouvelleIntention('');
     setModeAjout(false);
@@ -52,71 +38,45 @@ export default function OngletIntentions({ jourJeune }) {
   };
 
   // Marquer comme complétée
-  const marquerCompletee = (id) => {
-    const nouvellesIntentions = intentions.map(intention => {
-      if (intention.id === id) {
-        const maintenant = new Date();
-        return {
-          ...intention,
-          completee: true,
-          dateCompletion: maintenant.toISOString(),
-          dateCompletionFormatee: maintenant.toLocaleDateString('fr-FR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-          }),
-          progression: 100
-        };
-      }
-      return intention;
-    });
-
-    setIntentions(nouvellesIntentions);
-    localStorage.setItem('intentions', JSON.stringify(nouvellesIntentions));
-    alert('🎉 Intention accomplie !');
+  const marquerCompletee = async (id) => {
+    const intention = intentions.find(i => i.id === id);
+    if (intention) {
+      await modifier(id, {
+        ...intention,
+        completee: true,
+        progression: 100
+      });
+      alert('🎉 Intention accomplie !');
+    }
   };
 
   // Réactiver intention
-  const reactiverIntention = (id) => {
-    const nouvellesIntentions = intentions.map(intention => {
-      if (intention.id === id) {
-        return {
-          ...intention,
-          completee: false,
-          dateCompletion: null,
-          dateCompletionFormatee: null
-        };
-      }
-      return intention;
-    });
-
-    setIntentions(nouvellesIntentions);
-    localStorage.setItem('intentions', JSON.stringify(nouvellesIntentions));
+  const reactiverIntention = async (id) => {
+    const intention = intentions.find(i => i.id === id);
+    if (intention) {
+      await modifier(id, {
+        ...intention,
+        completee: false
+      });
+    }
   };
 
   // Supprimer intention
-  const supprimerIntention = (id) => {
+  const supprimerIntention = async (id) => {
     if (!confirm('Supprimer cette intention ?')) return;
 
-    const nouvellesIntentions = intentions.filter(i => i.id !== id);
-    setIntentions(nouvellesIntentions);
-    localStorage.setItem('intentions', JSON.stringify(nouvellesIntentions));
+    await supprimer(id);
   };
 
   // Modifier progression
-  const modifierProgression = (id, nouvelleProgression) => {
-    const nouvellesIntentions = intentions.map(intention => {
-      if (intention.id === id) {
-        return {
-          ...intention,
-          progression: nouvelleProgression
-        };
-      }
-      return intention;
-    });
-
-    setIntentions(nouvellesIntentions);
-    localStorage.setItem('intentions', JSON.stringify(nouvellesIntentions));
+  const modifierProgression = async (id, nouvelleProgression) => {
+    const intention = intentions.find(i => i.id === id);
+    if (intention) {
+      await modifier(id, {
+        ...intention,
+        progression: nouvelleProgression
+      });
+    }
   };
 
   // Filtrer intentions
@@ -125,7 +85,9 @@ export default function OngletIntentions({ jourJeune }) {
 
   return (
     <div className={styles.ongletContainer}>
-      <h2 className={styles.title}>🎯 Mes Intentions</h2>
+      <h2 className={styles.title}>
+        🎯 Mes Intentions {mode === 'supabase' ? '☁️' : '💾'}
+      </h2>
 
       <div className={styles.infoSection}>
         <p className={styles.infoText}>
