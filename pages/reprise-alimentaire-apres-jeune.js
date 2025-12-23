@@ -52,16 +52,17 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
       marginBottom: '2rem',
       marginTop: '1.5rem',
       maxWidth: 340,
-      width: '100%',
+      width: 340,
       fontSize: '1.01rem',
       display: 'flex', 
       flexDirection: 'column', 
       gap: '1.1rem',
-      position: 'sticky',
-      top: '1.5rem',
-      alignSelf: 'flex-start',
-      maxHeight: 'calc(100vh - 3rem)',
-      overflowY: 'auto'
+      position: 'fixed',
+      left: '2rem',
+      top: '2rem',
+      maxHeight: 'calc(100vh - 4rem)',
+      overflowY: 'auto',
+      zIndex: 50
     }}>
       <div style={{fontWeight:700, color:'#1976d2', fontSize:'1.15rem', marginBottom:4}}>Phases de la reprise</div>
       {phasesToShow.map(phase => (
