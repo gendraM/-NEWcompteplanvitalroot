@@ -116,6 +116,48 @@ const alimentsRepriseJeune = [
     favoriseCetose: false,
     conseil: "100% pure, réhydratation électrolytes"
   },
+  { 
+    nom: "Purée de carotte lisse", 
+    categorie: "semi-liquide", 
+    sousCategorie: "Purée", 
+    kcal: 25,
+    qn: 5,
+    portionDefaut: "100g",
+    unite: "g",
+    kcalParUnite: 0.25,
+    mesureRecommandee: "Bol",
+    phase: 1,
+    favoriseCetose: true,
+    conseil: "J2 uniquement, texture velours, sans matière grasse. Carotte cuite vapeur + eau bouillon."
+  },
+  { 
+    nom: "Purée de courgette lisse", 
+    categorie: "semi-liquide", 
+    sousCategorie: "Purée", 
+    kcal: 15,
+    qn: 5,
+    portionDefaut: "100g",
+    unite: "g",
+    kcalParUnite: 0.15,
+    mesureRecommandee: "Bol",
+    phase: 1,
+    favoriseCetose: true,
+    conseil: "J2 uniquement, texture velours, mixée avec eau de cuisson, sans huile."
+  },
+  { 
+    nom: "Eau de cuisson légumes", 
+    categorie: "liquide", 
+    sousCategorie: "Eau légumes", 
+    kcal: 5,
+    qn: 5,
+    portionDefaut: "150ml",
+    unite: "ml",
+    kcalParUnite: 0.033,
+    mesureRecommandee: "Verre",
+    phase: 1,
+    favoriseCetose: true,
+    conseil: "Eau de cuisson carottes/courgettes récupérée, riche en minéraux"
+  },
 
   // ═══════════════════════════════════════════════════════════
   // 🥬 PHASE 2 - FIBRES DOUCES (~14% durée reprise)

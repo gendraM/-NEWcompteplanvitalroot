@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Link from 'next/link';
+import NotificationsPhase1 from '../components/NotificationsPhase1';
+import RecettesPhase1Modal from '../components/RecettesPhase1Modal';
 
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
@@ -56,7 +58,7 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
           top: '1rem',
           left: '1rem',
           zIndex: 100,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: isMobileOpen ? 'linear-gradient(135deg, #e53935 0%, #c62828 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           border: 'none',
           borderRadius: 8,
@@ -65,7 +67,8 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
           fontSize: '0.95rem',
           cursor: 'pointer',
           boxShadow: '0 2px 8px rgba(102,126,234,0.4)',
-          display: 'none'
+          display: 'none',
+          transition: 'all 0.3s ease'
         }}
         className="mobile-toggle-btn"
       >
@@ -195,6 +198,10 @@ export default function RepriseAlimentaireApresJeune() {
   // 🆕 State pour la saisie du poids final
   const [poidsFinal, setPoidsFinal] = useState('');
 
+  // 🆕 États pour fonctionnalités Phase 1
+  const [modalRecettes, setModalRecettes] = useState({ isOpen: false, type: 'bouillon' });
+  const [notificationsActives, setNotificationsActives] = useState(false);
+
   // Permettre un mode test/forçage via ?test=1 dans l'URL
   const [forceSuivi, setForceSuivi] = useState(false);
   const [repriseMode, setRepriseMode] = useState('normal'); // 'test' ou 'normal'
@@ -297,7 +304,6 @@ export default function RepriseAlimentaireApresJeune() {
     chargerProgramme();
   }, []);
 
-
   // Calcul du jour de reprise courant
   let jourReprise = null;
   if (programme && programme.date_debut_reprise) {
@@ -306,6 +312,18 @@ export default function RepriseAlimentaireApresJeune() {
     const diff = Math.floor((auj - debut) / (1000 * 60 * 60 * 24));
     jourReprise = diff + 1;
   }
+
+  // 🔔 Activation automatique des notifications en Phase 1
+  useEffect(() => {
+    if (programme && jours.length > 0 && jourReprise) {
+      const jourActuel = jours.find(j => j.numero === jourReprise);
+      if (jourActuel && jourActuel.phase === 1) {
+        setNotificationsActives(true);
+      } else {
+        setNotificationsActives(false);
+      }
+    }
+  }, [programme, jours, jourReprise]);
 
   // 🔥 MODE TEST : Forcer au minimum Jour 1 pour permettre le test
   if (forceSuivi && jourReprise < 1) {
@@ -1643,16 +1661,91 @@ export default function RepriseAlimentaireApresJeune() {
               <h2 style={{color:'#1976d2', fontWeight:700, fontSize:'1.2rem', marginBottom:10}}>Aliments autorisés – Phase {modalAliments}</h2>
               <ul style={{margin:0, paddingLeft:'1.2rem', color:'#333', fontSize:'1.05rem'}}>
                 {(() => {
-                  // Récupérer les aliments de la phase
+                  // Récupérer les aliments de la phase et ajouter bouton recettes pour Phase 1
                   const aliments = require('../data/alimentsRepriseJeune').default.filter(a => a.phase === modalAliments);
-                  return aliments.map((a, i) => (
-                    <li key={i}>{a.nom} <span style={{color:'#888', fontSize:'0.97em'}}>{a.categorie ? `(${a.categorie})` : ''}</span></li>
-                  ));
+                  return (
+                    <>
+                      {aliments.map((a, i) => (
+                        <li key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span>
+                            {a.nom} <span style={{color:'#888', fontSize:'0.97em'}}>{a.categorie ? `(${a.categorie})` : ''}</span>
+                          </span>
+                          {/* Bouton recettes pour aliments Phase 1 spécifiques */}
+                          {modalAliments === 1 && (a.nom.includes('Bouillon') || a.nom.includes('Purée')) && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setModalAliments(null);
+                                setModalRecettes({ 
+                                  isOpen: true, 
+                                  type: a.nom.includes('Bouillon') ? 'bouillon' : 'puree' 
+                                });
+                              }}
+                              style={{
+                                background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '4px 8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                marginLeft: '8px'
+                              }}
+                            >
+                              🥘 Recette
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                      {/* Bouton notifications Phase 1 */}
+                      {modalAliments === 1 && (
+                        <li style={{ marginTop: '16px', padding: '12px', background: '#f8f9fa', borderRadius: 8 }}>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setNotificationsActives(!notificationsActives);
+                            }}
+                            style={{
+                              background: notificationsActives ? 'linear-gradient(135deg, #4CAF50, #66BB6A)' : 'linear-gradient(135deg, #2196F3, #42A5F5)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: '8px 16px',
+                              fontSize: '0.9rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              width: '100%'
+                            }}
+                          >
+                            {notificationsActives ? '🔕 Désactiver' : '🔔 Activer'} notifications horaires
+                          </button>
+                          <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '4px', textAlign: 'center' }}>
+                            Rappels pour 8h, 11h, 13h, 16h, 19h
+                          </div>
+                        </li>
+                      )}
+                    </>
+                  );
                 })()}
               </ul>
             </div>
           </div>
         )}
+
+        {/* 🔔 Notifications Phase 1 */}
+        <NotificationsPhase1 
+          phase={jours.length > 0 && selectedJourIdx >= 0 ? jours[selectedJourIdx]?.phase : null}
+          jourNum={selectedJourIdx + 1}
+          isActive={notificationsActives}
+        />
+
+        {/* 🥘 Modal recettes détaillées */}
+        <RecettesPhase1Modal 
+          isOpen={modalRecettes.isOpen}
+          recetteType={modalRecettes.type}
+          onClose={() => setModalRecettes({ isOpen: false, type: 'bouillon' })}
+        />
       </main>
       
       {/* 📱 CSS RESPONSIVE */}
@@ -1679,11 +1772,15 @@ export default function RepriseAlimentaireApresJeune() {
             padding: 4rem 1.5rem 1.5rem 1.5rem !important;
             background: #ffffff !important;
             overflow-y: auto !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
           }
           
           .phases-sidebar.mobile-open {
             left: 0 !important;
             box-shadow: none !important;
+            visibility: visible !important;
+            opacity: 1 !important;
           }
           
           /* Main content sans marge */
