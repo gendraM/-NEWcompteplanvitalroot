@@ -425,3 +425,341 @@ useEffect(() => {
 | 8 | `/cristallisation-quotidien.js` | Retour avec notification | Confirmation liste prête |
 
 **Clair maintenant ?** 🎯
+
+---
+
+## 🔮 AMÉLIORATIONS FUTURES (À prévoir plus tard)
+
+### **📊 V2 : Gestion calories + Prévision poids**
+
+#### **1. Calcul calories par portion recommandée**
+
+```javascript
+// FUTUR : Ajouter dans enrichissement liste courses
+function calculerCaloriesPortion(aliment) {
+  const infoBDD = getAlimentBDD(aliment.nom);
+  
+  return {
+    ...aliment,
+    
+    // Calories pour 100g (existant BDD)
+    calories_100g: infoBDD.calories,
+    
+    // Calories pour portion recommandée
+    calories_portion_recommandee: {
+      min: (infoBDD.portion_min / 100) * infoBDD.calories,
+      max: (infoBDD.portion_max / 100) * infoBDD.calories,
+      ideale: (infoBDD.portion_ideale / 100) * infoBDD.calories
+    },
+    
+    // Calories planifiées (ce que l'utilisateur a prévu)
+    calories_planifiees: (aliment.quantite_totale / 100) * infoBDD.calories,
+    
+    // Comparaison
+    ecart_calories: calculerEcart(
+      (aliment.quantite_totale / 100) * infoBDD.calories,
+      (infoBDD.portion_ideale / 100) * infoBDD.calories
+    )
+  };
+}
+
+// Exemple résultat :
+{
+  nom: "Poulet",
+  calories_100g: 165,
+  calories_portion_recommandee: {
+    min: 165, // 100g × 165 cal
+    max: 198, // 120g × 165 cal
+    ideale: 180 // 110g × 165 cal
+  },
+  calories_planifiees: 742, // 450g planifiés × 165 cal
+  ecart_calories: {
+    total: +562, // 742 - 180 = surplus
+    par_portion: "+62 cal/portion", // (742/3) - 180
+    recommandation: "⚠️ Réduis portions à 110g (idéal)"
+  }
+}
+```
+
+---
+
+#### **2. Prévision perte/gain poids hebdomadaire**
+
+```javascript
+// FUTUR : Calculer prévision poids basée sur planification
+async function prevoir PoidsSemaine(listeCourses, utilisateur) {
+  // 1. Calculer calories totales semaine planifiée
+  const caloriesParJour = calculerCaloriesJournalieres(listeCourses);
+  const caloriesSemaine = caloriesParJour * 7;
+  
+  // 2. Récupérer dépense énergétique utilisateur
+  const depenseJournaliere = calculerDEJ(utilisateur);
+  // DEJ = Dépense Énergétique Journalière
+  // Basé sur : âge, sexe, taille, poids actuel, activité physique
+  
+  const depenseSemaine = depenseJournaliere * 7;
+  
+  // 3. Calculer balance énergétique
+  const balanceEnergetique = caloriesSemaine - depenseSemaine;
+  
+  // 4. Convertir en kg (7700 cal = 1kg)
+  const variationPoidsKg = balanceEnergetique / 7700;
+  
+  // 5. Prévision
+  return {
+    periode: "Semaine du 30/12 au 05/01",
+    
+    apports: {
+      calories_jour: caloriesParJour,
+      calories_semaine: caloriesSemaine
+    },
+    
+    depenses: {
+      dej_jour: depenseJournaliere,
+      dej_semaine: depenseSemaine
+    },
+    
+    balance: {
+      calories_jour: Math.round(balanceEnergetique / 7),
+      calories_semaine: balanceEnergetique,
+      statut: balanceEnergetique < 0 ? "deficit" : "surplus"
+    },
+    
+    prevision_poids: {
+      poids_actuel: utilisateur.poids_actuel,
+      variation_kg: variationPoidsKg.toFixed(2),
+      poids_prevu: (utilisateur.poids_actuel + variationPoidsKg).toFixed(1),
+      
+      interpretation: genererInterpretation(variationPoidsKg),
+      
+      recommandation: genererRecommandation(
+        variationPoidsKg,
+        utilisateur.objectif_cristallisation
+      )
+    }
+  };
+}
+
+function genererInterpretation(variationKg) {
+  if (variationKg < -0.8) {
+    return "⚠️ Perte importante (>800g). Risque fatigue.";
+  } else if (variationKg < -0.3) {
+    return "✅ Perte modérée saine (300-800g).";
+  } else if (variationKg < 0.3) {
+    return "✅ Stabilité parfaite (<300g variation).";
+  } else if (variationKg < 0.8) {
+    return "🟡 Gain modéré (300-800g). Surveiller.";
+  } else {
+    return "⚠️ Gain important (>800g). Ajuster portions.";
+  }
+}
+
+function genererRecommandation(variationKg, objectifCristal) {
+  // Objectif cristallisation = maintien poids (stabilité)
+  if (objectifCristal === "maintien") {
+    if (Math.abs(variationKg) < 0.3) {
+      return "💪 Parfait ! Continue comme ça.";
+    } else if (variationKg > 0.3) {
+      return "📉 Réduis portions féculents de 20g/repas.";
+    } else {
+      return "📈 Augmente légèrement féculents (+30g/repas).";
+    }
+  }
+  
+  // Objectif = perte douce
+  if (objectifCristal === "perte_douce") {
+    if (variationKg >= -0.5 && variationKg <= -0.3) {
+      return "✅ Rythme idéal pour perte durable.";
+    } else if (variationKg > -0.3) {
+      return "📉 Réduis extras et portions féculents.";
+    } else {
+      return "⚠️ Trop rapide. Augmente légumes + protéines.";
+    }
+  }
+}
+```
+
+---
+
+#### **3. Affichage dans liste courses (VERSION FUTURE)**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  🛒 LISTE COURSES SEMAINE 1                            │
+│  Du 30/12/2025 au 05/01/2026                           │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  📊 PRÉVISIONS NUTRITIONNELLES                          │
+│                                                         │
+│  🔥 CALORIES                                            │
+│  • Apports planifiés : 1850 cal/jour                   │
+│  • Dépense énergétique : 1950 cal/jour                 │
+│  • Balance : -100 cal/jour (déficit léger)             │
+│                                                         │
+│  ⚖️ PRÉVISION POIDS                                     │
+│  • Poids actuel : 76.8 kg                              │
+│  • Variation prévue : -0.4 kg                          │
+│  • Poids prévu : 76.4 kg (05/01/2026)                  │
+│                                                         │
+│  ✅ INTERPRÉTATION                                       │
+│  Perte modérée saine (400g). Rythme idéal pour        │
+│  stabilisation post-jeûne.                             │
+│                                                         │
+│  💡 RECOMMANDATION                                       │
+│  Continue comme ça ! Tes portions sont bien calibrées. │
+│                                                         │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│                                                         │
+│  📈 DÉTAIL CALORIES PAR CATÉGORIE                       │
+│                                                         │
+│  🥦 Légumes : 350 cal/jour (19%)                       │
+│  🐟 Protéines : 550 cal/jour (30%)                     │
+│  🌾 Féculents : 600 cal/jour (32%)                     │
+│  🍎 Fruits : 250 cal/jour (13%)                        │
+│  🥑 Matières grasses : 100 cal/jour (5%)               │
+│                                                         │
+│  ⚠️ ALERTE : Féculents légèrement élevés (32%)         │
+│  💡 Recommandation : Réduis portions riz/pâtes de 20g  │
+│      → Impact : -140 cal/semaine = -0.02kg            │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### **4. Ajustement dynamique portions**
+
+```javascript
+// FUTUR : Suggérer ajustements pour atteindre objectif poids
+function suggererAjustements(previsionPoids, objectif) {
+  const ecartObjectif = previsionPoids.variation_kg - objectif.variation_cible;
+  
+  if (Math.abs(ecartObjectif) < 0.1) {
+    return { ajustements: [], message: "Portions parfaites ✅" };
+  }
+  
+  // Si écart significatif, suggérer ajustements
+  const ajustements = [];
+  
+  if (ecartObjectif > 0) {
+    // Perte/gain trop important → Réduire calories
+    ajustements.push({
+      categorie: "feculents",
+      action: "reduire",
+      quantite: "-30g/portion",
+      impact_calories: "-90 cal/jour",
+      impact_poids: "-0.08 kg/semaine",
+      raison: "Ralentir variation poids"
+    });
+  } else {
+    // Variation trop faible → Augmenter légèrement
+    ajustements.push({
+      categorie: "proteines",
+      action: "augmenter",
+      quantite: "+20g/portion",
+      impact_calories: "+60 cal/jour",
+      impact_poids: "+0.05 kg/semaine",
+      raison: "Maintenir masse musculaire"
+    });
+  }
+  
+  return { ajustements, message: "Ajustements suggérés :" };
+}
+```
+
+---
+
+#### **5. Données BDD nécessaires (FUTUR)**
+
+**Table : `aliments` (enrichir)**
+```sql
+ALTER TABLE aliments ADD COLUMN calories INT; -- Pour 100g
+ALTER TABLE aliments ADD COLUMN portion_min INT; -- En grammes
+ALTER TABLE aliments ADD COLUMN portion_max INT;
+ALTER TABLE aliments ADD COLUMN portion_ideale INT;
+```
+
+**Table : `profil_utilisateur` (créer/enrichir)**
+```sql
+CREATE TABLE profil_utilisateur (
+  id UUID PRIMARY KEY,
+  user_id TEXT,
+  
+  -- Métriques actuelles
+  poids_actuel NUMERIC,
+  taille INT, -- en cm
+  age INT,
+  sexe TEXT, -- M/F
+  
+  -- Activité physique
+  niveau_activite TEXT, -- sedentaire, leger, moyen, intense
+  dej_calculee NUMERIC, -- Dépense Énergétique Journalière
+  
+  -- Objectifs cristallisation
+  objectif_poids TEXT, -- maintien, perte_douce, stabilisation
+  variation_poids_cible NUMERIC, -- kg/semaine (-0.3, 0, +0.2, etc.)
+  
+  -- Historique
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+---
+
+#### **6. Interface configuration objectif**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  ⚙️ CONFIGURATION PRÉVISION POIDS                       │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  📏 TES INFORMATIONS                                    │
+│  • Âge : 32 ans                                        │
+│  • Taille : 165 cm                                     │
+│  • Poids actuel : 76.8 kg                              │
+│  • Sexe : Femme                                        │
+│                                                         │
+│  🏃 ACTIVITÉ PHYSIQUE                                   │
+│  ○ Sédentaire (peu ou pas d'exercice)                 │
+│  ● Légère (exercice 1-3j/semaine)                     │
+│  ○ Moyenne (exercice 3-5j/semaine)                    │
+│  ○ Intense (exercice 6-7j/semaine)                    │
+│                                                         │
+│  → DEJ calculée : 1950 cal/jour                        │
+│                                                         │
+│  🎯 OBJECTIF CRISTALLISATION                            │
+│  ● Maintien poids (±300g/semaine)                     │
+│  ○ Perte douce (-300 à -500g/semaine)                 │
+│  ○ Stabilisation stricte (±100g/semaine)              │
+│                                                         │
+│  [Enregistrer]                                         │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### **📋 CHECKLIST IMPLÉMENTATION V2 (Plus tard)**
+
+- [ ] Enrichir table `aliments` avec calories + portions
+- [ ] Créer table `profil_utilisateur` avec métriques
+- [ ] Implémenter calcul DEJ (Dépense Énergétique Journalière)
+- [ ] Fonction `calculerCaloriesJournalieres(listeCourses)`
+- [ ] Fonction `prevoir PoidsSemaine(listeCourses, utilisateur)`
+- [ ] Interface configuration objectif poids
+- [ ] Affichage prévisions dans liste courses
+- [ ] Suggestions ajustements portions dynamiques
+- [ ] Tests prévisions vs réalité (feedback learning)
+
+---
+
+### **🎯 BÉNÉFICES ATTENDUS V2**
+
+1. **Précision** : Utilisateur sait EXACTEMENT l'impact de sa planification
+2. **Anticipation** : Prévoit gain/perte avant même de faire les courses
+3. **Ajustement proactif** : Modifie portions AVANT problème
+4. **Responsabilisation** : Comprend lien portions ↔ poids
+5. **Motivation** : Voit concrètement impact de ses efforts
+
+**Priorité implémentation** : APRÈS phase cristallisation V1 stable ✅

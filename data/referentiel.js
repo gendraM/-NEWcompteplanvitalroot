@@ -3020,4 +3020,254 @@ correctifsAliments.forEach(nouveau => {
   if (!doublon) referentielAliments.push(nouveau);
 });
 
+// ============================================================================
+// 🎯 CRISTALLISATION: CRITÈRES DYNAMIQUES (PHASE 45J POST-REPRISE)
+// ============================================================================
+// Critères générés depuis bilan_reprise (PAS hardcodés)
+// Validation quotidienne pour tracking nouveaux comportements
+// ============================================================================
+
+export const criteresCristallisation = {
+  CRITERE_EXTRAS_FREQUENTS: {
+    id: 'extras_reduction',
+    nom: 'Réduction extras fréquents',
+    conditions_activation: {
+      seuil_reprise: 10,
+      formule: 'bilan_reprise.extras.total > 10',
+      description: 'Activé si >10 extras durant reprise'
+    },
+    configuration: {
+      calcul_seuil: (bilanReprise) => {
+        const extrasReprise = bilanReprise?.extras?.total || 0;
+        return Math.ceil(extrasReprise * 0.32); // 68% de réduction
+      },
+      validation_quotidienne: (repasJour) => {
+        return repasJour.filter(r => r.est_extra).length === 0;
+      },
+      validation_hebdomadaire: (repasSemaine, seuil) => {
+        const nbExtras = repasSemaine.filter(r => r.est_extra).length;
+        return nbExtras <= seuil;
+      }
+    },
+    messages: {
+      encouragement: 'Bravo ! Aucun extra aujourd\'hui 💪',
+      encouragement_streak: 'Tu tiens bon depuis {{nb_jours}} jours ! Continue 🔥',
+      alerte: '⚠️ Extra détecté. Tu as {{nb_extras}}/{{seuil}} cette semaine',
+      alerte_critique: '🚨 Limite dépassée ! {{nb_extras}} extras cette semaine',
+      victoire_21j: '🏆 21 jours sans extras ! Habitude vaincue !',
+      victoire_finale: '🎯 45 jours terminés ! Les extras ne sont plus une habitude'
+    },
+    tracking: {
+      comportement_cible: 'pas_extra_journalier',
+      victoire_21j: true,
+      comparaison_reprise: 'extras.total'
+    }
+  },
+
+  CRITERE_FECULENTS_SOIR: {
+    id: 'feculents_timing',
+    nom: 'Aucun féculent le soir',
+    conditions_activation: {
+      seuil_reprise: 5,
+      formule: 'bilan_reprise.feculents_soir.occurrences > 5',
+      description: 'Activé si >5 féculents le soir durant reprise'
+    },
+    configuration: {
+      calcul_seuil: () => 0, // Objectif 0 féculent le soir
+      validation_quotidienne: (repasJour) => {
+        const repasSoir = repasJour.filter(r => {
+          const heure = new Date(r.heure_repas).getHours();
+          return heure >= 19;
+        });
+        return !repasSoir.some(r => 
+          r.composition?.some(c => ['feculent', 'pain'].includes(c.categorie))
+        );
+      }
+    },
+    messages: {
+      encouragement: 'Parfait ! Pas de féculents le soir 🌙',
+      alerte: '⚠️ Féculent détecté après 19h',
+      victoire_21j: '🏆 21 jours de timing parfait !',
+      victoire_finale: '🎯 Nouveau réflexe ancré : pas de féculents le soir'
+    },
+    tracking: {
+      comportement_cible: 'feculents_timing_ok',
+      victoire_21j: true,
+      comparaison_reprise: 'feculents_soir.occurrences'
+    }
+  },
+
+  CRITERE_QN_FAIBLE: {
+    id: 'amelioration_qn',
+    nom: 'QN moyen ≥ 3.5',
+    conditions_activation: {
+      seuil_reprise: 3.2,
+      formule: 'bilan_reprise.qn_moyen < 3.2',
+      description: 'Activé si QN moyen <3.2 durant reprise'
+    },
+    configuration: {
+      calcul_seuil: () => 3.5,
+      validation_quotidienne: (repasJour) => {
+        const qnTotal = repasJour.reduce((sum, r) => sum + (r.qn || 0), 0);
+        const qnMoyen = repasJour.length > 0 ? qnTotal / repasJour.length : 0;
+        return qnMoyen >= 3.5;
+      }
+    },
+    messages: {
+      encouragement: 'QN excellent aujourd\'hui ! ({{qn_moyen}}/5) ⭐',
+      alerte: 'QN faible aujourd\'hui ({{qn_moyen}}/5). Vise 3.5+ 📊',
+      victoire_21j: '🏆 21 jours avec QN ≥3.5 !',
+      victoire_finale: '🎯 Qualité nutritionnelle devenue naturelle'
+    },
+    tracking: {
+      comportement_cible: 'qn_optimal',
+      victoire_21j: true,
+      comparaison_reprise: 'qn_moyen'
+    }
+  },
+
+  CRITERE_QUANTITES_EXCESSIVES: {
+    id: 'respect_portions',
+    nom: 'Conformité portions ≥ 90%',
+    conditions_activation: {
+      seuil_reprise: 75,
+      formule: 'bilan_reprise.quantites_excessives.taux_conformite < 75',
+      description: 'Activé si <75% conformité portions durant reprise'
+    },
+    configuration: {
+      calcul_seuil: () => 90,
+      validation_quotidienne: (repasJour) => {
+        const conformes = repasJour.filter(r => r.quantite_conforme).length;
+        return repasJour.length > 0 ? (conformes / repasJour.length * 100) >= 90 : true;
+      }
+    },
+    messages: {
+      encouragement: 'Portions respectées ! {{taux}}% de conformité 📏',
+      alerte: 'Attention aux quantités. Seulement {{taux}}% conforme',
+      victoire_21j: '🏆 21 jours de portions maîtrisées !',
+      victoire_finale: '🎯 Les bonnes quantités sont devenues automatiques'
+    },
+    tracking: {
+      comportement_cible: 'portions_respectees',
+      victoire_21j: true,
+      comparaison_reprise: 'quantites_excessives.taux_conformite'
+    }
+  },
+
+  CRITERE_JEUNES_IRREGULIERS: {
+    id: 'jeunes_reguliers',
+    nom: '2 jeûnes ponctuels/semaine',
+    conditions_activation: {
+      seuil_reprise: 70,
+      formule: 'bilan_reprise.jeunes_ponctuels.taux < 70',
+      description: 'Activé si <70% succès jeûnes durant reprise'
+    },
+    configuration: {
+      calcul_seuil: () => 2,
+      validation_hebdomadaire: (jeunesSemaine) => {
+        return jeunesSemaine.filter(j => j.reussi).length >= 2;
+      }
+    },
+    messages: {
+      encouragement: '{{nb_jeunes}}/2 jeûnes cette semaine ! Continue 🌟',
+      alerte: 'Seulement {{nb_jeunes}}/2 jeûnes. Planifie le prochain 📅',
+      victoire_21j: '🏆 Jeûnes réguliers depuis 21 jours !',
+      victoire_finale: '🎯 Les jeûnes ponctuels font partie de ta routine'
+    },
+    tracking: {
+      comportement_cible: 'jeunes_reguliers',
+      victoire_21j: true,
+      comparaison_reprise: 'jeunes_ponctuels.taux'
+    }
+  },
+
+  CRITERE_PRATIQUES_SPIRITUELLES: {
+    id: 'pratiques_regulieres',
+    nom: '≥3 pratiques spirituelles/jour',
+    conditions_activation: {
+      seuil_reprise: 3,
+      formule: 'bilan_reprise.pratiques_spirituelles.moyenne_par_jour < 3 || bilan_reprise.pratiques_spirituelles.irregularite === true',
+      description: 'Activé si <3/jour OU irrégulier durant reprise'
+    },
+    configuration: {
+      calcul_seuil: () => 3,
+      validation_quotidienne: (pratiquesJour) => {
+        return pratiquesJour.length >= 3;
+      }
+    },
+    messages: {
+      encouragement: '{{nb_pratiques}} pratiques aujourd\'hui ! Équilibre spirituel 🙏',
+      alerte: 'Seulement {{nb_pratiques}}/3 pratiques. Prends un moment 📿',
+      victoire_21j: '🏆 21 jours de régularité spirituelle !',
+      victoire_finale: '🎯 Ta vie spirituelle est devenue une priorité quotidienne'
+    },
+    tracking: {
+      comportement_cible: 'pratiques_regulieres',
+      victoire_21j: true,
+      comparaison_reprise: 'pratiques_spirituelles.moyenne_par_jour'
+    }
+  }
+};
+
+/**
+ * Génère critères personnalisés depuis bilan_reprise
+ * @param {Object} bilanReprise - Données transmises depuis reprise-alimentaire-apres-jeune.js
+ * @returns {Array} Critères activés et configurés
+ */
+export function genererCriteresPersonnalises(bilanReprise) {
+  const criteresActives = [];
+  
+  Object.values(criteresCristallisation).forEach(critere => {
+    if (evaluerConditionSecurisee(critere.conditions_activation.formule, bilanReprise)) {
+      const seuilCible = critere.configuration.calcul_seuil(bilanReprise);
+      
+      criteresActives.push({
+        id: critere.id,
+        nom: critere.nom,
+        seuil_cible: seuilCible,
+        validation_quotidienne: critere.configuration.validation_quotidienne,
+        validation_hebdomadaire: critere.configuration.validation_hebdomadaire,
+        messages: critere.messages,
+        tracking: critere.tracking
+      });
+    }
+  });
+  
+  return criteresActives;
+}
+
+/**
+ * Évalue condition d'activation de manière SÉCURISÉE (pas eval())
+ */
+function evaluerConditionSecurisee(formule, bilanReprise) {
+  try {
+    const regex = /bilan_reprise\.([a-zA-Z0-9_.]+)\s*(>|<|>=|<=|===|!==|==|!=)\s*([0-9]+(?:\.[0-9]+)?|true|false)/;
+    const match = formule.match(regex);
+    
+    if (!match) return false;
+    
+    const [, chemin, operateur, valeurStr] = match;
+    const valeurBilan = chemin.split('.').reduce((obj, key) => obj?.[key], bilanReprise);
+    
+    if (valeurBilan === undefined) return false;
+    
+    const valeurComparaison = valeurStr === 'true' ? true : 
+                              valeurStr === 'false' ? false : 
+                              parseFloat(valeurStr);
+    
+    switch (operateur) {
+      case '>': return valeurBilan > valeurComparaison;
+      case '<': return valeurBilan < valeurComparaison;
+      case '>=': return valeurBilan >= valeurComparaison;
+      case '<=': return valeurBilan <= valeurComparaison;
+      case '===': return valeurBilan === valeurComparaison;
+      case '!==': return valeurBilan !== valeurComparaison;
+      default: return false;
+    }
+  } catch (error) {
+    console.error('Erreur évaluation condition:', error);
+    return false;
+  }
+}
+
 export default referentielAliments;
