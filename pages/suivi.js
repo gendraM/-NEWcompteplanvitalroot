@@ -26,7 +26,19 @@ function RetourAccueil() {
 import React, { useState, useEffect, useRef } from 'react';
 import BandeauDefiActif from '../components/BandeauDefiActif';
 import { supabase } from '../lib/supabaseClient';
-import { calculerJourRelatif, isPeriodeActive, validerCriterePreparation } from '../lib/validerCriterePreparation';
+import { 
+  calculerJourRelatif, 
+  isPeriodeActive, 
+  validerCriterePreparation,
+  validerCritereAuto,
+  getStatutCritereAuto,
+  analyserPortions,
+  detecterFeculents,
+  calculerHydratation,
+  verifierHeureRepas,
+  calculerDureeRepas,
+  getCritereIdFromLabel
+} from '../lib/validerCriterePreparation';
 import Link from 'next/link';
 import RepasBloc from "../components/RepasBloc";
 import TimelineProgression from "../components/TimelineProgression";
@@ -403,6 +415,45 @@ export default function Suivi() {
       setPrepValid(localStorage.getItem('prep_valid_' + selectedDate) === '1');
     }
   }, [selectedDate]);
+
+  // ═══════════════════════════════════════════════════════════
+  // NOUVEAU : VALIDATION AUTOMATIQUE DES CRITÈRES (26/12/2025)
+  // ═══════════════════════════════════════════════════════════
+  const [statutsValidationAuto, setStatutsValidationAuto] = useState({});
+  
+  // Analyse automatique après chaque saisie de repas
+  useEffect(() => {
+    // Ne rien faire si pas en phase préparation
+    if (!critereActif || !dateJeune) return;
+    
+    // Identifier le critère actuel
+    const critereIdActuel = getCritereIdFromLabel(critereActif.label);
+    
+    // Analyser uniquement les critères auto-validables (1,2,7,8,9)
+    const criteresAuto = [1, 2, 7, 8, 9];
+    if (!criteresAuto.includes(critereIdActuel)) return;
+    
+    // Filtrer les repas des 7 derniers jours
+    const repas7j = repasSemaine.filter(r => {
+      const dateRepas = new Date(r.date);
+      const dateCourante = new Date(selectedDate);
+      const diff = Math.floor((dateCourante - dateRepas) / (1000*60*60*24));
+      return diff >= 0 && diff < 7;
+    });
+    
+    // Exécuter l'analyse automatique
+    const statuts = {};
+    const statutCritere = getStatutCritereAuto(critereIdActuel, repas7j);
+    statuts[critereIdActuel] = statutCritere;
+    
+    // Valider automatiquement si critère respecté
+    if (statutCritere.validé) {
+      validerCritereAuto(critereIdActuel);
+    }
+    
+    setStatutsValidationAuto(statuts);
+    
+  }, [repasSemaine, critereActif, dateJeune, selectedDate]);
 
   // ═══════════════════════════════════════════════════════════
   // DÉTECTION PHASE REPRISE ALIMENTAIRE
@@ -1063,21 +1114,58 @@ export default function Suivi() {
                   }}>
                     <div style={{fontSize: 18, fontWeight: 700, marginBottom: 6}}>🌙 Préparation au jeûne — Critère du jour</div>
                     <div style={{marginBottom: 8}}>{critereActif.label}</div>
-                    <div style={{fontSize: 14, color: '#555', marginBottom: 10}}>J-{jRelatif} — {selectedDate}</div>
-                    {prepValid ? (
-                      <div style={{color:'#43a047', fontWeight:700, margin:'8px 0'}}>✅ Critère validé pour aujourd'hui !</div>
-                    ) : (
-                      <button
-                        style={{
-                          background: '#43a047', color: '#fff', border: 'none', borderRadius: 18,
-                          padding: '10px 28px', fontWeight: 700, fontSize: 17, cursor: 'pointer',
-                          boxShadow: '0 2px 8px #43a04733', transition: 'background 0.2s', marginTop: 8
-                        }}
-                        onClick={handleValiderCriterePrep}
-                      >
-                        ✅ Valider le critère du jour
-                      </button>
-                    )}
+                    <div style={{fontSize: 14, color: '#555', marginBottom: 10}}>J{jRelatif} — {selectedDate}</div>
+                    
+                    {/* ═══ NOUVEAU : Affichage validation auto si critère concerné ═══ */}
+                    {(() => {
+                      const critereId = getCritereIdFromLabel(critereActif.label);
+                      const statutAuto = statutsValidationAuto[critereId];
+                      const isAutoValidable = [1, 2, 7, 8, 9].includes(critereId);
+                      
+                      if (isAutoValidable && statutAuto) {
+                        return statutAuto.validé ? (
+                          <>
+                            <div style={{color:'#43a047', fontWeight:700, margin:'8px 0'}}>
+                              ✅ Critère validé automatiquement !
+                            </div>
+                            <div style={{fontSize: 14, color: '#555'}}>
+                              📊 {statutAuto.joursRespectés}/7 jours respectés
+                            </div>
+                            <div style={{fontSize: 13, color: '#888', marginTop: 6}}>
+                              (Détection automatique basée sur vos saisies)
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{fontSize: 14, color: '#555', margin:'8px 0'}}>
+                              ⏳ Suivi automatique en cours
+                            </div>
+                            <div style={{fontSize: 15, fontWeight: 600}}>
+                              📊 {statutAuto.joursRespectés}/7 jours respectés
+                            </div>
+                            <div style={{fontSize: 13, color: '#888', marginTop: 6}}>
+                              Encore {(critereId === 1 ? 6 : 5) - statutAuto.joursRespectés} jour(s) pour valider
+                            </div>
+                          </>
+                        );
+                      }
+                      
+                      // Critères non auto-validables (3, 4, 5, 6) : validation manuelle
+                      return prepValid ? (
+                        <div style={{color:'#43a047', fontWeight:700, margin:'8px 0'}}>✅ Critère validé pour aujourd'hui !</div>
+                      ) : (
+                        <button
+                          style={{
+                            background: '#43a047', color: '#fff', border: 'none', borderRadius: 18,
+                            padding: '10px 28px', fontWeight: 700, fontSize: 17, cursor: 'pointer',
+                            boxShadow: '0 2px 8px #43a04733', transition: 'background 0.2s', marginTop: 8
+                          }}
+                          onClick={handleValiderCriterePrep}
+                        >
+                          ✅ Valider le critère du jour
+                        </button>
+                      );
+                    })()}
                   </div>
                 )}
 

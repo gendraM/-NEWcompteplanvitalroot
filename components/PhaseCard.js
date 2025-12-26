@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 /**
  * PhaseCard — Composant dynamique
@@ -13,9 +13,99 @@ export default function PhaseCard({ phase, criteres = [], onValider, jCourant })
   // État d'expansion pour chaque critère (blocs "En savoir plus")
   const [expanded, setExpanded] = useState(criteres.map(() => false));
 
+  // États pour Critère 3 - Action après repas
+  const [engagement3, setEngagement3] = useState(null);
+  
+  // États pour Critère 6 - Jeûnes plein
+  const [config6, setConfig6] = useState(null);
+  const [showOptionC, setShowOptionC] = useState(false);
+
+  // Initialisation depuis localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Init Critère 3
+    try {
+      const saved3 = localStorage.getItem('critere3Engagement');
+      if (saved3) setEngagement3(JSON.parse(saved3));
+    } catch (e) {
+      console.error('Erreur parsing engagement3:', e);
+      setEngagement3(null);
+    }
+    
+    // Init Critère 6
+    try {
+      const saved6 = localStorage.getItem('critere6Config');
+      if (saved6) setConfig6(JSON.parse(saved6));
+    } catch (e) {
+      console.error('Erreur parsing config6:', e);
+      setConfig6(null);
+    }
+  }, []);
+
   // Handler pour toggler l'expansion d'un critère
   const toggleExpansion = (index) => {
     setExpanded(prev => prev.map((v, i) => i === index ? !v : v));
+  };
+
+  // Handler sauvegarde engagement Critère 3
+  const saveEngagement3 = (action, dureeMinutes, delaiMax) => {
+    const engagement = { action, dureeMinutes, delaiMax };
+    setEngagement3(engagement);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('critere3Engagement', JSON.stringify(engagement));
+    }
+  };
+
+  // Handler sauvegarde configuration Critère 6
+  const saveConfig6 = (option, nombreJeunes, dureeHeures) => {
+    const config = {
+      option,
+      nombreJeunes,
+      dureeHeures,
+      jeunes: Array.from({ length: nombreJeunes }, (_, i) => ({
+        numero: i + 1,
+        datePrevue: null,
+        effectue: null,
+        complete: false,
+        ressenti: ''
+      }))
+    };
+    setConfig6(config);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('critere6Config', JSON.stringify(config));
+    }
+  };
+
+  // Handler mise à jour jeûne Critère 6
+  const updateJeune6 = (index, field, value) => {
+    if (!config6) return;
+    
+    const newConfig = { ...config6 };
+    newConfig.jeunes[index][field] = value;
+    
+    // Marquer comme complété si : datePrevue + effectue=true + ressenti rempli
+    const jeune = newConfig.jeunes[index];
+    if (jeune.datePrevue && jeune.effectue === true && jeune.ressenti) {
+      jeune.complete = true;
+    } else {
+      jeune.complete = false;
+    }
+    
+    setConfig6(newConfig);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('critere6Config', JSON.stringify(newConfig));
+    }
+    
+    // Validation auto si tous jeûnes complétés
+    const allComplete = newConfig.jeunes.every(j => j.complete);
+    if (allComplete && onValider) {
+      // Appeler onValider pour le critère 6
+      const critere6 = criteres.find(c => c.id === 6);
+      if (critere6 && !critere6.valide) {
+        onValider(6);
+      }
+    }
   };
 
   // Guidances pédagogiques POURQUOI/COMMENT/SUIVI pour chaque critère
@@ -77,33 +167,131 @@ export default function PhaseCard({ phase, criteres = [], onValider, jCourant })
     },
     3: {
       pourquoi: "Après un repas, ton corps concentre beaucoup d'énergie sur la digestion. Si tu restes immobile (assis ou allongé), la digestion devient lente et difficile. Une activité légère juste après manger aide ton intestin à mieux fonctionner et évite les sensations de lourdeur. Pendant le jeûne, ton corps aura déjà cette bonne habitude.",
-      comment: [
-        "BASE RECOMMANDÉE (par jalon) :",
-        "• J-17 à J-14 : 10 min de marche après repas",
-        "• J-12 à J-7 : 15 min de marche après repas",
-        "• J-7 à J-0 : 20 min de marche après repas",
-        "",
-        "📝 PERSONNALISE TON ENGAGEMENT :",
-        "",
-        "Action choisie : [Clique pour choisir]",
-        "→ Marche / Vaisselle / Étirements / Jardinage / Autre",
-        "",
-        "Durée : [Clique pour choisir] minutes",
-        "→ 10 min / 15 min / 20 min / Personnalisé",
-        "",
-        "Délai après repas : [Clique pour choisir] minutes max",
-        "→ 5 min / 10 min / 15 min",
-        "",
-        "Exemples d'actions possibles :",
-        "• Marche (intérieur ou extérieur)",
-        "• Vaisselle / Rangement",
-        "• Étirements doux",
-        "• Jardinage léger",
-        "",
-        "💡 ASTUCE :",
-        "Programme une alarme \"Action post-repas\" 5 min après la fin de chaque repas"
-      ],
-      suivi: "Définis ton engagement personnalisé ci-dessus, puis valide chaque jour : \"Aujourd'hui, j'ai fait [ton action choisie] après chaque repas\" → Oui/Non (5/7 jours minimum)"
+      comment: (
+        <div>
+          <p><strong>BASE RECOMMANDÉE (par jalon) :</strong></p>
+          <ul>
+            <li>J-17 à J-14 : 10 min de marche après repas</li>
+            <li>J-12 à J-7 : 15 min de marche après repas</li>
+            <li>J-7 à J-0 : 20 min de marche après repas</li>
+          </ul>
+          
+          <p><strong>📝 PERSONNALISE TON ENGAGEMENT :</strong></p>
+          
+          {!engagement3 ? (
+            <div style={{ backgroundColor: '#f0f8ff', padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>
+                  Action choisie :
+                </label>
+                <select 
+                  id="action3"
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                >
+                  <option value="">-- Sélectionne une action --</option>
+                  <option value="Marche">Marche (intérieur ou extérieur)</option>
+                  <option value="Vaisselle">Vaisselle / Rangement</option>
+                  <option value="Étirements">Étirements doux</option>
+                  <option value="Jardinage">Jardinage léger</option>
+                  <option value="Autre">Autre activité légère</option>
+                </select>
+              </div>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>
+                  Durée (en minutes) :
+                </label>
+                <select 
+                  id="duree3"
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                >
+                  <option value="">-- Sélectionne une durée --</option>
+                  <option value="10">10 minutes</option>
+                  <option value="15">15 minutes</option>
+                  <option value="20">20 minutes</option>
+                  <option value="25">25 minutes (personnalisé)</option>
+                  <option value="30">30 minutes (personnalisé)</option>
+                </select>
+              </div>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>
+                  Délai maximum après le repas (en minutes) :
+                </label>
+                <select 
+                  id="delai3"
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                >
+                  <option value="">-- Sélectionne un délai --</option>
+                  <option value="5">5 minutes</option>
+                  <option value="10">10 minutes</option>
+                  <option value="15">15 minutes</option>
+                </select>
+              </div>
+              
+              <button
+                onClick={() => {
+                  const action = document.getElementById('action3').value;
+                  const duree = parseInt(document.getElementById('duree3').value);
+                  const delai = parseInt(document.getElementById('delai3').value);
+                  if (action && duree && delai) {
+                    saveEngagement3(action, duree, delai);
+                  } else {
+                    alert('Merci de remplir tous les champs');
+                  }
+                }}
+                style={{
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                Valider mon engagement
+              </button>
+            </div>
+          ) : (
+            <div style={{ backgroundColor: '#e8f5e9', padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
+              <p style={{ fontWeight: 'bold', color: '#2e7d32', marginBottom: '10px' }}>
+                ✅ TON ENGAGEMENT PERSONNALISÉ :
+              </p>
+              <ul style={{ listStyleType: 'none', paddingLeft: 0 }}>
+                <li><strong>Action :</strong> {engagement3.action}</li>
+                <li><strong>Durée :</strong> {engagement3.dureeMinutes} minutes</li>
+                <li><strong>Délai max :</strong> {engagement3.delaiMax} minutes après le repas</li>
+              </ul>
+              <button
+                onClick={() => {
+                  if (confirm('Veux-tu modifier ton engagement ?')) {
+                    setEngagement3(null);
+                    if (typeof window !== 'undefined') {
+                      localStorage.removeItem('critere3Engagement');
+                    }
+                  }
+                }}
+                style={{
+                  backgroundColor: '#ff9800',
+                  color: 'white',
+                  padding: '8px 15px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  marginTop: '10px'
+                }}
+              >
+                Modifier mon engagement
+              </button>
+            </div>
+          )}
+          
+          <p style={{ marginTop: '15px' }}><strong>💡 ASTUCE :</strong></p>
+          <p>Programme une alarme "Action post-repas" {engagement3 ? engagement3.delaiMax : '5'} min après la fin de chaque repas</p>
+        </div>
+      ),
+      suivi: `Définis ton engagement personnalisé ci-dessus, puis valide chaque jour : "Aujourd'hui, j'ai fait ${engagement3 ? engagement3.action : '[ton action choisie]'} après chaque repas" → Oui/Non (5/7 jours minimum)`
     },
     4: {
       pourquoi: "Les produits ultra-transformés contiennent des additifs (E-, conservateurs, colorants) que ton corps ne reconnaît pas comme de la nourriture. Ton foie doit travailler en sur-régime pour éliminer ces substances. Pendant un jeûne, ton foie va se concentrer sur la détoxification naturelle : s'il est déjà fatigué par les toxines accumulées avant, il sera dépassé.",
@@ -166,38 +354,401 @@ export default function PhaseCard({ phase, criteres = [], onValider, jCourant })
     },
     6: {
       pourquoi: "Un jeûne de plusieurs jours (5-10 jours) représente un choc métabolique majeur pour ton corps. Sans test préalable, tu risques des malaises, vertiges, nausées sévères dès le 2e jour. Les 2 jeûnes d'entraînement permettent de vérifier ta tolérance, d'identifier tes limites, et de préparer ton métabolisme à basculer en mode \"cétose\" (utilisation des graisses comme énergie) sans danger.",
-      comment: [
-        "🎯 CHOISIR DURÉE DES JEÛNES :",
-        "",
-        "○ Option A : 2 jeûnes de 24h (critère officiel)",
-        "  • Dernier repas 19h J-1 → reprise 19h J0",
-        "  • Idéal pour débutants confirmés",
-        "",
-        "○ Option B : 2 jeûnes de 16h (alternative)",
-        "  • Dernier repas 20h → petit-déjeuner 12h lendemain",
-        "  • Plus accessible, limite les risques",
-        "",
-        "○ Option C : Durée personnalisée",
-        "  ┌────────────────────────────────┐",
-        "  │ Nombre de jeûnes : [2] ▼       │",
-        "  │ Durée par jeûne : [18] heures  │",
-        "  │                                │",
-        "  │ 💡 Recommandations :           │",
-        "  │    Débutant : 14-16h           │",
-        "  │    Intermédiaire : 18-20h      │",
-        "  │    Avancé : 24h+               │",
-        "  └────────────────────────────────┘",
-        "",
-        "📌 RÈGLES STRICTES :",
-        "• Espacement minimum 3 jours entre les 2 jeûnes",
-        "• Hydratation continue (eau, tisanes non sucrées)",
-        "• Repos si fatigue (pas d'effort physique intense)",
-        "• Arrêt immédiat si malaise sévère",
-        "",
-        "💡 ASTUCE :",
-        "Planifie tes jeûnes un week-end calme (moins de sollicitations, possibilité de repos)"
-      ],
-      suivi: "Tracker de jeûnes : Jeûne 1 (date, durée, ressenti) + Jeûne 2 (date, durée, ressenti). Validation si 2 jeûnes complétés selon durée choisie."
+      comment: (
+        <div>
+          <p><strong>🎯 CHOISIR DURÉE DES JEÛNES :</strong></p>
+          
+          {!config6 ? (
+            <div style={{ backgroundColor: '#f0f8ff', padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '8px' }}>
+                  <input 
+                    type="radio" 
+                    name="optionJeune" 
+                    value="A"
+                    onChange={() => setShowOptionC(false)}
+                    style={{ marginRight: '8px' }}
+                  />
+                  <strong>Option A : 2 jeûnes de 24h (critère officiel)</strong>
+                </label>
+                <p style={{ marginLeft: '28px', fontSize: '0.95em', color: '#555' }}>
+                  Dernier repas 19h J-1 → reprise 19h J0<br/>
+                  Idéal pour débutants confirmés
+                </p>
+              </div>
+              
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '8px' }}>
+                  <input 
+                    type="radio" 
+                    name="optionJeune" 
+                    value="B"
+                    onChange={() => setShowOptionC(false)}
+                    style={{ marginRight: '8px' }}
+                  />
+                  <strong>Option B : 2 jeûnes de 16h (alternative)</strong>
+                </label>
+                <p style={{ marginLeft: '28px', fontSize: '0.95em', color: '#555' }}>
+                  Dernier repas 20h → petit-déjeuner 12h lendemain<br/>
+                  Plus accessible, limite les risques
+                </p>
+              </div>
+              
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '8px' }}>
+                  <input 
+                    type="radio" 
+                    name="optionJeune" 
+                    value="C"
+                    onChange={(e) => setShowOptionC(e.target.checked)}
+                    style={{ marginRight: '8px' }}
+                  />
+                  <strong>Option C : Durée personnalisée</strong>
+                </label>
+                {showOptionC && (
+                  <div style={{ marginLeft: '28px', marginTop: '10px' }}>
+                    <div style={{ marginBottom: '10px' }}>
+                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>
+                        Nombre de jeûnes :
+                      </label>
+                      <select 
+                        id="nombreJeunes"
+                        style={{ padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      >
+                        <option value="2">2 jeûnes</option>
+                        <option value="3">3 jeûnes</option>
+                        <option value="4">4 jeûnes</option>
+                      </select>
+                    </div>
+                    <div style={{ marginBottom: '10px' }}>
+                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>
+                        Durée par jeûne (en heures) :
+                      </label>
+                      <input 
+                        type="number" 
+                        id="dureeJeune"
+                        min="12" 
+                        max="36" 
+                        placeholder="Ex: 18"
+                        style={{ padding: '6px', borderRadius: '4px', border: '1px solid #ccc', width: '100px' }}
+                      />
+                    </div>
+                    <p style={{ fontSize: '0.9em', color: '#666', marginTop: '8px' }}>
+                      💡 Recommandations :<br/>
+                      • Débutant : 14-16h<br/>
+                      • Intermédiaire : 18-20h<br/>
+                      • Avancé : 24h+
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              <button
+                onClick={() => {
+                  const selectedOption = document.querySelector('input[name="optionJeune"]:checked');
+                  if (!selectedOption) {
+                    alert('Merci de sélectionner une option');
+                    return;
+                  }
+                  
+                  let nombreJeunes, dureeHeures;
+                  
+                  if (selectedOption.value === 'A') {
+                    nombreJeunes = 2;
+                    dureeHeures = 24;
+                  } else if (selectedOption.value === 'B') {
+                    nombreJeunes = 2;
+                    dureeHeures = 16;
+                  } else if (selectedOption.value === 'C') {
+                    nombreJeunes = parseInt(document.getElementById('nombreJeunes').value);
+                    dureeHeures = parseInt(document.getElementById('dureeJeune').value);
+                    if (!dureeHeures || dureeHeures < 12 || dureeHeures > 36) {
+                      alert('Durée invalide (entre 12 et 36 heures)');
+                      return;
+                    }
+                  }
+                  
+                  saveConfig6(selectedOption.value, nombreJeunes, dureeHeures);
+                }}
+                style={{
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  marginTop: '10px'
+                }}
+              >
+                Valider ma configuration
+              </button>
+            </div>
+          ) : (
+            <div style={{ backgroundColor: '#e8f5e9', padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
+              <p style={{ fontWeight: 'bold', color: '#2e7d32', marginBottom: '10px' }}>
+                ✅ TA CONFIGURATION : Option {config6.option} ({config6.nombreJeunes} jeûnes de {config6.dureeHeures}h)
+              </p>
+              
+              <div style={{ borderTop: '2px solid #aed581', paddingTop: '15px', marginTop: '15px' }}>
+                <h4 style={{ color: '#2e7d32', marginBottom: '15px', fontSize: '1.1em' }}>🎯 TES JEÛNES D'ENTRAÎNEMENT</h4>
+                
+                {config6.jeunes.map((jeune, idx) => {
+                  const isBloque = idx > 0 && !config6.jeunes[idx - 1].complete;
+                  const dateMin = idx > 0 && config6.jeunes[idx - 1].datePrevue 
+                    ? (() => {
+                        const d = new Date(config6.jeunes[idx - 1].datePrevue);
+                        d.setDate(d.getDate() + 3);
+                        return d.toISOString().split('T')[0];
+                      })()
+                    : null;
+                  
+                  // Calculer les horaires selon la durée
+                  const heureDebut = config6.dureeHeures === 16 ? '20h' : '19h';
+                  const heureFin = config6.dureeHeures === 16 ? '12h' : 
+                                   config6.dureeHeures === 24 ? '19h' : 
+                                   `${(19 + config6.dureeHeures) % 24}h`;
+                  const texteFin = config6.dureeHeures === 16 ? 'Petit-déj' : 'Reprise';
+                  
+                  return (
+                    <div key={idx} style={{ marginBottom: '20px' }}>
+                      <div style={{
+                        border: jeune.complete ? '2px solid #4CAF50' : '2px solid #dcedc8',
+                        borderRadius: '8px',
+                        padding: '15px',
+                        backgroundColor: jeune.complete ? '#f1f8f4' : isBloque ? '#f5f5f5' : '#fff',
+                        opacity: isBloque ? 0.6 : 1
+                      }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          marginBottom: '12px',
+                          fontSize: '1.05em',
+                          fontWeight: 'bold',
+                          color: jeune.complete ? '#2e7d32' : '#666'
+                        }}>
+                          <span style={{ fontSize: '1.5em', marginRight: '10px' }}>
+                            {idx === 0 ? '1️⃣' : idx === 1 ? '2️⃣' : idx === 2 ? '3️⃣' : '4️⃣'}
+                          </span>
+                          JEÛNE {jeune.numero} — {config6.dureeHeures}h ({heureDebut} → {texteFin} {heureFin} lendemain)
+                        </div>
+                        
+                        {jeune.complete ? (
+                          // Version compacte si terminé
+                          <div style={{ paddingLeft: '45px' }}>
+                            <p style={{ margin: '5px 0', color: '#555' }}>
+                              📅 {new Date(jeune.datePrevue).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} | 
+                              {jeune.effectue ? ' ✅ Fait' : ' ❌ Non fait'} | 
+                              {jeune.ressenti === 'Facile' ? ' 😊 Facile' : 
+                               jeune.ressenti === 'Moyen' ? ' 😐 Moyen' : 
+                               jeune.ressenti === 'Difficile' ? ' 😓 Difficile' : ' ' + jeune.ressenti}
+                            </p>
+                            <p style={{ margin: '8px 0 0 0', fontWeight: 'bold', color: '#4CAF50' }}>
+                              Statut : ✅ TERMINÉ
+                            </p>
+                          </div>
+                        ) : (
+                          // Version détaillée si en cours
+                          <div style={{ paddingLeft: '45px' }}>
+                            <div style={{ marginBottom: '12px' }}>
+                              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#555' }}>
+                                📅 Quand ?
+                              </label>
+                              <input 
+                                type="date" 
+                                value={jeune.datePrevue || ''}
+                                min={dateMin || undefined}
+                                disabled={isBloque}
+                                onChange={(e) => {
+                                  if (dateMin && e.target.value < dateMin) {
+                                    alert(`Minimum 3 jours après le jeûne précédent (${new Date(dateMin).toLocaleDateString('fr-FR')})`);
+                                    return;
+                                  }
+                                  updateJeune6(idx, 'datePrevue', e.target.value);
+                                }}
+                                style={{ 
+                                  padding: '8px', 
+                                  borderRadius: '4px', 
+                                  border: '1px solid #ccc',
+                                  width: '200px',
+                                  cursor: isBloque ? 'not-allowed' : 'pointer'
+                                }}
+                              />
+                              {dateMin && !isBloque && (
+                                <p style={{ fontSize: '0.85em', color: '#666', marginTop: '5px' }}>
+                                  (Minimum 3 jours après le {new Date(dateMin).toLocaleDateString('fr-FR')})
+                                </p>
+                              )}
+                            </div>
+                            
+                            <div style={{ marginBottom: '12px' }}>
+                              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#555' }}>
+                                ✅ C'est fait ?
+                              </label>
+                              <label style={{ marginRight: '20px', cursor: isBloque ? 'not-allowed' : 'pointer' }}>
+                                <input 
+                                  type="radio" 
+                                  name={`effectue${idx}`}
+                                  checked={jeune.effectue === true}
+                                  disabled={isBloque}
+                                  onChange={() => updateJeune6(idx, 'effectue', true)}
+                                  style={{ marginRight: '5px' }}
+                                />
+                                Oui
+                              </label>
+                              <label style={{ cursor: isBloque ? 'not-allowed' : 'pointer' }}>
+                                <input 
+                                  type="radio" 
+                                  name={`effectue${idx}`}
+                                  checked={jeune.effectue === false}
+                                  disabled={isBloque}
+                                  onChange={() => updateJeune6(idx, 'effectue', false)}
+                                  style={{ marginRight: '5px' }}
+                                />
+                                Pas encore
+                              </label>
+                            </div>
+                            
+                            <div style={{ marginBottom: '12px' }}>
+                              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#555' }}>
+                                😊 Comment ça s'est passé ?
+                              </label>
+                              <select
+                                value={jeune.ressenti || ''}
+                                disabled={isBloque || jeune.effectue !== true}
+                                onChange={(e) => updateJeune6(idx, 'ressenti', e.target.value)}
+                                style={{ 
+                                  padding: '8px', 
+                                  borderRadius: '4px', 
+                                  border: '1px solid #ccc',
+                                  cursor: (isBloque || jeune.effectue !== true) ? 'not-allowed' : 'pointer',
+                                  opacity: (isBloque || jeune.effectue !== true) ? 0.5 : 1
+                                }}
+                              >
+                                <option value="">-- Sélectionne --</option>
+                                <option value="Facile">😊 Facile</option>
+                                <option value="Moyen">😐 Moyen</option>
+                                <option value="Difficile">😓 Difficile</option>
+                              </select>
+                            </div>
+                            
+                            <p style={{ 
+                              marginTop: '12px', 
+                              fontWeight: 'bold',
+                              color: isBloque ? '#999' : jeune.complete ? '#4CAF50' : '#ff9800'
+                            }}>
+                              Statut : {isBloque ? '🔒 BLOQUÉ (Finis d\'abord le Jeûne ' + idx + ')' : 
+                                       jeune.complete ? '✅ TERMINÉ' : '⏳ À FAIRE'}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {idx < config6.jeunes.length - 1 && (
+                        <div style={{ textAlign: 'center', margin: '10px 0', color: '#666', fontSize: '0.9em' }}>
+                          ⏬ Attends au moins 3 jours ⏬
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <div style={{ 
+                borderTop: '2px solid #aed581', 
+                paddingTop: '15px', 
+                marginTop: '15px',
+                textAlign: 'center'
+              }}>
+                <p style={{ fontWeight: 'bold', marginBottom: '10px', fontSize: '1.05em' }}>
+                  📊 TA PROGRESSION
+                </p>
+                <div style={{ 
+                  backgroundColor: '#f0f0f0', 
+                  borderRadius: '10px', 
+                  height: '30px',
+                  overflow: 'hidden',
+                  marginBottom: '10px',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    backgroundColor: '#4CAF50',
+                    height: '100%',
+                    width: `${(config6.jeunes.filter(j => j.complete).length / config6.nombreJeunes) * 100}%`,
+                    transition: 'width 0.5s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontWeight: 'bold'
+                  }}>
+                    {config6.jeunes.filter(j => j.complete).length > 0 && 
+                      `${Math.round((config6.jeunes.filter(j => j.complete).length / config6.nombreJeunes) * 100)}%`}
+                  </div>
+                </div>
+                <p style={{ color: '#555' }}>
+                  {config6.jeunes.filter(j => j.complete).length} / {config6.nombreJeunes} complétés
+                  {config6.jeunes.filter(j => j.complete).length === 1 && config6.nombreJeunes === 2 && ' — Plus qu\'un ! 💪'}
+                </p>
+              </div>
+              
+              {config6.jeunes.every(j => j.complete) && (
+                <div style={{ 
+                  backgroundColor: '#fff9e6', 
+                  border: '2px solid #ffc107',
+                  borderRadius: '8px',
+                  padding: '15px',
+                  marginTop: '15px',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ fontSize: '1.5em', marginBottom: '10px' }}>🎉</p>
+                  <p style={{ fontWeight: 'bold', color: '#f57c00', fontSize: '1.1em' }}>
+                    BRAVO ! Tu as réussi tes {config6.nombreJeunes} jeûnes d'entraînement !
+                  </p>
+                  <p style={{ color: '#666', marginTop: '8px' }}>
+                    Critère validé automatiquement ✅
+                  </p>
+                </div>
+              )}
+              
+              <button
+                onClick={() => {
+                  if (confirm('Veux-tu modifier ta configuration ? (⚠️ Cela réinitialisera ton tracker)')) {
+                    setConfig6(null);
+                    if (typeof window !== 'undefined') {
+                      localStorage.removeItem('critere6Config');
+                    }
+                  }
+                }}
+                style={{
+                  backgroundColor: '#ff9800',
+                  color: 'white',
+                  padding: '8px 15px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  marginTop: '15px',
+                  display: 'block'
+                }}
+              >
+                Modifier ma configuration
+              </button>
+            </div>
+          )}
+          
+          <p style={{ marginTop: '20px' }}><strong>📌 RÈGLES STRICTES :</strong></p>
+          <ul>
+            <li>Espacement minimum 3 jours entre les jeûnes</li>
+            <li>Hydratation continue (eau, tisanes non sucrées)</li>
+            <li>Repos si fatigue (pas d'effort physique intense)</li>
+            <li>Arrêt immédiat si malaise sévère</li>
+          </ul>
+          
+          <p><strong>💡 ASTUCE :</strong></p>
+          <p>Planifie tes jeûnes un week-end calme (moins de sollicitations, possibilité de repos)</p>
+        </div>
+      ),
+      suivi: `Tracker de jeûnes ci-dessus. Validation automatique si ${config6 ? config6.nombreJeunes : '2'} jeûnes complétés selon durée choisie (${config6 ? config6.dureeHeures : '24'}h).`
     },
     7: {
       pourquoi: "L'eau permet à tes reins d'évacuer les déchets que ton corps produit naturellement. Pendant un jeûne, ton organisme va puiser dans ses réserves (graisse, protéines) et cela crée beaucoup de déchets métaboliques à éliminer. Si tes reins et ton foie ne sont pas habitués à une bonne hydratation avant le jeûne, ils seront débordés pendant. Boire 2 litres par jour les prépare progressivement à cette mission d'élimination intensive.",
@@ -469,7 +1020,14 @@ export default function PhaseCard({ phase, criteres = [], onValider, jCourant })
               )}
 
               {critere.valide ? (
-                <span style={{ color: '#43D9A3', fontWeight: 700, fontSize: '0.99em' }}>✅ Validé le {critere.dateValidation ? new Date(critere.dateValidation).toLocaleDateString('fr-FR') : ''}</span>
+                <span style={{ color: '#43D9A3', fontWeight: 700, fontSize: '0.99em' }}>
+                  ✅ Validé le {critere.dateValidation ? new Date(critere.dateValidation).toLocaleDateString('fr-FR') : ''}
+                  {critere.typeValidation === 'auto' && (
+                    <span style={{ color: '#4F8FFF', marginLeft: '8px', fontSize: '0.9em' }}>
+                      (Auto-détecté)
+                    </span>
+                  )}
+                </span>
               ) : statut === 'VERROUILLÉ' ? (
                 <div style={{ color: '#FF6B6B', fontSize: '0.95em', marginTop: 6, fontWeight: 600 }}>
                   🔒 Ce critère devait démarrer à J-{critere.jalon}. Concentre-toi sur les critères restants.
