@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
 import { genererProgrammeReprise } from "../lib/genererProgrammeReprise";
 import { genererEtSauvegarderProgramme } from "../lib/jeuneUtils";
+import * as ParcoursAPI from "../lib/parcoursJeuneAPI";
 import ChecklistConseilsActivation from "../components/ChecklistConseilsActivation";
 import MessageSoutien from "../components/MessageSoutien";
 import AnalyseComportementale from "../components/AnalyseComportementale";
@@ -410,20 +411,36 @@ function pertePoidsEstimee(poids, duree) {
   };
 }
 
-function getRepasRecents() {
-  return [
-    { est_extra: true, categorie: "féculent" },
-    { est_extra: false, categorie: "sucre" },
-    { est_extra: true, categorie: "féculent" }
-  ];
+async function getRepasRecents() {
+  try {
+    const repas = await ParcoursAPI.getDerniersRepas(3);
+    return repas.length > 0 ? repas : [
+      { est_extra: false, categorie: "aucun", aliment: "Aucun repas enregistré" }
+    ];
+  } catch (error) {
+    console.warn('Fallback repas vides:', error);
+    return [];
+  }
 }
 
-function getPoidsDepart() {
-  return 72.4;
+async function getPoidsDepart() {
+  try {
+    const poids = await ParcoursAPI.getDernierPoids();
+    return poids || 72.4; // Fallback mockdata si null
+  } catch (error) {
+    console.warn('Fallback mockdata poids:', error);
+    return 72.4;
+  }
 }
 
-function getDernierRepas() {
-  return { aliment: "Pâtes", categorie: "féculent" };
+async function getDernierRepas() {
+  try {
+    const repas = await ParcoursAPI.getDerniersRepas(1);
+    return repas.length > 0 ? repas[0] : { aliment: "Aucun repas", categorie: "aucun" };
+  } catch (error) {
+    console.warn('Fallback dernier repas:', error);
+    return { aliment: "Aucun repas", categorie: "aucun" };
+  }
 }
 
 function loadState(key, def) {
@@ -471,6 +488,8 @@ export default function Jeune() {
   const [dernierRepasSupabase, setDernierRepasSupabase] = useState(null);
   const [loadingDonneesJeune, setLoadingDonneesJeune] = useState(true);
   const [donneesManquantes, setDonneesManquantes] = useState({ poids: false, repas: false });
+  const [repasFallback, setRepasFallback] = useState([]);
+  const [dernierRepasFallback, setDernierRepasFallback] = useState(null);
 
   // === NOUVEAUX HOOKS POUR LES 4 AJOUTS ===
   const [conseilsActivation, setConseilsActivation] = useState({});
@@ -478,16 +497,72 @@ export default function Jeune() {
   const [analyseComportementaleData, setAnalyseComportementaleData] = useState(null);
   const [pertePoidsEstimeeData, setPertePoidsEstimeeData] = useState(null);
 
+  // Charger repas depuis Supabase au montage
+  useEffect(() => {
+    const loadRepas = async () => {
+      const repas = await getRepasRecents();
+      const dernier = await getDernierRepas();
+      setRepasFallback(repas);
+      setDernierRepasFallback(dernier);
+    };
+    loadRepas();
+  }, []);
+
+  // P0.5 : Initialiser ou récupérer parcours jeûne depuis Supabase
+  useEffect(() => {
+    const initParcours = async () => {
+      try {
+        // Récupérer parcours actif depuis Supabase
+        const parcours = await ParcoursAPI.getParcoursJeuneActif();
+        
+        if (parcours) {
+          // Parcours existe en BDD, synchroniser avec localStorage
+          console.log('✅ Parcours jeûne récupéré:', parcours.id);
+          setJoursValides(parcours.jours_valides || []);
+          // Sync localStorage comme cache
+          localStorage.setItem('joursValides', JSON.stringify(parcours.jours_valides || []));
+          if (parcours.message_perso) {
+            setMessagePerso(parcours.message_perso);
+            localStorage.setItem('messagePerso', parcours.message_perso);
+          }
+        } else {
+          // Créer nouveau parcours si preparationData existe
+          const prepDataStr = localStorage.getItem("preparationData");
+          if (prepDataStr) {
+            try {
+              const prepData = JSON.parse(prepDataStr);
+              const nouveauParcours = await ParcoursAPI.createParcoursJeune({
+                type: 'jeune',
+                date_debut: prepData.startDate,
+                duree_jours: prepData.duration,
+                statut: 'en_cours',
+                jours_valides: [],
+                progression: {
+                  duree_totale: prepData.duration,
+                  date_creation: new Date().toISOString()
+                }
+              });
+              console.log('✅ Nouveau parcours jeûne créé:', nouveauParcours.id);
+            } catch (createError) {
+              console.warn('Erreur création parcours, fallback localStorage:', createError);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Erreur init parcours, fallback localStorage:', error);
+        // Fallback sur localStorage existant
+        const joursValidesLocal = loadState("joursValides", []);
+        setJoursValides(joursValidesLocal);
+      }
+    };
+    
+    initParcours();
+  }, []);
+
   // === VARIABLES CALCULÉES ===
-  const repasRecents = loadingDonneesJeune 
-    ? getRepasRecents() 
-    : (repasRecentsSupabase.length > 0 ? repasRecentsSupabase : getRepasRecents());
-  
+  const repasRecents = repasRecentsSupabase.length > 0 ? repasRecentsSupabase : repasFallback;
+  const dernierRepas = dernierRepasSupabase || dernierRepasFallback;
   const analyse = analyseComportementale(repasRecents);
-  
-  const dernierRepas = loadingDonneesJeune 
-    ? getDernierRepas() 
-    : (dernierRepasSupabase || getDernierRepas());
 
   // === EFFETS (APRÈS HOOKS) ===
   // Charger depuis localStorage au montage client (évite hydration error)
@@ -587,8 +662,9 @@ export default function Jeune() {
       localStorage.setItem("joursValides", JSON.stringify(joursValidesNettoyes));
     }
     
-    setJoursValides(joursValidesActuels);
-    console.log(`📊 Initialisation: ${joursValidesActuels.length} jours validés sur ${dureeFiable} jours total`);
+    // P0.5: Ne plus appeler setJoursValides ici, laissé au useEffect P0.5 (Supabase priority)
+    // setJoursValides(joursValidesActuels); // COMMENTÉ - géré par useEffect P0.5
+    console.log(`📊 Initialisation localStorage: ${joursValidesActuels.length} jours validés sur ${dureeFiable} jours total (sera écrasé par Supabase)`);
     
     setPoidsInitial(loadState("poidsDepart", bilanPrepa?.poids_depart || 0));
     
@@ -775,7 +851,7 @@ export default function Jeune() {
   // === FONCTIONS HANDLERS (AVANT LE RENDER) ===
 
   // Générer le bilan détaillé du jeûne
-  const genererBilanJeune = () => {
+  const genererBilanJeune = async () => {
     const aujourdhui = new Date().toISOString().split('T')[0];
     
     // Calculer perte de poids (si poids final renseigné)
@@ -854,6 +930,17 @@ export default function Jeune() {
     
     console.log(`📚 Bilan ajouté à l'historique (total: ${historique.length})`);
     
+    // P0.5 : Terminer parcours en BDD
+    try {
+      const parcours = await ParcoursAPI.getParcoursJeuneActif();
+      if (parcours) {
+        await ParcoursAPI.terminerParcoursJeune(parcours.id, aujourdhui);
+        console.log('✅ Parcours jeûne terminé en BDD');
+      }
+    } catch (error) {
+      console.warn('Erreur fin parcours Supabase:', error);
+    }
+    
     return bilan;
   };
 
@@ -910,16 +997,12 @@ export default function Jeune() {
       dateFin.setDate(dateFin.getDate() + dureeJeune - 1);
       const dateFinStr = dateFin.toISOString().split('T')[0];
 
-      // Tenter de récupérer l'utilisateur, mais ne pas bloquer si absent
-      let userId;
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        userId = user?.id;
-      } catch {}
+      // NO AUTH : utiliser l'ID fixe 'laurelle_test_user'
+      const userId = 'laurelle_test_user';
 
       let programmeSauvegarde;
-      if (userId) {
-        // Utilisateur connecté : sauvegarde Supabase
+      try {
+        // Sauvegarde Supabase avec NO AUTH
         programmeSauvegarde = await genererEtSauvegarderProgramme(userId, {
           id: null,
           duree_jours: dureeJeune,
@@ -931,8 +1014,9 @@ export default function Jeune() {
         saveState("programmeReprise", programmeSauvegarde);
         setAlerteJ3(null);
         alert(`✅ Programme généré et sauvegardé ! ${programmeSauvegarde.duree_reprise_jours} jours de reprise créés.`);
-      } else {
-        // Génération locale strictement sans userId (comme ideaux)
+      } catch (error) {
+        console.warn('Erreur sauvegarde Supabase, génération locale:', error);
+        // Génération locale en fallback
         const programme = genererProgrammeReprise({
           dureeJeune,
           poidsDepart,
@@ -951,7 +1035,7 @@ export default function Jeune() {
         setProgrammeReprise(programmeSauvegarde);
         saveState("programmeReprise", programmeSauvegarde);
         setAlerteJ3(null);
-        alert(`✅ Programme généré localement ! ${programmeSauvegarde.duree_reprise_jours} jours de reprise créés. Connecte-toi pour sauvegarder définitivement.`);
+        alert(`✅ Programme généré localement ! ${programmeSauvegarde.duree_reprise_jours} jours de reprise créés.`);
       }
     } catch (error) {
       console.error("Erreur génération:", error);
@@ -961,11 +1045,12 @@ export default function Jeune() {
     }
   };
 
-  const resetJeune = () => {
+  const resetJeune = async () => {
     setDureeJeune(5);
     setJourEnCours(1);
     setJoursValides([]);
-    setPoidsDepart(getPoidsDepart());
+    const poids = await getPoidsDepart();
+    setPoidsDepart(poids);
     setMessagePerso("");
     setOutils({});
     setDateDebutJeune(null);
@@ -996,17 +1081,21 @@ export default function Jeune() {
   };
 
   // === VARIABLES CALCULÉES DE RENDU (APRÈS TOUS LES HOOKS) ===
-
+  
   const isFini = joursValides.length >= dureeJeune;
 
   // Générer le bilan automatiquement quand le jeûne est terminé
   useEffect(() => {
-    if (isFini && !bilanJeune) {
-      const bilan = genererBilanJeune();
-      setBilanJeune(bilan);
-      setShowBilan(true); // Afficher automatiquement le bilan
-    }
+    const loadBilan = async () => {
+      if (isFini && !bilanJeune) {
+        const bilan = await genererBilanJeune();
+        setBilanJeune(bilan);
+        setShowBilan(true); // Afficher automatiquement le bilan
+      }
+    };
+    loadBilan();
   }, [isFini, joursValides.length]);
+
 
   // Redirection automatique vers la page de reprise alimentaire après jeûne quand le jeûne est fini
   useEffect(() => {
@@ -1165,14 +1254,16 @@ export default function Jeune() {
         <div style={{ marginTop: 10 }}>
           ⚖️ Poids de départ : <b>{poidsDepart ? `${poidsDepart} kg` : "Non renseigné"}</b>
         </div>
-        <div style={{ marginTop: 4 }}>
-          🍽️ Dernier repas analysé : <b>{dernierRepas.aliment}</b> ({dernierRepas.categorie})<br />
-          <span style={{ color: "#888" }}>
-            {dernierRepas.categorie === "féculent"
-              ? "Ton dernier repas était riche en féculents. Ton foie est en train de basculer en mode cétose."
-              : "Ton dernier repas était léger. Ton corps démarre le jeûne en douceur."}
-          </span>
-        </div>
+        {dernierRepas && (
+          <div style={{ marginTop: 4 }}>
+            🍽️ Dernier repas analysé : <b>{dernierRepas.aliment}</b> ({dernierRepas.categorie})<br />
+            <span style={{ color: "#888" }}>
+              {dernierRepas.categorie === "féculent"
+                ? "Ton dernier repas était riche en féculents. Ton foie est en train de basculer en mode cétose."
+                : "Ton dernier repas était léger. Ton corps démarre le jeûne en douceur."}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* --- Alerte J-3 (détection automatique) --- */}
