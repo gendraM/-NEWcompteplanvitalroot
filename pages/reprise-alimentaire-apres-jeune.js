@@ -1822,22 +1822,24 @@ export default function RepriseAlimentaireApresJeune() {
           onRecettesClick={(type) => setModalRecettesPhase4({ isOpen: true, type })}
         />
 
-        {/* 🥘 Modal recettes détaillées Phase 1 */
         <RecettesPhase1Modal 
           isOpen={modalRecettes.isOpen}
           recetteType={modalRecettes.type}
           onClose={() => setModalRecettes({ isOpen: false, type: 'bouillon' })}
         />
-
         {/* 🥘 Modal recettes détaillées Phase 2 */}
+
         <RecettesPhase2Modal 
           isOpen={modalRecettesPhase2.isOpen}
           recetteType={modalRecettesPhase2.type}
           onClose={() => setModalRecettesPhase2({ isOpen: false, type: 'compote' })}
         />
 
-        {/* 🥘 Modal recettes détaillées Phase 4 */}
         <RecettesPhase4Modal 
+          isOpen={modalRecettesPhase4.isOpen}
+          recetteType={modalRecettesPhase4.type}
+          onClose={() => setModalRecettesPhase4({ isOpen: false, type: 'patatedouce' })}
+        />
           isOpen={modalRecettesPhase4.isOpen}
           recetteType={modalRecettesPhase4.type}
           onClose={() => setModalRecettesPhase4({ isOpen: false, type: 'patatedouce' })}
