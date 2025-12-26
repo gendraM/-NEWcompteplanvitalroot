@@ -1,65 +1,50 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useEcrits } from '../lib/useJournalSpirituel';
 import styles from '../styles/OngletEcriture.module.css';
 
 export default function OngletEcriture({ jourJeune }) {
   // ==========================================
   // 1. HOOKS (tous en haut du composant)
   // ==========================================
+  
+  // Hook Supabase avec fallback localStorage
+  const { ecrits, loading, mode, ajouter, modifier, supprimer } = useEcrits();
+  
+  // États locaux pour le formulaire
   const [texte, setTexte] = useState('');
   const [titre, setTitre] = useState('');
-  const [ecrits, setEcrits] = useState([]);
   const [modeEdition, setModeEdition] = useState(false);
   const [ecritEnCoursEdition, setEcritEnCoursEdition] = useState(null);
 
-  // Charger les écrits depuis localStorage au montage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const ecritsStockes = localStorage.getItem('journalEcrits');
-      if (ecritsStockes) {
-        try {
-          const parsed = JSON.parse(ecritsStockes);
-          // Trier par date décroissante (plus récent en premier)
-          const tries = parsed.sort((a, b) => new Date(b.date) - new Date(a.date));
-          setEcrits(tries);
-        } catch (error) {
-          console.error('Erreur chargement écrits:', error);
-        }
-      }
-    }
-  }, []);
+  // Afficher loading pendant chargement
+  if (loading) {
+    return <div style={{ padding: 20, textAlign: 'center' }}>Chargement de vos écrits...</div>;
+  }
 
   // ==========================================
   // 2. HANDLERS (après les hooks)
   // ==========================================
 
-  const sauvegarderEcrit = () => {
+  const sauvegarderEcrit = async () => {
     if (!texte.trim()) {
       alert('Veuillez écrire quelque chose avant de sauvegarder.');
       return;
     }
 
-    const nouvelEcrit = {
-      id: modeEdition ? ecritEnCoursEdition.id : Date.now(),
+    const ecritData = {
       titre: titre.trim() || 'Sans titre',
       texte: texte.trim(),
-      date: modeEdition ? ecritEnCoursEdition.date : new Date().toISOString(),
-      dateModification: modeEdition ? new Date().toISOString() : null,
       jourJeune: jourJeune || 'N/A',
       nbCaracteres: texte.trim().length
     };
 
-    let nouveauxEcrits;
-    if (modeEdition) {
-      // Remplacer l'écrit existant
-      nouveauxEcrits = ecrits.map(e => e.id === ecritEnCoursEdition.id ? nouvelEcrit : e);
+    if (modeEdition && ecritEnCoursEdition) {
+      // Modifier écrit existant
+      await modifier(ecritEnCoursEdition.id, ecritData);
     } else {
       // Ajouter nouvel écrit
-      nouveauxEcrits = [nouvelEcrit, ...ecrits];
+      await ajouter(ecritData);
     }
-
-    // Sauvegarder dans localStorage
-    localStorage.setItem('journalEcrits', JSON.stringify(nouveauxEcrits));
-    setEcrits(nouveauxEcrits);
 
     // Réinitialiser le formulaire
     setTexte('');
@@ -84,11 +69,9 @@ export default function OngletEcriture({ jourJeune }) {
     setEcritEnCoursEdition(null);
   };
 
-  const supprimerEcrit = (id) => {
+  const supprimerEcrit = async (id) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer cet écrit ?')) {
-      const nouveauxEcrits = ecrits.filter(e => e.id !== id);
-      localStorage.setItem('journalEcrits', JSON.stringify(nouveauxEcrits));
-      setEcrits(nouveauxEcrits);
+      await supprimer(id);
     }
   };
 
@@ -108,7 +91,9 @@ export default function OngletEcriture({ jourJeune }) {
 
   return (
     <div className={styles.ongletContainer}>
-      <h1 className={styles.title}>✍️ Écriture libre</h1>
+      <h1 className={styles.title}>
+        ✍️ Écriture libre {mode === 'supabase' ? '☁️' : '💾'}
+      </h1>
       
       {/* Formulaire de saisie */}
       <div className={styles.formulaire}>

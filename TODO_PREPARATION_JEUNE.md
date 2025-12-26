@@ -304,60 +304,88 @@ Afficher un formulaire ou un modal permettant à l’utilisateur de saisir ou co
 ## Validation explicite de l’utilisateur (OBLIGATOIRE)
 - [ ] Plan validé par l’utilisateur à la date : ___
 
-# 🟢 TODO – Intégration de la préparation au jeûne (ordre de priorité, version conforme métier, MAJ 17/11/25 23h56)
+# 🟢 TODO – Intégration de la préparation au jeûne (ordre de priorité, version conforme métier, MAJ 23/12/25)
 
-## Progression globale : 0/8 étapes complétées (0%)
+## Progression globale : 5/9 étapes complétées (56%)
 
-- [ ] **Saisie/confirmation utilisateur des infos de démarrage** (Priorité 1)
-  - Afficher un formulaire/modal pour saisir ou confirmer la date du jeûne, la durée de préparation, et l'objectif personnel (ex : "Jeûne de 5 jours prévu le 15 décembre 2025").
-  - Vérifier la cohérence et la validation explicite de ces infos avant tout démarrage du workflow.
-  - Checklist stricte : initialisation, contrôle d'erreur, accessibilité, traçabilité, rollback en cas d'anomalie.
-  - Traçabilité métier : chaque saisie/confirmation doit être historisée et modifiable avant validation finale.
+- [x] **Saisie/confirmation utilisateur des infos de démarrage** (Priorité 1) ✅ **COMPLÉTÉ 17/11/2025**
+  - ✅ Modal `StartPreparationModal` implémentée avec formulaire complet
+  - ✅ Saisie : date du jeûne + durée de préparation + objectif personnel
+  - ✅ Vérification cohérence dates et validation explicite
+  - ✅ Sauvegarde dans `localStorage.preparationData`
+  - ✅ Handler `handleStartPreparationModal` fonctionnel
 
-- [ ] **Activer le workflow interactif préparation-jeune.js** (Priorité 2)
-  - Implémenter la gestion effective du bouton 'Démarrer mon suivi de préparation' (débloquer la timeline et la validation des critères après clic).
-  - Ne permettre l'activation que si les infos de démarrage sont validées.
-  - Permettre la validation effective des critères (boutons actifs au bon moment).
-  - Permettre la validation effective du message personnel (sauvegarde et affichage synthèse).
+- [x] **Activer le workflow interactif préparation-jeune.js** (Priorité 2) ✅ **COMPLÉTÉ 17/11/2025**
+  - ✅ État `preparationActive` géré avec localStorage
+  - ✅ Bouton "Démarrer mon suivi de préparation" actif
+  - ✅ Timeline et critères débloqués après activation
+  - ✅ Validation manuelle des critères opérationnelle (fonction `validerCritere`)
+  - ✅ Message personnel : saisie + sauvegarde + affichage dans bilan
+  - ✅ Bilan préparation avec points forts / axes amélioration / conseils personnalisés
+  - ✅ Bouton "Démarrer mon jeûne" avec enregistrement Supabase
 
-- [ ] **Créer/adapter timeline et critères** (Priorité 3)
-  - Créer ou adapter TimelineProgressionPreparation, CriterePreparationCard, conseils, pour une timeline interactive et détaillée. Ne concerner que la préparation et ses transitions.
+- [x] **Créer/adapter timeline et critères** (Priorité 3) ✅ **COMPLÉTÉ 17/11/2025**
+  - ✅ `TimelinePreparation` intégrée avec phases visuelles
+  - ✅ 3 phases définies : Phase 1 Allègement (J-30→J-18) / Phase 2 Végétalisation (J-17→J-8) / Phase 3 Pré-jeûne (J-7→J-0)
+  - ✅ `PhaseCard` avec affichage critères par phase
+  - ✅ Conseils contextuels et guidances intégrées
 
-- [ ] **Améliorer validation automatique dans suivi.js** (Priorité 4)
-  - Permettre la validation automatique des critères selon la saisie du repas, synchroniser avec la timeline de préparation. Ne pas gérer la logique du jeûne ou de la reprise.
+- [x] **Enrichir guidances pédagogiques critères** (Priorité 3bis) ✅ **COMPLÉTÉ 07/12/2025**
+  - ✅ 9 critères avec structure POURQUOI / COMMENT FAIRE / SUIVI QUOTIDIEN
+  - ✅ Blocs "En savoir plus" expandables pour chaque critère
+  - ✅ Langage clair, accessible, motivant (repères visuels, exemples concrets)
 
-- [ ] **Ajouter bannière sur tableau-de-bord.js** (Priorité 5)
-  - Détecter un jeûne programmé et afficher la bannière d'entrée dans la préparation sur /tableau-de-bord.js. Limité à la préparation et à la transition.
+- [x] **Rendre critères 3 et 6 interactifs** (Priorité 3ter) ✅ **COMPLÉTÉ 23/12/2025**
+  - ✅ **Critère 3** : Dropdowns action/durée/délai + sauvegarde localStorage + récapitulatif
+  - ✅ **Critère 6** : Radio buttons Options A/B/C + tracker jeûnes épuré + déblocage progressif + validation auto quand tous jeûnes complétés
+  - ✅ Cartes épurées avec UX motivante (barre progression, messages encourageants)
+  - ✅ Validation écart minimum 3 jours entre jeûnes
 
-- [ ] **Tester le workflow complet** (Priorité 6)
-  - Tester le déclenchement, la validation, la progression, le feedback et le passage au jeûne sur l'ensemble du parcours de préparation. Ne pas tester la logique métier du jeûne ou de la reprise.
+- [ ] **Améliorer validation automatique dans suivi.js** (Priorité 4) ⏳ **À FAIRE**
+  - Permettre la validation automatique des critères selon la saisie du repas dans `/suivi.js`
+  - Détecter automatiquement :
+    - Critère 1 : Portions correctes via analyse saisie repas
+    - Critère 2 : Absence féculents au dîner
+    - Critère 7 : 2 litres eau/jour
+    - Critère 8 : Dernier repas avant 19h
+    - Critère 9 : Plage alimentaire ≤ 45 min
+  - Synchroniser avec timeline de préparation
+  - Ne pas gérer la logique du jeûne ou de la reprise
 
-- [ ] **Ajouter conseils et feedbacks UX** (Priorité 7)
-  - Enrichir les pages et composants avec des conseils pratiques, messages motivationnels et feedbacks contextuels, uniquement pour la préparation et ses transitions.
+- [ ] **Ajouter bannière sur tableau-de-bord.js** (Priorité 5) ⏳ **À FAIRE**
+  - Détecter un jeûne programmé via `localStorage.preparationData`
+  - Afficher bannière d'entrée dans la préparation sur `/tableau-de-bord.js`
+  - Message type : "🎯 Prépare-toi pour ton jeûne du [date] - J-XX jours restants"
+  - Lien direct vers `/preparation-jeune`
+  - Limité à la préparation et à la transition
 
-- [ ] **Valider accessibilité et robustesse** (Priorité 7)
-  - Tester la solution sur plusieurs devices, cas limites, accessibilité, gestion des retours arrière et modification de date, uniquement pour la préparation et ses transitions.
-- [ ] **Créer/adapter timeline et critères**
-  - Créer ou adapter `TimelineProgressionPreparation`, `CriterePreparationCard`, conseils, pour une timeline interactive et détaillée. Ne concerner que la préparation et ses transitions.
-- [ ] **Améliorer validation automatique dans `/suivi.js`**
-  - Permettre la validation automatique des critères selon la saisie du repas, synchroniser avec la timeline de préparation. Ne pas gérer la logique du jeûne ou de la reprise.
-- [ ] **Ajouter bannière sur `/tableau-de-bord.js`**
-  - Détecter un jeûne programmé et afficher la bannière d'entrée dans la préparation sur `/tableau-de-bord.js`. Limité à la préparation et à la transition.
-- [ ] **Tester le workflow complet**
-  - Tester le déclenchement, la validation, la progression, le feedback et le passage au jeûne sur l'ensemble du parcours de préparation. Ne pas tester la logique métier du jeûne ou de la reprise.
-- [ ] **Ajouter conseils et feedbacks UX**
-  - Enrichir les pages et composants avec des conseils pratiques, messages motivationnels et feedbacks contextuels, uniquement pour la préparation et ses transitions.
-- [ ] **Valider accessibilité et robustesse**
-  - Tester la solution sur plusieurs devices, cas limites, accessibilité, gestion des retours arrière et modification de date, uniquement pour la préparation et ses transitions.
+- [ ] **Tester le workflow complet** (Priorité 6) ⏳ **À FAIRE**
+  - Tester le déclenchement (modal → activation → timeline)
+  - Tester validation manuelle critères (périodes actives/verrouillées)
+  - Tester validation interactive critères 3 & 6 (localStorage persistance)
+  - Tester progression et feedback
+  - Tester passage au jeûne (bilan → enregistrement Supabase → redirection)
+  - Ne pas tester la logique métier du jeûne ou de la reprise
+
+- [ ] **Valider accessibilité et robustesse** (Priorité 7) ⏳ **À FAIRE**
+  - Tester sur plusieurs devices (desktop, mobile, tablette)
+  - Tester accessibilité (navigation clavier, lecteurs d'écran, ARIA)
+  - Tester cas limites : modification date, retour arrière, localStorage corrompu
+  - Tester gestion des retours arrière et modification de date
+  - Tester gestion des retours arrière et modification de date
+  - Uniquement pour la préparation et ses transitions
 
 ---
 
 **Légende** :
-- [x] Étape complétée
-- [ ] Étape à faire
+- [x] Étape complétée ✅
+- [ ] Étape à faire ⏳
 
-La progression sera mise à jour à chaque étape validée.
+**Dernière mise à jour** : 23 décembre 2025 12:00
 
+**Historique des complétion** :
+- 17/11/2025 : Priorités 1, 2, 3 complétées (workflow de base)
+- 07/12/2025 : Priorité 3bis complétée (guidances pédagogiques)
+- 23/12/2025 : Priorité 3ter complétée (critères 3 & 6 interactifs)
 
-
-to DO a jour en date du 17/11/25 A 23H56
+**Prochaine priorité** : Priorité 4 (validation automatique suivi.js)
