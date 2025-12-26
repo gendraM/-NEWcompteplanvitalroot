@@ -3,8 +3,10 @@ import { supabase } from '../lib/supabaseClient';
 import Link from 'next/link';
 import NotificationsPhase1 from '../components/NotificationsPhase1';
 import NotificationsPhase2 from '../components/NotificationsPhase2';
+import NotificationsPhase4 from '../components/NotificationsPhase4';
 import RecettesPhase1Modal from '../components/RecettesPhase1Modal';
 import RecettesPhase2Modal from '../components/RecettesPhase2Modal';
+import RecettesPhase4Modal from '../components/RecettesPhase4Modal';
 
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
@@ -206,6 +208,9 @@ export default function RepriseAlimentaireApresJeune() {
 
   // 🆕 États pour fonctionnalités Phase 2
   const [modalRecettesPhase2, setModalRecettesPhase2] = useState({ isOpen: false, type: 'compote' });
+
+  // 🆕 États pour fonctionnalités Phase 4
+  const [modalRecettesPhase4, setModalRecettesPhase4] = useState({ isOpen: false, type: 'patatedouce' });
 
   // Permettre un mode test/forçage via ?test=1 dans l'URL
   const [forceSuivi, setForceSuivi] = useState(false);
@@ -1809,7 +1814,15 @@ export default function RepriseAlimentaireApresJeune() {
           isActive={notificationsActives}
         />
 
-        {/* 🥘 Modal recettes détaillées Phase 1 */}
+        {/* 🔔 Notifications Phase 4 */}
+        <NotificationsPhase4 
+          phase={jours.length > 0 && selectedJourIdx >= 0 ? jours[selectedJourIdx]?.phase : null}
+          jourNum={selectedJourIdx + 1}
+          isActive={notificationsActives}
+          onRecettesClick={(type) => setModalRecettesPhase4({ isOpen: true, type })}
+        />
+
+        {/* 🥘 Modal recettes détaillées Phase 1 */
         <RecettesPhase1Modal 
           isOpen={modalRecettes.isOpen}
           recetteType={modalRecettes.type}
@@ -1821,6 +1834,13 @@ export default function RepriseAlimentaireApresJeune() {
           isOpen={modalRecettesPhase2.isOpen}
           recetteType={modalRecettesPhase2.type}
           onClose={() => setModalRecettesPhase2({ isOpen: false, type: 'compote' })}
+        />
+
+        {/* 🥘 Modal recettes détaillées Phase 4 */}
+        <RecettesPhase4Modal 
+          isOpen={modalRecettesPhase4.isOpen}
+          recetteType={modalRecettesPhase4.type}
+          onClose={() => setModalRecettesPhase4({ isOpen: false, type: 'patatedouce' })}
         />
       </main>
       
