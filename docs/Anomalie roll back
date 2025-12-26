@@ -1766,3 +1766,168 @@ ATTENTE VALIDATION UTILISATEUR pour Option A ou B avant correction.
 - Statuts : Tous "À VENIR" ❌
 - Comportement attendu : NON ATTEINT ❌
 ═══════════════════════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 26/12/2025 17h30 — ARCHIVAGE JEÛNE NE FONCTIONNE PAS AU RETOUR ARRIÈRE
+═══════════════════════════════════════════════════════════════════════════════
+Fichier : /pages/jeune.js
+Erreur : Après fin jeûne (10/10), retour arrière navigateur depuis /reprise-alimentaire-apres-jeune → 0/10 jours validés + rien dans historique
+Symptômes :
+	- Utilisateur termine jeûne 10/10 ✅
+	- Clic "Accéder à ma reprise alimentaire" ✅
+	- Page /reprise-alimentaire-apres-jeune s'affiche ✅
+	- Retour arrière navigateur → /jeune affiche 0/10 validés ❌
+	- Modal "📚 Mes jeûnes" vide (aucun archivage) ❌
+	- localStorage joursValides reset à [] ❌
+
+Cause racine :
+  1. archiverJeuneActuel() lisait les ÉTATS REACT (joursValides, dureeJeune, etc.)
+  2. États React vides au moment du chargement page (avant useEffect)
+  3. setTimeout() dans migrerJeuneTermineVersHistorique appelait archiverJeuneActuel() trop tôt
+  4. Archivage avec données vides → échec silencieux
+
+Impact :
+  - Perte données utilisateur (jeûne terminé non sauvegardé)
+  - Confusion utilisateur (10/10 devient 0/10)
+  - Historique non fonctionnel
+  - Expérience utilisateur dégradée
+
+Code problématique :
+```javascript
+// ❌ AVANT : Lecture états React (vides au chargement)
+const archiverJeuneActuel = () => {
+  try {
+    if (joursValides.length === 0) { // ← État React vide au montage
+      console.log('⚠️ Aucun jeûne à archiver');
+      return;
+    }
+    const jeuneArchive = {
+      id: `${dateDebutJeune}_${dureeJeune}j`, // ← États React
+      joursValides: [...joursValides], // ← État React vide
+      // ...
+    };
+  }
+};
+
+// ❌ AVANT : setTimeout avec états pas encore chargés
+const migrerJeuneTermineVersHistorique = () => {
+  setTimeout(() => {
+    archiverJeuneActuel(); // États React vides ici !
+  }, 500);
+};
+```
+
+Procédure corrective appliquée (26/12/2025 17h30) :
+  1. ✅ Modification archiverJeuneActuel() : lecture LOCALE STORAGE (pas états React)
+  2. ✅ Archivage SYNCHRONE dans nouvelle préparation (plus de setTimeout)
+  3. ✅ Archivage SYSTEMATIQUE au chargement si jeûne terminé détecté
+  4. ✅ Suppression migrerJeuneTermineVersHistorique() devenue inutile
+  5. ✅ Reset joursValides[] APRÈS archivage (pas avant)
+
+Code corrigé :
+```javascript
+// ✅ APRÈS : Lecture localStorage directe
+const archiverJeuneActuel = () => {
+  try {
+    // Lecture localStorage (données fiables)
+    const joursValidesLS = JSON.parse(localStorage.getItem('joursValides') || '[]');
+    const dureeLS = parseInt(localStorage.getItem('dureeJeune') || '5');
+    const dateDebutLS = localStorage.getItem('dateDebutJeune');
+    const outilsLS = JSON.parse(localStorage.getItem('outilsJeune') || '{}');
+    const messagePersoLS = localStorage.getItem('messagePerso') || '';
+    const bilanLS = JSON.parse(localStorage.getItem('bilanJeune') || 'null');
+    const programmeRepriseLS = JSON.parse(
+      localStorage.getItem('programmeRepriseValide') || 
+      localStorage.getItem('programmeReprise') || 
+      'null'
+    );
+    
+    if (joursValidesLS.length === 0 || !dateDebutLS) {
+      console.log('⚠️ Aucun jeûne à archiver');
+      return;
+    }
+
+    const jeuneArchive = {
+      id: `${dateDebutLS}_${dureeLS}j`,
+      dateDebut: dateDebutLS,
+      duree: dureeLS,
+      joursValides: [...joursValidesLS],
+      outils: { ...outilsLS },
+      messagePerso: messagePersoLS,
+      bilan: bilanLS,
+      programmeReprise: programmeRepriseLS,
+      statut: 'termine',
+      dateArchivage: new Date().toISOString()
+    };
+
+    const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+    const dejaArchive = historiqueActuel.some(j => j.id === jeuneArchive.id);
+    
+    if (!dejaArchive) {
+      historiqueActuel.unshift(jeuneArchive);
+      localStorage.setItem('historiqueJeunes', JSON.stringify(historiqueActuel));
+      setHistoriqueJeunes(historiqueActuel);
+      console.log('✅ Jeûne archivé:', jeuneArchive.id);
+    }
+  } catch (error) {
+    console.error('❌ Erreur archivage:', error);
+  }
+};
+
+// ✅ APRÈS : Archivage SYNCHRONE nouvelle préparation
+if (dernierePrepStr !== prepId) {
+  const jeuneTermine = joursValidesActuels.length >= dureeFiable;
+  if (jeuneTermine) {
+    console.log("✅ Jeûne terminé conservé");
+    // Archiver IMMÉDIATEMENT (pas setTimeout)
+    archiverJeuneActuel();
+    console.log("✅ Jeûne archivé automatiquement");
+    // Reset APRÈS archivage
+    joursValidesActuels = [];
+    localStorage.setItem("joursValides", JSON.stringify([]));
+  }
+  localStorage.setItem("dernierePreparationId", prepId);
+}
+
+// ✅ APRÈS : Archivage systématique au chargement
+if (joursValidesActuels.length >= dureeFiable && joursValidesActuels.length > 0) {
+  const dateDebutActuel = localStorage.getItem("dateDebutJeune");
+  if (dateDebutActuel) {
+    const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+    const jeuneId = `${dateDebutActuel}_${dureeFiable}j`;
+    const dejaArchive = historiqueActuel.some(j => j.id === jeuneId);
+    
+    if (!dejaArchive) {
+      console.log('📦 Jeûne terminé détecté au chargement → Archivage automatique');
+      archiverJeuneActuel();
+    }
+  }
+}
+```
+
+Résultat attendu :
+  - Utilisateur termine jeûne 10/10
+  - Va sur /reprise-alimentaire-apres-jeune
+  - Retour arrière → Jeûne archivé dans "📚 Mes jeûnes"
+  - Consultation archive possible (mode read-only)
+  - Nouveau jeûne démarre avec 0/10
+
+Tests de validation :
+  ✅ Terminer jeûne 10/10
+  ✅ Aller sur page reprise
+  ✅ Retour arrière navigateur
+  ✅ Vérifier modal "📚 Mes jeûnes" contient jeûne archivé
+  ✅ Consulter archive → Affichage 10/10
+  ✅ Retour jeûne actif → Nouveau jeûne 0/X
+
+LEÇON APPRISE :
+- ⚠️ Ne JAMAIS lire états React dans fonctions appelées au montage composant
+- ⚠️ localStorage = source de vérité AVANT hydratation états React
+- ⚠️ setTimeout() masque problèmes de timing (éviter si possible)
+- ⚠️ Archivage SYNCHRONE plus fiable que asynchrone
+- ⚠️ Tester scénario complet : action → navigation → retour arrière
+
+PRÉVENTION :
+- Pattern à privilégier : Lire localStorage → Archiver → Puis charger états React
+- Éviter : Lire états React → setTimeout → Espérer données chargées
+═══════════════════════════════════════════════════════════════════════════════
