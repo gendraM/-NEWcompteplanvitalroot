@@ -1,9 +1,11 @@
 # 🎯 PLAN D'IMPLÉMENTATION : Intégration Supabase Parcours Jeûne (NO AUTH)
 
 **Date création :** 26/12/2025  
-**Statut :** 🟡 EN COURS  
+**Date fin :** 26/12/2025  
+**Statut :** ✅ TERMINÉ  
 **Priorité :** P0.2-P0.5 (Bloquer pour phase jeûne complète)  
-**Durée estimée :** 6-8h
+**Durée estimée :** 6-8h  
+**Durée réelle :** 8.5h
 
 ---
 
@@ -604,14 +606,17 @@ const testValidationJour = async () => {
 | Étape | Statut | Durée réelle | Notes |
 |-------|--------|--------------|-------|
 | **ÉTAPE 0** : Préparation | ✅ FAIT | 0.5h | ID fixe implémenté |
-| **ÉTAPE 1** : Table SQL | 🟡 EN COURS | - | À exécuter dans Supabase |
-| **ÉTAPE 2** : API lib | ⏳ TODO | - | - |
-| **ÉTAPE 3** : P0.2 Poids | ⏳ TODO | - | - |
-| **ÉTAPE 4** : P0.3 Repas | ⏳ TODO | - | - |
-| **ÉTAPE 5** : P0.5 Migration | ⏳ TODO | - | - |
-| **ÉTAPE 6** : Tests | ⏳ TODO | - | - |
+| **ÉTAPE 1** : Table SQL | ✅ FAIT | 0.5h | Table créée, RLS désactivé |
+| **ÉTAPE 2** : API lib | ✅ FAIT | 1.5h | parcoursJeuneAPI.js créé (11 fonctions) |
+| **ÉTAPE 3** : P0.2 Poids | ✅ FAIT | 1h | getDernierPoids() depuis historique_poids |
+| **ÉTAPE 4** : P0.3 Repas | ✅ FAIT | 1h | getDerniersRepas() depuis repas_reels |
+| **ÉTAPE 5** : P0.5 Migration | ✅ FAIT | 2h | Init + validation + fin parcours |
+| **ÉTAPE 6** : Tests | ✅ FAIT | 1h | Page fonctionne, 0 erreurs, 0 violations auth |
+| **CORRECTIONS** : Bugs | ✅ FAIT | 1h | isFini, dernierRepas null, auth, 406, double init |
 
-**Avancement global : 10% (1/7 étapes)**
+**Avancement global : 100% ✅ TERMINÉ**
+
+**Temps total : 8.5h (estimé 6-8h)**
 
 ---
 
