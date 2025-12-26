@@ -1,4 +1,295 @@
 ═══════════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 26/12/2025 17:45 — HYDRATION MISMATCH : Mini-bandeau préparation SSR/CSR
+═══════════════════════════════════════════════════════════════════════════════
+Date/Heure : 26 décembre 2025, 17:45
+Fichier concerné : /pages/suivi.js
+Module : Mini-bandeau "Préparation du jeûne" avec coloration contextuelle pastilles
+
+**CONTEXTE :**
+Après correction de l'anomalie hook ordering (17:30), nouvelle erreur détectée lors du test utilisateur.
+
+**ERREUR : Next.js Hydration Failed**
+```
+Hydration failed because the initial UI does not match what was rendered on the server.
+Next.js version: 15.5.3 (Webpack)
+```
+
+**Symptôme observé :**
+- Console navigateur : Warning "Hydration failed..."
+- Différence entre rendu serveur (SSR) et client (CSR)
+- Page peut s'afficher mais avec des warnings et comportements instables
+
+**Analyse de la cause racine :**
+❌ **Condition `typeof window !== 'undefined'` DANS le JSX (ligne ~918)**
+
+Code problématique :
+```javascript
+{typeof window !== 'undefined' && (localStorage.getItem('preparationActive') === 'true') && (
+  (() => {
+    // Mini-bandeau JSX ici
+  })()
+)}
+```
+
+**Pourquoi ça cause un hydration mismatch :**
+1. **Rendu serveur (SSR)** :
+   - `typeof window` === `'undefined'` → Condition `false`
+   - HTML généré : aucun bandeau (vide)
+
+2. **Rendu client (CSR)** :
+   - `typeof window` === `'object'` → Condition `true`
+   - HTML généré : bandeau affiché
+
+3. **Résultat** : HTML serveur ≠ HTML client → Hydration mismatch !
+
+**Règle Next.js violée :**
+- Toute condition qui dépend de l'environnement (window, localStorage, navigator) doit utiliser un **state client-only**
+- Pattern correct : useState(false) → useEffect(() => setState(true), [])
+
+**Impact :**
+🟡 MOYEN - Warnings dans la console, comportement instable du mini-bandeau
+🟡 Peut causer des bugs d'affichage ou de state
+
+**PROCÉDURE CORRECTIVE APPLIQUÉE (26/12/2025 17:45) :**
+
+**Étape 1 : Ajout d'un state client-only**
+```javascript
+// Ligne ~423 : Après statutsValidationAuto
+const [isMounted, setIsMounted] = useState(false);
+useEffect(() => {
+  setIsMounted(true);
+}, []);
+```
+
+**Étape 2 : Remplacement de la condition dans le JSX**
+```javascript
+// ❌ AVANT (ligne ~918)
+{typeof window !== 'undefined' && (localStorage.getItem('preparationActive') === 'true') && (
+  // ...
+)}
+
+// ✅ APRÈS
+{isMounted && (localStorage.getItem('preparationActive') === 'true') && (
+  // ...
+)}
+```
+
+**Fonctionnement de la solution :**
+1. **Premier rendu (SSR)** : `isMounted = false` → bandeau non rendu
+2. **Hydration (CSR)** : `isMounted = false` → bandeau non rendu (HTML match ✅)
+3. **Après mount (CSR)** : useEffect → `isMounted = true` → bandeau rendu
+4. **Résultat** : Pas de mismatch, bandeau affiché après hydration
+
+**Résultat attendu :**
+- ✅ Aucun warning "Hydration failed"
+- ✅ Mini-bandeau s'affiche correctement après le mount client
+- ✅ Pastilles contextuelles fonctionnent normalement
+- ✅ Comportement stable et prévisible
+
+**État après correction (26/12/2025 17:45) :**
+- ✅ Compilation : 0 erreur (get_errors confirmé)
+- ✅ Pattern client-only conforme Next.js best practices
+- ⏳ Test utilisateur requis pour validation finale
+
+**Leçons apprises :**
+1. **JAMAIS `typeof window` dans le JSX** : Toujours utiliser un state client-only
+2. **Pattern obligatoire** : useState(false) + useEffect(() => setState(true), [])
+3. **localStorage/window** : Doivent TOUJOURS être dans un useEffect, jamais dans le rendu initial
+4. **Hydration rules** : SSR et CSR doivent générer le MÊME HTML au premier rendu
+
+**Règle de prévention ajoutée :**
+Toute utilisation de `window`, `localStorage`, `document`, `navigator` dans le rendu JSX :
+1. Créer un state `const [isMounted, setIsMounted] = useState(false);`
+2. Ajouter un useEffect vide : `useEffect(() => { setIsMounted(true); }, []);`
+3. Remplacer `typeof window !== 'undefined'` par `isMounted` dans le JSX
+4. Toute lecture localStorage DOIT être dans un useEffect ou derrière `isMounted`
+
+**Fichiers modifiés :**
+- /pages/suivi.js :
+  - Ligne ~423 : Ajout state `isMounted` + useEffect
+  - Ligne ~920 : Remplacement condition `typeof window` par `isMounted`
+
+**Traçabilité Git :**
+- Commit correctif du 26/12/2025 17:45
+- Type de modification : Correction hydration mismatch (pattern client-only)
+- Référence anomalie : Hydration failed - Mini-bandeau préparation
+═══════════════════════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 26/12/2025 17:30 — HOOK ORDERING VIOLATION : repasSemaine RÉFÉRENCÉ AVANT DÉCLARATION
+═══════════════════════════════════════════════════════════════════════════════
+Date/Heure : 26 décembre 2025, 17:30
+Fichier concerné : /pages/suivi.js
+Module : Préparation au jeûne - Validation automatique critères + Coloration contextuelle pastilles
+
+**CONTEXTE DE LA MODIFICATION :**
+Implémentation du système de coloration contextuelle en temps réel des pastilles dans le mini-bandeau "Préparation du jeûne" sur la page suivi.js.
+
+Fonctionnalités ajoutées :
+1. ✅ Mini-bandeau "Préparation du jeûne" avec période affichée (ligne ~918-952)
+2. ✅ Pastilles contextuelles avec états : ok (vert), warn (jaune), neutral (gris)
+3. ✅ Fonction `calculerEtatPastille()` pour analyse en temps réel (ligne ~607-633)
+4. ✅ State `champsRepasEnCours` pour tracker les valeurs des champs (ligne ~587)
+5. ✅ Hook `useEffect` validation automatique critères 1/2/7/8/9 (ligne ~669-705)
+6. ✅ Prop `onChangeChampsRepas` dans RepasBloc pour remonter valeurs au parent (ligne ~1382)
+7. ✅ Deep-link `/suivi?from=YYYY-MM-DD&to=YYYY-MM-DD` pour vue semaine filtrée (ligne ~589-604)
+
+**PROBLÈME : Runtime Error "Cannot access 'repasSemaine' before initialization"**
+
+Symptôme observé :
+- Console navigateur : ReferenceError: "Cannot access 'repasSemaine' before initialization" 
+- Page suivi.js ne charge pas, écran blanc
+- Build réussit sans erreur (get_errors ne détecte rien)
+- Erreur survient uniquement au runtime lors de l'exécution du useEffect
+
+Analyse de la cause racine :
+❌ **ORDRE INVALIDE DES HOOKS (violation stricte règle React) :**
+
+```
+Ligne 424 : useEffect(() => { ... repasSemaine.filter(...) ... }, [repasSemaine, ...])
+            ↑ Référence repasSemaine dans dependency array
+            ↑ Référence repasSemaine dans le body (ligne 441)
+            
+Ligne 583 : const [repasSemaine, setRepasSemaine] = useState([]);
+            ↑ Déclaration de repasSemaine (159 lignes APRÈS l'usage !)
+```
+
+**Règle React violée :**
+- Tous les hooks useState/useEffect doivent être déclarés AVANT toute référence à leurs variables
+- Une variable ne peut pas être référencée dans un dependency array avant sa déclaration useState
+- Ordre obligatoire : useState → useEffect qui l'utilise (JAMAIS l'inverse)
+
+**Impact :**
+🔴 CRITIQUE - Page suivi.js totalement non fonctionnelle
+🔴 Utilisateur ne peut plus saisir de repas
+🔴 Erreur bloque le chargement complet de l'application
+
+**Étape du plan non respectée :**
+- ✅ Etape 1-4 : Audit et checklist correctement réalisés
+- ❌ Etape 5-8 : Implémentation sans vérification stricte de l'ordre des hooks
+- ❌ Checklist qualité : "Ordre strict des hooks React respecté" non validé
+- ❌ Test du rendu : erreur runtime non détectée (get_errors donne faux négatif)
+
+**PROCÉDURE CORRECTIVE APPLIQUÉE (26/12/2025 17:35) :**
+
+**Étape 1 : Suppression du useEffect mal placé**
+Supprimé le bloc useEffect lignes 424-458 (validation automatique critères) qui référençait `repasSemaine` avant sa déclaration.
+
+**Étape 2 : Réinsertion au bon emplacement**
+Réinséré le même useEffect APRÈS :
+- ✅ Déclaration de `repasSemaine` (ligne 583)
+- ✅ Déclaration de `filtreFromTo` (ligne 585)
+- ✅ Déclaration de `champsRepasEnCours` (ligne 587)
+- ✅ useEffect de lecture params from/to (ligne 589-604)
+- ✅ Fonction `calculerEtatPastille` (ligne 607-633)
+- ✅ useEffect de chargement repas depuis Supabase (ligne 637-666)
+
+Nouvel emplacement : **ligne ~669-705** (après chargement initial des repas)
+
+Code corrigé :
+```javascript
+// Ligne 583-587 : Déclarations useState (AVANT toute utilisation)
+const [repasSemaine, setRepasSemaine] = useState([]);
+const [filtreFromTo, setFiltreFromTo] = useState(null);
+const [champsRepasEnCours, setChampsRepasEnCours] = useState({ 
+  aliment: '', quantite: '', heureRepas: '', categorie: '' 
+});
+
+// Ligne 589-604 : useEffect lecture params URL
+
+// Ligne 607-633 : Fonction calculerEtatPastille
+
+// Ligne 637-666 : useEffect chargement repas depuis Supabase
+useEffect(() => {
+  async function fetchRepasEtPlan() {
+    const { data: repasData, error: repasError } = await supabase
+      .from('repas_reels')
+      .select('*')
+      .order('date', { ascending: false });
+    if (!repasError && Array.isArray(repasData)) {
+      setRepasSemaine(repasData); // ← Populé ici
+      // ...
+    }
+  }
+  fetchRepasEtPlan();
+}, [selectedDate]);
+
+// ✅ Ligne 669-705 : useEffect validation automatique (BON EMPLACEMENT)
+useEffect(() => {
+  if (!critereActif || !dateJeune) return;
+  
+  const critereIdActuel = getCritereIdFromLabel(critereActif.label);
+  const criteresAuto = [1, 2, 7, 8, 9];
+  if (!criteresAuto.includes(critereIdActuel)) return;
+  
+  // ✅ repasSemaine est maintenant accessible (déclaré ligne 583, populé ligne 645)
+  const repas7j = repasSemaine.filter(r => {
+    const dateRepas = new Date(r.date);
+    const dateCourante = new Date(selectedDate);
+    const diff = Math.floor((dateCourante - dateRepas) / (1000*60*60*24));
+    return diff >= 0 && diff < 7;
+  });
+  
+  const statuts = {};
+  const statutCritere = getStatutCritereAuto(critereIdActuel, repas7j);
+  statuts[critereIdActuel] = statutCritere;
+  
+  if (statutCritere.validé) {
+    validerCritereAuto(critereIdActuel);
+  }
+  
+  setStatutsValidationAuto(statuts);
+  
+}, [repasSemaine, critereActif, dateJeune, selectedDate]);
+```
+
+**Résultat attendu :**
+- ✅ Page suivi.js charge correctement
+- ✅ Mini-bandeau "Préparation du jeûne" s'affiche
+- ✅ Pastilles contextuelles colorées en temps réel selon saisie
+- ✅ Validation automatique critères 1/2/7/8/9 fonctionne
+- ✅ Aucune erreur runtime
+
+**État après correction (26/12/2025 17:35) :**
+- ✅ Compilation : 0 erreur (get_errors confirmé)
+- ✅ Ordre des hooks conforme : useState → useEffect
+- ✅ Aucune référence avant déclaration
+- ⏳ Test utilisateur requis pour validation finale
+
+**Vérifications périmètre effectuées :**
+✅ `/pages/suivi.js` : Corrigé, aucune autre anomalie détectée
+✅ `/components/RepasBloc.js` : Prop `onChangeChampsRepas` correctement ajoutée (ligne 73, 107-110)
+✅ `/pages/preparation-jeune.js` : Period badges + "Période & critères" fonctionnels
+❌ `/pages/reprise-alimentaire-apres-jeune.js` : AUCUN OVERLAP, périmètre respecté
+
+**Leçons apprises :**
+1. **Ordre strict obligatoire** : useState → useEffect (JAMAIS l'inverse)
+2. **get_errors ne détecte pas** : Les erreurs runtime de référence avant déclaration (faux négatif)
+3. **Test manuel requis** : Build OK ≠ Runtime OK (toujours tester dans le navigateur)
+4. **Hook ordering checklist** : Vérifier manuellement l'ordre avant chaque insertion de useEffect
+5. **Dependency array** : Vérifier que toutes les variables sont déclarées AVANT le useEffect
+
+**Règle de prévention ajoutée :**
+Avant toute insertion de useEffect dans un composant existant :
+1. Lister toutes les variables utilisées dans le dependency array
+2. Rechercher la ligne de déclaration useState pour chaque variable
+3. Insérer le useEffect APRÈS la dernière déclaration useState utilisée
+4. Vérifier qu'aucun useEffect existant ne référence de variables non encore déclarées
+
+**Action requise :**
+🔴 Test utilisateur OBLIGATOIRE pour valider la correction
+🔴 Vérifier que la page suivi.js charge sans erreur
+🔴 Vérifier que les pastilles contextuelles se colorent correctement
+🔴 Valider que la validation automatique fonctionne (critères 1/2/7/8/9)
+
+**Traçabilité Git :**
+- Commit correctif du 26/12/2025 17:35
+- Fichier modifié : /pages/suivi.js (lignes 424-458 supprimées, réinsérées ligne 669-705)
+- Type de modification : Réorganisation hooks (aucune suppression de fonctionnalité)
+- Référence anomalie : Hook ordering violation - repasSemaine
+═══════════════════════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════════════════════
 🛑 ANOMALIE 08/12/2025 — JOURS VALIDÉS AUTOMATIQUEMENT + DONNÉES CORROMPUES
 ═══════════════════════════════════════════════════════════════════════════════
 Fichier : /pages/jeune.js

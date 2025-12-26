@@ -423,39 +423,11 @@ export default function Suivi() {
   // ═══════════════════════════════════════════════════════════
   const [statutsValidationAuto, setStatutsValidationAuto] = useState({});
   
-  // Analyse automatique après chaque saisie de repas
+  // État client-only pour éviter hydration mismatch (mini-bandeau préparation)
+  const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
-    // Ne rien faire si pas en phase préparation
-    if (!critereActif || !dateJeune) return;
-    
-    // Identifier le critère actuel
-    const critereIdActuel = getCritereIdFromLabel(critereActif.label);
-    
-    // Analyser uniquement les critères auto-validables (1,2,7,8,9)
-    const criteresAuto = [1, 2, 7, 8, 9];
-    if (!criteresAuto.includes(critereIdActuel)) return;
-    
-    // Filtrer les repas des 7 derniers jours
-    const repas7j = repasSemaine.filter(r => {
-      const dateRepas = new Date(r.date);
-      const dateCourante = new Date(selectedDate);
-      const diff = Math.floor((dateCourante - dateRepas) / (1000*60*60*24));
-      return diff >= 0 && diff < 7;
-    });
-    
-    // Exécuter l'analyse automatique
-    const statuts = {};
-    const statutCritere = getStatutCritereAuto(critereIdActuel, repas7j);
-    statuts[critereIdActuel] = statutCritere;
-    
-    // Valider automatiquement si critère respecté
-    if (statutCritere.validé) {
-      validerCritereAuto(critereIdActuel);
-    }
-    
-    setStatutsValidationAuto(statuts);
-    
-  }, [repasSemaine, critereActif, dateJeune, selectedDate]);
+    setIsMounted(true);
+  }, []);
 
   // ═══════════════════════════════════════════════════════════
   // DÉTECTION PHASE REPRISE ALIMENTAIRE
@@ -647,6 +619,57 @@ export default function Suivi() {
   const [showNotesHistory, setShowNotesHistory] = useState(false);
   // Plan de repas du jour (repas planifiés)
   const [repasPlan, setRepasPlan] = useState({});
+  // Filtre semaine via deep-link from/to
+  const [filtreFromTo, setFiltreFromTo] = useState(null);
+  // Tracker valeurs champs pour coloration contextuelle pastilles
+  const [champsRepasEnCours, setChampsRepasEnCours] = useState({ aliment: '', quantite: '', heureRepas: '', categorie: '' });
+
+  // Lire from/to depuis l'URL pour préfiltrer la semaine
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      const from = params.get('from');
+      const to = params.get('to');
+      if (from && to) {
+        setFiltreFromTo({ from, to });
+        // Centrer la vue sur le début de la période
+        setSelectedDate(from);
+      }
+    } catch(e) {
+      console.warn('[Suivi] Lecture params from/to échouée:', e);
+    }
+  }, []);
+
+  // Fonction calcul état pastille contextuelle
+  function calculerEtatPastille(id, type, champs) {
+    const { aliment, quantite, heureRepas, categorie } = champs;
+    const feculents = ['pain','pâtes','pâte','riz','pomme de terre','quinoa','boulgour','semoule','couscous'];
+    switch(id) {
+      case 1: // Portions repères visuels
+        if (!quantite) return 'neutral';
+        const reperes = ['poing','paume','verre','c.à.s','fourchette','main'];
+        return reperes.some(r => quantite.toLowerCase().includes(r)) ? 'ok' : 'neutral';
+      case 2: // Dîner sans féculents
+        if (type !== 'Dîner') return 'neutral';
+        if (!aliment && !categorie) return 'neutral';
+        const txt = `${aliment} ${categorie}`.toLowerCase();
+        return feculents.some(f => txt.includes(f)) ? 'warn' : 'ok';
+      case 7: // Eau ≥ 2L
+        if (!quantite) return 'neutral';
+        const q = quantite.toLowerCase();
+        if (q.includes('2l') || q.includes('2 l') || q.includes('bouteille')) return 'ok';
+        return 'neutral';
+      case 8: // Dernier repas < 19h
+        if (type !== 'Dîner') return 'neutral';
+        if (!heureRepas) return 'neutral';
+        return heureRepas < '19:00' ? 'ok' : 'warn';
+      case 9: // Repas ≤ 45 min (simplification: OK par défaut si heure renseignée)
+        return heureRepas ? 'ok' : 'neutral';
+      default:
+        return 'neutral';
+    }
+  }
 
   // Chargement automatique des repas et du plan depuis Supabase
   useEffect(() => {
@@ -712,6 +735,44 @@ export default function Suivi() {
     }
     fetchRepasEtPlan();
   }, [selectedDate, repriseActive]); // 🆕 Ajout repriseActive pour recharger quand statut change
+
+  // ═══════════════════════════════════════════════════════════
+  // VALIDATION AUTOMATIQUE DES CRITÈRES - Analyse post-chargement repas
+  // ═══════════════════════════════════════════════════════════
+  // Analyse automatique après chaque saisie de repas
+  useEffect(() => {
+    // Ne rien faire si pas en phase préparation
+    if (!critereActif || !dateJeune) return;
+    
+    // Identifier le critère actuel
+    const critereIdActuel = getCritereIdFromLabel(critereActif.label);
+    
+    // Analyser uniquement les critères auto-validables (1,2,7,8,9)
+    const criteresAuto = [1, 2, 7, 8, 9];
+    if (!criteresAuto.includes(critereIdActuel)) return;
+    
+    // Filtrer les repas des 7 derniers jours
+    const repas7j = repasSemaine.filter(r => {
+      const dateRepas = new Date(r.date);
+      const dateCourante = new Date(selectedDate);
+      const diff = Math.floor((dateCourante - dateRepas) / (1000*60*60*24));
+      return diff >= 0 && diff < 7;
+    });
+    
+    // Exécuter l'analyse automatique
+    const statuts = {};
+    const statutCritere = getStatutCritereAuto(critereIdActuel, repas7j);
+    statuts[critereIdActuel] = statutCritere;
+    
+    // Valider automatiquement si critère respecté
+    if (statutCritere.validé) {
+      validerCritereAuto(critereIdActuel);
+    }
+    
+    setStatutsValidationAuto(statuts);
+    
+  }, [repasSemaine, critereActif, dateJeune, selectedDate]);
+
   // Calcul de l'historique hebdomadaire (client only pour éviter hydration error)
   const [weeklyHistory, setWeeklyHistory] = useState([]);
   useEffect(() => {
@@ -920,6 +981,44 @@ export default function Suivi() {
           background:'#1976d2', color:'#fff', border:'none', borderRadius:8, padding:'8px 22px', fontWeight:600, fontSize:16, cursor:'pointer'
         }}>🔄 Rafraîchir les statistiques</button>
       </div>
+
+      {/* Mini-bandeau Préparation en cours (synthétique avec coloration contextuelle) */}
+      {isMounted && (localStorage.getItem('preparationActive') === 'true') && (
+        (() => {
+          // Déterminer la période affichée (par défaut: J-7 -> J-1 avant J0)
+          const dateJeuneStr = localStorage.getItem('dateJeune');
+          const dateJ0 = dateJeuneStr ? new Date(dateJeuneStr) : null;
+          const periodeStart = filtreFromTo?.from ? new Date(filtreFromTo.from) : (dateJ0 ? new Date(dateJ0.getTime() - 7*24*60*60*1000) : null);
+          const periodeEnd = filtreFromTo?.to ? new Date(filtreFromTo.to) : (dateJ0 ? new Date(dateJ0.getTime() - 1*24*60*60*1000) : null);
+          function fmt(d){ return d ? d.toLocaleDateString('fr-FR',{ weekday:'long', day:'2-digit', month:'2-digit', year:'2-digit' }) : 'n/a'; }
+          const type = selectedType; // Type de repas en cours
+          // Pastilles contextuelles avec état calculé en temps réel
+          const pastilles = [
+            { id:1, label:'1. Portions: repères visuels', visible:true, state:calculerEtatPastille(1, type, champsRepasEnCours) },
+            { id:2, label:'2. Dîner: sans féculents', visible:type === 'Dîner', state:calculerEtatPastille(2, type, champsRepasEnCours) },
+            { id:7, label:'7. Eau: ≥ 2L/jour', visible:true, state:calculerEtatPastille(7, type, champsRepasEnCours) },
+            { id:8, label:'8. Dernier repas < 19h', visible:type === 'Dîner', state:calculerEtatPastille(8, type, champsRepasEnCours) },
+            { id:9, label:'9. Repas ≤ 45 min', visible:true, state:calculerEtatPastille(9, type, champsRepasEnCours) },
+          ];
+          return (
+            <div style={{border:'1px solid #E3EAF2', borderRadius:12, padding:'10px 12px', background:'#fff', boxShadow:'0 1px 4px rgba(0,0,0,0.04)', marginBottom:16}}>
+              <div style={{fontWeight:700, color:'#0F172A', marginBottom:6}}>
+                Préparation du jeûne • Période: {fmt(periodeStart)} → {fmt(periodeEnd)}
+              </div>
+              <div style={{display:'flex', gap:8, flexWrap:'wrap', alignItems:'center'}}>
+                {pastilles.filter(p=>p.visible).map(p => (
+                  <span key={p.id} style={{
+                    background: p.state==='ok' ? '#DCFCE7' : p.state==='warn' ? '#FEF3C7' : '#F3F4F6',
+                    border: '1px solid #E5E7EB', color:'#0F172A', borderRadius:999, padding:'6px 10px', fontSize:12
+                  }}>{p.label}</span>
+                ))}
+                <a href={`/preparation-jeune#phase-active`} style={{marginLeft:'auto', background:'#4F8FFF', color:'#fff', textDecoration:'none', padding:'6px 10px', borderRadius:8, fontSize:12, fontWeight:700}}>En savoir plus</a>
+                <a href={`/suivi?from=${periodeStart ? periodeStart.toISOString().slice(0,10) : ''}&to=${periodeEnd ? periodeEnd.toISOString().slice(0,10) : ''}`} style={{ background:'#10B981', color:'#fff', textDecoration:'none', padding:'6px 10px', borderRadius:8, fontSize:12, fontWeight:700}}>Voir mes repas (semaine)</a>
+              </div>
+            </div>
+          );
+        })()
+      )}
 
       {/* ----------- INFOS CALORIQUES JOURNALIÈRES ----------- */}
       <div style={{
@@ -1349,6 +1448,7 @@ export default function Suivi() {
               onSave={handleSaveRepas}
               setSnackbar={setSnackbar}
               repasSemaine={repasSemaine}
+              onChangeChampsRepas={setChampsRepasEnCours}
             />
             {/* Bouton de validation de la semaine, affiché uniquement si showValidation est vrai */}
             {showValidation && (

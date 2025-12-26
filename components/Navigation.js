@@ -9,7 +9,7 @@ import StartPreparationModal from './StartPreparationModal';
 
 const navLinks = [
     { href: '/profil', label: 'Profil' },
-    { href: '/statistiques', label: 'Tableau de bord' },
+    { href: '/tableau-de-bord', label: 'Tableau de bord' },
 ];
 
 

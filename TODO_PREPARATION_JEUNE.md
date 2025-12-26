@@ -341,23 +341,24 @@ Afficher un formulaire ou un modal permettant à l’utilisateur de saisir ou co
   - ✅ Cartes épurées avec UX motivante (barre progression, messages encourageants)
   - ✅ Validation écart minimum 3 jours entre jeûnes
 
-- [ ] **Améliorer validation automatique dans suivi.js** (Priorité 4) ⏳ **À FAIRE**
-  - Permettre la validation automatique des critères selon la saisie du repas dans `/suivi.js`
-  - Détecter automatiquement :
-    - Critère 1 : Portions correctes via analyse saisie repas
-    - Critère 2 : Absence féculents au dîner
-    - Critère 7 : 2 litres eau/jour
-    - Critère 8 : Dernier repas avant 19h
-    - Critère 9 : Plage alimentaire ≤ 45 min
-  - Synchroniser avec timeline de préparation
-  - Ne pas gérer la logique du jeûne ou de la reprise
+- [x] **Améliorer validation automatique dans suivi.js** (Priorité 4) ✅ **COMPLÉTÉ 26/12/2025**
+  - ✅ Validation automatique des critères selon la saisie du repas dans `/suivi.js`
+  - ✅ Détection automatique :
+    - Critère 1 : Portions correctes via analyse saisie repas (6/7 jours)
+    - Critère 2 : Absence féculents au dîner (5/7 jours)
+    - Critère 7 : 2 litres eau/jour (5/7 jours)
+    - Critère 8 : Dernier repas avant 19h (5/7 jours)
+    - Critère 9 : Plage alimentaire ≤ 45 min (5/7 jours)
+  - ✅ Synchronisation avec timeline de préparation
+  - ✅ Badge "(Auto-détecté)" dans PhaseCard
+  - ✅ Compteur jours dans bannière suivi.js
 
-- [ ] **Ajouter bannière sur tableau-de-bord.js** (Priorité 5) ⏳ **À FAIRE**
-  - Détecter un jeûne programmé via `localStorage.preparationData`
-  - Afficher bannière d'entrée dans la préparation sur `/tableau-de-bord.js`
-  - Message type : "🎯 Prépare-toi pour ton jeûne du [date] - J-XX jours restants"
-  - Lien direct vers `/preparation-jeune`
-  - Limité à la préparation et à la transition
+- [x] **Ajouter bannière sur tableau-de-bord.js** (Priorité 5) ✅ **COMPLÉTÉ 26/12/2025**
+  - ✅ Détection jeûne programmé via `localStorage.preparationData`
+  - ✅ Bannière d'entrée dans la préparation sur `/tableau-de-bord.js`
+  - ✅ Affichage date, durée, objectif personnel, compteur J-XX
+  - ✅ Lien direct vers `/preparation-jeune`
+  - ✅ Design dégradé violet/bleu, responsive
 
 - [ ] **Tester le workflow complet** (Priorité 6) ⏳ **À FAIRE**
   - Tester le déclenchement (modal → activation → timeline)
@@ -381,11 +382,15 @@ Afficher un formulaire ou un modal permettant à l’utilisateur de saisir ou co
 - [x] Étape complétée ✅
 - [ ] Étape à faire ⏳
 
-**Dernière mise à jour** : 23 décembre 2025 12:00
+**Dernière mise à jour** : 26 décembre 2025
 
 **Historique des complétion** :
 - 17/11/2025 : Priorités 1, 2, 3 complétées (workflow de base)
 - 07/12/2025 : Priorité 3bis complétée (guidances pédagogiques)
 - 23/12/2025 : Priorité 3ter complétée (critères 3 & 6 interactifs)
+- 26/12/2025 : Priorités 4 & 5 complétées (validation automatique + bannière dashboard)
 
+**Prochaine priorité** : Priorité 6 (tests complets du workflow)
+
+**Prochaine priorité** : Priorité 5 (bannière tableau-de-bord
 **Prochaine priorité** : Priorité 4 (validation automatique suivi.js)

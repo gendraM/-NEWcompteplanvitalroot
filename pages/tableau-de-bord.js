@@ -75,6 +75,10 @@ export default function TableauDeBord() {
   // Ajout : gestion de la période sélectionnée
   const [periode, setPeriode] = useState('semaine'); // 'semaine', 'mois', 'annee'
   const [periodeLabel, setPeriodeLabel] = useState('');
+  
+  // État pour la bannière de préparation jeûne
+  const [preparationData, setPreparationData] = useState(null);
+  const [joursRestants, setJoursRestants] = useState(null);
 
   // Calcul des bornes de période
   function getPeriodeDates() {
@@ -352,6 +356,36 @@ export default function TableauDeBord() {
     // eslint-disable-next-line
   }, [periode]);
 
+  // Détecter préparation jeûne active
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const prepData = localStorage.getItem('preparationData');
+      const prepActive = localStorage.getItem('preparationActive');
+      
+      if (prepActive === 'true' && prepData) {
+        const data = JSON.parse(prepData);
+        setPreparationData(data);
+        
+        // Calculer jours restants - utiliser startDate (nom correct dans localStorage)
+        if (data.startDate) {
+          const dateJeune = new Date(data.startDate);
+          const aujourdhui = new Date();
+          aujourdhui.setHours(0, 0, 0, 0);
+          dateJeune.setHours(0, 0, 0, 0);
+          const diff = Math.ceil((dateJeune - aujourdhui) / (1000 * 60 * 60 * 24));
+          setJoursRestants(diff);
+        }
+      } else {
+        setPreparationData(null);
+        setJoursRestants(null);
+      }
+    } catch (e) {
+      console.error('Erreur détection préparation:', e);
+    }
+  }, []);
+
   // Récupérer les idéaux et calculer une progression sommaire pour le tableau de bord
   useEffect(() => {
     (async () => {
@@ -495,6 +529,81 @@ export default function TableauDeBord() {
       >
         Tableau de Bord
       </h1>
+      
+      {/* Bannière Préparation Jeûne */}
+      {preparationData && joursRestants !== null && joursRestants >= 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '16px',
+          padding: '20px 24px',
+          marginBottom: '24px',
+          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px'
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              🎯 Préparation au jeûne en cours
+            </div>
+            <div style={{ fontSize: '1.05rem', opacity: 0.95, marginBottom: '4px' }}>
+              <strong>Date prévue :</strong> {new Date(preparationData.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+            <div style={{ fontSize: '1.05rem', opacity: 0.95, marginBottom: '4px' }}>
+              <strong>Durée :</strong> {preparationData.duration} jours
+            </div>
+            {preparationData.goal && (
+              <div style={{ fontSize: '0.95rem', opacity: 0.9, fontStyle: 'italic', marginTop: '8px' }}>
+                💭 "{preparationData.goal}"
+              </div>
+            )}
+          </div>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            gap: '12px',
+            minWidth: '180px'
+          }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.25)',
+              borderRadius: '12px',
+              padding: '12px 20px',
+              textAlign: 'center',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <div style={{ fontSize: '2.2rem', fontWeight: 800, lineHeight: 1 }}>
+                J-{joursRestants}
+              </div>
+              <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '4px' }}>
+                {joursRestants === 0 ? "C'est aujourd'hui !" : joursRestants === 1 ? 'jour restant' : 'jours restants'}
+              </div>
+            </div>
+            <Link 
+              href="/preparation-jeune"
+              style={{
+                background: '#fff',
+                color: '#667eea',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                fontSize: '0.95rem',
+                transition: 'transform 0.2s',
+                display: 'inline-block',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                cursor: 'pointer'
+              }}
+            >
+              📋 Voir ma préparation
+            </Link>
+          </div>
+        </div>
+      )}
+      
       {/* Sélecteur de période + affichage période */}
       <div style={{textAlign:'center', marginBottom:'1rem', fontSize:'1.15rem', color:'#888', fontWeight:500}}>
         <span style={{marginRight:12}}>Période affichée :</span>

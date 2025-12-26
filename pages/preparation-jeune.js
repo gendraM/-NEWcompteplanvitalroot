@@ -40,11 +40,15 @@ function DebugPreparationJeune() {
   const phasesMetier = getPhasesPreparation();
 import Link from "next/link";
 import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import { validerCritereAuto, getStatutCritereAuto } from '../lib/validerCriterePreparation';
+import { getCritereIdFromLabel } from '../lib/validerCriterePreparation';
 import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif, getFenetreValidation } from "../lib/validerCriterePreparation";
 import HeaderPreparation from '../components/HeaderPreparation';
 import TimelinePreparation from '../components/TimelinePreparation';
 import ProgressBar from '../components/ProgressBar';
 import PhaseCard from '../components/PhaseCard';
+// PhaseDatesBar retiré selon demande utilisateur
 import Feedback from '../components/Feedback';
 import Navigation from '../components/Navigation';
 import StartPreparationModal from '../components/StartPreparationModal';
@@ -102,6 +106,8 @@ export default function PreparationJeune() {
   // Critères de préparation (statut dynamique)
   // État de démarrage du suivi de préparation (workflow interactif)
   const [preparationActive, setPreparationActive] = useState(false);
+  const [statutsValidationAutoPrep, setStatutsValidationAutoPrep] = useState({});
+  const [joursFenetre7j, setJoursFenetre7j] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [preparationData, setPreparationData] = useState(null);
   const [feedbackMessage, setFeedbackMessage] = useState("");
@@ -196,6 +202,81 @@ export default function PreparationJeune() {
     }
     setCriteres(criteresInit);
   }, []);
+
+  // Auto-détection des critères via repas_reels (7 derniers jours)
+  useEffect(() => {
+    async function analyserRepas7Jours() {
+      try {
+        if (!preparationActive) return;
+        // Charger les repas récents
+        const { data: repasData, error } = await supabase
+          .from('repas_reels')
+          .select('*')
+          .order('date', { ascending: false })
+          .limit(200);
+        if (error) return;
+        const today = new Date();
+        const repas7j = (repasData || []).filter(r => {
+          const d = new Date(r.date);
+          const diff = Math.floor((today - d) / (1000*60*60*24));
+          return diff >= 0 && diff < 7;
+        });
+        // Générer la fenêtre J-6 -> J-0 pour affichage
+        const jours = Array.from({ length: 7 }).map((_, i) => {
+          const d = new Date(today);
+          d.setDate(today.getDate() - (6 - i));
+          const dateStr = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+          return { label: `J-${6 - i}`, date: d.toISOString().slice(0,10), affichage: dateStr };
+        });
+        setJoursFenetre7j(jours);
+
+        const ids = [1, 2, 7, 8, 9];
+        const statuts = {};
+        ids.forEach(id => {
+          statuts[id] = getStatutCritereAuto(id, repas7j);
+          if (statuts[id].validé) {
+            validerCritereAuto(id);
+          }
+        });
+        setStatutsValidationAutoPrep(statuts);
+      } catch(e) {
+        console.error('[Préparation] Auto-validation repas 7j:', e);
+      }
+    }
+    analyserRepas7Jours();
+  }, [preparationActive, dateJeune]);
+
+  // Helpers formatage période/date
+  function addDays(baseDate, offset) {
+    const d = new Date(baseDate);
+    d.setDate(d.getDate() + offset);
+    return d;
+  }
+  function formatJourFr(d) {
+    return d.toLocaleDateString('fr-FR', { weekday: 'long' });
+  }
+  function formatDateFR(d) {
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  }
+  function formatDateHeureFR(iso) {
+    try {
+      const d = new Date(iso);
+      const date = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      return `${date} à ${time}`;
+    } catch { return iso; }
+  }
+  function formatISODate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  function formatPeriodePhase(dateJeuneLocal, debut, fin) {
+    const start = addDays(dateJeuneLocal, debut);
+    const end = addDays(dateJeuneLocal, fin);
+    return `${formatJourFr(start)} ${formatDateFR(start)} → ${formatJourFr(end)} ${formatDateFR(end)}`;
+  }
 
   // Handler pour démarrer le suivi de préparation (doit être accessible dans le rendu)
   function handleStartPreparation() {
@@ -363,7 +444,6 @@ const DebugPanel = () => (
       <Navigation />
       <HeaderPreparation />
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 12px' }}>
-        <DebugPreparationJeune />
         {/* Feedback global */}
         {feedbackMessage && (
           <Feedback type={feedbackMessage.startsWith('✅') ? 'success' : feedbackMessage.startsWith('⛔') || feedbackMessage.startsWith('❌') ? 'error' : 'info'}>
@@ -389,17 +469,53 @@ const DebugPanel = () => (
         <ProgressBar value={progression} max={criteresMetier.length} />
         {/* Phases et critères (harmonisé avec module métier) */}
         {phasesAvecCriteres.map((phase, idx) => (
-          <PhaseCard
-            key={phase.id || phase.nom}
-            phase={{
-              nom: phase.nom,
-              explication: phase.objectif || phase.explication,
-              periode: `${phase.debut !== undefined && phase.fin !== undefined ? `J${phase.debut} à J${phase.fin}` : ''}`
-            }}
-            criteres={phase.criteres}
-            onValider={preparationActive ? validerCritere : undefined}
-            jCourant={jCourant}
-          />
+          <div key={phase.id || phase.nom} style={{marginBottom: 10}}>
+            <PhaseCard
+              phase={{
+                nom: phase.nom,
+                explication: phase.objectif || phase.explication,
+                periode: `${phase.debut !== undefined && phase.fin !== undefined ? `J${phase.debut} à J${phase.fin}` : ''}`
+              }}
+              criteres={phase.criteres}
+              onValider={preparationActive ? validerCritere : undefined}
+              jCourant={jCourant}
+            />
+            {/* Pastille période + bouton "Période & critères" - Toujours affichée */}
+            {(() => {
+              const hasValidDates = dateJeune && typeof phase.debut === 'number' && typeof phase.fin === 'number';
+              const periodeText = hasValidDates ? formatPeriodePhase(dateJeune, phase.debut, phase.fin) : `J${phase.debut} à J${phase.fin}`;
+              const phaseEstActive = typeof jCourant === 'number' && typeof phase.debut === 'number' && typeof phase.fin === 'number' && jCourant >= phase.debut && jCourant <= phase.fin;
+              return (
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap',border:'1px solid #E3EAF2',borderRadius:10,padding:'8px 12px',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,0.04)',margin:'8px 0 18px 0'}}>
+                  <div style={{background: phaseEstActive ? '#DBEAFE' : '#F1F5F9',border:'1px solid '+(phaseEstActive ? '#93C5FD' : '#CBD5E1'),borderRadius:999,padding:'6px 12px',fontSize:13,color:'#0F172A',fontWeight: phaseEstActive ? 700 : 500}}>
+                    Période: {periodeText}
+                  </div>
+                  <details style={{marginLeft:'auto'}}>
+                    <summary style={{cursor:'pointer',background:'#4F8FFF',color:'#fff',border:'none',borderRadius:8,padding:'8px 12px',fontWeight:700,fontSize:13}}>Période & critères</summary>
+                    <div style={{marginTop:10,padding:10,background:'#f9fafb',borderRadius:8}}>
+                      {(phase.criteres || []).map((c, i) => {
+                        const id = getCritereIdFromLabel(c?.label);
+                        const s = criteres?.[id] || {};
+                        const etat = s.validé ? '✅ Validé' : '⏳ En cours';
+                        const quand = s.validé && s.dateValidation ? ` • Validé ${formatDateHeureFR(s.dateValidation)} (${s.typeValidation||'auto'})` : '';
+                        return (
+                          <div key={c?.label||i} style={{display:'flex',justifyContent:'space-between',fontSize:14,margin:'6px 0',padding:'6px 8px',background:'#fff',borderRadius:6}}>
+                            <span>{c?.label || `Critère ${id}`}</span>
+                            <span style={{fontWeight:600}}>{etat}{quand}</span>
+                          </div>
+                        );
+                      })}
+                      {hasValidDates && (
+                        <div style={{marginTop:12,display:'flex',gap:8}}>
+                          <a href={`/suivi?from=${formatISODate(addDays(dateJeune, phase.debut))}&to=${formatISODate(addDays(dateJeune, phase.fin))}`} style={{background:'#10B981',color:'#fff',textDecoration:'none',padding:'8px 12px',borderRadius:8,fontSize:13,fontWeight:700}}>Voir mes repas (semaine)</a>
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                </div>
+              );
+            })()}
+          </div>
         ))}
         {/* Message personnel */}
         <section style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px 0 rgba(79,143,255,0.07)', border: '1px solid #E3EAF2', padding: '18px 22px', margin: '32px 0', maxWidth: 600, marginLeft: 'auto', marginRight: 'auto' }}>
@@ -453,7 +569,9 @@ const DebugPanel = () => (
             </>
           ) : (
             <>
-              {/* Bilan dynamique de la préparation */}
+              {/* Bilan dynamique de la préparation — affiché à partir de J-0 */}
+              {/* Nettoyage demandé: panneau auto-détection 7j et pastilles retirés */}
+              {jCourant !== null && jCourant >= 0 ? (
               <div style={{background:'#f8fafc',border:'2px solid #38bdf8',borderRadius:12,padding:'24px 18px',maxWidth:520,margin:'0 auto 24px auto',boxShadow:'0 2px 8px 0 rgba(56,189,248,0.07)'}}>
                 <h2 style={{color:'#0ea5e9',fontWeight:800,marginBottom:12}}>🎉 Bilan de ta préparation au jeûne</h2>
                 {/* Points forts */}
@@ -552,9 +670,41 @@ const DebugPanel = () => (
                 >
                   {loadingJeune ? 'Démarrage...' : 'Démarrer mon jeûne'}
                 </button>
-              // Ajout du state pour le bouton et feedback UX
-              const [loadingJeune, setLoadingJeune] = useState(false);
               </div>
+              ) : (
+                <div style={{textAlign:'center',marginTop:32}}>
+                  <div style={{
+                    background:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius:'16px',
+                    padding:'24px',
+                    maxWidth:520,
+                    margin:'0 auto',
+                    color:'#fff',
+                    boxShadow:'0 4px 12px rgba(102, 126, 234, 0.3)'
+                  }}>
+                    <div style={{fontSize:'3rem',marginBottom:12}}>⏳</div>
+                    <div style={{fontSize:'1.3rem',fontWeight:700,marginBottom:8}}>
+                      Préparation en cours
+                    </div>
+                    <div style={{fontSize:'1.05rem',opacity:0.95,marginBottom:12}}>
+                      Continue à valider tes critères !
+                    </div>
+                    <div style={{
+                      background:'rgba(255,255,255,0.25)',
+                      borderRadius:'12px',
+                      padding:'16px',
+                      backdropFilter:'blur(10px)'
+                    }}>
+                      <div style={{fontSize:'2.5rem',fontWeight:800,lineHeight:1}}>
+                        J{jCourant}
+                      </div>
+                      <div style={{fontSize:'0.95rem',opacity:0.9,marginTop:6}}>
+                        Le bilan sera disponible le jour de ton jeûne
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <button onClick={handleResetPreparation} style={{ marginTop: '14px', backgroundColor: '#FF6B6B', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: 16, fontFamily: 'Inter, Roboto, Arial, sans-serif' }}>
                 Réinitialiser ma préparation
               </button>
