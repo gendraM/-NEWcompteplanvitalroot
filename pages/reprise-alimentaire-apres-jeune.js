@@ -3,15 +3,17 @@ import { supabase } from '../lib/supabaseClient';
 import Link from 'next/link';
 import NotificationsPhase1 from '../components/NotificationsPhase1';
 import NotificationsPhase2 from '../components/NotificationsPhase2';
-import NotificationsPhase4 from '../components/NotificationsPhase4';
+import NotificationsPhase3 from '../components/NotificationsPhase3';
 import RecettesPhase1Modal from '../components/RecettesPhase1Modal';
 import RecettesPhase2Modal from '../components/RecettesPhase2Modal';
+import RecettesPhase3Modal from '../components/RecettesPhase3Modal';
 import RecettesPhase4Modal from '../components/RecettesPhase4Modal';
 
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
   const [showAll, setShowAll] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
   
   // Regrouper les jours par phase
   const phasesArray = Object.entries(phases).map(([key, phase], idx) => {
@@ -56,13 +58,20 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
     <>
       {/* 🔘 Bouton toggle mobile */}
       <button
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
+        onClick={() => {
+          if (!sidebarVisible) {
+            setSidebarVisible(true);
+            setIsMobileOpen(true);
+          } else {
+            setIsMobileOpen(!isMobileOpen);
+          }
+        }}
         style={{
           position: 'fixed',
           top: '1rem',
           left: '1rem',
           zIndex: 100,
-          background: isMobileOpen ? 'linear-gradient(135deg, #e53935 0%, #c62828 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: (isMobileOpen && sidebarVisible) ? 'linear-gradient(135deg, #e53935 0%, #c62828 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           border: 'none',
           borderRadius: 8,
@@ -75,10 +84,12 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
           transition: 'all 0.3s ease'
         }}
         className="mobile-toggle-btn"
+        title={sidebarVisible ? 'Afficher/Masquer les phases' : 'Ouvrir les phases'}
       >
-        {isMobileOpen ? '✕ Fermer' : '☰ Phases'}
+        {!sidebarVisible ? '☰ Phases' : (isMobileOpen ? '✕ Fermer' : '☰ Phases')}
       </button>
 
+      {sidebarVisible && (
       <aside 
         className={isMobileOpen ? 'phases-sidebar mobile-open' : 'phases-sidebar'}
         style={{
@@ -167,7 +178,7 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
       )}
       {showAll && phasesToShow.length === phasesArray.length && (
         <button
-          onClick={() => setShowAll(false)}
+          onClick={() => setSidebarVisible(false)}
           style={{
             marginTop: 10,
             background: 'linear-gradient(135deg, #185a9d 0%, #43cea2 100%)',
@@ -185,6 +196,7 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
         </button>
       )}
       </aside>
+      )}
     </>
   );
 }
@@ -208,6 +220,9 @@ export default function RepriseAlimentaireApresJeune() {
 
   // 🆕 États pour fonctionnalités Phase 2
   const [modalRecettesPhase2, setModalRecettesPhase2] = useState({ isOpen: false, type: 'compote' });
+
+  // 🆕 États pour fonctionnalités Phase 3
+  const [modalRecettesPhase3, setModalRecettesPhase3] = useState({ isOpen: false, type: 'oeufs' });
 
   // 🆕 États pour fonctionnalités Phase 4
   const [modalRecettesPhase4, setModalRecettesPhase4] = useState({ isOpen: false, type: 'patatedouce' });
@@ -1736,6 +1751,37 @@ export default function RepriseAlimentaireApresJeune() {
                               🥘 Recette Phase 2
                             </button>
                           )}
+                          {/* Bouton recettes pour aliments Phase 3 spécifiques */}
+                          {modalAliments === 3 && (a.nom.includes('Œuf') || a.nom.includes('Avocat') || a.nom.includes('Huile') || a.nom.includes('Fromage blanc') || a.nom.includes('Yaourt') || a.nom.includes('Poisson') || a.nom.includes('Saumon') || a.nom.includes('Sardine') || a.nom.includes('Thon') || a.nom.includes('Beurre clarifié') || a.nom.includes('Purée d\'amandes')) && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setModalAliments(null);
+                                let recetteType = 'oeufs';
+                                if (a.nom.includes('Avocat')) recetteType = 'avocat';
+                                else if (a.nom.includes('Huile') || a.nom.includes('Beurre clarifié') || a.nom.includes('Purée d\'amandes')) recetteType = 'huiles';
+                                else if (a.nom.includes('Fromage blanc') || a.nom.includes('Yaourt')) recetteType = 'fromageblancyaourt';
+                                else if (a.nom.includes('Poisson') || a.nom.includes('Saumon') || a.nom.includes('Sardine') || a.nom.includes('Thon')) recetteType = 'poisson';
+                                setModalRecettesPhase3({ 
+                                  isOpen: true, 
+                                  type: recetteType
+                                });
+                              }}
+                              style={{
+                                background: 'linear-gradient(135deg, #4CAF50, #66BB6A)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '4px 8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                marginLeft: '8px'
+                              }}
+                            >
+                              🥘 Recette Phase 3
+                            </button>
+                          )}
                         </li>
                       ))}
                       {/* Bouton notifications Phase 1 */}
@@ -1792,6 +1838,33 @@ export default function RepriseAlimentaireApresJeune() {
                           </div>
                         </li>
                       )}
+                      {/* Bouton notifications Phase 3 */}
+                      {modalAliments === 3 && (
+                        <li style={{ marginTop: '16px', padding: '12px', background: '#e8f5e8', borderRadius: 8 }}>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setNotificationsActives(!notificationsActives);
+                            }}
+                            style={{
+                              background: notificationsActives ? 'linear-gradient(135deg, #4CAF50, #66BB6A)' : 'linear-gradient(135deg, #66BB6A, #4CAF50)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: '8px 16px',
+                              fontSize: '0.9rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              width: '100%'
+                            }}
+                          >
+                            {notificationsActives ? '🔕 Désactiver' : '🔔 Activer'} notifications Phase 3
+                          </button>
+                          <div style={{ fontSize: '0.8rem', color: '#4CAF50', marginTop: '4px', textAlign: 'center' }}>
+                            Horaires protéines & lipides : 8h (protéine), 11h (lipide), 13h (protéine), 16h (lipide), 19h (protéine)
+                          </div>
+                        </li>
+                      )}
                     </>
                   );
                 })()}
@@ -1814,32 +1887,38 @@ export default function RepriseAlimentaireApresJeune() {
           isActive={notificationsActives}
         />
 
-        {/* 🔔 Notifications Phase 4 */}
-        <NotificationsPhase4 
+        {/* 🔔 Notifications Phase 3 */}
+        <NotificationsPhase3 
           phase={jours.length > 0 && selectedJourIdx >= 0 ? jours[selectedJourIdx]?.phase : null}
           jourNum={selectedJourIdx + 1}
           isActive={notificationsActives}
-          onRecettesClick={(type) => setModalRecettesPhase4({ isOpen: true, type })}
+          onRecettesClick={(type) => setModalRecettesPhase3({ isOpen: true, type })}
         />
+
+
 
         <RecettesPhase1Modal 
           isOpen={modalRecettes.isOpen}
           recetteType={modalRecettes.type}
           onClose={() => setModalRecettes({ isOpen: false, type: 'bouillon' })}
         />
-        {/* 🥘 Modal recettes détaillées Phase 2 */}
 
+        {/* 🥘 Modal recettes détaillées Phase 2 */}
         <RecettesPhase2Modal 
           isOpen={modalRecettesPhase2.isOpen}
           recetteType={modalRecettesPhase2.type}
           onClose={() => setModalRecettesPhase2({ isOpen: false, type: 'compote' })}
         />
 
-        <RecettesPhase4Modal 
-          isOpen={modalRecettesPhase4.isOpen}
-          recetteType={modalRecettesPhase4.type}
-          onClose={() => setModalRecettesPhase4({ isOpen: false, type: 'patatedouce' })}
+        {/* 🥘 Modal recettes détaillées Phase 3 */}
+        <RecettesPhase3Modal 
+          isOpen={modalRecettesPhase3.isOpen}
+          recetteType={modalRecettesPhase3.type}
+          onClose={() => setModalRecettesPhase3({ isOpen: false, type: 'oeufs' })}
         />
+
+        {/* 🥘 Modal recettes détaillées Phase 4 */}
+        <RecettesPhase4Modal 
           isOpen={modalRecettesPhase4.isOpen}
           recetteType={modalRecettesPhase4.type}
           onClose={() => setModalRecettesPhase4({ isOpen: false, type: 'patatedouce' })}
