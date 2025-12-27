@@ -1068,80 +1068,6 @@ export default function RepriseAlimentaireApresJeune() {
                   {joursAAfficher[selectedJourIdx]?.message_contextuel}
                 </div>
                 
-                {/* 🆕 MES SCORES */}
-                {!isPreview && joursAAfficher[selectedJourIdx] && (() => {
-                  const cleRepas = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
-                  const repasStockes = JSON.parse(localStorage.getItem(cleRepas) || '[]');
-                  const todayStr = new Date().toISOString().split('T')[0];
-                  
-                  // Calcul scores (identique à /suivi.js)
-                  const repasTypes = ["Petit-déjeuner", "Déjeuner", "Collation", "Dîner"];
-                  const repasJourCourant = repasStockes.filter(r => r.date === todayStr);
-                  const nbRepasSaisis = repasTypes.reduce((acc, type) => acc + (repasJourCourant.some(r => r.moment === type) ? 1 : 0), 0);
-                  const scoreRegularite = Math.round((nbRepasSaisis / repasTypes.length) * 100);
-                  
-                  // Score calories du jour
-                  const caloriesDuJour = repasJourCourant.reduce((sum, r) => sum + (parseFloat(r.kcal) || 0), 0);
-                  const objectifCalorique = 1800; // Valeur par défaut (à adapter selon profil)
-                  const scoreCalorique = objectifCalorique > 0 ? Math.round((caloriesDuJour / objectifCalorique) * 100) : 0;
-                  
-                  // Score discipline (repas conformes)
-                  const repasConformes = repasJourCourant.filter(r => r.conforme === true || r.validation?.phase_ok).length;
-                  const scoreDiscipline = repasJourCourant.length > 0 ? Math.round((repasConformes / repasJourCourant.length) * 100) : 0;
-                  
-                  return (
-                    <>
-                      {/* Bloc Mes scores */}
-                      <div style={{
-                        marginTop: 18,
-                        marginBottom: 18,
-                        background: "#fafafa",
-                        borderRadius: 12,
-                        padding: "20px 16px",
-                        boxShadow: "0 1px 5px rgba(0,0,0,0.03)"
-                      }}>
-                        <h2 style={{ margin: "0 0 16px 0" }}>Mes scores</h2>
-                        
-                        <div style={{ marginBottom: 12 }}>
-                          <span style={{ fontWeight: 500 }}>Score de régularité de saisie : </span>
-                          <span style={{ fontWeight: 700, color: "#8e24aa", fontSize: 18 }}>{scoreRegularite}%</span>
-                          <div style={{ background: "#e0e0e0", borderRadius: 8, height: 16, width: "100%", marginTop: 6 }}>
-                            <div style={{ width: `${Math.min(scoreRegularite, 100)}%`, height: "100%", background: "#8e24aa", borderRadius: 8, transition: "width 0.5s" }}></div>
-                          </div>
-                          <div style={{ fontSize: 13, color: scoreRegularite === 100 ? '#43a047' : '#888', marginTop: 4 }}>
-                            {scoreRegularite === 100
-                              ? "Bravo, tu as saisi tous tes repas principaux aujourd'hui !"
-                              : `Repas saisis aujourd'hui : ${nbRepasSaisis} / ${repasTypes.length}`}
-                          </div>
-                        </div>
-                        
-                        <div style={{ marginBottom: 12 }}>
-                          <span style={{ fontWeight: 500 }}>Score calorique du jour : </span>
-                          <span style={{ fontWeight: 700, color: "#ff9800", fontSize: 18 }}>{scoreCalorique}%</span>
-                          <div style={{ background: "#e0e0e0", borderRadius: 8, height: 16, width: "100%", marginTop: 6 }}>
-                            <div style={{ width: `${Math.min(scoreCalorique, 100)}%`, height: "100%", background: "#ff9800", borderRadius: 8, transition: "width 0.5s" }}></div>
-                          </div>
-                          <div style={{ fontSize: 14, color: "#888", marginTop: 4 }}>
-                            Objectif : {objectifCalorique} kcal — Consommé : {Math.round(caloriesDuJour)} kcal
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <span style={{ fontWeight: 500 }}>Score discipline (repas alignés) : </span>
-                          <span style={{ fontWeight: 700, color: "#1976d2", fontSize: 18 }}>{scoreDiscipline}%</span>
-                          <div style={{ background: "#e0e0e0", borderRadius: 8, height: 16, width: "100%", marginTop: 6 }}>
-                            <div style={{ width: `${Math.min(scoreDiscipline, 100)}%`, height: "100%", background: "#1976d2", borderRadius: 8, transition: "width 0.5s" }}></div>
-                          </div>
-                          <div style={{ fontSize: 13, color: scoreDiscipline >= 75 ? '#43a047' : '#888', marginTop: 4 }}>
-                            {repasJourCourant.length === 0 
-                              ? "Aucun repas saisi aujourd'hui"
-                              : `${repasConformes} / ${repasJourCourant.length} repas conformes`}
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
 
                 {/* 🆕 CRITÈRES DU JOUR - SUIVI EN TEMPS RÉEL */}
                 {!isPreview && joursAAfficher[selectedJourIdx] && (() => {
@@ -1751,17 +1677,16 @@ export default function RepriseAlimentaireApresJeune() {
                               🥘 Recette Phase 2
                             </button>
                           )}
-                          {/* Bouton recettes pour aliments Phase 3 spécifiques */}
-                          {modalAliments === 3 && (a.nom.includes('Œuf') || a.nom.includes('Avocat') || a.nom.includes('Huile') || a.nom.includes('Fromage blanc') || a.nom.includes('Yaourt') || a.nom.includes('Poisson') || a.nom.includes('Saumon') || a.nom.includes('Sardine') || a.nom.includes('Thon') || a.nom.includes('Beurre clarifié') || a.nom.includes('Purée d\'amandes')) && (
+                          {/* Bouton recettes pour aliments Phase 3 spécifiques — UNIQUEMENT 4 recettes officielles */}
+                          {modalAliments === 3 && (a.nom.includes('Lentilles corail') || a.nom.includes('Carotte') || a.nom.includes('Courgette') || a.nom.includes('Haricots') || a.nom.includes('Riz basmati') || a.nom.includes('Bouillon de poulet')) && (
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setModalAliments(null);
-                                let recetteType = 'oeufs';
-                                if (a.nom.includes('Avocat')) recetteType = 'avocat';
-                                else if (a.nom.includes('Huile') || a.nom.includes('Beurre clarifié') || a.nom.includes('Purée d\'amandes')) recetteType = 'huiles';
-                                else if (a.nom.includes('Fromage blanc') || a.nom.includes('Yaourt')) recetteType = 'fromageblancyaourt';
-                                else if (a.nom.includes('Poisson') || a.nom.includes('Saumon') || a.nom.includes('Sardine') || a.nom.includes('Thon')) recetteType = 'poisson';
+                                let recetteType = 'lentilles'; // Défaut valide
+                                if (a.nom.includes('Carotte') || a.nom.includes('Courgette') || a.nom.includes('Haricots')) recetteType = 'legumes';
+                                else if (a.nom.includes('Riz basmati')) recetteType = 'riz';
+                                else if (a.nom.includes('Bouillon de poulet')) recetteType = 'bouillon';
                                 setModalRecettesPhase3({ 
                                   isOpen: true, 
                                   type: recetteType
@@ -1973,7 +1898,7 @@ export default function RepriseAlimentaireApresJeune() {
         <RecettesPhase3Modal 
           isOpen={modalRecettesPhase3.isOpen}
           recetteType={modalRecettesPhase3.type}
-          onClose={() => setModalRecettesPhase3({ isOpen: false, type: 'oeufs' })}
+          onClose={() => setModalRecettesPhase3({ isOpen: false, type: 'lentilles' })}
         />
 
         {/* 🥘 Modal recettes détaillées Phase 4 */}

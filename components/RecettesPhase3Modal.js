@@ -1,204 +1,206 @@
 /**
  * 🥘 RECETTES DÉTAILLÉES PHASE 3
- * Modal avec instructions précises Cookeo/Marmite pour protéines & lipides
- * Architecture identique à RecettesPhase2Modal.js (succès éprouvé)
- * Recettes Phase 3 selon documentation officielle
+ * Modal avec instructions précises Cookeo/Marmite pour solides légers & protéines végétales
+ * Architecture identique à RecettesPhase1Modal.js et RecettesPhase2Modal.js
+ * © Référentiel "Phase de reprise alimentaire après jeûne.md"
+ * UNIQUEMENT 4 recettes officielles confirmées
  */
 
 import { useState } from 'react';
 
-export default function RecettesPhase3Modal({ isOpen, onClose, recetteType = 'oeufs' }) {
+export default function RecettesPhase3Modal({ isOpen, onClose, recetteType = 'lentilles' }) {
   const [methodPreferee, setMethodPreferee] = useState('cookeo');
 
   const recettes = {
-    oeufs: {
-      nom: 'Œufs mollets & pochés Phase 3',
-      duree: 'Protéine Phase 3',
+    lentilles: {
+      nom: 'Soupe de lentilles corail Phase 3',
+      duree: 'Protéine végétale Phase 3 — Jour 8-10',
       ingredients: [
-        '1 œuf moyen (calibre M)',
-        'Eau pour cuisson',
-        'Option : 1 pincée de sel marin'
+        '80g lentilles corail (décortiquées)',
+        '1 carotte moyenne (pelée, coupée en bâtons)',
+        '1 courgette petite (pelée, coupée en cubes)',
+        '600ml eau filtrée',
+        '1 feuille de laurier',
+        'Sel marin : 1 pincée (goût final)'
       ],
       cookeo: {
         etapes: [
-          'Pour œuf mollet : Trivet dans la cuve + 200ml eau',
-          'Ajouter œuf dans panier vapeur (coquille intacte)',
-          'Cuisson sous pression 6 minutes',
-          'Trempage 1-2 min dans eau froide pour arrêter cuisson',
-          'Écoquage délicat (blanc ferme, jaune coulant)',
-          'Servir tiède avec pain complet si souhaité',
-          '',
-          'Pour œuf poché : Remplir 3/4 eau, ajouter œuf dans petit bol inox',
-          'Mettre bol sur trivet',
-          'Cuisson sous pression 5 minutes',
-          'Sortir délicatement avec cuillère'
+          'Rincer lentilles corail 2-3 fois sous eau froide',
+          'Dans cuve Cookeo : eau + lentilles + carotte + courgette + laurier',
+          'NE PAS ajouter sel maintenant (durcit lentilles)',
+          'Fermer couvercle, sélectionner MODE SOUS-PRESSION',
+          'Cuisson EXACTEMENT 10 minutes',
+          'Relâche naturelle vapeur 2-3 minutes',
+          'Ouvrir couvercle, vérifier texture : lentilles molles mais pas en purée',
+          'Retirer laurier',
+          'Ajouter sel marin à goût (très peu)',
+          'Servir tiède immédiatement'
         ],
-        conseil: 'Œuf mollet : meilleur contrôle cuisson, jaune parfait coulant'
+        conseil: '✅ Lentilles corail idéales : ultra-digestibles, pas de trempage requis, cuisson rapide'
       },
       marmite: {
         etapes: [
-          'Pour œuf mollet : Porter eau à ébullition légère',
-          'Ajouter œuf délicatement avec cuillère',
-          'Laisser 6-7 minutes selon calibre œuf',
-          'Vérifier cuisson (blanc ferme, jaune coulant)',
-          'Refroidissement eau froide 1 min',
-          'Écoquage très délicat du bout des doigts',
-          '',
-          'Pour œuf poché : Eau frémissante + 1 cc vinaigre blanc',
-          'Former petit vortex dans l\'eau',
-          'Casser œuf dans petit bol, verser doucement',
-          'Laisser 3-4 minutes',
-          'Sortir avec écumoire'
+          'Rincer lentilles corail 2-3 fois sous eau froide',
+          'Dans marmite : eau + lentilles + carotte + courgette + laurier',
+          'Porter à ébullition vive 2 minutes, puis réduire feu moyen-doux',
+          'Laisser mijoter à couvert EXACTEMENT 20 minutes',
+          'À 15 minutes : vérifier cuisson lentilles (goût-texture)',
+          'Laisser finir les 5 dernières minutes',
+          'Vérifier : lentilles molles, légumes tendres, bouillon réduit légèrement',
+          'Retirer laurier',
+          'Ajouter sel marin en dernier (½ cc max)',
+          'Servir tiède dans bol'
         ],
-        conseil: 'Méthode traditionnelle, contrôle parfait de la cuisson'
+        conseil: '✅ Marmite = meilleur contrôle saveur, peut ajouter eau si trop réduit'
       }
     },
-    avocat: {
-      nom: 'Avocat mûr Phase 3',
-      duree: 'Collation J16h ou repas',
+
+    legumes: {
+      nom: 'Légumes vapeur Phase 3',
+      duree: 'Fibres & minéraux Phase 3 — Jour 8-10',
       ingredients: [
-        '1 avocat moyen bien mûr',
-        'Jus de citron (1/2 citron)',
-        'Sel marin, poivre optionnel'
+        '100g carotte (pelée, coupée en bâtons)',
+        '100g courgette (pelée, coupée en rondelles)',
+        '100g haricots verts frais (équeutés)',
+        'Eau filtrée pour vapeur',
+        'Sel marin : 1 pincée (après cuisson)',
+        'Option : 5ml huile olive vierge (en filet final)'
       ],
       cookeo: {
         etapes: [
-          'L\'avocat NE se cuit PAS au Cookeo',
-          'Choisir avocat vraiment mûr (cède légèrement à la pression)',
-          'Couper en deux dans le sens de la longueur',
-          'Retirer le noyau délicatement',
-          'À la cuillère, extraire la chair très mûre',
-          'Écraser légèrement à la fourchette pour texture lisse',
-          'Ajouter jus citron frais immédiatement (prévient oxydation)',
-          'Servir de suite pour éviter brunissement'
+          'Préparer légumes : carotte pelée + bâtons, courgette pelée + rondelles, haricots nettoyés',
+          'Remplir cuve Cookeo eau jusqu\'à ligne MIN',
+          'Placer trivet vapeur dans cuve',
+          'Disposer légumes dans panier vapeur : carotte + courgette + haricots mélangés',
+          'Fermer couvercle, sélectionner MODE VAPEUR',
+          'Cuisson EXACTEMENT 8 minutes',
+          'Relâche naturelle vapeur 1-2 minutes',
+          'Ouvrir couvercle, vérifier : légumes tendres mais pas mous',
+          'Transférer dans bol, ajouter 1 pincée sel marin',
+          'Optionnel : filet huile olive vierge première pression'
         ],
-        conseil: 'Pas de cuisson ! Conserve nutriments + acides gras bénéfiques'
+        conseil: '✅ Vapeur Cookeo = préserve nutriments, texture parfaite, pas de perte minéraux'
       },
       marmite: {
         etapes: [
-          'L\'avocat ne cuit jamais',
-          'Choisir avocat bien mûr mais pas surcouit',
-          'Vérifier maturité : cède doucement au toucher',
-          'Couper en deux, retirer noyau',
-          'Manger à la cuillère directement ou écraser',
-          'Pincée sel marin, goutte citron frais',
-          'Consommer immédiatement après préparation',
-          'Si préparation à l\'avance : film alimentaire + frigo max 2h'
+          'Préparer légumes : carotte pelée + bâtons, courgette pelée + rondelles, haricots nettoyés',
+          'Remplir panier vapeur marmite : eau jusqu\'à 5cm sous panier',
+          'Porter eau à ébullition vive',
+          'Disposer légumes dans panier vapeur : bien espacés',
+          'Couvrir avec couvercle, maintenir ébullition légère',
+          'Cuisson EXACTEMENT 15-20 minutes (selon taille bâtons)',
+          'Vérifier à 12 minutes : légumes doivent rester fermes',
+          'À 15 minutes : piquer carotte avec fourchette (doit céder légèrement)',
+          'Transférer dans bol, ajouter sel marin à goût',
+          'Optionnel : huile olive en filet fin'
         ],
-        conseil: 'Cru = conservation acides gras essentiels, meilleure digestibilité'
+        conseil: '✅ Vapeur marmite = contrôle visuel total, pas de risque sur-cuisson'
       }
     },
-    huiles: {
-      nom: 'Huiles vierges Phase 3',
-      duree: 'Matin + Soir',
+
+    riz: {
+      nom: 'Riz basmati hyper-digestible Phase 3',
+      duree: 'Féculents Phase 3 — Jour 8-10',
       ingredients: [
-        'Huile olive vierge première pression OU',
-        'Huile de coco vierge OU',
-        'Beurre clarifié (ghee)'
+        '50g riz basmati blanc (bien rincé)',
+        '75ml eau filtrée (ratio 1:1,5)',
+        'Sel marin : 1 pincée (très peu, goût final)',
+        'Option : 2-3 grains cardamome verte (enlever avant service)'
       ],
       cookeo: {
         etapes: [
-          'Huiles ne se cuisent PAS au Cookeo directement',
-          'Huile d\'olive : ajouter CRU après cuisson',
-          'Utiliser sur légumes cuits, poisson, yaourt',
-          'Dosage : 0.5 CS (8ml) J8, 0.75 CS (12ml) J9, 1 CS (15ml) J10',
-          'Bien mélanger pour répartition homogène',
-          'Conservation : flacon opaque, température ambiante',
-          'Huile coco : peut supporter légère chaleur',
-          'Beurre clarifié : sans lactose, permet chaleur douce'
+          'Rincer riz basmati 3-4 fois sous eau froide jusqu\'à eau transparente',
+          'Égoutter complètement : pas d\'eau résiduelle',
+          'Dans cuve Cookeo : riz rincé + eau mesurée (ratio 1:1,5)',
+          'NE PAS ajouter sel maintenant',
+          'Option : 2-3 grains cardamome si souhaité (améliore digestibilité)',
+          'Fermer couvercle, sélectionner MODE CUISSON RIZ OU SOUS-PRESSION',
+          'Cuisson EXACTEMENT 6 minutes sous pression',
+          'Relâche naturelle vapeur 3-4 minutes (TRÈS important)',
+          'Ouvrir couvercle : grains doivent être séparés, Al dente',
+          'Aérer doucement à la fourchette',
+          'Retirer cardamome si présente',
+          'Ajouter sel marin au goût (très peu)',
+          'Servir tiède'
         ],
-        conseil: 'Huiles : toujours crues pour préserver oméga-3 et antioxydants'
+        conseil: '✅ Cookeo = riz parfait : grains séparés, texture tendre, facile à digérer'
       },
       marmite: {
         etapes: [
-          'Preparation des huiles : aucune cuisson',
-          'Mesurer précisément selon jour reprise',
-          'Huile olive : première pression à froid OBLIGATOIRE',
-          'Garder flacon dans placard frais + obscur',
-          'Ne pas exposer à la lumière (oxydation)',
-          'Ajouter en final de préparation',
-          'Bien émulsionner avec autres ingrédients',
-          'Vérifier date péremption (consomm avant 6 mois ouvert)'
+          'Rincer riz basmati 3-4 fois sous eau froide jusqu\'à eau limpide',
+          'Égoutter complètement : sec avant cuisson',
+          'Dans marmite : riz rincé + eau mesurée (ratio 1:2 pour Marmite)',
+          'Ajouter 2-3 grains cardamome si souhaité',
+          'Porter à ébullition vive 1-2 minutes',
+          'Réduire feu à minimum, couvrir hermétiquement',
+          'Laisser reposer couverte EXACTEMENT 12 minutes',
+          'NE PAS soulever couvercle pendant cuisson',
+          'À 12 minutes : soulever couvercle, vérifier : eau absorbée, grains séparés',
+          'Aérer doucement à la fourchette (grains restent entiers)',
+          'Retirer cardamome',
+          'Ajouter sel marin (½ cc max)',
+          'Servir tiède'
         ],
-        conseil: 'Qualité supérieure = meilleure absorption nutriments + biodisponibilité'
+        conseil: '✅ Marmite = riz traditionnel, texture idéale, bon pour estomac délicat'
       }
     },
-    fromage: {
-      nom: 'Fromage blanc & Yaourt Phase 3',
-      duree: 'Protéine Phase 3',
+
+    bouillon: {
+      nom: 'Bouillon de poulet dégraissé Phase 3',
+      duree: 'Minéraux & collagène Phase 3 — Jour 8-10',
       ingredients: [
-        '100g fromage blanc 0% OU',
-        '125g yaourt nature 0% (sans sucre)',
-        'Option : 1 cc miel pur (très peu)'
+        '300g cuisses de poulet (chair + os) OU carcasse entière',
+        '1 carotte (pelée, coupée en 2)',
+        '1 tige céleri (coupée en 3 morceaux)',
+        '½ oignon (pelé, coupé en 2)',
+        '3L eau filtrée froide',
+        '1 feuille de laurier',
+        '3-4 grains de poivre noir entiers',
+        'Sel marin : 1 pincée (après dégraissage)'
       ],
       cookeo: {
         etapes: [
-          'Fromage blanc & yaourt NE se cuisent PAS',
-          'Sortir du frigo 15 min avant consommation',
-          'Température ambiante optimale pour goût + digestion',
-          'Bien vérifier : nature, 0% matière grasse, SANS sucre',
-          'Lire étiquette : pas d\'additifs, pas d\'aspartame',
-          'Portion : 100g fromage blanc OU 125g yaourt',
-          'Servir dans bol propre',
-          'Possibilité ajouter 1 cc huile d\'olive par-dessus',
-          'Consommer dans 1-2h après sortie du frigo'
+          'Préparer poulet : retirer peau si possible (réduit matière grasse)',
+          'Laver légumes : carotte pelée + coupée, céleri nettoyé, oignon pelé',
+          'Dans cuve Cookeo : eau froide + poulet + carotte + céleri + oignon + laurier + poivre',
+          'Fermer couvercle, sélectionner MODE SOUS-PRESSION',
+          'Cuisson EXACTEMENT 30 minutes sous pression maximale',
+          'Relâche naturelle vapeur 5-10 minutes (important pour collagène)',
+          'Ouvrir couvercle : liquide doit être ambré clair',
+          'Filtrer bouillon à travers passoire fine (retirer os, légumes cuits)',
+          'Laisser refroidir 15 minutes à température ambiante',
+          'Placer bouillon au réfrigérateur 2-3 heures (graisse remonte dessus)',
+          'Retirer graisse solidifiée surface avec cuillère',
+          'Réchauffer bouillon dégraissé, ajouter 1 pincée sel marin',
+          'Servir chaud dans bol'
         ],
-        conseil: 'Froid = meilleure conservation probiotiques, meilleure texture'
+        conseil: '✅ Cookeo = bouillon riche en collagène, dégraissage facile au frais'
       },
       marmite: {
         etapes: [
-          'Jamais de cuisson',
-          'Vérifier provenance : lait entier fermenté de qualité',
-          'Si intolérance lactose : remplacer par boisson coco/amande',
-          'Conservation : frigo, porte (zone moins froide)',
-          'DDLC : strictement respecter, ne pas dépasser',
-          'Après ouverture : couvrir, frigo max 3 jours',
-          'Sensation visqueuse = normal, signe probiotiques vivants',
-          'Goût légèrement acide = fermentation saine'
+          'Préparer poulet : retirer peau maximale (réduit gras)',
+          'Laver légumes : carotte pelée + coupée, céleri nettoyé, oignon pelé',
+          'Dans marmite grande : eau froide + poulet + carotte + céleri + oignon + laurier + poivre',
+          'Porter à ébullition vive, écumer mousse blanche surface 2-3 minutes',
+          'Réduire feu à minimum, couvrir à moitié',
+          'Laisser mijoter très doucement EXACTEMENT 1h30 minutes',
+          'Ajouter eau si niveau baisse trop (ne pas laisser découvert)',
+          'À 1h10 : vérifier saveur & couleur (doit être ambré clair)',
+          'Laisser finir les 20 dernières minutes',
+          'Retirer du feu, laisser reposer 10 minutes',
+          'Filtrer à travers passoire fine : retirer os, légumes, herbes',
+          'Laisser refroidir 20 minutes à température ambiante',
+          'Réfrigérer 2-3 heures : graisse remonte',
+          'Retirer graisse solidifiée à la cuillère',
+          'Réchauffer bouillon dégraissé, ajouter sel marin au goût',
+          'Servir chaud'
         ],
-        conseil: 'Ferments vivants = aide reconstruction intestinale post-jeûne'
-      }
-    },
-    poisson: {
-      nom: 'Poisson gras vapeur Phase 3',
-      duree: 'Repas principal (13h)',
-      ingredients: [
-        '80-100g saumon/sardines frais OU',
-        '80g thon nature boîte OU',
-        '80g poisson blanc (lieu, cabillaud)',
-        'Sel marin, herbes (optionnel)'
-      ],
-      cookeo: {
-        etapes: [
-          'Poisson frais : nettoyer, retirer arêtes visibles',
-          'Placer sur papier sulforisé dans panier vapeur',
-          'Trivet + 200ml eau dans cuve',
-          'Saumon : 8 min sous pression',
-          'Poisson blanc : 6 min sous pression',
-          'Vérifier cuisson : chair opaque, s\'émiette facilement',
-          'Sortir délicatement, laisser reposer 2 min',
-          'Arroser d\'huile olive crue si souhaité',
-          'Poisson boîte : égoutter minutieusement, réchauffer à peine'
-        ],
-        conseil: 'Vapeur = préserve oméga-3, évite oxydation graisses nobles'
-      },
-      marmite: {
-        etapes: [
-          'Poisson dans panier vapeur au-dessus eau frémissante',
-          'Saumon : 12-15 min selon épaisseur',
-          'Poisson blanc : 10-12 min',
-          'Sardines fraîches : 8-10 min',
-          'Vérifier tendreté à la fourchette (chair blanche opaque)',
-          'Poisson vapeur ne doit pas s\'émietter (signe surcuisson)',
-          'Laisser tiédir légèrement avant service',
-          'Poisson boîte : vider eau, mélanger avec huile, servir tiède'
-        ],
-        conseil: 'Cuisson douce préserve nutriments, meilleure assimilation protéines'
+        conseil: '✅ Marmite = bouillon traditionnel très riche en minéraux & collagène, saveur supérieure'
       }
     }
   };
 
-  const recetteActuelle = recettes[recetteType] || recettes.oeufs;
+  const recetteActuelle = recettes[recetteType] || recettes.lentilles;
 
   if (!isOpen) return null;
 
