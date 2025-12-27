@@ -467,6 +467,29 @@ export default function Suivi() {
   const [programmeReprise, setProgrammeReprise] = useState(null);
   const [alimentsAutorises, setAlimentsAutorises] = useState([]);
 
+  // ═══════════════════════════════════════════════════════════
+  // NOUVEAU : DÉTECTION PHASE CRISTALLISATION
+  // ═══════════════════════════════════════════════════════════
+  
+  const [cristallisationActive, setCristallisationActive] = useState(false);
+
+  // Détecter si cristallisation active
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Vérifier mode TEST ou PRODUCTION
+    const modeTest = localStorage.getItem('TEST_context') === 'cristallisation';
+    const cleProgr = modeTest ? 'TEST_programmeCristallisation' : 'programmeCristallisation';
+    const programmeStr = localStorage.getItem(cleProgr);
+    
+    if (programmeStr) {
+      console.log('[SUIVI] Cristallisation active détectée (mode:', modeTest ? 'TEST' : 'PRODUCTION', ')');
+      setCristallisationActive(true);
+    } else {
+      setCristallisationActive(false);
+    }
+  }, []);
+
   // Charger et détecter la reprise alimentaire active
   useEffect(() => {
     async function detecterReprise() {
@@ -1526,6 +1549,26 @@ export default function Suivi() {
               🏠 Retour au tableau de bord
             </button>
           </Link>
+
+          {/* NOUVEAU : BOUTON CRISTALLISATION (visible uniquement si phase active) */}
+          {cristallisationActive && (
+            <Link href="/cristallisation-quotidien">
+              <button style={{
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "10px 24px",
+                fontWeight: 600,
+                fontSize: 16,
+                cursor: "pointer",
+                marginTop: 16,
+                boxShadow: "0 4px 12px rgba(102,126,234,0.3)"
+              }}>
+                🏔️ Suivi Cristallisation
+              </button>
+            </Link>
+          )}
       </div>
     </div>
   );

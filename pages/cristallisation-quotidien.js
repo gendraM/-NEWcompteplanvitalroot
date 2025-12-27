@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
 import { CRITERES_CRISTALLISATION } from '../data/referentiel';
+import { analyserCriteresAutomatiques } from '../lib/analyseRepas3Jours';
 
 export default function CristallisationQuotidien() {
   const router = useRouter();
@@ -23,6 +24,10 @@ export default function CristallisationQuotidien() {
   // === REPAS DU JOUR ===
   const [repasDuJour, setRepasDuJour] = useState([]);
   const [chargement, setChargement] = useState(true);
+
+  // === NOUVEAU (P2) : SUGGESTIONS AUTO-VALIDATION ===
+  const [suggestionsCriteres, setSuggestionsCriteres] = useState({});
+
 
   // === CLIENT DETECTION ===
   useEffect(() => {
@@ -104,6 +109,26 @@ export default function CristallisationQuotidien() {
     }
   };
 
+  // === NOUVEAU (P2) : ANALYSE AUTOMATIQUE POUR SUGGESTIONS ===
+  useEffect(() => {
+    if (!isClient || !criteresJour || criteresJour.length === 0) return;
+    if (!repasDuJour || repasDuJour.length === 0) {
+      // Pas de repas = pas de suggestion
+      setSuggestionsCriteres({});
+      return;
+    }
+
+    try {
+      console.log('[AUTO-VALIDATION] Analyse critères jour', jourAffiche, 'avec', repasDuJour.length, 'repas');
+      const suggestions = analyserCriteresAutomatiques(criteresJour, repasDuJour);
+      console.log('[AUTO-VALIDATION] Suggestions générées:', suggestions);
+      setSuggestionsCriteres(suggestions);
+    } catch (error) {
+      console.error('[AUTO-VALIDATION] Erreur analyse:', error);
+      setSuggestionsCriteres({});
+    }
+  }, [repasDuJour, criteresJour, jourAffiche, isClient]);
+
   const getCriteresDuJour = (jour) => {
     // Récupérer 5 critères pour ce jour depuis CRITERES_CRISTALLISATION
     if (!CRITERES_CRISTALLISATION?.criteres_quotidiens) {
@@ -161,6 +186,31 @@ export default function CristallisationQuotidien() {
     if (nbValides === 5) {
       validerJour();
     }
+  };
+
+  // === NOUVEAU (P2) : ACCEPTER UNE SUGGESTION ===
+  const accepterSuggestion = (critereId) => {
+    console.log('[AUTO-VALIDATION] Acceptation suggestion critère:', critereId);
+    
+    // Valider le critère (même logique que toggleCritere)
+    toggleCritere(critereId);
+    
+    // Retirer la suggestion
+    setSuggestionsCriteres(prev => ({
+      ...prev,
+      [critereId]: { ...prev[critereId], suggere: false }
+    }));
+  };
+
+  // === NOUVEAU (P2) : REFUSER UNE SUGGESTION ===
+  const refuserSuggestion = (critereId) => {
+    console.log('[AUTO-VALIDATION] Refus suggestion critère:', critereId);
+    
+    // Marquer comme refusé (ne plus suggérer)
+    setSuggestionsCriteres(prev => ({
+      ...prev,
+      [critereId]: { ...prev[critereId], suggere: false }
+    }));
   };
 
   const validerJour = () => {
@@ -469,6 +519,74 @@ export default function CristallisationQuotidien() {
                     {critere.description && (
                       <div style={{ fontSize: 13, color: '#666' }}>
                         {critere.description}
+                      </div>
+                    )}
+                    
+                    {/* === NOUVEAU (P2) : SUGGESTION AUTO-VALIDATION === */}
+                    {suggestionsCriteres[critere.id]?.suggere && !estValide && jourEstActuel && (
+                      <div style={{
+                        marginTop: 12,
+                        padding: 12,
+                        background: 'linear-gradient(135deg, #fff9c4 0%, #fff59d 100%)',
+                        border: '2px solid #fbc02d',
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12
+                      }}>
+                        <div style={{ fontSize: 20 }}>💡</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#f57f17', marginBottom: 4 }}>
+                            Suggéré validé
+                          </div>
+                          <div style={{ fontSize: 12, color: '#666' }}>
+                            {suggestionsCriteres[critere.id].raison}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              accepterSuggestion(critere.id);
+                            }}
+                            style={{
+                              background: '#4caf50',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 6,
+                              padding: '6px 12px',
+                              fontSize: 13,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                          >
+                            ✓ Accepter
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              refuserSuggestion(critere.id);
+                            }}
+                            style={{
+                              background: '#f44336',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 6,
+                              padding: '6px 12px',
+                              fontSize: 13,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                          >
+                            ✗ Refuser
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

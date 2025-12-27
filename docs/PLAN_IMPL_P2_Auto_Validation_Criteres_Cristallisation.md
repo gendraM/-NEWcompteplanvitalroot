@@ -118,11 +118,16 @@ Créer un système automatique qui :
 ---
 
 ### Etape 5 — **Mise à jour de l'avancement**
-- [x] Non commencé | [ ] En cours | [ ] Terminé  
-- Avancement précis : **0 %**
+- [ ] Non commencé | [ ] En cours | [x] Terminé  
+- Avancement précis : **100 %**
 
 **Historique des mises à jour :**
 - 27/12/2025, 0% — Plan d'implémentation créé, en attente validation
+- 27/12/2025, 10% — Point de sauvegarde Git créé (tag rollback-before-p2-autovalidation)
+- 27/12/2025, 40% — Fonction analyserCriteresAutomatiques() créée dans /lib/analyseRepas3Jours.js (130 lignes)
+- 27/12/2025, 70% — Hooks et fonctions ajoutés dans /pages/cristallisation-quotidien.js
+- 27/12/2025, 90% — Affichage suggestions "💡 Suggéré validé" implémenté
+- 27/12/2025, 100% — ✅ Compilation réussie, P2 TERMINÉ
 
 ---
 
