@@ -1234,6 +1234,8 @@ export default function Jeune() {
       
       if (jeune) {
         setJeuneConsulte(jeune);
+        // 🆕 Stocker dans localStorage pour que journal-spirituel.js puisse détecter
+        localStorage.setItem('jeuneConsulte', JSON.stringify(jeune));
         setShowHistoriqueModal(false);
         console.log('📖 Jeûne archivé chargé pour consultation:', jeuneId);
       } else {
@@ -1248,6 +1250,8 @@ export default function Jeune() {
   // Revenir au jeûne actif (quitter mode consultation archive)
   const retourJeuneActif = () => {
     setJeuneConsulte(null);
+    // 🆕 Nettoyer localStorage
+    localStorage.removeItem('jeuneConsulte');
     console.log('🔄 Retour au jeûne actif');
   };
 
