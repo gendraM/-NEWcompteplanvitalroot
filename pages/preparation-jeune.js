@@ -469,6 +469,34 @@ const DebugPanel = () => (
     <div style={{ background: '#F5F8FA', minHeight: '100vh', paddingBottom: 40 }}>
       <Navigation />
       <HeaderPreparation />
+      
+      {/* Bannière date/heure actuelle - EN HAUT SOUS HEADER */}
+      {dateJeune && (
+        <div style={{
+          background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+          color: '#fff',
+          padding: '14px 20px',
+          margin: '0 auto 20px auto',
+          textAlign: 'center',
+          maxWidth: 900,
+          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+          fontWeight: 700,
+          fontSize: 15,
+          letterSpacing: '0.3px',
+          borderRadius: 8
+        }}>
+          ☀️ Lever de soleil — {aujourdhui.toLocaleDateString('fr-FR', {
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })} à {aujourdhui.toLocaleTimeString('fr-FR', {
+            hour: '2-digit', 
+            minute: '2-digit' 
+          })}
+        </div>
+      )}
+      
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 12px' }}>
         {/* Feedback global */}
         {feedbackMessage && (
@@ -539,7 +567,7 @@ const DebugPanel = () => (
             {/* Bouton "Période & critères" en bas de la carte */}
             <div style={{padding:'8px 16px',background:'#FAFBFC',borderTop:'1px solid #E3EAF2'}}>
               <details style={{marginLeft:'auto',width:'100%'}}>
-                <summary style={{cursor:'pointer',background:'#4F8FFF',color:'#fff',border:'none',borderRadius:8,padding:'8px 12px',fontWeight:700,fontSize:13,textAlign:'center'}}>Période & critères</summary>
+                <summary style={{cursor:'pointer',background:'#4F8FFF',color:'#fff',border:'none',borderRadius:8,padding:'8px 12px',fontWeight:700,fontSize:13,textAlign:'center'}}>Critères détaillés</summary>
                 <div style={{marginTop:10,padding:10,background:'#f9fafb',borderRadius:8}}>
                   {(phase.criteres || []).map((c, i) => {
                     const id = getCritereIdFromLabel(c?.label);
