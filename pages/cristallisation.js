@@ -35,8 +35,13 @@ export default function Cristallisation() {
     try {
       setChargement(true);
 
+      // 🧪 MODE TEST : Vérifier si données test existent
+      const modeTest = localStorage.getItem('TEST_context') === 'cristallisation';
+      const cleProgr = modeTest ? 'TEST_programmeCristallisation' : 'programmeCristallisation';
+      console.log('[CRISTALLISATION] Mode:', modeTest ? 'TEST' : 'PRODUCTION', '- Clé:', cleProgr);
+
       // 1️⃣ LOCALSTORAGE - Programme cristallisation
-      const programmeStr = localStorage.getItem('programmeCristallisation');
+      const programmeStr = localStorage.getItem(cleProgr);
       if (programmeStr) {
         const programme = JSON.parse(programmeStr);
         setProgrammeCristallisation(programme);
@@ -50,8 +55,9 @@ export default function Cristallisation() {
         setJourEnCours(Math.min(diffJours + 1, 45));
       }
 
-      // Jours validés
-      const joursStr = localStorage.getItem('joursValidesCristallisation');
+      // 2️⃣ LOCALSTORAGE - Jours validés
+      const cleJours = modeTest ? 'TEST_joursValidesCristallisation' : 'joursValidesCristallisation';
+      const joursStr = localStorage.getItem(cleJours);
       if (joursStr) {
         setJoursValides(JSON.parse(joursStr));
       }

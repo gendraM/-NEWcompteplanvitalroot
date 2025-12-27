@@ -361,6 +361,8 @@ export default function Suivi() {
   // ----------- HOOKS PRINCIPAUX (ordre strict selon la checklist) -----------
   // Initialiser selectedDate AVANT tout usage dans un useEffect ou une variable calculée
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0,10));
+  // Hook pour l'affichage de l'alerte calorique (DOIT ÊTRE DÉCLARÉ AVANT SON UTILISATION dans useEffect)
+  const [repasSemaine, setRepasSemaine] = useState([]);
   // Récupérer la date du jeûne programmé (stockée en localStorage ou BDD)
   const [dateJeune, setDateJeune] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -469,6 +471,15 @@ export default function Suivi() {
   useEffect(() => {
     async function detecterReprise() {
       try {
+        // 🧪 MODE TEST CRISTALLISATION : Si actif, désactiver reprise
+        const modeTestCristallisation = localStorage.getItem('TEST_context') === 'cristallisation';
+        if (modeTestCristallisation) {
+          console.log('[SUIVI] Mode TEST cristallisation actif - Reprise désactivée');
+          setRepriseActive(false);
+          setPhaseReprise(null);
+          return; // Sortir immédiatement
+        }
+
         // 🧪 MODE TEST : Vérifier si test_modeRepriseActif est activé
         const modeTestActif = localStorage.getItem('test_modeRepriseActif') === 'true';
         console.log('[REPRISE] Mode test actif:', modeTestActif);
@@ -613,8 +624,6 @@ export default function Suivi() {
   const [showNotesHistory, setShowNotesHistory] = useState(false);
   // Plan de repas du jour (repas planifiés)
   const [repasPlan, setRepasPlan] = useState({});
-  // Hook pour l'affichage de l'alerte calorique
-  const [repasSemaine, setRepasSemaine] = useState([]);
 
   // Chargement automatique des repas et du plan depuis Supabase
   useEffect(() => {
