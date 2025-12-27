@@ -103,11 +103,12 @@ export default function RepasBloc({
   }, [repasConforme, repasPrevu, categoriePrevu, quantitePrevu, kcalPrevu, aliment, categorie, quantite, kcal, repasSemaine, date, type]);
 
   // Remonter les valeurs au parent pour coloration contextuelle pastilles
+  // onChangeChampsRepas retiré du dependency array (stabilisé par useMemo côté parent)
   useEffect(() => {
     if (onChangeChampsRepas) {
       onChangeChampsRepas({ aliment, quantite, heureRepas, categorie });
     }
-  }, [aliment, quantite, heureRepas, categorie, onChangeChampsRepas]);
+  }, [aliment, quantite, heureRepas, categorie]);
 
   // Ajout Fast food (déclaration unique, checklist respectée)
   const [isFastFood, setIsFastFood] = useState(false);

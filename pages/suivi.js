@@ -23,9 +23,10 @@ function RetourAccueil() {
 // ...existing code...
 // ----------- HANDLER POUR LA SAUVEGARDE D'UN REPAS -----------
 // La fonction handleSaveRepas est définie plus bas dans le composant principal, après l’import unique de Supabase.
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import BandeauDefiActif from '../components/BandeauDefiActif';
 import { supabase } from '../lib/supabaseClient';
+import { detecterPhaseActive } from '../lib/phasesPreparation';
 import { 
   calculerJourRelatif, 
   isPeriodeActive, 
@@ -624,7 +625,7 @@ export default function Suivi() {
   // Tracker valeurs champs pour coloration contextuelle pastilles
   const [champsRepasEnCours, setChampsRepasEnCours] = useState({ aliment: '', quantite: '', heureRepas: '', categorie: '' });
 
-  // Lire from/to depuis l'URL pour préfiltrer la semaine
+  // Lire from/to depuis l'URL pour préfiltrer la semaine (READ-ONLY : filtrage visuel, pas mutation state)
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
@@ -633,8 +634,7 @@ export default function Suivi() {
       const to = params.get('to');
       if (from && to) {
         setFiltreFromTo({ from, to });
-        // Centrer la vue sur le début de la période
-        setSelectedDate(from);
+        // NE PAS setSelectedDate(from) → Préserve date du jour pour saisie normale
       }
     } catch(e) {
       console.warn('[Suivi] Lecture params from/to échouée:', e);
@@ -985,11 +985,20 @@ export default function Suivi() {
       {/* Mini-bandeau Préparation en cours (synthétique avec coloration contextuelle) */}
       {isMounted && (localStorage.getItem('preparationActive') === 'true') && (
         (() => {
-          // Déterminer la période affichée (par défaut: J-7 -> J-1 avant J0)
-          const dateJeuneStr = localStorage.getItem('dateJeune');
-          const dateJ0 = dateJeuneStr ? new Date(dateJeuneStr) : null;
-          const periodeStart = filtreFromTo?.from ? new Date(filtreFromTo.from) : (dateJ0 ? new Date(dateJ0.getTime() - 7*24*60*60*1000) : null);
-          const periodeEnd = filtreFromTo?.to ? new Date(filtreFromTo.to) : (dateJ0 ? new Date(dateJ0.getTime() - 1*24*60*60*1000) : null);
+          // Lire date jeûne depuis preparationData (source unique de vérité)
+          let dateJ0 = null;
+          let dateDebutPrep = null;
+          try {
+            const prepDataStr = localStorage.getItem('preparationData');
+            if (prepDataStr) {
+              const prepData = JSON.parse(prepDataStr);
+              dateJ0 = prepData.startDate ? new Date(prepData.startDate) : null;
+              dateDebutPrep = prepData.dateDebutPreparation ? new Date(prepData.dateDebutPreparation) : null;
+            }
+          } catch(e) { console.warn('[Mini-bandeau] Lecture preparationData échouée:', e); }
+          
+          // Calculer phase active DYNAMIQUEMENT selon durée disponible
+          const { phaseActive, nomPhase, periodeStart, periodeEnd, jCourant } = detecterPhaseActive(dateJ0, dateDebutPrep);
           function fmt(d){ return d ? d.toLocaleDateString('fr-FR',{ weekday:'long', day:'2-digit', month:'2-digit', year:'2-digit' }) : 'n/a'; }
           const type = selectedType; // Type de repas en cours
           // Pastilles contextuelles avec état calculé en temps réel
@@ -1003,7 +1012,7 @@ export default function Suivi() {
           return (
             <div style={{border:'1px solid #E3EAF2', borderRadius:12, padding:'10px 12px', background:'#fff', boxShadow:'0 1px 4px rgba(0,0,0,0.04)', marginBottom:16}}>
               <div style={{fontWeight:700, color:'#0F172A', marginBottom:6}}>
-                Préparation du jeûne • Période: {fmt(periodeStart)} → {fmt(periodeEnd)}
+                {nomPhase} • Période: {fmt(periodeStart)} → {fmt(periodeEnd)}
               </div>
               <div style={{display:'flex', gap:8, flexWrap:'wrap', alignItems:'center'}}>
                 {pastilles.filter(p=>p.visible).map(p => (
@@ -1448,7 +1457,7 @@ export default function Suivi() {
               onSave={handleSaveRepas}
               setSnackbar={setSnackbar}
               repasSemaine={repasSemaine}
-              onChangeChampsRepas={setChampsRepasEnCours}
+              onChangeChampsRepas={useMemo(() => isMounted && (localStorage.getItem('preparationActive') === 'true') ? setChampsRepasEnCours : undefined, [isMounted])}
             />
             {/* Bouton de validation de la semaine, affiché uniquement si showValidation est vrai */}
             {showValidation && (

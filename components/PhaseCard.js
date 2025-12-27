@@ -890,26 +890,32 @@ export default function PhaseCard({ phase, criteres = [], onValider, jCourant })
           let statut = 'À VENIR';
           let couleurStatut = '#A0AEC0';
           let actionPossible = false;
+          let messageExplicatif = null;
           
           if (jCourant !== null && jCourant !== undefined) {
+            // Déterminer la fenêtre de validation pour ce critère
+            const fenetre = 
+              jalon === -30 ? -18 : 
+              [-17, -14, -12].includes(jalon) ? -8 : 
+              jalon === -7 ? 0 : jalon;
+            
             if (jCourant < jalon) {
+              // Trop tôt : critère pas encore accessible
               statut = 'À VENIR';
               couleurStatut = '#A0AEC0';
+              messageExplicatif = `📅 Ce critère sera accessible à partir de J${jalon} (dans ${Math.abs(jCourant - jalon)} jours).`;
+            } else if (jCourant >= jalon && jCourant <= fenetre) {
+              // Dans la période : critère actif
+              statut = jCourant === jalon ? 'EN COURS' : 'ACTIF';
+              couleurStatut = '#43D9A3';
+              actionPossible = true;
             } else {
-              // Vérifier si dans la fenêtre de validation
-              const fenetre = 
-                jalon === -30 ? -18 : 
-                [-17, -14, -12].includes(jalon) ? -8 : 
-                jalon === -7 ? 0 : jalon;
-              
-              if (jCourant >= jalon && jCourant <= fenetre) {
-                statut = jCourant === jalon ? 'EN COURS' : 'ACTIF';
-                couleurStatut = '#43D9A3';
-                actionPossible = true;
-              } else {
-                statut = 'VERROUILLÉ';
-                couleurStatut = '#FF6B6B';
-              }
+              // Trop tard : période dépassée
+              statut = 'DÉPASSÉ';
+              couleurStatut = '#FF6B6B';
+              const periodeDebut = `J${jalon}`;
+              const periodeFin = `J${fenetre}`;
+              messageExplicatif = `⏰ Période de validation dépassée (${periodeDebut} à ${periodeFin}). Pour garantir un jeûne optimal, il est recommandé de commencer la préparation dès J-30. Les critères manqués peuvent affecter la qualité de votre jeûne.`;
             }
           }
           
@@ -918,13 +924,13 @@ export default function PhaseCard({ phase, criteres = [], onValider, jCourant })
               key={critere.id}
               style={{
                 marginBottom: 16,
-                background: critere.valide ? '#F5F8FA' : statut === 'VERROUILLÉ' ? '#FFF5F5' : '#fff',
+                background: critere.valide ? '#F5F8FA' : statut === 'DÉPASSÉ' ? '#FFF5F5' : '#fff',
                 borderRadius: 10,
                 boxShadow: critere.valide ? '0 1px 6px 0 rgba(67,217,163,0.08)' : 'none',
                 padding: '12px 16px',
-                border: critere.valide ? '1px solid #43D9A3' : statut === 'VERROUILLÉ' ? '1px solid #FF6B6B' : '1px solid #E3EAF2',
+                border: critere.valide ? '1px solid #43D9A3' : statut === 'DÉPASSÉ' ? '1px solid #FF6B6B' : '1px solid #E3EAF2',
                 transition: 'all 0.2s',
-                opacity: statut === 'VERROUILLÉ' && !critere.valide ? 0.6 : 1,
+                opacity: statut === 'DÉPASSÉ' && !critere.valide ? 0.7 : 1,
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -935,13 +941,29 @@ export default function PhaseCard({ phase, criteres = [], onValider, jCourant })
                   color: couleurStatut,
                   padding: '3px 10px',
                   borderRadius: 6,
-                  background: statut === 'VERROUILLÉ' ? '#FFE5E5' : statut === 'À VENIR' ? '#F5F8FA' : '#E5F8F2',
+                  background: statut === 'DÉPASSÉ' ? '#FFE5E5' : statut === 'À VENIR' ? '#F5F8FA' : '#E5F8F2',
                 }}>
                   {statut}
                 </span>
               </div>
               <div style={{ color: '#6B778C', fontSize: '0.99em', marginBottom: 2 }}>{critere.conseil}</div>
               <div style={{ color: '#A0AEC0', fontSize: '0.97em', marginBottom: 2 }}>Jalon : J-{critere.jalon}</div>
+              
+              {/* Message explicatif pour critères À VENIR ou DÉPASSÉ */}
+              {messageExplicatif && !critere.valide && (
+                <div style={{
+                  marginTop: 8,
+                  padding: '8px 12px',
+                  background: statut === 'DÉPASSÉ' ? '#FFF5F5' : '#F0F4F8',
+                  border: `1px solid ${statut === 'DÉPASSÉ' ? '#FFD4D4' : '#CBD5E1'}`,
+                  borderRadius: 8,
+                  fontSize: '0.92em',
+                  color: statut === 'DÉPASSÉ' ? '#DC2626' : '#64748B',
+                  lineHeight: 1.5
+                }}>
+                  {messageExplicatif}
+                </div>
+              )}
               
               {/* Bouton "En savoir plus" / "Replier" */}
               {guidancesCriteres[critere.id] && (
@@ -1028,9 +1050,9 @@ export default function PhaseCard({ phase, criteres = [], onValider, jCourant })
                     </span>
                   )}
                 </span>
-              ) : statut === 'VERROUILLÉ' ? (
+              ) : statut === 'DÉPASSÉ' ? (
                 <div style={{ color: '#FF6B6B', fontSize: '0.95em', marginTop: 6, fontWeight: 600 }}>
-                  🔒 Ce critère devait démarrer à J-{critere.jalon}. Concentre-toi sur les critères restants.
+                  🔒 Période dépassée. Concentre-toi sur les critères restants et commence plus tôt lors de ta prochaine préparation (J-30 recommandé).
                 </div>
               ) : (
                 onValider && actionPossible && (
