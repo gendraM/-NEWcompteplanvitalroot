@@ -1,0 +1,142 @@
+RÉSOUDRE UN CONFLIT GIT - GUIDE SIMPLE POUR STAGIAIRE
+C'EST QUOI UN CONFLIT ?
+
+Git ne sait pas quelle version du code garder parce que 2 personnes (ou 2 branches) ont modifié la même partie d'un fichier.
+
+SIGNES QU'IL Y A UN CONFLIT
+
+Quand tu fais git pull ou git rebase, tu vois : CONFLICT (content): Merge conflict in pages/suivi.js
+
+PROCESSUS EN 8 ÉTAPES SIMPLES
+
+ÉTAPE 1 - VÉRIFIER LA SITUATION
+
+git status
+
+Tu vas voir :
+
+Le fichier problématique en rouge
+Le message "both modified" ou "unmerged paths"
+ÉTAPE 2 - OUVRIR LE FICHIER PROBLÉMATIQUE
+
+Ouvre le fichier mentionné (exemple: pages/suivi.js)
+
+ÉTAPE 3 - TROUVER LES MARQUEURS DE CONFLIT
+
+Cherche dans le fichier ces 3 lignes spéciales :
+
+<<<<<<< HEAD du code ici
+du code différent ici
+
+nom-du-commit
+
+EXPLICATION :
+
+<<<<<<< HEAD = début du conflit, code actuel de ta branche
+======= = séparateur entre les 2 versions
+nom-du-commit = fin du conflit, code de l'autre branche
+
+ÉTAPE 4 - DÉCIDER QUOI GARDER
+
+Tu as 3 CHOIX :
+
+CHOIX A - Garder seulement la version du HAUT (HEAD)
+
+Supprime tout de ======= jusqu'à >>>>>>>
+Supprime aussi la ligne <<<<<<< HEAD
+CHOIX B - Garder seulement la version du BAS (incoming)
+
+Supprime tout de <<<<<<< jusqu'à =======
+Supprime aussi la ligne >>>>>>>
+CHOIX C - Garder LES DEUX (le plus fréquent pour des ajouts)
+
+Supprime seulement les 3 lignes spéciales : <<<<<<<, =======, >>>>>>>
+Garde tout le code des deux versions
+Assure-toi que ça a du sens ensemble
+ÉTAPE 5 - NETTOYER LE FICHIER
+
+Après avoir choisi, ton fichier ne doit PLUS contenir :
+
+<<<<<<< HEAD
+=======
+quelque-chose
+
+Le code doit être propre comme si tu l'avais écrit normalement.
+
+ÉTAPE 6 - SAUVEGARDER
+
+Sauvegarde le fichier (Ctrl+S ou Cmd+S)
+
+ÉTAPE 7 - DIRE À GIT QUE C'EST RÉSOLU
+
+git add pages/suivi.js
+
+(Remplace pages/suivi.js par le nom de ton fichier)
+
+ÉTAPE 8 - FINIR L'OPÉRATION
+
+Si tu étais en train de faire un REBASE : git rebase --continue
+
+Si tu étais en train de faire un MERGE : git commit
+
+Si tu étais en train de faire un PULL : git commit
+
+EXEMPLE CONCRET
+
+AVANT (fichier avec conflit)
+
+function calculer() { <<<<<<< HEAD const prix = 100; const taxe = 20;
+const prix = 100; const reduction = 10;
+
+feature/promo return prix; }
+
+APRÈS (résolu - on garde les deux)
+
+function calculer() { const prix = 100; const taxe = 20; const reduction = 10; return prix; }
+
+COMMANDES D'URGENCE
+
+Annuler tout et recommencer
+
+git rebase --abort
+
+ou
+
+git merge --abort
+
+Voir les fichiers en conflit
+
+git status
+
+Voir ce qui a changé dans un fichier
+
+git diff pages/suivi.js
+
+CHECKLIST RAPIDE
+
+git status pour voir le problème
+Ouvrir le fichier
+Trouver <<<<<<<, =======, >>>>>>>
+Décider quoi garder (HAUT / BAS / LES DEUX)
+Supprimer les 3 marqueurs
+Sauvegarder
+git add nom-du-fichier
+git rebase --continue ou git commit
+git status pour vérifier que c'est fini
+RÈGLE D'OR
+
+Si c'est juste des AJOUTS (2 personnes ont ajouté du code différent) → GARDE LES DEUX
+
+Si c'est des MODIFICATIONS (2 versions différentes de la même chose) → LIS LES DEUX et choisis la meilleure ou COMBINE intelligemment
+
+TON CAS ACTUEL
+
+Tu as dit "c'est juste des ajouts" donc :
+
+Ouvre pages/suivi.js
+Trouve les <<<<<<<
+Supprime SEULEMENT les 3 lignes marqueurs
+Garde tout le code
+Sauvegarde
+git add pages/suivi.js
+git rebase --continue

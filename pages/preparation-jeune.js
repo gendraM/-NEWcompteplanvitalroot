@@ -41,7 +41,6 @@ function DebugPreparationJeune() {
 import Link from "next/link";
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { calculerPhasesAdaptees } from '../lib/phasesPreparation';
 import { validerCritereAuto, getStatutCritereAuto } from '../lib/validerCriterePreparation';
 import { getCritereIdFromLabel } from '../lib/validerCriterePreparation';
 import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif, getFenetreValidation } from "../lib/validerCriterePreparation";
@@ -92,23 +91,43 @@ export default function PreparationJeune() {
   // Date du jeûne, durée, jour courant
   const [dateJeune, setDateJeune] = useState(null);
   const [dureeJeune, setDureeJeune] = useState(null);
-  const [phasesAdaptees, setPhasesAdaptees] = useState([]);
   const [aujourdhui, setAujourdhui] = useState(new Date());
   const [jCourant, setJCourant] = useState(null);
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+    
+    // Mettre à jour la date du jour à minuit (pour recalculer jCourant automatiquement)
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setHours(24, 0, 0, 0); // Minuit suivant
+    const msUntilMidnight = tomorrow - now;
+    
+    const timer = setTimeout(() => {
+      setAujourdhui(new Date());
+      // Relancer le timer pour le jour suivant
+      const updateDaily = setInterval(() => {
+        setAujourdhui(new Date());
+      }, 24 * 60 * 60 * 1000);
+      return () => clearInterval(updateDaily);
+    }, msUntilMidnight);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
   useEffect(() => {
     if (dateJeune) {
-      // Calcul des phases adaptées dynamiquement
-      const dateDebutPreparation = new Date(); // Toujours utiliser aujourd'hui
-      const phases = calculerPhasesAdaptees(dateJeune, dateDebutPreparation, criteresMetier);
-      setPhasesAdaptees(phases);
-      
       // jour relatif = nombre de jours avant J0 (ex: -10)
-      const today = new Date();
+      // Utiliser le state aujourdhui pour cohérence
+      const today = new Date(aujourdhui);
       today.setHours(0,0,0,0);
-      const diffJours = Math.max(0, Math.round((dateJeune - today) / (1000 * 60 * 60 * 24)));
+      const dateJ0 = new Date(dateJeune);
+      dateJ0.setHours(0,0,0,0);
+      const diffJours = Math.max(0, Math.round((dateJ0 - today) / (1000 * 60 * 60 * 24)));
       setJCourant(-diffJours);
     }
-  }, [dateJeune]);
+  }, [dateJeune, aujourdhui]);
 
   // Critères de préparation (statut dynamique)
   // État de démarrage du suivi de préparation (workflow interactif)
@@ -450,34 +469,6 @@ const DebugPanel = () => (
     <div style={{ background: '#F5F8FA', minHeight: '100vh', paddingBottom: 40 }}>
       <Navigation />
       <HeaderPreparation />
-      
-      {/* Bannière date/heure actuelle - EN HAUT SOUS HEADER */}
-      {dateJeune && (
-        <div style={{
-          background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-          color: '#fff',
-          padding: '14px 20px',
-          margin: '0 auto 20px auto',
-          textAlign: 'center',
-          maxWidth: 900,
-          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
-          fontWeight: 700,
-          fontSize: 15,
-          letterSpacing: '0.3px',
-          borderRadius: 8
-        }}>
-          ☀️ Lever de soleil — {aujourdhui.toLocaleDateString('fr-FR', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })} à {aujourdhui.toLocaleTimeString('fr-FR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}
-        </div>
-      )}
-      
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 12px' }}>
         {/* Feedback global */}
         {feedbackMessage && (
@@ -489,102 +480,88 @@ const DebugPanel = () => (
         <div style={{ background: '#fff', borderRadius: 12, padding: '14px 22px', marginBottom: 24, fontWeight: 600, fontSize: '1.08em', color: '#4F8FFF', boxShadow: '0 2px 8px 0 rgba(79,143,255,0.07)', border: '1px solid #E3EAF2', maxWidth: 420, marginLeft: 'auto', marginRight: 'auto' }}>
           Date de début de jeûne : {dateJeune ? formatDateAffichage(dateJeune) : <span style={{ color: '#FF6B6B' }}>Non renseignée</span>}
         </div>
-        
-        {/* Timeline avec phases dynamiques */}
-        <TimelinePreparation
-          phases={(phasesAdaptees.length > 0 ? phasesAdaptees : phasesAvecCriteres).map(phase => ({
-            nom: phase.nom,
-            debut: phase.debut,
-            fin: phase.fin,
-            icone: phase.nom?.toLowerCase().includes('allègement') ? '🧱' : phase.nom?.toLowerCase().includes('végétalisation') ? '⚡' : '🚀',
-            couleur: phase.nom?.toLowerCase().includes('allègement') ? '#FFD166' : phase.nom?.toLowerCase().includes('végétalisation') ? '#4F8FFF' : '#43D9A3',
-          }))}
-          currentDay={jCourant}
-        />
         {/* Progression globale */}
         <ProgressBar value={progression} max={criteresMetier.length} />
         {/* Phases et critères (harmonisé avec module métier) */}
-        {(phasesAdaptees.length > 0 ? phasesAdaptees : phasesAvecCriteres).map((phase, idx) => {
-          const hasValidDates = dateJeune && typeof phase.debut === 'number' && typeof phase.fin === 'number';
-          const periodeText = hasValidDates ? formatPeriodePhase(dateJeune, phase.debut, phase.fin) : `J${phase.debut} à J${phase.fin}`;
+        {phasesAvecCriteres.map((phase, idx) => {
+          // Lire dateJeune depuis state OU localStorage en fallback
+          let dateJeuneLocal = dateJeune;
+          if (!dateJeuneLocal && isMounted && typeof window !== 'undefined') {
+            try {
+              const prepDataStr = localStorage.getItem('preparationData');
+              if (prepDataStr) {
+                const prepData = JSON.parse(prepDataStr);
+                dateJeuneLocal = prepData.startDate ? new Date(prepData.startDate) : null;
+              }
+            } catch(e) { console.warn('[Pastille période] Lecture preparationData échouée:', e); }
+          }
+          
+          const hasValidDates = dateJeuneLocal && typeof phase.debut === 'number' && typeof phase.fin === 'number';
+          const periodeText = hasValidDates ? formatPeriodePhase(dateJeuneLocal, phase.debut, phase.fin) : `J${phase.debut} à J${phase.fin}`;
           const phaseEstActive = typeof jCourant === 'number' && typeof phase.debut === 'number' && typeof phase.fin === 'number' && jCourant >= phase.debut && jCourant <= phase.fin;
           
+          // Formater les dates pour affichage compact (ex: "Du 09/12 au 21/12/2025")
+          let datesCompactes = '';
+          if (hasValidDates) {
+            const dateDebut = new Date(dateJeuneLocal);
+            dateDebut.setDate(dateDebut.getDate() + phase.debut);
+            const dateFin = new Date(dateJeuneLocal);
+            dateFin.setDate(dateFin.getDate() + phase.fin);
+            
+            const jourDebut = String(dateDebut.getDate()).padStart(2, '0');
+            const moisDebut = String(dateDebut.getMonth() + 1).padStart(2, '0');
+            const jourFin = String(dateFin.getDate()).padStart(2, '0');
+            const moisFin = String(dateFin.getMonth() + 1).padStart(2, '0');
+            const annee = dateFin.getFullYear();
+            
+            datesCompactes = `Du ${jourDebut}/${moisDebut} au ${jourFin}/${moisFin}/${annee}`;
+          }
+          
           return (
-            <div key={phase.id || phase.nom} style={{marginBottom: 10}}>
-              {/* Titre de la phase */}
-              <div style={{
-                background: '#4F8FFF',
-                color: '#fff',
-                padding: '12px 16px',
-                borderRadius: '12px 12px 0 0',
-                fontWeight: 700,
-                fontSize: 18,
-                marginBottom: 0
-              }}>
-                {phase.nom}
-              </div>
-              
-              {/* Pastille période - JUSTE APRÈS LE TITRE */}
-              <div style={{
-                background: phaseEstActive ? '#FEF3C7' : '#F9FAFB',
-                border: '1px solid ' + (phaseEstActive ? '#FCD34D' : '#E5E7EB'),
-                borderTop: 'none',
-                borderRadius: '0 0 12px 12px',
-                padding: '10px 16px',
-                marginBottom: 12
-              }}>
-                <div style={{
-                  background: phaseEstActive ? '#FEF3C7' : '#F1F5F9',
-                  border: '1px solid ' + (phaseEstActive ? '#FCD34D' : '#CBD5E1'),
-                  borderRadius: 999,
-                  padding: '6px 12px',
-                  fontSize: 13,
-                  color: '#0F172A',
-                  fontWeight: phaseEstActive ? 700 : 500,
-                  display: 'inline-block'
-                }}>
-                  Période: {periodeText}
-                </div>
-              </div>
-
-              <PhaseCard
-                phase={{
-                  nom: '', // Masqué car affiché dans le bandeau bleu ci-dessus
-                  explication: phase.objectif || phase.explication,
-                  periode: `${phase.debut !== undefined && phase.fin !== undefined ? `J${phase.debut} à J${phase.fin}` : ''}`
-                }}
-                criteres={phase.criteres}
-                onValider={preparationActive ? validerCritere : undefined}
-                jCourant={jCourant}
-              />
-              
-              {/* Bouton "Période & critères" - En bas */}
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap',border:'1px solid #E3EAF2',borderRadius:10,padding:'8px 12px',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,0.04)',margin:'8px 0 18px 0'}}>
-                <div style={{flex: 1}}></div>
-                <details style={{marginLeft:'auto'}}>
-                  <summary style={{cursor:'pointer',background:'#4F8FFF',color:'#fff',border:'none',borderRadius:8,padding:'8px 12px',fontWeight:700,fontSize:13}}>Période & critères</summary>
-                  <div style={{marginTop:10,padding:10,background:'#f9fafb',borderRadius:8}}>
-                    {(phase.criteres || []).map((c, i) => {
-                      const id = getCritereIdFromLabel(c?.label);
-                      const s = criteres?.[id] || {};
-                      const etat = s.validé ? '✅ Validé' : '⏳ En cours';
-                      const quand = s.validé && s.dateValidation ? ` • Validé ${formatDateHeureFR(s.dateValidation)} (${s.typeValidation||'auto'})` : '';
-                      return (
-                        <div key={c?.label||i} style={{display:'flex',justifyContent:'space-between',fontSize:14,margin:'6px 0',padding:'6px 8px',background:'#fff',borderRadius:6}}>
-                          <span>{c?.label || `Critère ${id}`}</span>
-                          <span style={{fontWeight:600}}>{etat}{quand}</span>
-                        </div>
-                      );
-                    })}
-                    {hasValidDates && (
-                      <div style={{marginTop:12,display:'flex',gap:8}}>
-                        <a href={`/suivi?from=${formatISODate(addDays(dateJeune, phase.debut))}&to=${formatISODate(addDays(dateJeune, phase.fin))}`} style={{background:'#10B981',color:'#fff',textDecoration:'none',padding:'8px 12px',borderRadius:8,fontSize:13,fontWeight:700}}>Voir mes repas (semaine)</a>
+          <div key={phase.id || phase.nom} style={{
+            marginBottom: 24,
+            background: '#fff',
+            borderRadius: 12,
+            boxShadow: '0 2px 8px 0 rgba(79,143,255,0.07)',
+            border: '1px solid #E3EAF2',
+            overflow: 'hidden'
+          }}>
+            <PhaseCard
+              phase={{
+                nom: datesCompactes ? `${phase.nom}  •  ${datesCompactes}` : phase.nom,
+                explication: phase.objectif || phase.explication,
+                periode: `${phase.debut !== undefined && phase.fin !== undefined ? `J${phase.debut} à J${phase.fin}` : ''}`
+              }}
+              criteres={phase.criteres}
+              onValider={preparationActive ? validerCritere : undefined}
+              jCourant={jCourant}
+            />
+            {/* Bouton "Période & critères" en bas de la carte */}
+            <div style={{padding:'8px 16px',background:'#FAFBFC',borderTop:'1px solid #E3EAF2'}}>
+              <details style={{marginLeft:'auto',width:'100%'}}>
+                <summary style={{cursor:'pointer',background:'#4F8FFF',color:'#fff',border:'none',borderRadius:8,padding:'8px 12px',fontWeight:700,fontSize:13,textAlign:'center'}}>Période & critères</summary>
+                <div style={{marginTop:10,padding:10,background:'#f9fafb',borderRadius:8}}>
+                  {(phase.criteres || []).map((c, i) => {
+                    const id = getCritereIdFromLabel(c?.label);
+                    const s = criteres?.[id] || {};
+                    const etat = s.validé ? '✅ Validé' : '⏳ En cours';
+                    const quand = s.validé && s.dateValidation ? ` • Validé ${formatDateHeureFR(s.dateValidation)} (${s.typeValidation||'auto'})` : '';
+                    return (
+                      <div key={c?.label||i} style={{display:'flex',justifyContent:'space-between',fontSize:14,margin:'6px 0',padding:'6px 8px',background:'#fff',borderRadius:6}}>
+                        <span>{c?.label || `Critère ${id}`}</span>
+                        <span style={{fontWeight:600}}>{etat}{quand}</span>
                       </div>
-                    )}
-                  </div>
-                </details>
-              </div>
+                    );
+                  })}
+                  {hasValidDates && (
+                    <div style={{marginTop:12,display:'flex',gap:8}}>
+                      <a href={`/suivi?from=${formatISODate(addDays(dateJeuneLocal, phase.debut))}&to=${formatISODate(addDays(dateJeuneLocal, phase.fin))}`} style={{background:'#10B981',color:'#fff',textDecoration:'none',padding:'8px 12px',borderRadius:8,fontSize:13,fontWeight:700}}>Voir mes repas (semaine)</a>
+                    </div>
+                  )}
+                </div>
+              </details>
             </div>
+          </div>
           );
         })}
         {/* Message personnel */}

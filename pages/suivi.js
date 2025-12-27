@@ -26,7 +26,6 @@ function RetourAccueil() {
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import BandeauDefiActif from '../components/BandeauDefiActif';
 import { supabase } from '../lib/supabaseClient';
-import { detecterPhaseActive } from '../lib/phasesPreparation';
 import { 
   calculerJourRelatif, 
   isPeriodeActive, 
@@ -625,7 +624,7 @@ export default function Suivi() {
   // Tracker valeurs champs pour coloration contextuelle pastilles
   const [champsRepasEnCours, setChampsRepasEnCours] = useState({ aliment: '', quantite: '', heureRepas: '', categorie: '' });
 
-  // Lire from/to depuis l'URL pour préfiltrer la semaine (READ-ONLY : filtrage visuel, pas mutation state)
+  // Lire from/to depuis l'URL pour préfiltrer la semaine
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
@@ -634,7 +633,8 @@ export default function Suivi() {
       const to = params.get('to');
       if (from && to) {
         setFiltreFromTo({ from, to });
-        // NE PAS setSelectedDate(from) → Préserve date du jour pour saisie normale
+        // Centrer la vue sur le début de la période
+        setSelectedDate(from);
       }
     } catch(e) {
       console.warn('[Suivi] Lecture params from/to échouée:', e);
@@ -987,18 +987,29 @@ export default function Suivi() {
         (() => {
           // Lire date jeûne depuis preparationData (source unique de vérité)
           let dateJ0 = null;
-          let dateDebutPrep = null;
           try {
             const prepDataStr = localStorage.getItem('preparationData');
             if (prepDataStr) {
               const prepData = JSON.parse(prepDataStr);
               dateJ0 = prepData.startDate ? new Date(prepData.startDate) : null;
-              dateDebutPrep = prepData.dateDebutPreparation ? new Date(prepData.dateDebutPreparation) : null;
             }
           } catch(e) { console.warn('[Mini-bandeau] Lecture preparationData échouée:', e); }
           
-          // Calculer phase active DYNAMIQUEMENT selon durée disponible
-          const { phaseActive, nomPhase, periodeStart, periodeEnd, jCourant } = detecterPhaseActive(dateJ0, dateDebutPrep);
+          // Calculer phase active (J-30 à J-18 = Phase 1, J-17 à J-8 = Phase 2, J-7 à J-0 = Phase 3)
+          let phaseActive = null;
+          let nomPhase = 'Préparation du jeûne';
+          if (dateJ0) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const jCourant = -Math.floor((dateJ0 - today) / (1000*60*60*24));
+            if (jCourant >= -30 && jCourant <= -18) { phaseActive = 1; nomPhase = 'Phase 1 : Allègement'; }
+            else if (jCourant >= -17 && jCourant <= -8) { phaseActive = 2; nomPhase = 'Phase 2 : Végétalisation'; }
+            else if (jCourant >= -7 && jCourant <= 0) { phaseActive = 3; nomPhase = 'Phase 3 : Pré-jeûne'; }
+          }
+          
+          // Déterminer la période affichée (par défaut: phase active ou J-7 -> J-1)
+          const periodeStart = filtreFromTo?.from ? new Date(filtreFromTo.from) : (dateJ0 ? new Date(dateJ0.getTime() - 7*24*60*60*1000) : null);
+          const periodeEnd = filtreFromTo?.to ? new Date(filtreFromTo.to) : (dateJ0 ? new Date(dateJ0.getTime() - 1*24*60*60*1000) : null);
           function fmt(d){ return d ? d.toLocaleDateString('fr-FR',{ weekday:'long', day:'2-digit', month:'2-digit', year:'2-digit' }) : 'n/a'; }
           const type = selectedType; // Type de repas en cours
           // Pastilles contextuelles avec état calculé en temps réel
@@ -1457,7 +1468,7 @@ export default function Suivi() {
               onSave={handleSaveRepas}
               setSnackbar={setSnackbar}
               repasSemaine={repasSemaine}
-              onChangeChampsRepas={useMemo(() => isMounted && (localStorage.getItem('preparationActive') === 'true') ? setChampsRepasEnCours : undefined, [isMounted])}
+              onChangeChampsRepas={isMounted && (localStorage.getItem('preparationActive') === 'true') ? setChampsRepasEnCours : undefined}
             />
             {/* Bouton de validation de la semaine, affiché uniquement si showValidation est vrai */}
             {showValidation && (

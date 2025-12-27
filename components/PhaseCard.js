@@ -881,8 +881,8 @@ export default function PhaseCard({ phase, criteres = [], onValider, jCourant })
       >
         {phase.nom}
       </h2>
-      <div style={{ color: '#6B778C', marginBottom: 10, fontSize: '1.04em', fontFamily: 'Inter, Roboto, Arial, sans-serif' }}>{phase.explication}</div>
       <div style={{ color: '#FFD166', fontWeight: 600, marginBottom: 12, fontSize: '1.01em' }}>Période : {phase.periode}</div>
+      <div style={{ color: '#6B778C', marginBottom: 10, fontSize: '1.04em', fontFamily: 'Inter, Roboto, Arial, sans-serif' }}>{phase.explication}</div>
       <ul style={{ paddingLeft: 0, margin: 0, listStyle: 'none' }}>
         {criteres.map((critere, index) => {
           // Calcul du statut dynamique
@@ -898,6 +898,26 @@ export default function PhaseCard({ phase, criteres = [], onValider, jCourant })
               jalon === -30 ? -18 : 
               [-17, -14, -12].includes(jalon) ? -8 : 
               jalon === -7 ? 0 : jalon;
+            
+            // 🔍 DEBUG: Logs pour diagnostiquer le problème "DÉPASSÉ"
+            if (critere.label && critere.label.includes('Respect strict')) {
+              console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+              console.log('🔍 [DEBUG PhaseCard] Critère "Respect strict des quantités"');
+              console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+              console.log('📊 Valeurs reçues:');
+              console.log('  • jCourant (relatif):', jCourant);
+              console.log('  • critere.jalon (original):', critere.jalon);
+              console.log('  • jalon (converti):', jalon);
+              console.log('  • fenetre (calculée):', fenetre);
+              console.log('');
+              console.log('🧪 Tests de condition:');
+              console.log('  • jCourant < jalon ?', jCourant < jalon, '→', jCourant < jalon ? 'À VENIR' : 'NON');
+              console.log('  • jCourant >= jalon ?', jCourant >= jalon);
+              console.log('  • jCourant <= fenetre ?', jCourant <= fenetre);
+              console.log('  • (jalon ≤ jCourant ≤ fenetre) ?', jCourant >= jalon && jCourant <= fenetre, '→', jCourant >= jalon && jCourant <= fenetre ? 'ACTIF' : 'NON');
+              console.log('  • Sinon → DÉPASSÉ');
+              console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            }
             
             if (jCourant < jalon) {
               // Trop tôt : critère pas encore accessible

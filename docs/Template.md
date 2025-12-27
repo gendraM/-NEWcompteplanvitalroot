@@ -226,3 +226,4 @@ Permettre à l’utilisateur de suivre sa progression, valider chaque critère, 
 - [ ] Plan validé par l’utilisateur à la date : ___
 
 **⚠️ Copilot NE PEUT PAS générer de code avant validation explicite du plan, et doit se conformer à cette checklist/détail à CHAQUE tâche.**
+New regle stricte ! Faire une deuxieme lecture de la template comparé avec le plan d implmentation crée pour la mission en cours, identifier les ecart et informer l utilisateur dans la conversation afin de s'assurer que chaque etape du plan a bien été respecté ensuite demander a l utilisateur quoi faire pour poursuivre 
