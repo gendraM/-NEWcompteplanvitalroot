@@ -1782,6 +1782,38 @@ export default function RepriseAlimentaireApresJeune() {
                               🥘 Recette Phase 3
                             </button>
                           )}
+                          {/* Bouton recettes pour aliments Phase 4 spécifiques */}
+                          {modalAliments === 4 && (a.nom.includes('Patate douce') || a.nom.includes('Riz complet') || a.nom.includes('Quinoa') || a.nom.includes('Flocons') || a.nom.includes('Lentilles corail') || a.nom.includes('Pois chiches')) && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setModalAliments(null);
+                                let recetteType = 'patatedouce';
+                                if (a.nom.includes('Riz complet')) recetteType = 'rizcomplet';
+                                else if (a.nom.includes('Quinoa')) recetteType = 'quinoa';
+                                else if (a.nom.includes('Flocons')) recetteType = 'flocons';
+                                else if (a.nom.includes('Lentilles corail')) recetteType = 'lentillescorail';
+                                else if (a.nom.includes('Pois chiches')) recetteType = 'poischiche';
+                                setModalRecettesPhase4({ 
+                                  isOpen: true, 
+                                  type: recetteType
+                                });
+                              }}
+                              style={{
+                                background: 'linear-gradient(135deg, #FF9800, #FFB74D)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '4px 8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                marginLeft: '8px'
+                              }}
+                            >
+                              🥘 Recette Phase 4
+                            </button>
+                          )}
                         </li>
                       ))}
                       {/* Bouton notifications Phase 1 */}
@@ -1862,6 +1894,33 @@ export default function RepriseAlimentaireApresJeune() {
                           </button>
                           <div style={{ fontSize: '0.8rem', color: '#4CAF50', marginTop: '4px', textAlign: 'center' }}>
                             Horaires protéines & lipides : 8h (protéine), 11h (lipide), 13h (protéine), 16h (lipide), 19h (protéine)
+                          </div>
+                        </li>
+                      )}
+                      {/* Bouton notifications Phase 4 */}
+                      {modalAliments === 4 && (
+                        <li style={{ marginTop: '16px', padding: '12px', background: '#fff3e0', borderRadius: 8 }}>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setNotificationsActives(!notificationsActives);
+                            }}
+                            style={{
+                              background: notificationsActives ? 'linear-gradient(135deg, #FF9800, #FFB74D)' : 'linear-gradient(135deg, #FFB74D, #FF9800)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: '8px 16px',
+                              fontSize: '0.9rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              width: '100%'
+                            }}
+                          >
+                            {notificationsActives ? '🔕 Désactiver' : '🔔 Activer'} notifications Phase 4
+                          </button>
+                          <div style={{ fontSize: '0.8rem', color: '#FF9800', marginTop: '4px', textAlign: 'center' }}>
+                            Horaires féculents : 8h (flocons), 11h (fruit), 13h MIDI (FÉCULENT), 16h (lentilles), 19h (protéines)
                           </div>
                         </li>
                       )}
