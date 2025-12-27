@@ -1073,6 +1073,10 @@ export default function Jeune() {
   };
 
   const ajouterOutil = () => {
+    if (jeuneConsulte) {
+      alert('⚠️ Mode archive : Vous ne pouvez pas modifier un jeûne archivé.');
+      return;
+    }
     if (!outilInput.trim()) return;
     setOutils({
       ...outils,
@@ -1158,7 +1162,7 @@ export default function Jeune() {
   // === HANDLERS HISTORIQUE JEÛNES ===
   
   // Archiver le jeûne actuel dans l'historique
-  const archiverJeuneActuel = () => {
+  const archiverJeuneActuel = async () => {
     try {
       // CORRECTION : Lire depuis localStorage (pas états React qui peuvent être vides)
       const joursValidesLS = JSON.parse(localStorage.getItem('joursValides') || '[]');
@@ -1174,10 +1178,21 @@ export default function Jeune() {
         return;
       }
 
+      const idJeune = `${dateDebutLS}_${dureeLS}j`;
+      const dateFinArchivage = new Date().toISOString().split('T')[0];
+
+      // 🆕 ARCHIVER DONNÉES SPIRITUELLES (méditations, audios, etc.)
+      const { archiverDonneesSpirituellesJeune } = await import('../lib/journalSpirituelArchive');
+      const donneesSpirituellesArchivees = await archiverDonneesSpirituellesJeune(
+        dateDebutLS,
+        dateFinArchivage,
+        idJeune
+      );
+
       const jeuneArchive = {
-        id: `${dateDebutLS}_${dureeLS}j`,
+        id: idJeune,
         dateDebut: dateDebutLS,
-        dateFin: new Date().toISOString().split('T')[0],
+        dateFin: dateFinArchivage,
         duree: dureeLS,
         joursValides: [...joursValidesLS],
         outils: { ...outilsLS },
@@ -1185,7 +1200,10 @@ export default function Jeune() {
         bilan: bilanLS,
         programmeReprise: programmeRepriseLS,
         statut: 'termine',
-        dateArchivage: new Date().toISOString()
+        dateArchivage: new Date().toISOString(),
+        // 🆕 Métadonnées données spirituelles
+        donneesSpirituellesCount: donneesSpirituellesArchivees ? 
+          Object.values(donneesSpirituellesArchivees).reduce((a, b) => a + b, 0) : 0
       };
 
       const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
@@ -1197,6 +1215,9 @@ export default function Jeune() {
         localStorage.setItem('historiqueJeunes', JSON.stringify(historiqueActuel));
         setHistoriqueJeunes(historiqueActuel);
         console.log('✅ Jeûne archivé avec succès:', jeuneArchive.id);
+        if (donneesSpirituellesArchivees) {
+          console.log('📿 Données spirituelles archivées:', donneesSpirituellesArchivees);
+        }
       } else {
         console.log('ℹ️ Jeûne déjà archivé:', jeuneArchive.id);
       }
@@ -1306,7 +1327,7 @@ export default function Jeune() {
   };
 
   // Suppression définitive (hard delete)
-  const supprimerDefinitivement = (jeuneId) => {
+  const supprimerDefinitivement = async (jeuneId) => {
     try {
       const corbeilleActuelle = JSON.parse(localStorage.getItem('jeunesSupprimés') || '[]');
       const nouvelleCorbeille = corbeilleActuelle.filter(j => j.id !== jeuneId);
@@ -1314,7 +1335,14 @@ export default function Jeune() {
       localStorage.setItem('jeunesSupprimés', JSON.stringify(nouvelleCorbeille));
       setJeunesSupprimés(nouvelleCorbeille);
 
+      // 🆕 SUPPRIMER DONNÉES SPIRITUELLES ASSOCIÉES
+      const { supprimerDonneesSpirituellesArchivees } = await import('../lib/journalSpirituelArchive');
+      const resultat = supprimerDonneesSpirituellesArchivees(jeuneId);
+      
       console.log('⚠️ Jeûne supprimé définitivement:', jeuneId);
+      if (resultat) {
+        console.log('📿 Données spirituelles supprimées');
+      }
       alert('✅ Jeûne supprimé définitivement');
     } catch (error) {
       console.error('❌ Erreur suppression définitive:', error);
@@ -1370,12 +1398,21 @@ export default function Jeune() {
 
   // === VARIABLES CALCULÉES DE RENDU (APRÈS TOUS LES HOOKS) ===
   
-  const isFini = joursValides.length >= dureeJeune;
+  // Mode archive : utiliser données du jeûne archivé, sinon jeûne actif
+  const joursValidesAffichage = jeuneConsulte ? jeuneConsulte.joursValides : joursValides;
+  const dureeAffichage = jeuneConsulte ? jeuneConsulte.duree : dureeJeune;
+  const dateDebutAffichage = jeuneConsulte ? jeuneConsulte.dateDebut : dateDebutJeune;
+  const outilsAffichage = jeuneConsulte ? jeuneConsulte.outils : outils;
+  const messagePersoAffichage = jeuneConsulte ? jeuneConsulte.messagePerso : messagePerso;
+  const bilanAffichage = jeuneConsulte ? jeuneConsulte.bilan : bilanJeune;
+  const programmeAffichage = jeuneConsulte ? jeuneConsulte.programmeReprise : (planRepriseValide || programmeReprise);
+  
+  const isFini = joursValidesAffichage.length >= dureeAffichage;
 
   // Générer le bilan automatiquement quand le jeûne est terminé
   useEffect(() => {
     const loadBilan = async () => {
-      if (isFini && !bilanJeune) {
+      if (isFini && !bilanJeune && !jeuneConsulte) { // Pas de génération en mode archive
         const bilan = await genererBilanJeune();
         setBilanJeune(bilan);
         setShowBilan(true); // Afficher automatiquement le bilan
@@ -1385,7 +1422,7 @@ export default function Jeune() {
   }, [isFini, joursValides.length]);
 
   // Affiche la préparation à la reprise à partir de la moitié du jeûne ou du J4
-  const showReprise = !isFini && (jourEnCours >= Math.max(4, Math.ceil(dureeJeune / 2)));
+  const showReprise = !isFini && !jeuneConsulte && (jourEnCours >= Math.max(4, Math.ceil(dureeJeune / 2)));
 
   const contenuJour = JEUNE_DAYS_CONTENT[jourEnCours] || {
     titre: `Jour ${jourEnCours}`,
@@ -1833,11 +1870,11 @@ export default function Jeune() {
             </button>
           ))}
         </div>
-        {outils[jourEnCours]?.length > 0 && (
+        {outilsAffichage[jourEnCours]?.length > 0 && (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontWeight: 500, marginBottom: 4 }}>Outils utilisés aujourd’hui :</div>
             <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {outils[jourEnCours].map((o, i) => (
+              {outilsAffichage[jourEnCours].map((o, i) => (
                 <li key={i}>{o}</li>
               ))}
             </ul>
@@ -2153,29 +2190,29 @@ export default function Jeune() {
         <button
           style={{
             marginTop: 16, 
-            background: joursValides.includes(jourEnCours) ? "#9e9e9e" : "#43a047", 
+            background: joursValidesAffichage.includes(jourEnCours) ? "#9e9e9e" : "#43a047", 
             color: "#fff", 
             border: "none",
             borderRadius: 8, 
             padding: "12px 28px", 
             fontWeight: 700, 
             fontSize: 16, 
-            cursor: joursValides.includes(jourEnCours) ? "not-allowed" : "pointer"
+            cursor: joursValidesAffichage.includes(jourEnCours) || jeuneConsulte ? "not-allowed" : "pointer"
           }}
           onClick={validerJour}
-          disabled={joursValides.includes(jourEnCours)}
+          disabled={joursValidesAffichage.includes(jourEnCours) || jeuneConsulte}
         >
-          {joursValides.includes(jourEnCours) 
+          {joursValidesAffichage.includes(jourEnCours) 
             ? `✅ Jour ${jourEnCours} déjà validé` 
-            : `Valider le jour ${jourEnCours}`}
+            : jeuneConsulte ? "📖 Mode archive (lecture seule)" : `Valider le jour ${jourEnCours}`}
         </button>
         
         {/* Aide visuelle */}
-        {!joursValides.includes(jourEnCours) && (() => {
+        {!joursValidesAffichage.includes(jourEnCours) && !jeuneConsulte && (() => {
           // Vérifier s'il manque des jours précédents
           const joursManquants = [];
           for (let j = 1; j < jourEnCours; j++) {
-            if (!joursValides.includes(j)) {
+            if (!joursValidesAffichage.includes(j)) {
               joursManquants.push(j);
             }
           }
@@ -2202,6 +2239,7 @@ export default function Jeune() {
       </div>
 
       {/* --- Paramètres et reset (pour tests) --- */}
+      {!jeuneConsulte && (
       <div style={{ marginTop: 24, textAlign: "center" }}>
         <label>
           Durée du jeûne (jours) :
@@ -2225,7 +2263,8 @@ export default function Jeune() {
           Réinitialiser le jeûne
         </button>
       </div>
-
+      )}
+      
       {/* Modal Historique Jeûnes */}
       {showHistoriqueModal && (
         <HistoriqueJeunesModal

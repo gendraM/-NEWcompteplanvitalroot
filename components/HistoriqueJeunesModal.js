@@ -26,13 +26,8 @@ export default function HistoriqueJeunesModal({
 
   // Calcul durée jeûne en jours
   const calculerDureeReelle = (dateDebut, dateFin, dureePrevu) => {
-    if (dateFin) {
-      const debut = new Date(dateDebut);
-      const fin = new Date(dateFin);
-      const diffTime = Math.abs(fin - debut);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays + 1; // +1 pour inclure le jour de début
-    }
+    // Pour jeûne archivé terminé : utiliser durée prévue (plus fiable que calcul dates)
+    // dateFin peut être date d'archivage, pas vraie date fin jeûne
     return dureePrevu || 0;
   };
 
@@ -522,6 +517,7 @@ export default function HistoriqueJeunesModal({
                       <li>Les outils et notes</li>
                       <li>Le bilan de fin de jeûne</li>
                       <li>Le programme de reprise</li>
+                      <li><strong style={{ color: '#f44336' }}>Tes méditations, audios et prières</strong> (irréversible)</li>
                     </ul>
                   </>
                 ) : (

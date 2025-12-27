@@ -15,10 +15,30 @@ export default function JournalSpirituel() {
   const router = useRouter();
   const [ongletActif, setOngletActif] = useState('meditation');
   const [jourJeune, setJourJeune] = useState(null);
+  const [modeArchive, setModeArchive] = useState(false);
+  const [idJeuneArchive, setIdJeuneArchive] = useState(null);
 
   // useEffect pour récupérer le jour du jeûne depuis localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Vérifier si on consulte un jeûne archivé
+      const jeuneConsulte = localStorage.getItem('jeuneConsulte');
+      if (jeuneConsulte) {
+        try {
+          const jeune = JSON.parse(jeuneConsulte);
+          setModeArchive(true);
+          setIdJeuneArchive(jeune.id);
+          // Calculer jour à partir du jeûne archivé
+          const jourActuel = parseInt(localStorage.getItem('jourEnCours')) || 1;
+          setJourJeune(jourActuel);
+          console.log('📿 Mode archive restauration spirituelle:', jeune.id);
+          return;
+        } catch (error) {
+          console.error('Erreur parsing jeûne consulté:', error);
+        }
+      }
+
+      // Mode normal : jeûne actif
       const dateJeuneStr = localStorage.getItem('dateJeune');
       if (dateJeuneStr) {
         try {
@@ -57,6 +77,32 @@ export default function JournalSpirituel() {
   // ==========================================
   return (
     <div className={styles.container}>
+      {/* 🆕 BANDEAU MODE ARCHIVE */}
+      {modeArchive && (
+        <div style={{
+          background: '#e3f2fd',
+          border: '2px solid #64b5f6',
+          borderRadius: 8,
+          padding: '12px 20px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 24 }}>📚</span>
+            <div>
+              <div style={{ fontWeight: 600, color: '#1565c0' }}>
+                Mode archive - Jeûne terminé
+              </div>
+              <div style={{ fontSize: 13, color: '#1976d2' }}>
+                Vous consultez les données spirituelles d'un jeûne archivé (lecture seule)
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header avec bouton retour */}
       <header className={styles.header}>
         <button 
@@ -151,7 +197,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-meditation"
             className={styles.panel}
           >
-            <OngletMeditation jourJeune={jourJeune} />
+            <OngletMeditation jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} />
           </div>
         )}
 
@@ -162,7 +208,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-versets"
             className={styles.panel}
           >
-            <OngletVersets jourJeune={jourJeune} />
+            <OngletVersets jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} />
           </div>
         )}
 
@@ -173,7 +219,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-questions"
             className={styles.panel}
           >
-            <OngletQuestions jourJeune={jourJeune} />
+            <OngletQuestions jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} />
           </div>
         )}
 
@@ -184,7 +230,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-intentions"
             className={styles.panel}
           >
-            <OngletIntentions jourJeune={jourJeune} />
+            <OngletIntentions jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} />
           </div>
         )}
 
@@ -195,7 +241,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-audios"
             className={styles.panel}
           >
-            <OngletAudios jourJeune={jourJeune} />
+            <OngletAudios jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} />
           </div>
         )}
 
@@ -206,7 +252,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-ecriture"
             className={styles.panel}
           >
-            <OngletEcriture jourJeune={jourJeune} />
+            <OngletEcriture jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} />
           </div>
         )}
       </main>
