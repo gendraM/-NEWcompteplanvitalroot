@@ -82,7 +82,7 @@ Ce document vise à :
 ## 5. 🔄 Workflow utilisateur & scénarios
 
 ### 5.1. Cycle complet
-Préparation (30j) → Jeûne → Reprise (2×jeûne) → Cristallisation (45j) → Portes → Routine ( voir fichier source pour avoir le workflow complet du jeune est completer a faire par Copilor qui reprend ce travail ( a valider avec utilisateur avant maj)
+Préparation (30j) → Jeûne (variable) → Reprise (2×jeûne) → Cristallisation (45j) → Portes → Routine
 
 ### 5.2. Scénario cristallisation
 1. L’utilisateur termine la reprise alimentaire (bilan calculé automatiquement)
@@ -246,6 +246,24 @@ Correction de la structure JSX dans cristallisation-quotidien.js (voir patch fou
 Vérification de l’affichage des défis personnalisés et badges
 Continuer l’intégration des suggestions intelligentes et de la gestion des badges
 
+ 🧭 Conseils pour la reprise du projet (à enrichir)
+ 7.2 
+ 📋 TODOs & missions différées (à enrichir)
+À ajouter :
+
+Contexte différé :
+“La gestion avancée de la reprise (profils à risque, exceptions, migration des données) a été explicitement différée pour garantir la stabilité de la cristallisation.”
+Procédure pour mission différée :
+Rédiger un plan d’implémentation dédié
+Faire valider par l’utilisateur
+Impliquer les parties prenantes métier
+Tester en TEST avant tout déploiement PROD
+À ajouter :
+
+Philosophie :
+“Aucune suppression massive, aucune modification sans plan validé, rollback immédiat en cas d’anomalie, documentation en temps réel.”
+Checklist de validation :
+Lire [docs/Template.md], [docs/Anomalie roll back], [docs/TODO_CRISTALLISATION_PRIORITE.md] avant toute action.
 8.  TODO & Missions différées (à ne pas oublier)(voir [docs/TODO_CRISTALLISATION_PRIORITE.md]) :
 Finaliser l’affichage dynamique des défis personnalisés (cristallisation)
 Vérifier la robustesse SSR/CSR (hydration, isClient, etc.)
@@ -308,7 +326,14 @@ Ce contexte doit être relu et compris avant toute reprise de la mission “repr
 Aucune modification de la logique de reprise ne doit être faite sans plan validé, audit métier, et documentation complète.
 
 
-9. Rappel des échanges et décisions importantes
+9. 🔗 Références internes & fichiers clés (à enrichir)
+À ajouter :
+
+Description de chaque fichier :
+[docs/COMMUNICATION_CRISTALLISATION_PLAN_LISTE_COURSES.md] : Détail du flux de données, schémas, exemples de payloads.
+[docs/Anomalie roll back] : Historique des bugs, correctifs, et procédures de rollback.
+[docs/Template.md] : Modèle de plan d’implémentation à remplir avant toute tâche.
+ Rappel des échanges et décisions importantes
 Séparation stricte entre défis cristallisation et défis généraux : jamais de mélange dans l’UI ou la logique.
 Gestion différée de la reprise spécifique :
 Les règles métiers complexes (ex : profils à risque, exceptions, etc.) sont à traiter dans une mission dédiée après la stabilisation de la cristallisation.
@@ -316,3 +341,13 @@ Un plan d’implémentation spécifique sera à rédiger pour cette phase.
 Respect absolu du template :
 Toute action doit être documentée, validée, et traçable.
 Aucune suppression massive, aucune modification sans validation.
+Description de chaque fichier :
+[docs/COMMUNICATION_CRISTALLISATION_PLAN_LISTE_COURSES.md] : Détail du flux de données, schémas, exemples de payloads.
+[docs/Anomalie roll back] : Historique des bugs, correctifs, et procédures de rollback.
+[docs/Template.md] : Modèle de plan d’implémentation à remplir avant toute tâche.
+
+
+10. 🏁 Résumé exécutif (à enrichir)
+À ajouter :
+
+“Ce document doit être considéré comme vivant : toute modification, bug, ou décision doit y être reportée pour garantir la continuité et la productivité immédiate du projet.”
