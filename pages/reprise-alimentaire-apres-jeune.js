@@ -4,10 +4,12 @@ import Link from 'next/link';
 import NotificationsPhase1 from '../components/NotificationsPhase1';
 import NotificationsPhase2 from '../components/NotificationsPhase2';
 import NotificationsPhase3 from '../components/NotificationsPhase3';
+import NotificationsPhase5 from '../components/NotificationsPhase5';
 import RecettesPhase1Modal from '../components/RecettesPhase1Modal';
 import RecettesPhase2Modal from '../components/RecettesPhase2Modal';
 import RecettesPhase3Modal from '../components/RecettesPhase3Modal';
 import RecettesPhase4Modal from '../components/RecettesPhase4Modal';
+import RecettesPhase5Modal from '../components/RecettesPhase5Modal';
 
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
@@ -227,9 +229,13 @@ export default function RepriseAlimentaireApresJeune() {
   // 🆕 États pour fonctionnalités Phase 4
   const [modalRecettesPhase4, setModalRecettesPhase4] = useState({ isOpen: false, type: 'patatedouce' });
 
+  // 🆕 États pour fonctionnalités Phase 5
+  const [modalRecettesPhase5, setModalRecettesPhase5] = useState({ isOpen: false, type: 'poulet' });
+
   // Permettre un mode test/forçage via ?test=1 dans l'URL
   const [forceSuivi, setForceSuivi] = useState(false);
   const [repriseMode, setRepriseMode] = useState('normal'); // 'test' ou 'normal'
+
 
   useEffect(() => {
     if (router && router.query && router.query.test === '1') {
@@ -1739,6 +1745,36 @@ export default function RepriseAlimentaireApresJeune() {
                               🥘 Recette Phase 4
                             </button>
                           )}
+                          {/* 🆕 Bouton recettes pour aliments Phase 5 — UNIQUEMENT 4 essentiels */}
+                          {modalAliments === 5 && (a.nom.includes('Poulet blanc') || a.nom.includes('Poisson blanc') || a.nom.includes('Riz complet') || a.nom.includes('Patate douce')) && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setModalAliments(null);
+                                let recetteType = 'poulet'; // Défaut valide
+                                if (a.nom.includes('Poisson blanc')) recetteType = 'poisson';
+                                else if (a.nom.includes('Riz complet')) recetteType = 'rizcomplet';
+                                else if (a.nom.includes('Patate douce')) recetteType = 'patatadouce';
+                                setModalRecettesPhase5({ 
+                                  isOpen: true, 
+                                  type: recetteType
+                                });
+                              }}
+                              style={{
+                                background: 'linear-gradient(135deg, #10B981, #34D399)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '4px 8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                marginLeft: '8px'
+                              }}
+                            >
+                              🥘 Recette Phase 5
+                            </button>
+                          )}
                         </li>
                       ))}
                       {/* Bouton notifications Phase 1 */}
@@ -1879,6 +1915,13 @@ export default function RepriseAlimentaireApresJeune() {
           onRecettesClick={(type) => setModalRecettesPhase3({ isOpen: true, type })}
         />
 
+        {/* 🆕 🔔 Notifications Phase 5 — Alimentation contrôlée */}
+        {modalAliments === 5 && (
+          <NotificationsPhase5 
+            jourNum={selectedJourIdx + 1}
+            onRecettesClick={(type) => setModalRecettesPhase5({ isOpen: true, type })}
+          />
+        )}
 
 
         <RecettesPhase1Modal 
@@ -1906,6 +1949,13 @@ export default function RepriseAlimentaireApresJeune() {
           isOpen={modalRecettesPhase4.isOpen}
           recetteType={modalRecettesPhase4.type}
           onClose={() => setModalRecettesPhase4({ isOpen: false, type: 'patatedouce' })}
+        />
+
+        {/* 🆕 🥘 Modal recettes détaillées Phase 5 */}
+        <RecettesPhase5Modal 
+          isOpen={modalRecettesPhase5.isOpen}
+          recetteType={modalRecettesPhase5.type}
+          onClose={() => setModalRecettesPhase5({ isOpen: false, type: 'poulet' })}
         />
       </main>
       

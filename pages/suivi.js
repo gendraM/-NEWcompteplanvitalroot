@@ -420,6 +420,7 @@ export default function Suivi() {
   // NOUVEAU : VALIDATION AUTOMATIQUE DES CRITÈRES (26/12/2025)
   // ═══════════════════════════════════════════════════════════
   const [statutsValidationAuto, setStatutsValidationAuto] = useState({});
+  const [repasSemaine, setRepasSemaine] = useState([]);
   
   // Analyse automatique après chaque saisie de repas
   useEffect(() => {
@@ -613,8 +614,6 @@ export default function Suivi() {
   const [showNotesHistory, setShowNotesHistory] = useState(false);
   // Plan de repas du jour (repas planifiés)
   const [repasPlan, setRepasPlan] = useState({});
-  // Hook pour l'affichage de l'alerte calorique
-  const [repasSemaine, setRepasSemaine] = useState([]);
 
   // Chargement automatique des repas et du plan depuis Supabase
   useEffect(() => {
