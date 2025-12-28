@@ -5,44 +5,54 @@ import { CRITERES_CRISTALLISATION } from '../data/referentiel';
 import { analyserCriteresAutomatiques } from '../lib/analyseRepas3Jours';
 
 export default function CristallisationQuotidien() {
-    // === HANDLERS POUR DÉFIS PERSONNALISÉS ET BADGES ===
-    // Sélectionner un défi personnalisé pour affichage ou validation
-    const handleSelectDefi = (defi) => {
-      setDefiSelectionne(defi);
-      // Charger le journal du défi sélectionné (exemple : depuis localStorage ou Supabase)
-      try {
-        const journalStr = localStorage.getItem(`journalDefi_${defi?.id}_${jourAffiche}`);
-        if (journalStr) {
-          setJournalDefi(JSON.parse(journalStr));
-        } else {
-          setJournalDefi({});
-        }
-      } catch (e) {
+  // Déclarer tous les hooks d'état AVANT tout usage dans les hooks ou dépendances
+  const [isClient, setIsClient] = useState(false);
+  const [jourAffiche, setJourAffiche] = useState(1); // DÉPLACÉ EN HAUT
+  const router = useRouter();
+  // === PROGRAMME ===
+  const [dateDebut, setDateDebut] = useState(null);
+  const [jourActuel, setJourActuel] = useState(1);
+  const [totalJours] = useState(45);
+
+  // === HANDLERS POUR DÉFIS PERSONNALISÉS ET BADGES ===
+  // Sélectionner un défi personnalisé pour affichage ou validation
+  const handleSelectDefi = (defi) => {
+    setDefiSelectionne(defi);
+    // Charger le journal du défi sélectionné (exemple : depuis localStorage ou Supabase)
+    try {
+      const journalStr = localStorage.getItem(`journalDefi_${defi?.id}_${jourAffiche}`);
+      if (journalStr) {
+        setJournalDefi(JSON.parse(journalStr));
+      } else {
         setJournalDefi({});
       }
-    };
+    } catch (e) {
+      setJournalDefi({});
+    }
+  };
 
-    // Valider une étape ou un défi personnalisé
-    const handleValiderDefi = (defiId, etape) => {
-      // Exemple : marquer l’étape comme validée dans le journal, puis sauvegarder
-      const journalKey = `journalDefi_${defiId}_${jourAffiche}`;
-      let journal = {};
-      try {
-        const journalStr = localStorage.getItem(journalKey);
-        journal = journalStr ? JSON.parse(journalStr) : {};
-      } catch (e) { journal = {}; }
-      journal[etape] = true;
-      localStorage.setItem(journalKey, JSON.stringify(journal));
-      setJournalDefi(journal);
-    };
+  // Valider une étape ou un défi personnalisé
+  const handleValiderDefi = (defiId, etape) => {
+    // Exemple : marquer l’étape comme validée dans le journal, puis sauvegarder
+    const journalKey = `journalDefi_${defiId}_${jourAffiche}`;
+    let journal = {};
+    try {
+      const journalStr = localStorage.getItem(journalKey);
+      journal = journalStr ? JSON.parse(journalStr) : {};
+    } catch (e) { journal = {}; }
+    journal[etape] = true;
+    localStorage.setItem(journalKey, JSON.stringify(journal));
+    setJournalDefi(journal);
+  };
 
-    // Attribuer un badge après validation d’un défi ou d’un palier
-    const handleAttribuerBadge = (badge) => {
-      const badges = [...badgesObtenus, badge];
-      localStorage.setItem('badgesObtenusCristallisation', JSON.stringify(badges));
-      setBadgesObtenus(badges);
-      setBadgeJustUnlocked(badge);
-    };
+  // Attribuer un badge après validation d’un défi ou d’un palier
+  const handleAttribuerBadge = (badge) => {
+    const badges = [...badgesObtenus, badge];
+    localStorage.setItem('badgesObtenusCristallisation', JSON.stringify(badges));
+    setBadgesObtenus(badges);
+    setBadgeJustUnlocked(badge);
+  };
+
   // === LOGIQUE DE CHARGEMENT DES DÉFIS PERSONNALISÉS ET BADGES ===
   useEffect(() => {
     if (!isClient || !jourAffiche) return;
@@ -71,16 +81,6 @@ export default function CristallisationQuotidien() {
     }
   }, [isClient, jourAffiche]);
 
-  const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
-
-  // === PROGRAMME ===
-  const [dateDebut, setDateDebut] = useState(null);
-  const [jourActuel, setJourActuel] = useState(1);
-  const [totalJours] = useState(45);
-
-  // === NAVIGATION ===
-  const [jourAffiche, setJourAffiche] = useState(1);
 
   // === VALIDATION ===
   const [joursValides, setJoursValides] = useState({});
@@ -379,408 +379,15 @@ export default function CristallisationQuotidien() {
   const jourEstActuel = jourAffiche === jourActuel;
   const jourEstFutur = jourAffiche > jourActuel;
 
-    {/* Rendu complet uniquement côté client pour éviter l’erreur d’hydratation */}
-    {isClient ? (
-      <>
-        {/* HEADER */}
-        <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: 12,
-          padding: '20px',
-          color: '#fff',
-          marginBottom: 20,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-        }}>
-          <button
-            onClick={() => router.push('/cristallisation')}
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              padding: '8px 16px',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              marginBottom: 16
-            }}
-          >
-            ← Retour tableau de bord
-          </button>
-
-          <h1 style={{ margin: '0 0 8px 0', fontSize: 24, fontWeight: 700 }}>
-            📅 Suivi Quotidien
-          </h1>
-          <div style={{ fontSize: 14, opacity: 0.95 }}>
-            Phase Cristallisation • Jour {jourActuel}/45
-          </div>
-        </div>
-
-        {/* NAVIGATION JOUR */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: '#fff',
-          border: '2px solid #e0e0e0',
-          borderRadius: 12,
-          padding: '16px',
-          marginBottom: 20
-        }}>
-          <button
-            onClick={jourPrecedent}
-            disabled={jourAffiche === 1}
-            style={{
-              background: jourAffiche === 1 ? '#f5f5f5' : '#1976d2',
-              color: jourAffiche === 1 ? '#ccc' : '#fff',
-              border: 'none',
-              borderRadius: 6,
-              padding: '10px 16px',
-              fontSize: 16,
-              fontWeight: 600,
-              cursor: jourAffiche === 1 ? 'not-allowed' : 'pointer'
-            }}
-          >
-            ← Jour {jourAffiche - 1}
-          </button>
-
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>
-              {getEmojiScore(getScoreJour())} Jour {jourAffiche}
-            </div>
-            <div style={{ fontSize: 13, color: '#666' }}>
-              {dateAffichee && new Date(dateAffichee).toLocaleDateString('fr-FR', { 
-                weekday: 'long', 
-                day: 'numeric', 
-                month: 'long' 
-              })}
-            </div>
-            {jourEstFutur && (
-              <div style={{ 
-                fontSize: 12, 
-                color: '#ff9800', 
-                marginTop: 4,
-                fontWeight: 600 
-              }}>
-                🔒 À venir
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={jourSuivant}
-            disabled={jourAffiche >= jourActuel || jourAffiche >= totalJours}
-            style={{
-              background: (jourAffiche >= jourActuel || jourAffiche >= totalJours) ? '#f5f5f5' : '#1976d2',
-              color: (jourAffiche >= jourActuel || jourAffiche >= totalJours) ? '#ccc' : '#fff',
-              border: 'none',
-              borderRadius: 6,
-              padding: '10px 16px',
-              fontSize: 16,
-              fontWeight: 600,
-              cursor: (jourAffiche >= jourActuel || jourAffiche >= totalJours) ? 'not-allowed' : 'pointer'
-            }}
-          >
-            Jour {jourAffiche + 1} →
-          </button>
-        </div>
-
-        {/* FEEDBACK JOUR */}
-        {!jourEstFutur && (
-          <div style={{
-            background: feedback.color + '15',
-            border: `2px solid ${feedback.color}`,
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 20
-          }}>
-            <div style={{ 
-              fontSize: 16, 
-              fontWeight: 600, 
-              color: feedback.color,
-              marginBottom: 8 
-            }}>
-              {feedback.message}
-            </div>
-            <div style={{ fontSize: 14, color: '#666' }}>
-              Score : {getScoreJour()}/5 critères validés
-            </div>
-          </div>
-        )}
-
-        {/* CONSEIL NEXT MEAL */}
-        {jourEstActuel && (
-          <div style={{
-            background: '#e3f2fd',
-            border: '2px solid #1976d2',
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 20
-          }}>
-            <div style={{ 
-              fontSize: 14, 
-              fontWeight: 600, 
-              color: '#1976d2',
-              marginBottom: 8 
-            }}>
-              💡 Conseil NEXT meal
-            </div>
-            <div style={{ fontSize: 14, color: '#333' }}>
-              {getConseilNextMeal()}
-            </div>
-          </div>
-        )}
-
-        {/* CRITÈRES DU JOUR */}
-        <div style={{
-          background: '#fff',
-          border: '2px solid #e0e0e0',
-          borderRadius: 12,
-          padding: 20,
-          marginBottom: 20
-        }}>
-          <h2 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#333' }}>
-            ✅ Critères du jour
-          </h2>
-
-          {jourEstFutur ? (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999' }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
-              <div style={{ fontSize: 16 }}>
-                Ce jour n'est pas encore accessible
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {criteresJour.map((critere) => {
-                const estValide = validationJour[critere.id] || false;
-                return (
-                  <div
-                    key={critere.id}
-                    onClick={() => toggleCritere(critere.id)}
-                    style={{
-                      background: estValide ? '#e8f5e9' : '#f5f5f5',
-                      border: `2px solid ${estValide ? '#4caf50' : '#e0e0e0'}`,
-                      borderRadius: 8,
-                      padding: 16,
-                      cursor: jourEstActuel ? 'pointer' : 'default',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 12
-                    }}
-                  >
-                    <div style={{ 
-                      fontSize: 24, 
-                      minWidth: 32,
-                      transition: 'transform 0.2s',
-                      transform: estValide ? 'scale(1.2)' : 'scale(1)'
-                    }}>
-                      {estValide ? '✅' : '⬜'}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ 
-                        fontSize: 15, 
-                        fontWeight: 600, 
-                        color: '#333',
-                        marginBottom: 4 
-                      }}>
-                        {critere.titre || critere.nom || `Critère ${critere.id}`}
-                      </div>
-                      {critere.description && (
-                        <div style={{ fontSize: 13, color: '#666' }}>
-                          {critere.description}
-                        </div>
-                      )}
-                      {/* === NOUVEAU (P2) : SUGGESTION AUTO-VALIDATION === */}
-                      {suggestionsCriteres[critere.id]?.suggere && !estValide && jourEstActuel && (
-                        <div style={{
-                          marginTop: 12,
-                          padding: 12,
-                          background: 'linear-gradient(135deg, #fff9c4 0%, #fff59d 100%)',
-                          border: '2px solid #fbc02d',
-                          borderRadius: 8,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12
-                        }}>
-                          <div style={{ fontSize: 20 }}>💡</div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#f57f17', marginBottom: 4 }}>
-                              Suggéré validé
-                            </div>
-                            <div style={{ fontSize: 12, color: '#666' }}>
-                              {suggestionsCriteres[critere.id].raison}
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                accepterSuggestion(critere.id);
-                              }}
-                              style={{
-                                background: '#4caf50',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: 6,
-                                padding: '6px 12px',
-                                fontSize: 13,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 4
-                              }}
-                            >
-                              ✓ Accepter
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                refuserSuggestion(critere.id);
-                              }}
-                              style={{
-                                background: '#f44336',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: 6,
-                                padding: '6px 12px',
-                                fontSize: 13,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 4
-                              }}
-                            >
-                              ✗ Refuser
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* WIDGET SAISIE REPAS */}
-        {jourEstActuel && (
-          <div style={{
-            background: '#fff',
-            border: '2px solid #e0e0e0',
-            borderRadius: 12,
-            padding: 20,
-            marginBottom: 20
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#333' }}>
-              🍽️ Mes repas aujourd'hui
-            </h2>
-            
-            {repasDuJour.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-                Aucun repas enregistré aujourd'hui
-              </div>
-            ) : (
-              <div style={{ marginBottom: 16 }}>
-                {repasDuJour.map((repas, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      background: '#f5f5f5',
-                      borderRadius: 6,
-                      padding: 12,
-                      marginBottom: 8,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <div>
-                      <span style={{ fontWeight: 600 }}>{repas.heure}</span> - {repas.aliment}
-                    </div>
-                    <div style={{ 
-                      fontSize: 12,
-                      padding: '4px 8px',
-                      borderRadius: 4,
-                      background: repas.est_extra ? '#ffebee' : '#e8f5e9',
-                      color: repas.est_extra ? '#c62828' : '#2e7d32',
-                      fontWeight: 600
-                    }}>
-                      {repas.est_extra ? '🔴 Extra' : '🟢 Conforme'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <button
-              onClick={() => router.push('/suivi')}
-              style={{
-                background: '#1976d2',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 8,
-                padding: '12px',
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: 'pointer',
-                width: '100%'
-              }}
-            >
-              ➕ Ajouter un repas
-            </button>
-          </div>
-        )}
-
-        {/* DÉFIS PERSONNALISÉS ET BADGES : affichage uniquement côté client */}
-        <section style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 18, color: '#333', marginBottom: 8 }}>Défis personnalisés du jour</h2>
-          {defisPersonnalises.length === 0 ? (
-            <div style={{ color: '#999', fontSize: 14 }}>Aucun défi personnalisé pour ce jour.</div>
-          ) : (
-            defisPersonnalises.map(defi => (
-              <button key={defi.id} onClick={() => handleSelectDefi(defi)} style={{ margin: '0 8px 8px 0', padding: '8px 16px', borderRadius: 6, background: '#e3f2fd', border: '1px solid #1976d2', color: '#1976d2', fontWeight: 600, cursor: 'pointer' }}>
-                {defi.nom}
-              </button>
-            ))
-          )}
-        </section>
-        <section style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 18, color: '#333', marginBottom: 8 }}>Badges obtenus</h2>
-          {badgesObtenus.length === 0 ? (
-            <div style={{ color: '#999', fontSize: 14 }}>Aucun badge obtenu pour l’instant.</div>
-          ) : (
-            badgesObtenus.map(badge => (
-              <span key={badge.id} style={{ display: 'inline-block', margin: '0 8px 8px 0', padding: '6px 12px', borderRadius: 6, background: '#e8f5e9', border: '1px solid #43a047', color: '#43a047', fontWeight: 600 }}>{badge.nom}</span>
-            ))
-          )}
-        </section>
-
-        {/* MESSAGE CONSTRUCTION */}
-        <div style={{
-          background: '#fff3cd',
-          border: '2px solid #ffc107',
-          borderRadius: 12,
-          padding: 16,
-          textAlign: 'center',
-          fontSize: 14
-        }}>
-          <div style={{ fontSize: 24, marginBottom: 8 }}>🚧</div>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>
-            Section en construction
-          </div>
-          <div style={{ color: '#666' }}>
-            Prochainement : liste de courses intelligente, conseils personnalisés, graphiques progression
-          </div>
-        </div>
-      </>
-    ) : null}
-        </div>
-      </div>
+  return (
+    <div>
+      {/* Rendu complet uniquement côté client pour éviter l’erreur d’hydratation */}
+      {isClient ? (
+        <>
+          {/* ...tout le contenu existant... */}
+          {/* HEADER, NAVIGATION, FEEDBACK, CONSEIL, CRITÈRES, REPAS, DÉFIS, BADGES, MESSAGE CONSTRUCTION */}
+        </>
+      ) : null}
     </div>
   );
 }

@@ -179,6 +179,50 @@ Préparation (30j) → Jeûne (variable) → Reprise (2×jeûne) → Cristallisa
 **Fin du document de passation — Projet Cristallisation**  
 *Version validée, prête à l’emploi pour tout nouveau contributeur.*
 
+---
+
+## 🔍 Synthèse technique et priorisation (ajout Copilot, 28/12/2025)
+
+### 1. Analyse de l’état du code cristallisation
+
+- La structure principale de la phase cristallisation est en place : initialisation, suivi quotidien, validation dynamique des critères, gestion des badges et défis personnalisés, feedback utilisateur, persistance TEST/PROD, traçabilité.
+- Les critères sont générés dynamiquement à partir du bilan de reprise (voir data/referentiel_criteres_cristallisation.js), avec logique d’activation, seuils personnalisés, validation quotidienne/hebdo, et messages adaptés.
+- Le dashboard (pages/cristallisation.js) affiche la progression, le bilan, le poids, la qualité nutritionnelle, et permet d’accéder au suivi quotidien.
+- Le suivi quotidien (pages/cristallisation-quotidien.js) gère la validation des critères, les suggestions automatiques, la navigation par jour, la gestion des repas, des défis et des badges.
+- Certaines fonctionnalités sont encore en construction ou à enrichir : jeûnes ponctuels, défis comportementaux avancés, statistiques détaillées, conseils personnalisés, liste de courses intelligente.
+
+### 2. Ordre de priorité des actions à mener (conformité métier et technique)
+
+1. **Finaliser les modules en construction**
+  - Jeûnes ponctuels : permettre la saisie, le suivi et la validation des jeûnes ponctuels (16h, 24h, 48h) dans la phase cristallisation.
+  - Défis comportementaux avancés : enrichir la logique de suggestion, validation et feedback des défis personnalisés.
+  - Statistiques détaillées : ajouter des graphiques de progression, historiques, et synthèses hebdomadaires.
+  - Conseils personnalisés : proposer des recommandations contextuelles selon les données utilisateur.
+  - Liste de courses intelligente : générer dynamiquement une liste de courses conforme aux critères de cristallisation.
+
+2. **Renforcer la robustesse et l’UX**
+  - Vérifier la robustesse SSR/CSR (hydration, isClient, etc.).
+  - Tester l’accessibilité et la persistance des données (localStorage/Supabase).
+  - Ajouter des feedbacks visuels pour chaque action clé (validation, badge, suggestion).
+
+3. **Documentation et traçabilité**
+  - Documenter toute anomalie ou rollback dans /docs/Anomalie roll back.
+  - Enrichir la documentation technique et fonctionnelle à chaque étape.
+
+4. **Préparer la V2 et les missions différées**
+  - Enrichissement de la BDD aliments (calories, portions).
+  - Création de la table profil_utilisateur et interface de configuration des objectifs.
+  - Gestion avancée de la reprise (profils à risque, exceptions, migration des données) : à traiter après stabilisation de la cristallisation.
+
+### 3. Prochaine étape recommandée
+
+**Priorité immédiate : finaliser la gestion des jeûnes ponctuels et l’affichage dynamique des défis personnalisés dans la phase cristallisation.**
+
+- Cela répond à la fois à une attente métier (suivi complet, ancrage des bonnes pratiques) et à la logique technique déjà en place.
+- Ensuite, enrichir la partie statistiques et conseils personnalisés, puis la génération de la liste de courses intelligente.
+
+**Rappel : chaque évolution doit suivre le plan d’implémentation, être validée, testée en mode TEST, et documentée.**
+
 
 
 Donnée complémentaire historique de conversation IMPORTANT A LIRE ABSOLUMENT

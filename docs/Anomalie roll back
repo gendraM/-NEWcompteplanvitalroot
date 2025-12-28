@@ -253,6 +253,37 @@ DOCUMENTATION :
 
 ═══════════════════════════════════════════════════════════════════════════════
 ═══════════════════════════════════════════════════════════════════════════════
+🔴 ANOMALIE 28/12/2025 — REFERENCE ERROR isClient (cristallisation-quotidien.js)
+═══════════════════════════════════════════════════════════════════════════════
+Date/Heure : 28 décembre 2025, 19:00
+Fichier concerné : /pages/cristallisation-quotidien.js
+Sévérité : 🔴 CRITIQUE — Erreur bloquante au runtime
+
+SYMPTÔME :
+Runtime ReferenceError: Cannot access 'isClient' before initialization
+  at CristallisationQuotidien (pages/cristallisation-quotidien.js:72:7)
+
+CAUSE :
+Le hook useEffect utilise la variable d’état isClient dans son tableau de dépendances AVANT que celle-ci ne soit déclarée avec useState.
+
+Extrait fautif :
+```js
+useEffect(() => { ... }, [isClient, jourAffiche]);
+// ...
+const [isClient, setIsClient] = useState(false);
+```
+
+CORRECTION :
+- Déclarer tous les hooks d’état (useState) AVANT tout usage dans les hooks ou dépendances (useEffect, etc.).
+- Correction appliquée : déplacement de la déclaration de isClient en tout début de composant.
+
+LEÇON :
+- Toujours déclarer tous les hooks d’état AVANT toute logique ou hook qui les utilise, même dans les dépendances.
+- Les erreurs de ce type ne sont pas détectées par get_errors, mais provoquent un crash runtime Next.js/React.
+
+Action : Correction immédiate + documentation rollback.
+
+═══════════════════════════════════════════════════════════════════════════════
 🔒 SÉCURISATION 26/12/2025 18:20 — ISOLATION SUIVI PRÉPARATION vs SUIVI NORMAL
 ═══════════════════════════════════════════════════════════════════════════════
 Date/Heure : 26 décembre 2025, 18:20
@@ -272,6 +303,50 @@ onChangeChampsRepas={isMounted && (localStorage.getItem('preparationActive') ===
 
 RÉSULTAT : 100% d'isolation garantie, aucun impact sur suivi normal
 ═══════════════════════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════════════════════
+🟡 AUDIT 07/12/2025 — PAGE /pages/cristallisation-quotidien.js
+═══════════════════════════════════════════════════════════════════════════════
+Date/Heure : 7 décembre 2025, 20:00
+Fichier concerné : /pages/cristallisation-quotidien.js
+Sévérité : 🟡 MINEUR — Aucun blocage critique, mais points d’attention
+
+CONTEXTE :
+Audit complet du code pour détecter toute anomalie structurelle, logique ou d’intégration (hooks, JSX, SSR, localStorage, séparation phase, etc.)
+
+RÉSULTAT DE L’AUDIT :
+
+1. Ordre des hooks :
+  - Tous les hooks React sont déclarés avant toute logique ou retour JSX.
+  - ✅ Conforme, aucune anomalie d’ordre de hooks.
+
+2. Structure JSX :
+  - Retour principal bien encapsulé dans une <div>.
+  - Rendu conditionnel côté client (isClient) pour éviter l’hydratation Next.js.
+  - ✅ Conforme, aucune anomalie de structure JSX.
+
+3. Accès localStorage :
+  - Protégé par isClient, pas d’accès SSR.
+  - ✅ Conforme.
+
+4. Boucles infinies / dépendances de hooks :
+  - Pas de dépendance instable, pas de fonction inline dans les arrays de dépendances.
+  - ✅ Conforme.
+
+5. Séparation logique phase cristallisation :
+  - Aucun mélange avec d’autres phases, code strictement dédié à la cristallisation.
+  - ✅ Conforme.
+
+POINTS D’ATTENTION :
+  - Le rendu côté serveur affiche uniquement "Chargement..." (choix volontaire, mais à surveiller pour l’accessibilité).
+  - Le contenu principal est masqué tant que isClient ou chargement n’est pas vrai (risque de masquer des erreurs si ces flags sont mal gérés ailleurs).
+
+CONCLUSION :
+  - Aucun bug bloquant ou anomalie critique détecté dans /pages/cristallisation-quotidien.js.
+  - Code conforme aux bonnes pratiques React/Next.js pour ce contexte.
+  - À surveiller : gestion des flags isClient/chargement et accessibilité SSR.
+
+Action : Documentation de cet audit dans rollback avant toute correction future.
 
 ═══════════════════════════════════════════════════════════════════════════════
 � AMÉLIORATION 26/12/2025 18:15 — CALCUL jCOURANT INCOHÉRENT (date du jour)
