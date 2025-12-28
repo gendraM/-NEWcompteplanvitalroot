@@ -16,11 +16,6 @@ export default function HeaderPreparation() {
         marginRight: 'auto',
       }}
     >
-      <img
-        src="/images/sunrise.svg"
-        alt="Lever de soleil"
-        style={{ height: 56, marginBottom: 16 }}
-      />
       <h1
         style={{
           color: '#4F8FFF',

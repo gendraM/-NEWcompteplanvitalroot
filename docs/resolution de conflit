@@ -1,0 +1,280 @@
+GUIDE STAGIAIRE : RÉSOUDRE UN CONFLIT GIT PENDANT UN REBASE
+QUAND UTILISER CE GUIDE
+
+Tu vois ce message après avoir fait git pull ou git rebase :
+
+CONFLICT (content): Merge conflict in pages/suivi.js error: could not apply XXXXXXX
+
+ÉTAPE 1 : NE PANIQUE PAS
+
+Git te dit juste qu'il ne sait pas quelle version du code garder. C'est NORMAL et ça se résout facilement. Ton code n'est PAS cassé. Tout peut être annulé si besoin.
+
+ÉTAPE 2 : VÉRIFIER LA SITUATION
+
+Tape :
+
+git status
+
+Tu vas voir :
+
+interactive rebase in progress Unmerged paths: both modified: pages/suivi.js both modified: docs/Anomalie roll back
+
+Les fichiers listés sont ceux qui ont un conflit.
+
+ÉTAPE 3 : OUVRIR LE PREMIER FICHIER EN CONFLIT
+
+Ouvre le fichier mentionné (exemple : pages/suivi.js)
+
+Dans VS Code, clique sur le fichier dans l'explorateur.
+
+ÉTAPE 4 : TROUVER LES MARQUEURS DE CONFLIT
+
+Cherche ces lignes dans le fichier (Ctrl+F pour chercher <<<<<<<) :
+
+<<<<<<< HEAD const prix = 100; const taxe = 20;
+const prix = 100; const reduction = 10;
+
+nom-du-commit
+
+EXPLICATION :
+
+<<<<<<< HEAD = Début du conflit (version actuelle) ======= = Séparateur entre les deux versions
+
+Code
+ = Fin du conflit (version qui arrive)
+ÉTAPE 5 : DÉCIDER QUOI GARDER
+
+LIS les deux versions et choisis :
+
+CHOIX A : Garder seulement le HAUT (version HEAD)
+
+Supprime de ======= jusqu'à >>>>>>> Supprime aussi la ligne <<<<<<< HEAD
+
+Résultat :
+
+const prix = 100; const taxe = 20;
+
+CHOIX B : Garder seulement le BAS (version incoming)
+
+Supprime de <<<<<<< jusqu'à ======= Supprime aussi la ligne >>>>>>>
+
+Résultat :
+
+const prix = 100; const reduction = 10;
+
+CHOIX C : Garder LES DEUX (le plus fréquent)
+
+Supprime SEULEMENT les 3 lignes de marqueurs Garde tout le code
+
+Résultat :
+
+const prix = 100; const taxe = 20; const reduction = 10;
+
+RÈGLE SIMPLE :
+
+Si ce sont des AJOUTS différents → Garde les DEUX Si c'est la MÊME ligne modifiée → Choisis la meilleure version
+
+ÉTAPE 6 : NETTOYER LE FICHIER
+
+Vérifie qu'il ne reste AUCUN marqueur dans le fichier :
+
+Cherche (Ctrl+F) : <<<<<<< Cherche : ======= Cherche : >>>>>>>
+
+Si tu en trouves, recommence l'étape 5 pour ce conflit.
+
+ÉTAPE 7 : SAUVEGARDER LE FICHIER
+
+Appuie sur Ctrl+S (Windows/Linux) ou Cmd+S (Mac)
+
+ÉTAPE 8 : RÉPÉTER POUR TOUS LES FICHIERS EN CONFLIT
+
+Si git status montrait plusieurs fichiers :
+
+Répète les étapes 3 à 7 pour CHAQUE fichier en conflit.
+
+ÉTAPE 9 : MARQUER LES FICHIERS COMME RÉSOLUS
+
+Tape :
+
+git add pages/suivi.js
+
+Si tu as plusieurs fichiers, fais :
+
+git add pages/suivi.js git add "docs/Anomalie roll back" git add autre-fichier.js
+
+Ou pour tout ajouter d'un coup :
+
+git add .
+
+ÉTAPE 10 : CONTINUER LE REBASE
+
+Tape :
+
+git rebase --continue
+
+TROIS RÉSULTATS POSSIBLES :
+
+RÉSULTAT 1 : Succès
+
+Successfully rebased and updated refs/heads/main.
+
+Le rebase est terminé. Passe à l'étape 11.
+
+RÉSULTAT 2 : Nouveau conflit
+
+CONFLICT (content): Merge conflict in autre-fichier.js
+
+Recommence depuis l'étape 3 pour ce nouveau fichier.
+
+RÉSULTAT 3 : Éditeur de message de commit
+
+Un éditeur s'ouvre avec le message du commit.
+
+Appuie sur ESC Tape :wq Appuie sur ENTRÉE
+
+Le rebase continue.
+
+ÉTAPE 11 : VÉRIFIER QUE TOUT EST TERMINÉ
+
+Tape :
+
+git status
+
+Tu dois voir :
+
+On branch main nothing to commit, working tree clean
+
+Pas de message de rebase in progress.
+
+ÉTAPE 12 : ENVOYER LES CHANGEMENTS SUR GITHUB
+
+Tape :
+
+git push
+
+Si Git refuse et dit :
+
+Updates were rejected
+
+Tape :
+
+git push --force-with-lease
+
+ATTENTION : Utilise --force-with-lease SEULEMENT si tu travailles seule sur la branche.
+
+COMMANDES D'URGENCE
+
+SI TU ES PERDUE ET TU VEUX TOUT ANNULER
+
+Tape :
+
+git rebase --abort
+
+Résultat : Tu reviens à l'état AVANT le rebase. Rien n'est perdu.
+
+SI TU VEUX SAUTER UN COMMIT PROBLÉMATIQUE
+
+Tape :
+
+git rebase --skip
+
+ATTENTION : Le commit est abandonné, tu perds ces modifications.
+
+SI TU ES BLOQUÉE DANS L'ÉDITEUR VIM
+
+Appuie sur ESC Tape :q! Appuie sur ENTRÉE
+
+PRÉVENTION : CRÉER UNE SAUVEGARDE AVANT
+
+AVANT de faire un rebase ou un reset risqué :
+
+git checkout -b sauvegarde-avant-rebase
+
+Ça crée une copie de tout ton travail.
+
+Si ça tourne mal :
+
+git rebase --abort git checkout sauvegarde-avant-rebase
+
+Tu retrouves TOUT ton travail intact.
+
+Quand tout est OK, supprime la sauvegarde :
+
+git branch -D sauvegarde-avant-rebase
+
+CHECKLIST RAPIDE
+
+□ git status (voir les fichiers en conflit) □ Ouvrir chaque fichier en conflit □ Chercher <<<<<<< dans le fichier □ Décider : HAUT / BAS / LES DEUX □ Supprimer les marqueurs <<<<<<< ======= >>>>>>> □ Sauvegarder le fichier (Ctrl+S) □ Répéter pour tous les fichiers □ git add . (marquer comme résolu) □ git rebase --continue (continuer) □ Répéter si nouveau conflit □ git push quand c'est terminé
+
+RÈGLES D'OR
+
+Lis TOUJOURS les deux versions avant de choisir
+Supprime TOUS les marqueurs (<<<<<<<, =======, >>>>>>>)
+Sauvegarde TOUJOURS le fichier après modification
+NE JAMAIS faire git push PENDANT un rebase
+NE JAMAIS faire git checkout PENDANT un rebase avec conflit
+Si tu es perdue, fais git rebase --abort et demande de l'aide
+AIDE-MÉMOIRE COMMANDES
+
+Voir la situation : git status
+
+Annuler tout : git rebase --abort
+
+Continuer après résolution : git add . git rebase --continue
+
+Sortir de l'éditeur Vim : ESC puis : wq puis ENTRÉE
+
+Créer une sauvegarde : git checkout -b sauvegarde-avant-rebase
+
+Revenir à la sauvegarde : git checkout sauvegarde-avant-rebase
+
+EXEMPLE COMPLET
+
+SITUATION : Conflit dans pages/suivi.js
+
+Commande :
+
+git status
+
+Résultat :
+
+both modified: pages/suivi.js
+
+Action :
+
+Ouvre pages/suivi.js Cherche <<<<<<< Tu trouves :
+
+<<<<<<< HEAD const mode = 'test';
+const mode = 'production';
+
+abc123
+
+Décision : Garder 'production'
+
+Supprime de <<<<<<< jusqu'à ======= Supprime la ligne >>>>>>>
+
+Résultat final :
+
+const mode = 'production';
+
+Sauvegarde : Ctrl+S
+
+Commande :
+
+git add pages/suivi.js git rebase --continue
+
+Si ça affiche Successfully rebased :
+
+git push
+
+TERMINÉ
+
+SCHÉMA DÉCISIONNEL
+
+Conflit détecté ↓ Ouvrir le fichier ↓ Trouver <<<<<<< ↓ Lire les 2 versions ↓ Choisir : HAUT / BAS / LES DEUX ↓ Supprimer les marqueurs ↓ Sauvegarder (Ctrl+S) ↓ D'autres fichiers en conflit ? ↓ OUI → Recommencer ↓ NON → git add . ↓ git rebase --continue ↓ Nouveau conflit ? ↓ OUI → Recommencer ↓ NON → Successfully rebased ↓ git push
+
+TERMINÉ
+
+FIN DU GUIDE
+
+

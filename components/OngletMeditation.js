@@ -3,8 +3,8 @@ import { useMeditations } from '../lib/useJournalSpirituel';
 import TimerMeditation from './TimerMeditation';
 import styles from '../styles/OngletMeditation.module.css';
 
-export default function OngletMeditation({ jourJeune }) {
-  const { meditations: historique, chargement, modeSupabase, ajouter, supprimer } = useMeditations();
+export default function OngletMeditation({ jourJeune, modeArchive = false, idJeuneArchive = null }) {
+  const { meditations: historique, chargement, modeSupabase, ajouter, supprimer } = useMeditations(modeArchive, idJeuneArchive);
   const [dureeSelectionnee, setDureeSelectionnee] = useState(5);
   const [typeMeditation, setTypeMeditation] = useState('priere');
   const [meditationEnCours, setMeditationEnCours] = useState(false);
@@ -65,6 +65,10 @@ export default function OngletMeditation({ jourJeune }) {
 
   // Démarrer méditation
   const demarrerMeditation = () => {
+    if (modeArchive) {
+      alert('⚠️ Mode archive : vous ne pouvez pas démarrer de méditation');
+      return;
+    }
     if (modePersonnalise) {
       alert('⚠️ Veuillez valider votre durée personnalisée avant de commencer');
       return;
@@ -139,10 +143,30 @@ export default function OngletMeditation({ jourJeune }) {
     <div className={styles.ongletContainer}>
       <h2 className={styles.title}>
         🧘 Méditation & Prière
-        {modeSupabase ? <span style={{color: '#10b981', fontSize: '0.75em', marginLeft: '8px'}}>☁️ Sync</span> : <span style={{color: '#f59e0b', fontSize: '0.75em', marginLeft: '8px'}}>💾 Local</span>}
+        {modeArchive ? (
+          <span style={{color: '#64b5f6', fontSize: '0.75em', marginLeft: '8px'}}>📚 Archive</span>
+        ) : modeSupabase ? (
+          <span style={{color: '#10b981', fontSize: '0.75em', marginLeft: '8px'}}>☁️ Sync</span>
+        ) : (
+          <span style={{color: '#f59e0b', fontSize: '0.75em', marginLeft: '8px'}}>💾 Local</span>
+        )}
       </h2>
       
-      {!meditationEnCours ? (
+      {modeArchive && (
+        <div style={{
+          background: '#e3f2fd',
+          border: '1px solid #64b5f6',
+          borderRadius: 8,
+          padding: 12,
+          marginBottom: 16,
+          fontSize: 14,
+          color: '#1565c0'
+        }}>
+          📖 Vous consultez vos méditations archivées (lecture seule)
+        </div>
+      )}
+      
+      {!meditationEnCours && !modeArchive ? (
         <>
           {/* Configuration méditation */}
           <div className={styles.configSection}>

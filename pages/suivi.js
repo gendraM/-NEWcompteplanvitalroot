@@ -23,7 +23,7 @@ function RetourAccueil() {
 // ...existing code...
 // ----------- HANDLER POUR LA SAUVEGARDE D'UN REPAS -----------
 // La fonction handleSaveRepas est définie plus bas dans le composant principal, après l’import unique de Supabase.
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import BandeauDefiActif from '../components/BandeauDefiActif';
 import { supabase } from '../lib/supabaseClient';
 import { 
@@ -361,6 +361,8 @@ export default function Suivi() {
   // ----------- HOOKS PRINCIPAUX (ordre strict selon la checklist) -----------
   // Initialiser selectedDate AVANT tout usage dans un useEffect ou une variable calculée
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0,10));
+  // Hook pour l'affichage de l'alerte calorique (DOIT ÊTRE DÉCLARÉ AVANT SON UTILISATION dans useEffect)
+  const [repasSemaine, setRepasSemaine] = useState([]);
   // Récupérer la date du jeûne programmé (stockée en localStorage ou BDD)
   const [dateJeune, setDateJeune] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -422,39 +424,11 @@ export default function Suivi() {
   const [statutsValidationAuto, setStatutsValidationAuto] = useState({});
   const [repasSemaine, setRepasSemaine] = useState([]);
   
-  // Analyse automatique après chaque saisie de repas
+  // État client-only pour éviter hydration mismatch (mini-bandeau préparation)
+  const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
-    // Ne rien faire si pas en phase préparation
-    if (!critereActif || !dateJeune) return;
-    
-    // Identifier le critère actuel
-    const critereIdActuel = getCritereIdFromLabel(critereActif.label);
-    
-    // Analyser uniquement les critères auto-validables (1,2,7,8,9)
-    const criteresAuto = [1, 2, 7, 8, 9];
-    if (!criteresAuto.includes(critereIdActuel)) return;
-    
-    // Filtrer les repas des 7 derniers jours
-    const repas7j = repasSemaine.filter(r => {
-      const dateRepas = new Date(r.date);
-      const dateCourante = new Date(selectedDate);
-      const diff = Math.floor((dateCourante - dateRepas) / (1000*60*60*24));
-      return diff >= 0 && diff < 7;
-    });
-    
-    // Exécuter l'analyse automatique
-    const statuts = {};
-    const statutCritere = getStatutCritereAuto(critereIdActuel, repas7j);
-    statuts[critereIdActuel] = statutCritere;
-    
-    // Valider automatiquement si critère respecté
-    if (statutCritere.validé) {
-      validerCritereAuto(critereIdActuel);
-    }
-    
-    setStatutsValidationAuto(statuts);
-    
-  }, [repasSemaine, critereActif, dateJeune, selectedDate]);
+    setIsMounted(true);
+  }, []);
 
   // ═══════════════════════════════════════════════════════════
   // DÉTECTION PHASE REPRISE ALIMENTAIRE
@@ -466,10 +440,42 @@ export default function Suivi() {
   const [programmeReprise, setProgrammeReprise] = useState(null);
   const [alimentsAutorises, setAlimentsAutorises] = useState([]);
 
+  // ═══════════════════════════════════════════════════════════
+  // NOUVEAU : DÉTECTION PHASE CRISTALLISATION
+  // ═══════════════════════════════════════════════════════════
+  
+  const [cristallisationActive, setCristallisationActive] = useState(false);
+
+  // Détecter si cristallisation active
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Vérifier mode TEST ou PRODUCTION
+    const modeTest = localStorage.getItem('TEST_context') === 'cristallisation';
+    const cleProgr = modeTest ? 'TEST_programmeCristallisation' : 'programmeCristallisation';
+    const programmeStr = localStorage.getItem(cleProgr);
+    
+    if (programmeStr) {
+      console.log('[SUIVI] Cristallisation active détectée (mode:', modeTest ? 'TEST' : 'PRODUCTION', ')');
+      setCristallisationActive(true);
+    } else {
+      setCristallisationActive(false);
+    }
+  }, []);
+
   // Charger et détecter la reprise alimentaire active
   useEffect(() => {
     async function detecterReprise() {
       try {
+        // 🧪 MODE TEST CRISTALLISATION : Si actif, désactiver reprise
+        const modeTestCristallisation = localStorage.getItem('TEST_context') === 'cristallisation';
+        if (modeTestCristallisation) {
+          console.log('[SUIVI] Mode TEST cristallisation actif - Reprise désactivée');
+          setRepriseActive(false);
+          setPhaseReprise(null);
+          return; // Sortir immédiatement
+        }
+
         // 🧪 MODE TEST : Vérifier si test_modeRepriseActif est activé
         const modeTestActif = localStorage.getItem('test_modeRepriseActif') === 'true';
         console.log('[REPRISE] Mode test actif:', modeTestActif);
@@ -679,6 +685,44 @@ export default function Suivi() {
     }
     fetchRepasEtPlan();
   }, [selectedDate, repriseActive]); // 🆕 Ajout repriseActive pour recharger quand statut change
+
+  // ═══════════════════════════════════════════════════════════
+  // VALIDATION AUTOMATIQUE DES CRITÈRES - Analyse post-chargement repas
+  // ═══════════════════════════════════════════════════════════
+  // Analyse automatique après chaque saisie de repas
+  useEffect(() => {
+    // Ne rien faire si pas en phase préparation
+    if (!critereActif || !dateJeune) return;
+    
+    // Identifier le critère actuel
+    const critereIdActuel = getCritereIdFromLabel(critereActif.label);
+    
+    // Analyser uniquement les critères auto-validables (1,2,7,8,9)
+    const criteresAuto = [1, 2, 7, 8, 9];
+    if (!criteresAuto.includes(critereIdActuel)) return;
+    
+    // Filtrer les repas des 7 derniers jours
+    const repas7j = repasSemaine.filter(r => {
+      const dateRepas = new Date(r.date);
+      const dateCourante = new Date(selectedDate);
+      const diff = Math.floor((dateCourante - dateRepas) / (1000*60*60*24));
+      return diff >= 0 && diff < 7;
+    });
+    
+    // Exécuter l'analyse automatique
+    const statuts = {};
+    const statutCritere = getStatutCritereAuto(critereIdActuel, repas7j);
+    statuts[critereIdActuel] = statutCritere;
+    
+    // Valider automatiquement si critère respecté
+    if (statutCritere.validé) {
+      validerCritereAuto(critereIdActuel);
+    }
+    
+    setStatutsValidationAuto(statuts);
+    
+  }, [repasSemaine, critereActif, dateJeune, selectedDate]);
+
   // Calcul de l'historique hebdomadaire (client only pour éviter hydration error)
   const [weeklyHistory, setWeeklyHistory] = useState([]);
   useEffect(() => {
@@ -887,6 +931,64 @@ export default function Suivi() {
           background:'#1976d2', color:'#fff', border:'none', borderRadius:8, padding:'8px 22px', fontWeight:600, fontSize:16, cursor:'pointer'
         }}>🔄 Rafraîchir les statistiques</button>
       </div>
+
+      {/* Mini-bandeau Préparation en cours (synthétique avec coloration contextuelle) */}
+      {isMounted && (localStorage.getItem('preparationActive') === 'true') && (
+        (() => {
+          // Lire date jeûne depuis preparationData (source unique de vérité)
+          let dateJ0 = null;
+          try {
+            const prepDataStr = localStorage.getItem('preparationData');
+            if (prepDataStr) {
+              const prepData = JSON.parse(prepDataStr);
+              dateJ0 = prepData.startDate ? new Date(prepData.startDate) : null;
+            }
+          } catch(e) { console.warn('[Mini-bandeau] Lecture preparationData échouée:', e); }
+          
+          // Calculer phase active (J-30 à J-18 = Phase 1, J-17 à J-8 = Phase 2, J-7 à J-0 = Phase 3)
+          let phaseActive = null;
+          let nomPhase = 'Préparation du jeûne';
+          if (dateJ0) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const jCourant = -Math.floor((dateJ0 - today) / (1000*60*60*24));
+            if (jCourant >= -30 && jCourant <= -18) { phaseActive = 1; nomPhase = 'Phase 1 : Allègement'; }
+            else if (jCourant >= -17 && jCourant <= -8) { phaseActive = 2; nomPhase = 'Phase 2 : Végétalisation'; }
+            else if (jCourant >= -7 && jCourant <= 0) { phaseActive = 3; nomPhase = 'Phase 3 : Pré-jeûne'; }
+          }
+          
+          // Déterminer la période affichée (par défaut: phase active ou J-7 -> J-1)
+          const periodeStart = filtreFromTo?.from ? new Date(filtreFromTo.from) : (dateJ0 ? new Date(dateJ0.getTime() - 7*24*60*60*1000) : null);
+          const periodeEnd = filtreFromTo?.to ? new Date(filtreFromTo.to) : (dateJ0 ? new Date(dateJ0.getTime() - 1*24*60*60*1000) : null);
+          function fmt(d){ return d ? d.toLocaleDateString('fr-FR',{ weekday:'long', day:'2-digit', month:'2-digit', year:'2-digit' }) : 'n/a'; }
+          const type = selectedType; // Type de repas en cours
+          // Pastilles contextuelles avec état calculé en temps réel
+          const pastilles = [
+            { id:1, label:'1. Portions: repères visuels', visible:true, state:calculerEtatPastille(1, type, champsRepasEnCours) },
+            { id:2, label:'2. Dîner: sans féculents', visible:type === 'Dîner', state:calculerEtatPastille(2, type, champsRepasEnCours) },
+            { id:7, label:'7. Eau: ≥ 2L/jour', visible:true, state:calculerEtatPastille(7, type, champsRepasEnCours) },
+            { id:8, label:'8. Dernier repas < 19h', visible:type === 'Dîner', state:calculerEtatPastille(8, type, champsRepasEnCours) },
+            { id:9, label:'9. Repas ≤ 45 min', visible:true, state:calculerEtatPastille(9, type, champsRepasEnCours) },
+          ];
+          return (
+            <div style={{border:'1px solid #E3EAF2', borderRadius:12, padding:'10px 12px', background:'#fff', boxShadow:'0 1px 4px rgba(0,0,0,0.04)', marginBottom:16}}>
+              <div style={{fontWeight:700, color:'#0F172A', marginBottom:6}}>
+                {nomPhase} • Période: {fmt(periodeStart)} → {fmt(periodeEnd)}
+              </div>
+              <div style={{display:'flex', gap:8, flexWrap:'wrap', alignItems:'center'}}>
+                {pastilles.filter(p=>p.visible).map(p => (
+                  <span key={p.id} style={{
+                    background: p.state==='ok' ? '#DCFCE7' : p.state==='warn' ? '#FEF3C7' : '#F3F4F6',
+                    border: '1px solid #E5E7EB', color:'#0F172A', borderRadius:999, padding:'6px 10px', fontSize:12
+                  }}>{p.label}</span>
+                ))}
+                <a href={`/preparation-jeune#phase-active`} style={{marginLeft:'auto', background:'#4F8FFF', color:'#fff', textDecoration:'none', padding:'6px 10px', borderRadius:8, fontSize:12, fontWeight:700}}>En savoir plus</a>
+                <a href={`/suivi?from=${periodeStart ? periodeStart.toISOString().slice(0,10) : ''}&to=${periodeEnd ? periodeEnd.toISOString().slice(0,10) : ''}`} style={{ background:'#10B981', color:'#fff', textDecoration:'none', padding:'6px 10px', borderRadius:8, fontSize:12, fontWeight:700}}>Voir mes repas (semaine)</a>
+              </div>
+            </div>
+          );
+        })()
+      )}
 
       {/* ----------- INFOS CALORIQUES JOURNALIÈRES ----------- */}
       <div style={{
@@ -1316,6 +1418,7 @@ export default function Suivi() {
               onSave={handleSaveRepas}
               setSnackbar={setSnackbar}
               repasSemaine={repasSemaine}
+              onChangeChampsRepas={isMounted && (localStorage.getItem('preparationActive') === 'true') ? setChampsRepasEnCours : undefined}
             />
             {/* Bouton de validation de la semaine, affiché uniquement si showValidation est vrai */}
             {showValidation && (
@@ -1516,6 +1619,26 @@ export default function Suivi() {
               🏠 Retour au tableau de bord
             </button>
           </Link>
+
+          {/* NOUVEAU : BOUTON CRISTALLISATION (visible uniquement si phase active) */}
+          {cristallisationActive && (
+            <Link href="/cristallisation-quotidien">
+              <button style={{
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "10px 24px",
+                fontWeight: 600,
+                fontSize: 16,
+                cursor: "pointer",
+                marginTop: 16,
+                boxShadow: "0 4px 12px rgba(102,126,234,0.3)"
+              }}>
+                🏔️ Suivi Cristallisation
+              </button>
+            </Link>
+          )}
       </div>
     </div>
   );

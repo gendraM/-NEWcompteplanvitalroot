@@ -9,6 +9,7 @@ import MessageSoutien from "../components/MessageSoutien";
 import AnalyseComportementale from "../components/AnalyseComportementale";
 import PertePoidsEstimee from "../components/PertePoidsEstimee";
 import BilanJeune from "../components/BilanJeune";
+import HistoriqueJeunesModal from "../components/HistoriqueJeunesModal";
 
 // --- Données statiques pour chaque jour de jeûne (exemple jusqu'à 10 jours, à compléter si besoin) ---
 const JEUNE_DAYS_CONTENT = {
@@ -481,6 +482,7 @@ export default function Jeune() {
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [bilanJeune, setBilanJeune] = useState(null);
   const [showBilan, setShowBilan] = useState(false);
+  const [parcoursId, setParcoursId] = useState(null); // ID du parcours Supabase
 
   // Hooks pour données Supabase réelles
   const [repasRecentsSupabase, setRepasRecentsSupabase] = useState([]);
@@ -496,6 +498,12 @@ export default function Jeune() {
   const [messagePersoJour, setMessagePersoJour] = useState({});
   const [analyseComportementaleData, setAnalyseComportementaleData] = useState(null);
   const [pertePoidsEstimeeData, setPertePoidsEstimeeData] = useState(null);
+
+  // === HOOKS HISTORIQUE JEÛNES ===
+  const [historiqueJeunes, setHistoriqueJeunes] = useState([]);
+  const [jeunesSupprimés, setJeunesSupprimés] = useState([]);
+  const [jeuneConsulte, setJeuneConsulte] = useState(null);
+  const [showHistoriqueModal, setShowHistoriqueModal] = useState(false);
 
   // Charger repas depuis Supabase au montage
   useEffect(() => {
@@ -517,7 +525,7 @@ export default function Jeune() {
         
         if (parcours) {
           // Parcours existe en BDD, synchroniser avec localStorage
-          console.log('✅ Parcours jeûne récupéré:', parcours.id);
+          setParcoursId(parcours.id); // STOCKER L'ID
           setJoursValides(parcours.jours_valides || []);
           // Sync localStorage comme cache
           localStorage.setItem('joursValides', JSON.stringify(parcours.jours_valides || []));
@@ -543,6 +551,7 @@ export default function Jeune() {
                 }
               });
               console.log('✅ Nouveau parcours jeûne créé:', nouveauParcours.id);
+              setParcoursId(nouveauParcours.id); // STOCKER L'ID
             } catch (createError) {
               console.warn('Erreur création parcours, fallback localStorage:', createError);
             }
@@ -558,6 +567,34 @@ export default function Jeune() {
     
     initParcours();
   }, []);
+
+  // === CHARGEMENT HISTORIQUE JEÛNES AU MONTAGE ===
+  useEffect(() => {
+    if (!isClient) return;
+    
+    try {
+      // Charger historique
+      const historiqueStr = localStorage.getItem('historiqueJeunes');
+      if (historiqueStr) {
+        const historique = JSON.parse(historiqueStr);
+        setHistoriqueJeunes(Array.isArray(historique) ? historique : []);
+      }
+
+      // Charger corbeille
+      const corbeilleStr = localStorage.getItem('jeunesSupprimés');
+      if (corbeilleStr) {
+        const corbeille = JSON.parse(corbeilleStr);
+        setJeunesSupprimés(Array.isArray(corbeille) ? corbeille : []);
+      }
+
+      // Nettoyage automatique corbeille (>30 jours)
+      nettoyerCorbeilleAuto();
+      
+      // Note : Migration automatique jeûne terminé gérée dans useEffect principal (ligne ~712)
+    } catch (error) {
+      console.error('❌ Erreur chargement historique jeûnes:', error);
+    }
+  }, [isClient]);
 
   // === VARIABLES CALCULÉES ===
   const repasRecents = repasRecentsSupabase.length > 0 ? repasRecentsSupabase : repasFallback;
@@ -643,11 +680,27 @@ export default function Jeune() {
         const prepId = `${prepData.startDate}_${prepData.duration}`;
         
         // Si changement de préparation (date ou durée différente), reset
+        // MAIS seulement si le jeûne actuel n'est pas terminé (sinon on garde l'historique)
         if (dernierePrepStr !== prepId) {
-          console.log("🔄 Nouvelle préparation détectée, réinitialisation des jours validés");
-          joursValidesActuels = [];
+          const jeuneTermine = joursValidesActuels.length >= dureeFiable;
+          if (!jeuneTermine) {
+            console.log("🔄 Nouvelle préparation détectée, réinitialisation des jours validés");
+            joursValidesActuels = [];
+            localStorage.setItem("joursValides", JSON.stringify([]));
+          } else {
+            console.log("✅ Jeûne terminé conservé malgré nouvelle préparation détectée");
+            // Archiver IMMÉDIATEMENT le jeûne terminé (pas setTimeout)
+            try {
+              archiverJeuneActuel();
+              console.log("✅ Jeûne archivé automatiquement lors nouvelle préparation");
+              // Reset joursValides pour nouveau jeûne APRÈS archivage
+              joursValidesActuels = [];
+              localStorage.setItem("joursValides", JSON.stringify([]));
+            } catch (error) {
+              console.error('❌ Erreur archivage auto lors nouvelle prep:', error);
+            }
+          }
           localStorage.setItem("dernierePreparationId", prepId);
-          localStorage.setItem("joursValides", JSON.stringify([]));
         }
       }
     } catch (e) {
@@ -660,6 +713,27 @@ export default function Jeune() {
       console.log(`🧹 Nettoyage: ${joursValidesActuels.length - joursValidesNettoyes.length} jours invalides supprimés`);
       joursValidesActuels = joursValidesNettoyes;
       localStorage.setItem("joursValides", JSON.stringify(joursValidesNettoyes));
+    }
+    
+    // ARCHIVAGE SYSTEMATIQUE : Si jeûne terminé ET pas encore archivé, archiver maintenant
+    if (joursValidesActuels.length >= dureeFiable && joursValidesActuels.length > 0) {
+      try {
+        const dateDebutActuel = localStorage.getItem("dateDebutJeune");
+        if (dateDebutActuel) {
+          const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+          const jeuneId = `${dateDebutActuel}_${dureeFiable}j`;
+          const dejaArchive = historiqueActuel.some(j => j.id === jeuneId);
+          
+          if (!dejaArchive) {
+            console.log('📦 Jeûne terminé détecté au chargement → Archivage automatique');
+            archiverJeuneActuel();
+          } else {
+            console.log('ℹ️ Jeûne terminé déjà archivé, pas de duplication');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erreur vérification archivage:', error);
+      }
     }
     
     // P0.5: Ne plus appeler setJoursValides ici, laissé au useEffect P0.5 (Supabase priority)
@@ -944,7 +1018,13 @@ export default function Jeune() {
     return bilan;
   };
 
-  const validerJour = () => {
+  const validerJour = async () => {
+    // Mode archive : lecture seule
+    if (jeuneConsulte) {
+      alert('📖 Mode archive : ce jeûne est terminé et ne peut plus être modifié.');
+      return;
+    }
+
     // Vérifier que le jour affiché n'est pas dans le futur
     if (dateDebutJeune) {
       const aujourdhui = new Date();
@@ -969,6 +1049,22 @@ export default function Jeune() {
       const nv = [...joursValides, jourEnCours].sort((a, b) => a - b);
       setJoursValides(nv);
       
+      // ✅ SAUVEGARDER DANS SUPABASE
+      if (parcoursId) {
+        try {
+          await ParcoursAPI.updateJoursValides(parcoursId, nv);
+          console.log('✅ Jour', jourEnCours, 'sauvegardé dans Supabase');
+        } catch (error) {
+          console.error('❌ Erreur sauvegarde Supabase:', error);
+          alert('⚠️ Erreur de sauvegarde. Le jour est validé localement mais pas synchronisé.');
+        }
+      } else {
+        console.warn('⚠️ Pas de parcoursId, sauvegarde locale uniquement');
+      }
+      
+      // Sync localStorage comme backup
+      localStorage.setItem('joursValides', JSON.stringify(nv));
+      
       // Avancer automatiquement au jour suivant si possible
       if (jourEnCours < dureeJeune) {
         setJourEnCours(jourEnCours + 1);
@@ -977,6 +1073,10 @@ export default function Jeune() {
   };
 
   const ajouterOutil = () => {
+    if (jeuneConsulte) {
+      alert('⚠️ Mode archive : Vous ne pouvez pas modifier un jeûne archivé.');
+      return;
+    }
     if (!outilInput.trim()) return;
     setOutils({
       ...outils,
@@ -1059,6 +1159,226 @@ export default function Jeune() {
     localStorage.removeItem("programmeReprise");
   };
 
+  // === HANDLERS HISTORIQUE JEÛNES ===
+  
+  // Archiver le jeûne actuel dans l'historique
+  const archiverJeuneActuel = async () => {
+    try {
+      // CORRECTION : Lire depuis localStorage (pas états React qui peuvent être vides)
+      const joursValidesLS = JSON.parse(localStorage.getItem('joursValides') || '[]');
+      const dureeLS = parseInt(localStorage.getItem('dureeJeune') || '5');
+      const dateDebutLS = localStorage.getItem('dateDebutJeune');
+      const outilsLS = JSON.parse(localStorage.getItem('outilsJeune') || '{}');
+      const messagePersoLS = localStorage.getItem('messagePerso') || '';
+      const bilanLS = JSON.parse(localStorage.getItem('bilanJeune') || 'null');
+      const programmeRepriseLS = JSON.parse(localStorage.getItem('programmeRepriseValide') || localStorage.getItem('programmeReprise') || 'null');
+      
+      if (joursValidesLS.length === 0 || !dateDebutLS) {
+        console.log('⚠️ Aucun jeûne à archiver (0 jours validés ou pas de date)');
+        return;
+      }
+
+      const idJeune = `${dateDebutLS}_${dureeLS}j`;
+      const dateFinArchivage = new Date().toISOString().split('T')[0];
+
+      // 🆕 ARCHIVER DONNÉES SPIRITUELLES (méditations, audios, etc.)
+      const { archiverDonneesSpirituellesJeune } = await import('../lib/journalSpirituelArchive');
+      const donneesSpirituellesArchivees = await archiverDonneesSpirituellesJeune(
+        dateDebutLS,
+        dateFinArchivage,
+        idJeune
+      );
+
+      const jeuneArchive = {
+        id: idJeune,
+        dateDebut: dateDebutLS,
+        dateFin: dateFinArchivage,
+        duree: dureeLS,
+        joursValides: [...joursValidesLS],
+        outils: { ...outilsLS },
+        messagePerso: messagePersoLS,
+        bilan: bilanLS,
+        programmeReprise: programmeRepriseLS,
+        statut: 'termine',
+        dateArchivage: new Date().toISOString(),
+        // 🆕 Métadonnées données spirituelles
+        donneesSpirituellesCount: donneesSpirituellesArchivees ? 
+          Object.values(donneesSpirituellesArchivees).reduce((a, b) => a + b, 0) : 0
+      };
+
+      const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+      
+      // Vérifier si pas déjà archivé
+      const dejaArchive = historiqueActuel.some(j => j.id === jeuneArchive.id);
+      if (!dejaArchive) {
+        historiqueActuel.unshift(jeuneArchive); // Ajouter au début (plus récent en premier)
+        localStorage.setItem('historiqueJeunes', JSON.stringify(historiqueActuel));
+        setHistoriqueJeunes(historiqueActuel);
+        console.log('✅ Jeûne archivé avec succès:', jeuneArchive.id);
+        if (donneesSpirituellesArchivees) {
+          console.log('📿 Données spirituelles archivées:', donneesSpirituellesArchivees);
+        }
+      } else {
+        console.log('ℹ️ Jeûne déjà archivé:', jeuneArchive.id);
+      }
+    } catch (error) {
+      console.error('❌ Erreur archivage jeûne:', error);
+    }
+  };
+
+  // Charger un jeûne archivé pour consultation (mode read-only)
+  const chargerJeuneArchive = (jeuneId) => {
+    try {
+      const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+      const jeune = historiqueActuel.find(j => j.id === jeuneId);
+      
+      if (jeune) {
+        setJeuneConsulte(jeune);
+        // 🆕 Stocker dans localStorage pour que journal-spirituel.js puisse détecter
+        localStorage.setItem('jeuneConsulte', JSON.stringify(jeune));
+        setShowHistoriqueModal(false);
+        console.log('📖 Jeûne archivé chargé pour consultation:', jeuneId);
+      } else {
+        alert('❌ Jeûne introuvable dans l\'historique');
+      }
+    } catch (error) {
+      console.error('❌ Erreur chargement jeûne archivé:', error);
+      alert('❌ Erreur lors du chargement du jeûne archivé');
+    }
+  };
+
+  // Revenir au jeûne actif (quitter mode consultation archive)
+  const retourJeuneActif = () => {
+    setJeuneConsulte(null);
+    // 🆕 Nettoyer localStorage
+    localStorage.removeItem('jeuneConsulte');
+    console.log('🔄 Retour au jeûne actif');
+  };
+
+  // Ouvrir modal historique
+  const ouvrirModalHistorique = () => {
+    setShowHistoriqueModal(true);
+  };
+
+  // Fermer modal historique
+  const fermerModalHistorique = () => {
+    setShowHistoriqueModal(false);
+  };
+
+  // Supprimer un jeûne (soft delete → corbeille)
+  const supprimerJeune = (jeuneId) => {
+    try {
+      const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+      const jeuneIndex = historiqueActuel.findIndex(j => j.id === jeuneId);
+      
+      if (jeuneIndex === -1) {
+        alert('❌ Jeûne introuvable');
+        return;
+      }
+
+      const jeuneASupprimer = historiqueActuel[jeuneIndex];
+      jeuneASupprimer.dateSuppression = new Date().toISOString();
+      
+      // Retirer de l'historique
+      historiqueActuel.splice(jeuneIndex, 1);
+      localStorage.setItem('historiqueJeunes', JSON.stringify(historiqueActuel));
+      setHistoriqueJeunes(historiqueActuel);
+
+      // Ajouter à la corbeille
+      const corbeilleActuelle = JSON.parse(localStorage.getItem('jeunesSupprimés') || '[]');
+      corbeilleActuelle.unshift(jeuneASupprimer);
+      localStorage.setItem('jeunesSupprimés', JSON.stringify(corbeilleActuelle));
+      setJeunesSupprimés(corbeilleActuelle);
+
+      console.log('🗑️ Jeûne déplacé vers corbeille:', jeuneId);
+    } catch (error) {
+      console.error('❌ Erreur suppression jeûne:', error);
+      alert('❌ Erreur lors de la suppression');
+    }
+  };
+
+  // Restaurer un jeûne depuis la corbeille
+  const restaurerJeune = (jeuneId) => {
+    try {
+      const corbeilleActuelle = JSON.parse(localStorage.getItem('jeunesSupprimés') || '[]');
+      const jeuneIndex = corbeilleActuelle.findIndex(j => j.id === jeuneId);
+      
+      if (jeuneIndex === -1) {
+        alert('❌ Jeûne introuvable dans la corbeille');
+        return;
+      }
+
+      const jeuneARestaurer = { ...corbeilleActuelle[jeuneIndex] };
+      delete jeuneARestaurer.dateSuppression;
+
+      // Retirer de la corbeille
+      corbeilleActuelle.splice(jeuneIndex, 1);
+      localStorage.setItem('jeunesSupprimés', JSON.stringify(corbeilleActuelle));
+      setJeunesSupprimés(corbeilleActuelle);
+
+      // Remettre dans l'historique
+      const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+      historiqueActuel.unshift(jeuneARestaurer);
+      localStorage.setItem('historiqueJeunes', JSON.stringify(historiqueActuel));
+      setHistoriqueJeunes(historiqueActuel);
+
+      console.log('♻️ Jeûne restauré:', jeuneId);
+      alert('✅ Jeûne restauré avec succès !');
+    } catch (error) {
+      console.error('❌ Erreur restauration jeûne:', error);
+      alert('❌ Erreur lors de la restauration');
+    }
+  };
+
+  // Suppression définitive (hard delete)
+  const supprimerDefinitivement = async (jeuneId) => {
+    try {
+      const corbeilleActuelle = JSON.parse(localStorage.getItem('jeunesSupprimés') || '[]');
+      const nouvelleCorbeille = corbeilleActuelle.filter(j => j.id !== jeuneId);
+      
+      localStorage.setItem('jeunesSupprimés', JSON.stringify(nouvelleCorbeille));
+      setJeunesSupprimés(nouvelleCorbeille);
+
+      // 🆕 SUPPRIMER DONNÉES SPIRITUELLES ASSOCIÉES
+      const { supprimerDonneesSpirituellesArchivees } = await import('../lib/journalSpirituelArchive');
+      const resultat = supprimerDonneesSpirituellesArchivees(jeuneId);
+      
+      console.log('⚠️ Jeûne supprimé définitivement:', jeuneId);
+      if (resultat) {
+        console.log('📿 Données spirituelles supprimées');
+      }
+      alert('✅ Jeûne supprimé définitivement');
+    } catch (error) {
+      console.error('❌ Erreur suppression définitive:', error);
+      alert('❌ Erreur lors de la suppression définitive');
+    }
+  };
+
+  // Nettoyage automatique corbeille (>30 jours)
+  const nettoyerCorbeilleAuto = () => {
+    try {
+      const corbeilleActuelle = JSON.parse(localStorage.getItem('jeunesSupprimés') || '[]');
+      const maintenant = new Date();
+      const DUREE_CONSERVATION = 30 * 24 * 60 * 60 * 1000; // 30 jours en ms
+
+      const corbeilleNettoyee = corbeilleActuelle.filter(jeune => {
+        if (!jeune.dateSuppression) return true;
+        const dateSuppression = new Date(jeune.dateSuppression);
+        const ageMs = maintenant - dateSuppression;
+        return ageMs < DUREE_CONSERVATION;
+      });
+
+      if (corbeilleNettoyee.length < corbeilleActuelle.length) {
+        const nbSupprimes = corbeilleActuelle.length - corbeilleNettoyee.length;
+        localStorage.setItem('jeunesSupprimés', JSON.stringify(corbeilleNettoyee));
+        setJeunesSupprimés(corbeilleNettoyee);
+        console.log(`🧹 Nettoyage automatique: ${nbSupprimes} jeûne(s) supprimé(s) de la corbeille (>30 jours)`);
+      }
+    } catch (error) {
+      console.error('❌ Erreur nettoyage corbeille:', error);
+    }
+  };
+
   // === NOUVEAUX HANDLERS POUR LES 4 AJOUTS ===
 
   const toggleConseil = (conseilId) => {
@@ -1082,12 +1402,21 @@ export default function Jeune() {
 
   // === VARIABLES CALCULÉES DE RENDU (APRÈS TOUS LES HOOKS) ===
   
-  const isFini = joursValides.length >= dureeJeune;
+  // Mode archive : utiliser données du jeûne archivé, sinon jeûne actif
+  const joursValidesAffichage = jeuneConsulte ? jeuneConsulte.joursValides : joursValides;
+  const dureeAffichage = jeuneConsulte ? jeuneConsulte.duree : dureeJeune;
+  const dateDebutAffichage = jeuneConsulte ? jeuneConsulte.dateDebut : dateDebutJeune;
+  const outilsAffichage = jeuneConsulte ? jeuneConsulte.outils : outils;
+  const messagePersoAffichage = jeuneConsulte ? jeuneConsulte.messagePerso : messagePerso;
+  const bilanAffichage = jeuneConsulte ? jeuneConsulte.bilan : bilanJeune;
+  const programmeAffichage = jeuneConsulte ? jeuneConsulte.programmeReprise : (planRepriseValide || programmeReprise);
+  
+  const isFini = joursValidesAffichage.length >= dureeAffichage;
 
   // Générer le bilan automatiquement quand le jeûne est terminé
   useEffect(() => {
     const loadBilan = async () => {
-      if (isFini && !bilanJeune) {
+      if (isFini && !bilanJeune && !jeuneConsulte) { // Pas de génération en mode archive
         const bilan = await genererBilanJeune();
         setBilanJeune(bilan);
         setShowBilan(true); // Afficher automatiquement le bilan
@@ -1096,18 +1425,8 @@ export default function Jeune() {
     loadBilan();
   }, [isFini, joursValides.length]);
 
-
-  // Redirection automatique vers la page de reprise alimentaire après jeûne quand le jeûne est fini
-  useEffect(() => {
-    if (isFini && programmeReprise && !showBilan) {
-      // Sauvegarder le plan validé dans localStorage (clé dédiée)
-      localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeReprise));
-      // Rediriger automatiquement (URL conforme Next.js)
-      window.location.href = '/reprise-alimentaire-apres-jeune';
-    }
-  }, [isFini, programmeReprise, showBilan]);
   // Affiche la préparation à la reprise à partir de la moitié du jeûne ou du J4
-  const showReprise = !isFini && (jourEnCours >= Math.max(4, Math.ceil(dureeJeune / 2)));
+  const showReprise = !isFini && !jeuneConsulte && (jourEnCours >= Math.max(4, Math.ceil(dureeJeune / 2)));
 
   const contenuJour = JEUNE_DAYS_CONTENT[jourEnCours] || {
     titre: `Jour ${jourEnCours}`,
@@ -1129,7 +1448,84 @@ export default function Jeune() {
 
   return (
     <div style={{ maxWidth: 700, margin: "0 auto", padding: 24, fontFamily: "system-ui, Arial, sans-serif" }}>
-      <h1 style={{ textAlign: "center", marginBottom: 12 }}>🌙 Mon jeûne en cours</h1>
+      {/* Bandeau archive si consultation jeûne terminé */}
+      {jeuneConsulte && (
+        <div style={{
+          background: '#e3f2fd',
+          border: '2px solid #64b5f6',
+          borderRadius: 10,
+          padding: '16px 20px',
+          marginBottom: 20,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 2px 8px rgba(100, 181, 246, 0.3)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 28 }}>📖</span>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: '600', color: '#1565c0', marginBottom: 4 }}>
+                MODE ARCHIVE
+              </div>
+              <div style={{ fontSize: 14, color: '#1976d2' }}>
+                Consultation du jeûne du {new Date(jeuneConsulte.dateDebut).toLocaleDateString('fr-FR')} ({jeuneConsulte.duree} jours)
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={retourJeuneActif}
+            style={{
+              background: '#1976d2',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              padding: '10px 16px',
+              fontSize: 14,
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.background = '#1565c0'}
+            onMouseLeave={(e) => e.target.style.background = '#1976d2'}
+          >
+            ⬅️ Retour jeûne actif
+          </button>
+        </div>
+      )}
+
+      <h1 style={{ textAlign: "center", marginBottom: 12, position: 'relative' }}>
+        🌙 Mon jeûne en cours
+        
+        {/* Bouton "📚 Mes jeûnes" - top right */}
+        {!jeuneConsulte && (
+          <button
+            onClick={ouvrirModalHistorique}
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: '#1976d2',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              padding: '8px 14px',
+              fontSize: 13,
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'background 0.2s',
+              boxShadow: '0 2px 6px rgba(25, 118, 210, 0.3)'
+            }}
+            onMouseEnter={(e) => e.target.style.background = '#1565c0'}
+            onMouseLeave={(e) => e.target.style.background = '#1976d2'}
+          >
+            📚 Mes jeûnes
+          </button>
+        )}
+      </h1>
 
       {/* Bandeau informatif si jeûne long sans préparation */}
       {dureeJeune > 2 && !loadState("bilanPreparationJeune", null) && (
@@ -1478,11 +1874,11 @@ export default function Jeune() {
             </button>
           ))}
         </div>
-        {outils[jourEnCours]?.length > 0 && (
+        {outilsAffichage[jourEnCours]?.length > 0 && (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontWeight: 500, marginBottom: 4 }}>Outils utilisés aujourd’hui :</div>
             <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {outils[jourEnCours].map((o, i) => (
+              {outilsAffichage[jourEnCours].map((o, i) => (
                 <li key={i}>{o}</li>
               ))}
             </ul>
@@ -1718,9 +2114,12 @@ export default function Jeune() {
           onClose={() => setShowBilan(false)}
           onAccederReprise={() => {
             setShowBilan(false);
-            if (programmeReprise) {
-              localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeReprise));
+            const programme = programmeReprise || planRepriseValide;
+            if (programme) {
+              localStorage.setItem('programmeRepriseValide', JSON.stringify(programme));
               window.location.href = '/reprise-alimentaire-apres-jeune';
+            } else {
+              alert('⚠️ Tu dois d\'abord générer et valider ton programme de reprise.');
             }
           }}
         />
@@ -1756,9 +2155,12 @@ export default function Jeune() {
                 padding: '12px 24px', fontWeight: 600, cursor: 'pointer'
               }}
               onClick={() => {
-                if (programmeReprise) {
-                  localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeReprise));
+                const programme = programmeReprise || planRepriseValide;
+                if (programme) {
+                  localStorage.setItem('programmeRepriseValide', JSON.stringify(programme));
                   window.location.href = '/reprise-alimentaire-apres-jeune';
+                } else {
+                  alert('⚠️ Tu dois d\'abord générer et valider ton programme de reprise.\n\nRemonte en haut de page et clique sur "Générer mon plan de reprise".');
                 }
               }}
             >
@@ -1792,29 +2194,29 @@ export default function Jeune() {
         <button
           style={{
             marginTop: 16, 
-            background: joursValides.includes(jourEnCours) ? "#9e9e9e" : "#43a047", 
+            background: joursValidesAffichage.includes(jourEnCours) ? "#9e9e9e" : "#43a047", 
             color: "#fff", 
             border: "none",
             borderRadius: 8, 
             padding: "12px 28px", 
             fontWeight: 700, 
             fontSize: 16, 
-            cursor: joursValides.includes(jourEnCours) ? "not-allowed" : "pointer"
+            cursor: joursValidesAffichage.includes(jourEnCours) || jeuneConsulte ? "not-allowed" : "pointer"
           }}
           onClick={validerJour}
-          disabled={joursValides.includes(jourEnCours)}
+          disabled={joursValidesAffichage.includes(jourEnCours) || jeuneConsulte}
         >
-          {joursValides.includes(jourEnCours) 
+          {joursValidesAffichage.includes(jourEnCours) 
             ? `✅ Jour ${jourEnCours} déjà validé` 
-            : `Valider le jour ${jourEnCours}`}
+            : jeuneConsulte ? "📖 Mode archive (lecture seule)" : `Valider le jour ${jourEnCours}`}
         </button>
         
         {/* Aide visuelle */}
-        {!joursValides.includes(jourEnCours) && (() => {
+        {!joursValidesAffichage.includes(jourEnCours) && !jeuneConsulte && (() => {
           // Vérifier s'il manque des jours précédents
           const joursManquants = [];
           for (let j = 1; j < jourEnCours; j++) {
-            if (!joursValides.includes(j)) {
+            if (!joursValidesAffichage.includes(j)) {
               joursManquants.push(j);
             }
           }
@@ -1841,6 +2243,7 @@ export default function Jeune() {
       </div>
 
       {/* --- Paramètres et reset (pour tests) --- */}
+      {!jeuneConsulte && (
       <div style={{ marginTop: 24, textAlign: "center" }}>
         <label>
           Durée du jeûne (jours) :
@@ -1864,6 +2267,21 @@ export default function Jeune() {
           Réinitialiser le jeûne
         </button>
       </div>
+      )}
+      
+      {/* Modal Historique Jeûnes */}
+      {showHistoriqueModal && (
+        <HistoriqueJeunesModal
+          historiqueJeunes={historiqueJeunes}
+          jeunesSupprimés={jeunesSupprimés}
+          jeuneActif={jeuneConsulte ? null : { id: `${dateDebutJeune}_${dureeJeune}j`, dateDebut: dateDebutJeune, duree: dureeJeune, joursValides }}
+          onConsulter={chargerJeuneArchive}
+          onSupprimer={supprimerJeune}
+          onRestaurer={restaurerJeune}
+          onSupprimerDefinitivement={supprimerDefinitivement}
+          onFermer={fermerModalHistorique}
+        />
+      )}
     </div>
   );
 }

@@ -3020,4 +3020,541 @@ correctifsAliments.forEach(nouveau => {
   if (!doublon) referentielAliments.push(nouveau);
 });
 
+// ============================================================================
+// 🎯 CRISTALLISATION: CRITÈRES DYNAMIQUES (PHASE 45J POST-REPRISE)
+// ============================================================================
+// Critères générés depuis bilan_reprise (PAS hardcodés)
+// Validation quotidienne pour tracking nouveaux comportements
+// ============================================================================
+
+export const criteresCristallisation = {
+  CRITERE_EXTRAS_FREQUENTS: {
+    id: 'extras_reduction',
+    nom: 'Réduction extras fréquents',
+    conditions_activation: {
+      seuil_reprise: 10,
+      formule: 'bilan_reprise.extras.total > 10',
+      description: 'Activé si >10 extras durant reprise'
+    },
+    configuration: {
+      calcul_seuil: (bilanReprise) => {
+        const extrasReprise = bilanReprise?.extras?.total || 0;
+        return Math.ceil(extrasReprise * 0.32); // 68% de réduction
+      },
+      validation_quotidienne: (repasJour) => {
+        return repasJour.filter(r => r.est_extra).length === 0;
+      },
+      validation_hebdomadaire: (repasSemaine, seuil) => {
+        const nbExtras = repasSemaine.filter(r => r.est_extra).length;
+        return nbExtras <= seuil;
+      }
+    },
+    messages: {
+      encouragement: 'Bravo ! Aucun extra aujourd\'hui 💪',
+      encouragement_streak: 'Tu tiens bon depuis {{nb_jours}} jours ! Continue 🔥',
+      alerte: '⚠️ Extra détecté. Tu as {{nb_extras}}/{{seuil}} cette semaine',
+      alerte_critique: '🚨 Limite dépassée ! {{nb_extras}} extras cette semaine',
+      victoire_21j: '🏆 21 jours sans extras ! Habitude vaincue !',
+      victoire_finale: '🎯 45 jours terminés ! Les extras ne sont plus une habitude'
+    },
+    tracking: {
+      comportement_cible: 'pas_extra_journalier',
+      victoire_21j: true,
+      comparaison_reprise: 'extras.total'
+    }
+  },
+
+  CRITERE_FECULENTS_SOIR: {
+    id: 'feculents_timing',
+    nom: 'Aucun féculent le soir',
+    conditions_activation: {
+      seuil_reprise: 5,
+      formule: 'bilan_reprise.feculents_soir.occurrences > 5',
+      description: 'Activé si >5 féculents le soir durant reprise'
+    },
+    configuration: {
+      calcul_seuil: () => 0, // Objectif 0 féculent le soir
+      validation_quotidienne: (repasJour) => {
+        const repasSoir = repasJour.filter(r => {
+          const heure = new Date(r.heure_repas).getHours();
+          return heure >= 19;
+        });
+        return !repasSoir.some(r => 
+          r.composition?.some(c => ['feculent', 'pain'].includes(c.categorie))
+        );
+      }
+    },
+    messages: {
+      encouragement: 'Parfait ! Pas de féculents le soir 🌙',
+      alerte: '⚠️ Féculent détecté après 19h',
+      victoire_21j: '🏆 21 jours de timing parfait !',
+      victoire_finale: '🎯 Nouveau réflexe ancré : pas de féculents le soir'
+    },
+    tracking: {
+      comportement_cible: 'feculents_timing_ok',
+      victoire_21j: true,
+      comparaison_reprise: 'feculents_soir.occurrences'
+    }
+  },
+
+  CRITERE_QN_FAIBLE: {
+    id: 'amelioration_qn',
+    nom: 'QN moyen ≥ 3.5',
+    conditions_activation: {
+      seuil_reprise: 3.2,
+      formule: 'bilan_reprise.qn_moyen < 3.2',
+      description: 'Activé si QN moyen <3.2 durant reprise'
+    },
+    configuration: {
+      calcul_seuil: () => 3.5,
+      validation_quotidienne: (repasJour) => {
+        const qnTotal = repasJour.reduce((sum, r) => sum + (r.qn || 0), 0);
+        const qnMoyen = repasJour.length > 0 ? qnTotal / repasJour.length : 0;
+        return qnMoyen >= 3.5;
+      }
+    },
+    messages: {
+      encouragement: 'QN excellent aujourd\'hui ! ({{qn_moyen}}/5) ⭐',
+      alerte: 'QN faible aujourd\'hui ({{qn_moyen}}/5). Vise 3.5+ 📊',
+      victoire_21j: '🏆 21 jours avec QN ≥3.5 !',
+      victoire_finale: '🎯 Qualité nutritionnelle devenue naturelle'
+    },
+    tracking: {
+      comportement_cible: 'qn_optimal',
+      victoire_21j: true,
+      comparaison_reprise: 'qn_moyen'
+    }
+  },
+
+  CRITERE_QUANTITES_EXCESSIVES: {
+    id: 'respect_portions',
+    nom: 'Conformité portions ≥ 90%',
+    conditions_activation: {
+      seuil_reprise: 75,
+      formule: 'bilan_reprise.quantites_excessives.taux_conformite < 75',
+      description: 'Activé si <75% conformité portions durant reprise'
+    },
+    configuration: {
+      calcul_seuil: () => 90,
+      validation_quotidienne: (repasJour) => {
+        const conformes = repasJour.filter(r => r.quantite_conforme).length;
+        return repasJour.length > 0 ? (conformes / repasJour.length * 100) >= 90 : true;
+      }
+    },
+    messages: {
+      encouragement: 'Portions respectées ! {{taux}}% de conformité 📏',
+      alerte: 'Attention aux quantités. Seulement {{taux}}% conforme',
+      victoire_21j: '🏆 21 jours de portions maîtrisées !',
+      victoire_finale: '🎯 Les bonnes quantités sont devenues automatiques'
+    },
+    tracking: {
+      comportement_cible: 'portions_respectees',
+      victoire_21j: true,
+      comparaison_reprise: 'quantites_excessives.taux_conformite'
+    }
+  },
+
+  CRITERE_JEUNES_IRREGULIERS: {
+    id: 'jeunes_reguliers',
+    nom: '2 jeûnes ponctuels/semaine',
+    conditions_activation: {
+      seuil_reprise: 70,
+      formule: 'bilan_reprise.jeunes_ponctuels.taux < 70',
+      description: 'Activé si <70% succès jeûnes durant reprise'
+    },
+    configuration: {
+      calcul_seuil: () => 2,
+      validation_hebdomadaire: (jeunesSemaine) => {
+        return jeunesSemaine.filter(j => j.reussi).length >= 2;
+      }
+    },
+    messages: {
+      encouragement: '{{nb_jeunes}}/2 jeûnes cette semaine ! Continue 🌟',
+      alerte: 'Seulement {{nb_jeunes}}/2 jeûnes. Planifie le prochain 📅',
+      victoire_21j: '🏆 Jeûnes réguliers depuis 21 jours !',
+      victoire_finale: '🎯 Les jeûnes ponctuels font partie de ta routine'
+    },
+    tracking: {
+      comportement_cible: 'jeunes_reguliers',
+      victoire_21j: true,
+      comparaison_reprise: 'jeunes_ponctuels.taux'
+    }
+  },
+
+  CRITERE_PRATIQUES_SPIRITUELLES: {
+    id: 'pratiques_regulieres',
+    nom: '≥3 pratiques spirituelles/jour',
+    conditions_activation: {
+      seuil_reprise: 3,
+      formule: 'bilan_reprise.pratiques_spirituelles.moyenne_par_jour < 3 || bilan_reprise.pratiques_spirituelles.irregularite === true',
+      description: 'Activé si <3/jour OU irrégulier durant reprise'
+    },
+    configuration: {
+      calcul_seuil: () => 3,
+      validation_quotidienne: (pratiquesJour) => {
+        return pratiquesJour.length >= 3;
+      }
+    },
+    messages: {
+      encouragement: '{{nb_pratiques}} pratiques aujourd\'hui ! Équilibre spirituel 🙏',
+      alerte: 'Seulement {{nb_pratiques}}/3 pratiques. Prends un moment 📿',
+      victoire_21j: '🏆 21 jours de régularité spirituelle !',
+      victoire_finale: '🎯 Ta vie spirituelle est devenue une priorité quotidienne'
+    },
+    tracking: {
+      comportement_cible: 'pratiques_regulieres',
+      victoire_21j: true,
+      comparaison_reprise: 'pratiques_spirituelles.moyenne_par_jour'
+    }
+  }
+};
+
+/**
+ * Génère critères personnalisés depuis bilan_reprise
+ * @param {Object} bilanReprise - Données transmises depuis reprise-alimentaire-apres-jeune.js
+ * @returns {Array} Critères activés et configurés
+ */
+export function genererCriteresPersonnalises(bilanReprise) {
+  const criteresActives = [];
+  
+  Object.values(criteresCristallisation).forEach(critere => {
+    if (evaluerConditionSecurisee(critere.conditions_activation.formule, bilanReprise)) {
+      const seuilCible = critere.configuration.calcul_seuil(bilanReprise);
+      
+      criteresActives.push({
+        id: critere.id,
+        nom: critere.nom,
+        seuil_cible: seuilCible,
+        validation_quotidienne: critere.configuration.validation_quotidienne,
+        validation_hebdomadaire: critere.configuration.validation_hebdomadaire,
+        messages: critere.messages,
+        tracking: critere.tracking
+      });
+    }
+  });
+  
+  return criteresActives;
+}
+
+/**
+ * Évalue condition d'activation de manière SÉCURISÉE (pas eval())
+ */
+function evaluerConditionSecurisee(formule, bilanReprise) {
+  try {
+    const regex = /bilan_reprise\.([a-zA-Z0-9_.]+)\s*(>|<|>=|<=|===|!==|==|!=)\s*([0-9]+(?:\.[0-9]+)?|true|false)/;
+    const match = formule.match(regex);
+    
+    if (!match) return false;
+    
+    const [, chemin, operateur, valeurStr] = match;
+    const valeurBilan = chemin.split('.').reduce((obj, key) => obj?.[key], bilanReprise);
+    
+    if (valeurBilan === undefined) return false;
+    
+    const valeurComparaison = valeurStr === 'true' ? true : 
+                              valeurStr === 'false' ? false : 
+                              parseFloat(valeurStr);
+    
+    switch (operateur) {
+      case '>': return valeurBilan > valeurComparaison;
+      case '<': return valeurBilan < valeurComparaison;
+      case '>=': return valeurBilan >= valeurComparaison;
+      case '<=': return valeurBilan <= valeurComparaison;
+      case '===': return valeurBilan === valeurComparaison;
+      case '!==': return valeurBilan !== valeurComparaison;
+      default: return false;
+    }
+  } catch (error) {
+    console.error('Erreur évaluation condition:', error);
+    return false;
+  }
+}
+
+// ============================================================================
+// CRITÈRES QUOTIDIENS CRISTALLISATION (45 JOURS × 5 CRITÈRES/JOUR = 225)
+// ============================================================================
+
+export const CRITERES_CRISTALLISATION = {
+  criteres_quotidiens: [
+    // JOURS 1-5 : FONDAMENTAUX
+    { id: 'crit_1_1', nom: 'Aucun extra aujourd\'hui', description: 'Pas de snack, bonbon, soda ou écart', type: 'extras', difficulte: 1, points: 10 },
+    { id: 'crit_1_2', nom: 'Hydratation 2L', description: 'Boire au moins 2 litres d\'eau', type: 'hydratation', difficulte: 1, points: 10 },
+    { id: 'crit_1_3', nom: 'Petit-déjeuner avant 9h', description: 'Prendre le petit-déjeuner avant 9h du matin', type: 'timing', difficulte: 1, points: 10 },
+    { id: 'crit_1_4', nom: 'Dîner avant 20h', description: 'Prendre le dîner avant 20h', type: 'timing', difficulte: 2, points: 15 },
+    { id: 'crit_1_5', nom: 'Légumes à chaque repas', description: 'Inclure des légumes au déjeuner et au dîner', type: 'composition', difficulte: 1, points: 10 },
+    
+    { id: 'crit_2_1', nom: 'Aucun sucre raffiné', description: 'Éviter sucre blanc, bonbons, gâteaux industriels', type: 'extras', difficulte: 2, points: 15 },
+    { id: 'crit_2_2', nom: '3 repas réguliers', description: 'Respecter 3 repas sans grignotage', type: 'comportement', difficulte: 1, points: 10 },
+    { id: 'crit_2_3', nom: 'Mastication lente', description: 'Prendre au moins 20 min par repas', type: 'comportement', difficulte: 2, points: 15 },
+    { id: 'crit_2_4', nom: 'Protéine au petit-déjeuner', description: 'Inclure œuf, fromage blanc ou protéine végétale', type: 'composition', difficulte: 1, points: 10 },
+    { id: 'crit_2_5', nom: 'Pas d\'écrans pendant repas', description: 'Manger sans téléphone, TV ou ordinateur', type: 'comportement', difficulte: 2, points: 15 },
+    
+    { id: 'crit_3_1', nom: 'Fruits frais uniquement', description: 'Pas de jus, compotes sucrées ou fruits séchés', type: 'qualite', difficulte: 2, points: 15 },
+    { id: 'crit_3_2', nom: 'Céréales complètes', description: 'Pain complet, riz brun, pâtes complètes', type: 'qualite', difficulte: 2, points: 15 },
+    { id: 'crit_3_3', nom: 'Huile crue uniquement', description: 'Utiliser huile d\'olive, colza, noix à froid', type: 'qualite', difficulte: 2, points: 15 },
+    { id: 'crit_3_4', nom: 'Portion protéines adaptée', description: 'Paume de main pour viande/poisson', type: 'quantite', difficulte: 1, points: 10 },
+    { id: 'crit_3_5', nom: 'Collation si faim réelle', description: 'Fruit ou oléagineux si besoin physiologique', type: 'comportement', difficulte: 2, points: 15 },
+    
+    { id: 'crit_4_1', nom: 'Jeûne nocturne 12h', description: 'Respecter 12h entre dîner et petit-déjeuner', type: 'timing', difficulte: 2, points: 15 },
+    { id: 'crit_4_2', nom: 'Légumineuses présentes', description: 'Lentilles, pois chiches ou haricots au menu', type: 'composition', difficulte: 1, points: 10 },
+    { id: 'crit_4_3', nom: 'Cuisson douce', description: 'Vapeur, mijoté ou four doux (pas de friture)', type: 'qualite', difficulte: 2, points: 15 },
+    { id: 'crit_4_4', nom: 'Assiette colorée', description: 'Au moins 3 couleurs différentes au repas', type: 'composition', difficulte: 1, points: 10 },
+    { id: 'crit_4_5', nom: 'Manger assis', description: 'Tous les repas pris assis à table', type: 'comportement', difficulte: 1, points: 10 },
+    
+    { id: 'crit_5_1', nom: 'Zéro alcool', description: 'Aucune boisson alcoolisée', type: 'extras', difficulte: 2, points: 15 },
+    { id: 'crit_5_2', nom: 'Aromates frais', description: 'Herbes, ail, oignon, gingembre utilisés', type: 'qualite', difficulte: 1, points: 10 },
+    { id: 'crit_5_3', nom: 'Satiété respectée', description: 'Arrêter de manger à 80% de satiété', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_5_4', nom: 'Légumes crus inclus', description: 'Crudités ou salade au déjeuner', type: 'composition', difficulte: 1, points: 10 },
+    { id: 'crit_5_5', nom: 'Pas de plat préparé', description: 'Cuisine maison uniquement', type: 'qualite', difficulte: 2, points: 15 },
+    
+    // JOURS 6-10 : RENFORCEMENT
+    { id: 'crit_6_1', nom: 'Oléagineux portion', description: '1 petite poignée amandes, noix ou noisettes', type: 'quantite', difficulte: 1, points: 10 },
+    { id: 'crit_6_2', nom: 'Thé vert ou tisane', description: 'Au moins 1 tasse dans la journée', type: 'hydratation', difficulte: 1, points: 10 },
+    { id: 'crit_6_3', nom: 'Pause après chaque bouchée', description: 'Poser couverts entre chaque bouchée', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_6_4', nom: 'Féculents portion contrôlée', description: 'Poing fermé maximum', type: 'quantite', difficulte: 2, points: 15 },
+    { id: 'crit_6_5', nom: 'Épices variées', description: 'Curcuma, paprika, curry ou cannelle', type: 'qualite', difficulte: 1, points: 10 },
+    
+    { id: 'crit_7_1', nom: 'Repas principal léger', description: 'Dîner plus léger que déjeuner', type: 'quantite', difficulte: 2, points: 15 },
+    { id: 'crit_7_2', nom: 'Bio si possible', description: 'Privilégier produits biologiques', type: 'qualite', difficulte: 2, points: 15 },
+    { id: 'crit_7_3', nom: 'Gratitude avant repas', description: 'Moment de remerciement ou respiration', type: 'comportement', difficulte: 1, points: 10 },
+    { id: 'crit_7_4', nom: 'Poisson gras', description: 'Saumon, maquereau ou sardines', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_7_5', nom: 'Pas de sauce industrielle', description: 'Éviter ketchup, mayo industrielle', type: 'extras', difficulte: 1, points: 10 },
+    
+    { id: 'crit_8_1', nom: 'Graines ajoutées', description: 'Chia, lin, sésame ou courge', type: 'composition', difficulte: 1, points: 10 },
+    { id: 'crit_8_2', nom: 'Bouillon maison', description: 'Préparation soupe ou bouillon légumes', type: 'qualite', difficulte: 2, points: 15 },
+    { id: 'crit_8_3', nom: 'Jeûne intermittent 14h', description: 'Étendre jeûne nocturne à 14h', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_8_4', nom: 'Produits fermentés', description: 'Yaourt nature, choucroute ou kéfir', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_8_5', nom: 'Éviter aliments transformés', description: 'Aucun additif, conservateur ou colorant', type: 'qualite', difficulte: 2, points: 15 },
+    
+    { id: 'crit_9_1', nom: 'Mâcher 30 fois', description: 'Compter mastications pour 1 bouchée', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_9_2', nom: 'Diversité protéines', description: 'Alterner animales et végétales', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_9_3', nom: 'Sel modéré', description: 'Limiter sel ajouté, privilégier épices', type: 'quantite', difficulte: 2, points: 15 },
+    { id: 'crit_9_4', nom: 'Légumes à volonté', description: 'Remplir moitié assiette de légumes', type: 'quantite', difficulte: 1, points: 10 },
+    { id: 'crit_9_5', nom: 'Eau avant repas', description: 'Grand verre 15 min avant manger', type: 'hydratation', difficulte: 1, points: 10 },
+    
+    { id: 'crit_10_1', nom: 'Aucun édulcorant', description: 'Ni aspartame ni stévia', type: 'extras', difficulte: 2, points: 15 },
+    { id: 'crit_10_2', nom: 'Prébiotiques présents', description: 'Ail, oignon, poireau ou asperges', type: 'composition', difficulte: 1, points: 10 },
+    { id: 'crit_10_3', nom: 'Respiration consciente', description: '5 respirations avant de commencer', type: 'comportement', difficulte: 1, points: 10 },
+    { id: 'crit_10_4', nom: 'Cuisson al dente', description: 'Pâtes et légumes croquants', type: 'qualite', difficulte: 1, points: 10 },
+    { id: 'crit_10_5', nom: 'Local et saison', description: 'Produits de saison et locaux', type: 'qualite', difficulte: 2, points: 15 },
+    
+    // JOURS 11-15 : APPROFONDISSEMENT
+    { id: 'crit_11_1', nom: 'Citron le matin', description: 'Eau tiède + citron à jeun', type: 'hydratation', difficulte: 1, points: 10 },
+    { id: 'crit_11_2', nom: 'Chrononutrition respectée', description: 'Gras matin, protéines midi, léger soir', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_11_3', nom: 'Portion glucides réduite', description: 'Diviser par deux portion habituelle', type: 'quantite', difficulte: 3, points: 20 },
+    { id: 'crit_11_4', nom: 'Algues intégrées', description: 'Nori, wakame ou spiruline', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_11_5', nom: 'Manger en silence', description: 'Au moins un repas sans conversation', type: 'comportement', difficulte: 3, points: 20 },
+    
+    { id: 'crit_12_1', nom: 'Germinations ajoutées', description: 'Graines germées dans salade', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_12_2', nom: 'Jeûne 16h atteint', description: 'Sauter petit-déjeuner ou dîner', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_12_3', nom: 'Cru 50% volume', description: 'Moitié aliments crus au repas', type: 'qualite', difficulte: 3, points: 20 },
+    { id: 'crit_12_4', nom: 'Mastication zen', description: 'Concentration totale sur textures', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_12_5', nom: 'Zéro produit laitier', description: 'Aucun lait, fromage ou yaourt animal', type: 'extras', difficulte: 3, points: 20 },
+    
+    { id: 'crit_13_1', nom: 'Smoothie vert', description: 'Épinards, banane, lait végétal', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_13_2', nom: 'Huiles variées', description: 'Alterner olive, colza, lin, chanvre', type: 'qualite', difficulte: 2, points: 15 },
+    { id: 'crit_13_3', nom: 'Portion main complète', description: 'Visuel portion = paume + doigts', type: 'quantite', difficulte: 2, points: 15 },
+    { id: 'crit_13_4', nom: 'Marche post-repas', description: '10 min marche après déjeuner', type: 'comportement', difficulte: 2, points: 15 },
+    { id: 'crit_13_5', nom: 'Super-aliments', description: 'Baies goji, açai ou cacao cru', type: 'composition', difficulte: 2, points: 15 },
+    
+    { id: 'crit_14_1', nom: 'Monodiète partielle', description: 'Un repas un seul type aliment', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_14_2', nom: 'Index glycémique bas', description: 'Tous glucides IG < 55', type: 'qualite', difficulte: 3, points: 20 },
+    { id: 'crit_14_3', nom: 'Pollen ou propolis', description: 'Ajout produits ruche', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_14_4', nom: 'Assiette minimaliste', description: 'Maximum 5 ingrédients par repas', type: 'comportement', difficulte: 2, points: 15 },
+    { id: 'crit_14_5', nom: 'Boissons zéro calorie', description: 'Uniquement eau, thé, tisane', type: 'extras', difficulte: 2, points: 15 },
+    
+    { id: 'crit_15_1', nom: 'Détox foie activée', description: 'Radis noir, artichaut ou pissenlit', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_15_2', nom: 'Jeûne complet soir', description: 'Sauter dîner complètement', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_15_3', nom: 'Température aliments', description: 'Ni trop chaud ni trop froid', type: 'qualite', difficulte: 1, points: 10 },
+    { id: 'crit_15_4', nom: 'Ordre aliments', description: 'Cru avant cuit, léger avant lourd', type: 'comportement', difficulte: 2, points: 15 },
+    { id: 'crit_15_5', nom: 'Jus légumes maison', description: 'Extracteur ou blender légumes frais', type: 'composition', difficulte: 2, points: 15 },
+    
+    // JOURS 16-20 : CONSOLIDATION
+    { id: 'crit_16_1', nom: 'Psyllium ajouté', description: 'Fibres solubles dans eau', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_16_2', nom: 'Pleine conscience totale', description: 'Zéro distraction pendant 3 repas', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_16_3', nom: 'Protéines 0,8g/kg', description: 'Calculer apport protéique précis', type: 'quantite', difficulte: 3, points: 20 },
+    { id: 'crit_16_4', nom: 'Oméga-3 quotidien', description: 'Lin, chia, noix ou poisson gras', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_16_5', nom: 'Pas de pain blanc', description: 'Uniquement complet ou sans gluten', type: 'extras', difficulte: 2, points: 15 },
+    
+    { id: 'crit_17_1', nom: 'Soupe miso', description: 'Bouillon fermenté traditionnel', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_17_2', nom: 'Jeûne hydrique 24h', description: 'Uniquement eau pendant 24h', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_17_3', nom: 'Vinaigre de cidre', description: '1 c. à soupe dans eau avant repas', type: 'hydratation', difficulte: 1, points: 10 },
+    { id: 'crit_17_4', nom: 'Combinaisons alimentaires', description: 'Pas protéines + féculents', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_17_5', nom: 'Choux variés', description: 'Brocoli, chou-fleur ou kale', type: 'composition', difficulte: 1, points: 10 },
+    
+    { id: 'crit_18_1', nom: 'Racines anciennes', description: 'Panais, topinambour, rutabaga', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_18_2', nom: 'Silence digestif', description: 'Pas manger 4h avant coucher', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_18_3', nom: 'Enzymes digestives', description: 'Ananas, papaye ou gingembre frais', type: 'composition', difficulte: 1, points: 10 },
+    { id: 'crit_18_4', nom: 'Assiette froide midi', description: 'Salade composée complète', type: 'qualite', difficulte: 2, points: 15 },
+    { id: 'crit_18_5', nom: 'Aromates thérapeutiques', description: 'Thym, romarin, sauge', type: 'qualite', difficulte: 1, points: 10 },
+    
+    { id: 'crit_19_1', nom: 'Micro-jeûnes répétés', description: '3× 16h dans la semaine', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_19_2', nom: 'Levure nutritionnelle', description: 'Vitamine B12 végétale', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_19_3', nom: 'Aucun stimulant', description: 'Ni café ni thé noir', type: 'extras', difficulte: 3, points: 20 },
+    { id: 'crit_19_4', nom: 'Rotation aliments', description: 'Pas 2× même aliment dans semaine', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_19_5', nom: 'Bouillon os long', description: 'Mijotage 24h pour collagène', type: 'qualite', difficulte: 2, points: 15 },
+    
+    { id: 'crit_20_1', nom: 'Charbon activé', description: 'Détox intestinale douce', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_20_2', nom: 'Repas soleil levant', description: 'Manger exactement au lever soleil', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_20_3', nom: 'Texture variée', description: 'Croquant, crémeux, fondant', type: 'qualite', difficulte: 1, points: 10 },
+    { id: 'crit_20_4', nom: 'Portion réduite 20%', description: 'Diminuer quantité habituelle', type: 'quantite', difficulte: 3, points: 20 },
+    { id: 'crit_20_5', nom: 'Fleurs comestibles', description: 'Capucine, pensée, bourrache', type: 'composition', difficulte: 2, points: 15 },
+    
+    // JOURS 21-25 : MAÎTRISE
+    { id: 'crit_21_1', nom: 'Chlorophylle liquide', description: 'Gouttes dans eau quotidien', type: 'hydratation', difficulte: 2, points: 15 },
+    { id: 'crit_21_2', nom: 'Zéro céréales', description: 'Aucun blé, riz ou céréales', type: 'extras', difficulte: 3, points: 20 },
+    { id: 'crit_21_3', nom: 'Repas ritualisé', description: 'Même heure, même lieu, même durée', type: 'comportement', difficulte: 2, points: 15 },
+    { id: 'crit_21_4', nom: 'Lactofermentation maison', description: 'Préparer légumes fermentés', type: 'qualite', difficulte: 3, points: 20 },
+    { id: 'crit_21_5', nom: 'Portion unique', description: 'Se servir 1× sans resservir', type: 'quantite', difficulte: 2, points: 15 },
+    
+    { id: 'crit_22_1', nom: 'Curcuma + poivre', description: 'Association synergique quotidienne', type: 'composition', difficulte: 1, points: 10 },
+    { id: 'crit_22_2', nom: 'Jeûne sec partiel', description: 'Pas eau 4h dans journée', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_22_3', nom: 'Aliments vivants', description: 'Uniquement crus et bio', type: 'qualite', difficulte: 3, points: 20 },
+    { id: 'crit_22_4', nom: 'Comptage calories', description: 'Tracer précisément apports', type: 'quantite', difficulte: 3, points: 20 },
+    { id: 'crit_22_5', nom: 'Visualisation repas', description: 'Imaginer digestion optimale', type: 'comportement', difficulte: 2, points: 15 },
+    
+    { id: 'crit_23_1', nom: 'Baies antioxydantes', description: 'Myrtilles, cranberries, mûres', type: 'composition', difficulte: 1, points: 10 },
+    { id: 'crit_23_2', nom: 'Intermittence avancée', description: 'Alterner 16h/20h/24h', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_23_3', nom: 'Mono-ingrédient', description: 'Chaque aliment non transformé', type: 'qualite', difficulte: 2, points: 15 },
+    { id: 'crit_23_4', nom: 'Assiette arc-en-ciel', description: '7 couleurs différentes', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_23_5', nom: 'Écoute signaux faim', description: 'Attendre vraie faim physiologique', type: 'comportement', difficulte: 3, points: 20 },
+    
+    { id: 'crit_24_1', nom: 'Silicium organique', description: 'Prêle ou ortie en infusion', type: 'hydratation', difficulte: 2, points: 15 },
+    { id: 'crit_24_2', nom: 'Régime cétogène', description: 'Moins 20g glucides/jour', type: 'quantite', difficulte: 3, points: 20 },
+    { id: 'crit_24_3', nom: 'Aliments alcalins', description: 'Priorité aliments pH > 7', type: 'qualite', difficulte: 3, points: 20 },
+    { id: 'crit_24_4', nom: 'Respiration pranayama', description: '10 min avant repas', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_24_5', nom: 'Champignons médicinaux', description: 'Shiitake, reishi ou maitake', type: 'composition', difficulte: 2, points: 15 },
+    
+    { id: 'crit_25_1', nom: 'Repas unique jour', description: 'OMAD (One Meal A Day)', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_25_2', nom: 'Absence gluten total', description: 'Zéro blé, seigle, orge', type: 'extras', difficulte: 3, points: 20 },
+    { id: 'crit_25_3', nom: 'Sel rose Himalaya', description: 'Minéraux traces complets', type: 'qualite', difficulte: 1, points: 10 },
+    { id: 'crit_25_4', nom: 'Portion poing fermé', description: 'Estomac ne doit pas dépasser', type: 'quantite', difficulte: 2, points: 15 },
+    { id: 'crit_25_5', nom: 'Méditation digestive', description: 'Conscience totale processus', type: 'comportement', difficulte: 3, points: 20 },
+    
+    // JOURS 26-30 : EXPERTISE
+    { id: 'crit_26_1', nom: 'Noix fraîches activées', description: 'Trempage 12h avant consommation', type: 'qualite', difficulte: 2, points: 15 },
+    { id: 'crit_26_2', nom: 'Jeûne lunaire', description: 'Synchroniser avec phases lune', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_26_3', nom: 'Macrobiotique principe', description: 'Yin-Yang équilibre assiette', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_26_4', nom: 'Légumes mer quotidien', description: 'Nori, kombu ou dulse', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_26_5', nom: 'Portion 1 bol japonais', description: 'Limiter volume strict', type: 'quantite', difficulte: 3, points: 20 },
+    
+    { id: 'crit_27_1', nom: 'Kéfir maison', description: 'Probiotiques vivants naturels', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_27_2', nom: 'Extraction jus lent', description: 'Slow juicer légumes frais', type: 'qualite', difficulte: 2, points: 15 },
+    { id: 'crit_27_3', nom: 'Aucun fruit sucré', description: 'Uniquement baies et citron', type: 'extras', difficulte: 3, points: 20 },
+    { id: 'crit_27_4', nom: 'Mastication 50×', description: 'Liquéfier complètement avant avaler', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_27_5', nom: 'Timing circadien strict', description: 'Repas synchro rythme biologique', type: 'timing', difficulte: 3, points: 20 },
+    
+    { id: 'crit_28_1', nom: 'Grenade ou baobab', description: 'Super-fruits antioxydants extrêmes', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_28_2', nom: 'Crudivorisme complet', description: '100% aliments crus', type: 'qualite', difficulte: 3, points: 20 },
+    { id: 'crit_28_3', nom: 'Quantité 500 cal max', description: 'Restriction calorique sévère', type: 'quantite', difficulte: 3, points: 20 },
+    { id: 'crit_28_4', nom: 'Connexion spirituelle', description: 'Prière ou bénédiction avant manger', type: 'comportement', difficulte: 2, points: 15 },
+    { id: 'crit_28_5', nom: 'Élixirs floraux', description: 'Fleurs Bach digestion', type: 'hydratation', difficulte: 2, points: 15 },
+    
+    { id: 'crit_29_1', nom: 'Mycothérapie active', description: 'Cordyceps ou chaga', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_29_2', nom: 'Jeûne prolongé 48h', description: 'Uniquement eau 2 jours', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_29_3', nom: 'Aliments vivants enzymes', description: 'Germinations actives uniquement', type: 'qualite', difficulte: 3, points: 20 },
+    { id: 'crit_29_4', nom: 'Respiration cohérence', description: 'Synchroniser souffle et bouchées', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_29_5', nom: 'Index insulinique bas', description: 'Tous aliments II < 30', type: 'quantite', difficulte: 3, points: 20 },
+    
+    { id: 'crit_30_1', nom: 'Moringa poudre', description: 'Arbre vie complet nutritionnel', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_30_2', nom: 'Silence absolu repas', description: 'Méditation active mastication', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_30_3', nom: 'Zéro huile ajoutée', description: 'Gras uniquement naturels aliments', type: 'extras', difficulte: 3, points: 20 },
+    { id: 'crit_30_4', nom: 'Portion enfant', description: 'Assiette diamètre 20cm max', type: 'quantite', difficulte: 3, points: 20 },
+    { id: 'crit_30_5', nom: 'Alchimie alimentaire', description: 'Intention vibratoire élevée', type: 'comportement', difficulte: 3, points: 20 },
+    
+    // JOURS 31-35 : TRANSCENDANCE
+    { id: 'crit_31_1', nom: 'Jeûne sec 24h', description: 'Ni eau ni aliments', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_31_2', nom: 'Mono-fruit journée', description: 'Uniquement 1 type fruit', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_31_3', nom: 'Température corporelle', description: 'Aliments température corps', type: 'qualite', difficulte: 2, points: 15 },
+    { id: 'crit_31_4', nom: 'Protéines végétales 100%', description: 'Aucune source animale', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_31_5', nom: 'Graines antiques', description: 'Quinoa, amarante, teff', type: 'composition', difficulte: 2, points: 15 },
+    
+    { id: 'crit_32_1', nom: 'Élimination totale', description: 'Transit complet observé', type: 'comportement', difficulte: 2, points: 15 },
+    { id: 'crit_32_2', nom: 'Argile verte interne', description: 'Détox minérale profonde', type: 'hydratation', difficulte: 2, points: 15 },
+    { id: 'crit_32_3', nom: 'Pas de combinaison', description: 'Un seul macronutriment/repas', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_32_4', nom: 'Herbes sauvages', description: 'Cueillette pissenlit, ortie, plantain', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_32_5', nom: 'Calorie restriction', description: 'Moins 1000 cal/jour', type: 'quantite', difficulte: 3, points: 20 },
+    
+    { id: 'crit_33_1', nom: 'Shilajit résine', description: 'Minéraux himalayens anciens', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_33_2', nom: 'Fenêtre 4h', description: 'Tous repas dans 4h', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_33_3', nom: 'Raw vegan intégral', description: 'Cru végétal exclusif', type: 'qualite', difficulte: 3, points: 20 },
+    { id: 'crit_33_4', nom: 'Bouchée 100 mastications', description: 'Liquéfaction parfaite', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_33_5', nom: 'Aliments sacrés', description: 'Intention divine chaque aliment', type: 'comportement', difficulte: 3, points: 20 },
+    
+    { id: 'crit_34_1', nom: 'Poudre herbe blé', description: 'Chlorophylle concentrée vivante', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_34_2', nom: 'Jeûne alterné', description: '1 jour sur 2', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_34_3', nom: 'Bain dérivatif', description: 'Rafraîchissement périnée post-repas', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_34_4', nom: 'Aliments monoatomiques', description: 'Or blanc, ormus', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_34_5', nom: 'Portion 200g total', description: 'Poids absolu maximum', type: 'quantite', difficulte: 3, points: 20 },
+    
+    { id: 'crit_35_1', nom: 'Respirianisme préparation', description: 'Réduction progressive nourriture', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_35_2', nom: 'Élixir solaire', description: 'Eau exposée soleil 8h', type: 'hydratation', difficulte: 2, points: 15 },
+    { id: 'crit_35_3', nom: 'Zéro acide', description: 'Aucun aliment pH < 7', type: 'extras', difficulte: 3, points: 20 },
+    { id: 'crit_35_4', nom: 'Cristaux eau', description: 'Programmation vibratoire eau', type: 'hydratation', difficulte: 3, points: 20 },
+    { id: 'crit_35_5', nom: 'Mantra alimentaire', description: 'Son sacré pendant mastication', type: 'comportement', difficulte: 3, points: 20 },
+    
+    // JOURS 36-40 : ILLUMINATION
+    { id: 'crit_36_1', nom: 'Jus céleri seul', description: '500ml céleri pur à jeun', type: 'composition', difficulte: 2, points: 15 },
+    { id: 'crit_36_2', nom: 'Fenêtre 2h', description: 'Warrior diet strict', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_36_3', nom: 'Aliments lumière', description: 'Uniquement biophotons élevés', type: 'qualite', difficulte: 3, points: 20 },
+    { id: 'crit_36_4', nom: 'Méditation 1h avant', description: 'Préparation conscience élevée', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_36_5', nom: 'Pollen frais vivant', description: 'Directement ruche si possible', type: 'composition', difficulte: 3, points: 20 },
+    
+    { id: 'crit_37_1', nom: 'Jeûne 72h', description: '3 jours eau uniquement', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_37_2', nom: 'Alimentation pranique', description: 'Réduction 90% quantité', type: 'quantite', difficulte: 3, points: 20 },
+    { id: 'crit_37_3', nom: 'Huile CBD digestive', description: 'Cannabinoïdes système digestif', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_37_4', nom: 'Position lotus repas', description: 'Méditation active alimentation', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_37_5', nom: 'Sève bouleau fraîche', description: 'Récolte directe arbre', type: 'hydratation', difficulte: 3, points: 20 },
+    
+    { id: 'crit_38_1', nom: 'Nectar fleurs fraîches', description: 'Essence florale comestible', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_38_2', nom: 'Repas solaire uniquement', description: 'Manger seulement si soleil visible', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_38_3', nom: 'Aliments non-duels', description: 'Transcendance yin-yang', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_38_4', nom: 'Respiration continue', description: 'Jamais arrêter pendant mastication', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_38_5', nom: '10 bouchées maximum', description: 'Limitation absolue volume', type: 'quantite', difficulte: 3, points: 20 },
+    
+    { id: 'crit_39_1', nom: 'Plasma marin Quinton', description: 'Eau mer isotonique', type: 'hydratation', difficulte: 3, points: 20 },
+    { id: 'crit_39_2', nom: 'Jeûne conscient 5 jours', description: 'Méditation continue pendant jeûne', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_39_3', nom: 'Aliments éthériques', description: 'Vibration 999+ Hz uniquement', type: 'qualite', difficulte: 3, points: 20 },
+    { id: 'crit_39_4', nom: 'Communion aliment', description: 'Fusion conscience nourriture', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_39_5', nom: 'Rosée matin collectée', description: 'Eau condensée feuilles', type: 'hydratation', difficulte: 3, points: 20 },
+    
+    { id: 'crit_40_1', nom: 'Ambroisie divine', description: 'Aliments état transcendantal', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_40_2', nom: 'Jeûne sec prolongé', description: '3 jours sans eau ni aliments', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_40_3', nom: 'Vision aurique aliments', description: 'Voir énergie avant consommer', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_40_4', nom: 'Quantité 50g jour', description: 'Presque inédie', type: 'quantite', difficulte: 3, points: 20 },
+    { id: 'crit_40_5', nom: 'Transmutation alchimique', description: 'Transformer plomb en or digestif', type: 'comportement', difficulte: 3, points: 20 },
+    
+    // JOURS 41-45 : ASCENSION
+    { id: 'crit_41_1', nom: 'Prana pur respiration', description: 'Nourrir uniquement air', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_41_2', nom: 'Cristaux comestibles', description: 'Minéraux structure parfaite', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_41_3', nom: 'Méditation 23h/24h', description: 'Conscience pure permanente', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_41_4', nom: 'Aliment unique mois', description: 'Mono-aliment 30 jours', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_41_5', nom: 'Portion 1 cuillère', description: 'Quantité homéopathique', type: 'quantite', difficulte: 3, points: 20 },
+    
+    { id: 'crit_42_1', nom: 'Lumière solaire absorbée', description: 'Sun gazing nutrition', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_42_2', nom: 'Jeûne 10 jours', description: 'Eau uniquement décade complète', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_42_3', nom: 'Corps lumière activé', description: 'Merkaba pendant alimentation', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_42_4', nom: 'Élixir immortalité', description: 'Préparation alchimique secrète', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_42_5', nom: 'Zéro matière dense', description: 'Aucun solide, liquide pur', type: 'extras', difficulte: 3, points: 20 },
+    
+    { id: 'crit_43_1', nom: 'Respiration lumière', description: 'Photosynthèse humaine', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_43_2', nom: 'Essence florale espace', description: 'Quintessence cosmique', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_43_3', nom: 'Fenêtre 0 minute', description: 'Aucun repas physique', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_43_4', nom: 'Fusion universelle', description: 'Conscience Une avec Tout', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_43_5', nom: 'Néant nutritionnel', description: 'Au-delà forme alimentation', type: 'quantite', difficulte: 3, points: 20 },
+    
+    { id: 'crit_44_1', nom: 'Inédie préparation finale', description: 'Protocole Jasmuheen adapté', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_44_2', nom: 'Alchimie divine complète', description: 'Transformation absolue être', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_44_3', nom: 'Manne céleste', description: 'Nourriture éthérique pure', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_44_4', nom: 'Transcendance faim', description: 'Au-delà besoin manger', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_44_5', nom: 'Abstinence totale', description: 'Aucun apport externe', type: 'quantite', difficulte: 3, points: 20 },
+    
+    { id: 'crit_45_1', nom: 'État de grâce nutritionnel', description: 'Nourri uniquement amour divin', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_45_2', nom: 'Souffle éternel', description: 'Prana cosmique unique source', type: 'composition', difficulte: 3, points: 20 },
+    { id: 'crit_45_3', nom: 'Jeûne perpétuel', description: 'Libération cycle alimentaire', type: 'timing', difficulte: 3, points: 20 },
+    { id: 'crit_45_4', nom: 'Cristallisation achevée', description: 'Corps cristal lumière', type: 'comportement', difficulte: 3, points: 20 },
+    { id: 'crit_45_5', nom: 'Être autosuffisant', description: 'Production autonome énergie vitale', type: 'quantite', difficulte: 3, points: 20 }
+  ]
+};
+
 export default referentielAliments;

@@ -69,7 +69,8 @@ export default function RepasBloc({
   repasPrevu,
   categoriePrevu,
   quantitePrevu,
-  kcalPrevu
+  kcalPrevu,
+  onChangeChampsRepas
 }) {
   // Déclaration des hooks d’état PRINCIPAUX tout en haut du composant (checklist React)
   // Ajout d'un état pour afficher l'erreur Supabase (doit être tout en haut)
@@ -100,6 +101,15 @@ export default function RepasBloc({
       if ((typeof kcalPrevu === 'string' || typeof kcalPrevu === 'number') && String(kcalPrevu).length > 0) setKcal(String(kcalPrevu));
     }
   }, [repasConforme, repasPrevu, categoriePrevu, quantitePrevu, kcalPrevu, aliment, categorie, quantite, kcal, repasSemaine, date, type]);
+
+  // Remonter les valeurs au parent pour coloration contextuelle pastilles
+  // onChangeChampsRepas retiré du dependency array (stabilisé par useMemo côté parent)
+  useEffect(() => {
+    if (onChangeChampsRepas) {
+      onChangeChampsRepas({ aliment, quantite, heureRepas, categorie });
+    }
+  }, [aliment, quantite, heureRepas, categorie]);
+
   // Ajout Fast food (déclaration unique, checklist respectée)
   const [isFastFood, setIsFastFood] = useState(false);
   const [fastFoodType, setFastFoodType] = useState('');

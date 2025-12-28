@@ -645,6 +645,42 @@ export default function RepriseAlimentaireApresJeune() {
             >
               <span style={{fontSize:'1.2em'}}>🔄</span> Actualiser
             </button>
+            <button
+              onClick={() => {
+                // MODE TEST : Utiliser clés TEST_ pour isoler des données réelles
+                const programmeCristallisation = {
+                  dateDebut: new Date().toISOString(),
+                  bilanReprise: {
+                    scoreGlobal: 85,
+                    hydratation: { score: 90 },
+                    timing: { score: 80 },
+                    quantites: { score: 85 },
+                    qualite: { score: 88 }
+                  }
+                };
+                localStorage.setItem('TEST_programmeCristallisation', JSON.stringify(programmeCristallisation));
+                localStorage.setItem('TEST_joursValidesCristallisation', JSON.stringify([]));
+                localStorage.setItem('TEST_context', 'cristallisation');
+                console.log('[MODE TEST] Cristallisation test créée - données isolées');
+                window.location.href = '/cristallisation';
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 8,
+                padding: '0.6rem 1.2rem',
+                fontWeight: 600,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(245,158,11,0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <span style={{fontSize:'1.2em'}}>🧪</span> Test Cristallisation
+            </button>
           </div>
         </div>
         
@@ -1560,16 +1596,47 @@ export default function RepriseAlimentaireApresJeune() {
                 <div style={{marginTop: 12}}>📅 Date de fin : {new Date(programme.date_fin_reprise || new Date()).toLocaleDateString('fr-FR')}</div>
               </div>
 
-              <Link
-                href={{
-                  pathname: '/consolidation-45-jours',
-                  query: {
-                    // Transmettre TOUTES les données à la cristallisation
-                    bilan_reprise: JSON.stringify(programme.bilan_reprise || {}),
-                    duree_jeune: programme.duree_jeune_jours,
-                    duree_reprise: programme.duree_reprise_jours,
-                    poids_actuel: programme.bilan_reprise?.poids_fin_reprise || programme.poids_fin_jeune || programme.poids_depart,
-                    date_fin_reprise: programme.date_fin_reprise || new Date().toISOString().split('T')[0],
+              <div style={{display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16, flexWrap: 'wrap'}}>
+                <button
+                  onClick={() => {
+                    // Créer le programme cristallisation
+                    const programmeCristallisation = {
+                      dateDebut: new Date().toISOString(),
+                      bilanReprise: programme.bilan_reprise || {}
+                    };
+                    localStorage.setItem('programmeCristallisation', JSON.stringify(programmeCristallisation));
+                    localStorage.setItem('joursValidesCristallisation', JSON.stringify([]));
+                    // Redirection
+                    window.location.href = '/cristallisation';
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 12,
+                    padding: '1rem 2rem',
+                    fontWeight: 700,
+                    fontSize: '1.1rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(102,126,234,0.4)',
+                    transition: 'transform 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                >
+                  🏔️ Démarrer la Cristallisation
+                </button>
+
+                <Link
+                  href={{
+                    pathname: '/consolidation-45-jours',
+                    query: {
+                      // Transmettre TOUTES les données à la cristallisation
+                      bilan_reprise: JSON.stringify(programme.bilan_reprise || {}),
+                      duree_jeune: programme.duree_jeune_jours,
+                      duree_reprise: programme.duree_reprise_jours,
+                      poids_actuel: programme.bilan_reprise?.poids_fin_reprise || programme.poids_fin_jeune || programme.poids_depart,
+                      date_fin_reprise: programme.date_fin_reprise || new Date().toISOString().split('T')[0],
                     reprise_id: programme.id,
                     taux_conformite: programme.bilan_reprise?.taux_conformite || 0
                   }
@@ -1591,8 +1658,9 @@ export default function RepriseAlimentaireApresJeune() {
                 onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
                 onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
               >
-                🚀 Commencer ma phase de consolidation (45 jours)
+                🏆 Ancienne page consolidation
               </Link>
+              </div>
               
               <div style={{
                 marginTop: 16,

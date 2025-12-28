@@ -4,6 +4,14 @@
 
 ─────────────────────────────────────────────────────────────
 Attention ce fichier template ne doit jamais être modifier !!
+Attention ne jamais utiliser SED pour suppression massive! toute suppresion doit avoir ete autorisé explicitement par l utilisateur, copilot doit informer de l objet de la suppresion et de l impact et de la raison de la suppression et cela doit etre fait apres accord explicite de facon minitieuse ligne apres ligne point après point pour eviter toute anomalie !!
+
+INTERDICTION ABSOLUE :
+
+❌ JAMAIS utiliser sed pour supprimer du code
+❌ JAMAIS supprimer > 10 lignes sans accord explicite
+✅ TOUJOURS montrer le code à supprimer
+✅ TOUJOURS attendre validation utilisateur
 1 Créer un nouveau fichier afin de réaliser les actions ci dessous : 
 
 ## Titre de la tâche  
@@ -218,3 +226,4 @@ Permettre à l’utilisateur de suivre sa progression, valider chaque critère, 
 - [ ] Plan validé par l’utilisateur à la date : ___
 
 **⚠️ Copilot NE PEUT PAS générer de code avant validation explicite du plan, et doit se conformer à cette checklist/détail à CHAQUE tâche.**
+New regle stricte ! Faire une deuxieme lecture de la template comparé avec le plan d implmentation crée pour la mission en cours, identifier les ecart et informer l utilisateur dans la conversation afin de s'assurer que chaque etape du plan a bien été respecté ensuite demander a l utilisateur quoi faire pour poursuivre 
