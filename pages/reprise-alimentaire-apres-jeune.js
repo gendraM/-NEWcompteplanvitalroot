@@ -232,6 +232,11 @@ export default function RepriseAlimentaireApresJeune() {
   // 🆕 États pour fonctionnalités Phase 5
   const [modalRecettesPhase5, setModalRecettesPhase5] = useState({ isOpen: false, type: 'poulet' });
 
+  // 🆕 États pour historique reprises
+  const [historiqueReprises, setHistoriqueReprises] = useState([]);
+  const [showHistoriqueModal, setShowHistoriqueModal] = useState(false);
+  const [repriseConsultee, setRepriseConsultee] = useState(null);
+
   // Permettre un mode test/forçage via ?test=1 dans l'URL
   const [forceSuivi, setForceSuivi] = useState(false);
   const [repriseMode, setRepriseMode] = useState('normal'); // 'test' ou 'normal'
@@ -247,6 +252,19 @@ export default function RepriseAlimentaireApresJeune() {
   useEffect(() => {
     const modeActuel = localStorage.getItem('repriseMode') || 'normal';
     setRepriseMode(modeActuel);
+  }, []);
+
+  // 🆕 CHARGER HISTORIQUE REPRISES AU MONTAGE
+  useEffect(() => {
+    try {
+      const historiqueLS = JSON.parse(localStorage.getItem('historiqueReprises') || '[]');
+      if (Array.isArray(historiqueLS)) {
+        setHistoriqueReprises(historiqueLS);
+        console.log('[HISTORIQUE REPRISES] Chargé:', historiqueLS.length, 'reprises archivées');
+      }
+    } catch (error) {
+      console.error('Erreur chargement historique reprises:', error);
+    }
   }, []);
 
   useEffect(() => {
@@ -471,16 +489,6 @@ export default function RepriseAlimentaireApresJeune() {
         r.date === jourData.date
       );
 
-      // Vérifier qu'il y a au moins 2 repas enregistrés
-      if (repasJour.length < 2) {
-        setMessageValidation({ 
-          type: 'error', 
-          text: `⚠️ Tu dois enregistrer au moins 2 repas conformes avant de valider ce jour. Actuellement : ${repasJour.length}/2 repas.` 
-        });
-        setValidationEnCours(false);
-        return;
-      }
-
       // 3️⃣ Marquer le jour comme validé dans localStorage
       const joursValides = JSON.parse(localStorage.getItem('joursReprisesValides') || '[]');
       const jourExistant = joursValides.find(j => j.jour_numero === jourData.jour_numero);
@@ -673,6 +681,27 @@ export default function RepriseAlimentaireApresJeune() {
             >
               <span style={{fontSize:'1.2em'}}>✏️</span> Saisir un repas
             </Link>
+            {historiqueReprises.length > 0 && (
+              <button
+                onClick={() => setShowHistoriqueModal(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '0.6rem 1.2rem',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(102,126,234,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <span style={{fontSize:'1.2em'}}>📊</span> Mes reprises ({historiqueReprises.length})
+              </button>
+            )}
             <button
               onClick={() => window.location.reload()}
               style={{
