@@ -4,29 +4,104 @@ import { supabase } from '../lib/supabaseClient';
 import { CRITERES_CRISTALLISATION } from '../data/referentiel';
 import { analyserCriteresAutomatiques } from '../lib/analyseRepas3Jours';
 
-export default function CristallisationQuotidien() {
-  const router = useRouter();
+export default function CristallisationQuotidien() { 
+   // Déclarer tous les hooks d'état AVANT tout usage dans les hooks ou dépendances
   const [isClient, setIsClient] = useState(false);
-  
+  const [jourAffiche, setJourAffiche] = useState(1); // DÉPLACÉ EN HAUT
+  const router = useRouter();
   // === PROGRAMME ===
   const [dateDebut, setDateDebut] = useState(null);
   const [jourActuel, setJourActuel] = useState(1);
   const [totalJours] = useState(45);
-  
-  // === NAVIGATION ===
-  const [jourAffiche, setJourAffiche] = useState(1);
-  
+
+  // === HANDLERS POUR DÉFIS PERSONNALISÉS ET BADGES ===
+  // Sélectionner un défi personnalisé pour affichage ou validation
+  const handleSelectDefi = (defi) => {
+    setDefiSelectionne(defi);
+    // Charger le journal du défi sélectionné (exemple : depuis localStorage ou Supabase)
+    try {
+      const journalStr = localStorage.getItem(`journalDefi_${defi?.id}_${jourAffiche}`);
+      if (journalStr) {
+        setJournalDefi(JSON.parse(journalStr));
+      } else {
+        setJournalDefi({});
+      }
+    } catch (e) {
+      setJournalDefi({});
+    }
+  };
+
+  // Valider une étape ou un défi personnalisé
+  const handleValiderDefi = (defiId, etape) => {
+    // Exemple : marquer l’étape comme validée dans le journal, puis sauvegarder
+    const journalKey = `journalDefi_${defiId}_${jourAffiche}`;
+    let journal = {};
+    try {
+      const journalStr = localStorage.getItem(journalKey);
+      journal = journalStr ? JSON.parse(journalStr) : {};
+    } catch (e) { journal = {}; }
+    journal[etape] = true;
+    localStorage.setItem(journalKey, JSON.stringify(journal));
+    setJournalDefi(journal);
+  };
+
+  // Attribuer un badge après validation d’un défi ou d’un palier
+  const handleAttribuerBadge = (badge) => {
+    const badges = [...badgesObtenus, badge];
+    localStorage.setItem('badgesObtenusCristallisation', JSON.stringify(badges));
+    setBadgesObtenus(badges);
+    setBadgeJustUnlocked(badge);
+  };
+
+  // === LOGIQUE DE CHARGEMENT DES DÉFIS PERSONNALISÉS ET BADGES ===
+  useEffect(() => {
+    if (!isClient || !jourAffiche) return;
+    // Charger les défis personnalisés du jour (exemple : depuis localStorage ou Supabase)
+    try {
+      const defisStr = localStorage.getItem(`defisPersonnalises_${jourAffiche}`);
+      if (defisStr) {
+        setDefisPersonnalises(JSON.parse(defisStr));
+      } else {
+        setDefisPersonnalises([]);
+      }
+    } catch (e) {
+      setDefisPersonnalises([]);
+    }
+
+    // Charger les badges obtenus (exemple : depuis localStorage ou Supabase)
+    try {
+      const badgesStr = localStorage.getItem('badgesObtenusCristallisation');
+      if (badgesStr) {
+        setBadgesObtenus(JSON.parse(badgesStr));
+      } else {
+        setBadgesObtenus([]);
+      }
+    } catch (e) {
+      setBadgesObtenus([]);
+    }
+  }, [isClient, jourAffiche]);
+
+
   // === VALIDATION ===
   const [joursValides, setJoursValides] = useState({});
   const [criteresJour, setCriteresJour] = useState([]);
   const [validationJour, setValidationJour] = useState({});
-  
+
   // === REPAS DU JOUR ===
   const [repasDuJour, setRepasDuJour] = useState([]);
   const [chargement, setChargement] = useState(true);
 
-  // === NOUVEAU (P2) : SUGGESTIONS AUTO-VALIDATION ===
+  // === SUGGESTIONS AUTO-VALIDATION ===
   const [suggestionsCriteres, setSuggestionsCriteres] = useState({});
+
+  // === DÉFIS PERSONNALISÉS ===
+  const [defisPersonnalises, setDefisPersonnalises] = useState([]); // Liste des défis personnalisés du jour
+  const [defiSelectionne, setDefiSelectionne] = useState(null); // Défi sélectionné pour affichage ou validation
+  const [journalDefi, setJournalDefi] = useState({}); // Journal de suivi du défi personnalisé
+
+  // === BADGES ===
+  const [badgesObtenus, setBadgesObtenus] = useState([]); // Liste des badges obtenus
+  const [badgeJustUnlocked, setBadgeJustUnlocked] = useState(null); // Badge débloqué à l’instant
 
 
   // === CLIENT DETECTION ===
@@ -48,7 +123,10 @@ export default function CristallisationQuotidien() {
 
   const chargerProgramme = () => {
     try {
-      const programmeStr = localStorage.getItem('programmeCristallisation');
+      // Support mode test comme dans cristallisation.js
+      const modeTest = localStorage.getItem('TEST_context') === 'cristallisation';
+      const cleProgr = modeTest ? 'TEST_programmeCristallisation' : 'programmeCristallisation';
+      const programmeStr = localStorage.getItem(cleProgr);
       if (!programmeStr) {
         router.push('/cristallisation');
         return;
@@ -337,9 +415,7 @@ export default function CristallisationQuotidien() {
           ← Retour tableau de bord
         </button>
 
-        <h1 style={{ margin: '0 0 8px 0', fontSize: 24, fontWeight: 700 }}>
-          📅 Suivi Quotidien
-        </h1>
+        <h1 style={{ margin: '0 0 8px 0', fontSize: 24, fontWeight: 700 }}>📅 Suivi Quotidien</h1>
         <div style={{ fontSize: 14, opacity: 0.95 }}>
           Phase Cristallisation • Jour {jourActuel}/45
         </div>
@@ -378,19 +454,10 @@ export default function CristallisationQuotidien() {
             {getEmojiScore(getScoreJour())} Jour {jourAffiche}
           </div>
           <div style={{ fontSize: 13, color: '#666' }}>
-            {dateAffichee && new Date(dateAffichee).toLocaleDateString('fr-FR', { 
-              weekday: 'long', 
-              day: 'numeric', 
-              month: 'long' 
-            })}
+            {dateAffichee && new Date(dateAffichee).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
           {jourEstFutur && (
-            <div style={{ 
-              fontSize: 12, 
-              color: '#ff9800', 
-              marginTop: 4,
-              fontWeight: 600 
-            }}>
+            <div style={{ fontSize: 12, color: '#ff9800', marginTop: 4, fontWeight: 600 }}>
               🔒 À venir
             </div>
           )}
@@ -423,12 +490,7 @@ export default function CristallisationQuotidien() {
           padding: 16,
           marginBottom: 20
         }}>
-          <div style={{ 
-            fontSize: 16, 
-            fontWeight: 600, 
-            color: feedback.color,
-            marginBottom: 8 
-          }}>
+          <div style={{ fontSize: 16, fontWeight: 600, color: feedback.color, marginBottom: 8 }}>
             {feedback.message}
           </div>
           <div style={{ fontSize: 14, color: '#666' }}>
@@ -446,12 +508,7 @@ export default function CristallisationQuotidien() {
           padding: 16,
           marginBottom: 20
         }}>
-          <div style={{ 
-            fontSize: 14, 
-            fontWeight: 600, 
-            color: '#1976d2',
-            marginBottom: 8 
-          }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#1976d2', marginBottom: 8 }}>
             💡 Conseil NEXT meal
           </div>
           <div style={{ fontSize: 14, color: '#333' }}>
@@ -499,21 +556,11 @@ export default function CristallisationQuotidien() {
                     gap: 12
                   }}
                 >
-                  <div style={{ 
-                    fontSize: 24, 
-                    minWidth: 32,
-                    transition: 'transform 0.2s',
-                    transform: estValide ? 'scale(1.2)' : 'scale(1)'
-                  }}>
+                  <div style={{ fontSize: 24, minWidth: 32, transition: 'transform 0.2s', transform: estValide ? 'scale(1.2)' : 'scale(1)' }}>
                     {estValide ? '✅' : '⬜'}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ 
-                      fontSize: 15, 
-                      fontWeight: 600, 
-                      color: '#333',
-                      marginBottom: 4 
-                    }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#333', marginBottom: 4 }}>
                       {critere.titre || critere.nom || `Critère ${critere.id}`}
                     </div>
                     {critere.description && (
@@ -521,7 +568,6 @@ export default function CristallisationQuotidien() {
                         {critere.description}
                       </div>
                     )}
-                    
                     {/* === NOUVEAU (P2) : SUGGESTION AUTO-VALIDATION === */}
                     {suggestionsCriteres[critere.id]?.suggere && !estValide && jourEstActuel && (
                       <div style={{
@@ -609,7 +655,6 @@ export default function CristallisationQuotidien() {
           <h2 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#333' }}>
             🍽️ Mes repas aujourd'hui
           </h2>
-          
           {repasDuJour.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
               Aucun repas enregistré aujourd'hui
@@ -632,7 +677,7 @@ export default function CristallisationQuotidien() {
                   <div>
                     <span style={{ fontWeight: 600 }}>{repas.heure}</span> - {repas.aliment}
                   </div>
-                  <div style={{ 
+                  <div style={{
                     fontSize: 12,
                     padding: '4px 8px',
                     borderRadius: 4,
@@ -646,7 +691,6 @@ export default function CristallisationQuotidien() {
               ))}
             </div>
           )}
-
           <button
             onClick={() => router.push('/suivi')}
             style={{

@@ -38,7 +38,7 @@ _EXEMPLE :_
 
 ### Etape 1 — **Audit des risques préalable**
 1. _Lister tous les risques : technique, UX, sécurité, conflit, régression, perte de données, robustesse, accessibilité, etc._
-2. _Identifier l’ordre de tous les hooks React (useState, useEffect, etc.) afin de s’assurer qu’ils sont déclarés uniquement en haut du corps du composant fonctionnel, et jamais dans une fonction, une boucle, un map, un if, etc. (respect strict des règles officielles des hooks)_
+2. _Identifier l’ordre de tous les hooks React (useState, useEffect, etc.) afin de s’assurer qu’ils sont déclarés uniquement en haut du corps du composant fonctionnel, et jamais dans une fonction, une boucle, un map, un if, etc. (respect strict des règles officielles des hooks)._ **TOUTE VARIABLE D’ÉTAT OU DE HOOK DOIT ÊTRE DÉCLARÉE AVANT TOUTE UTILISATION, Y COMPRIS DANS LES DÉPENDANCES D’AUTRES HOOKS (ex : tableau de dépendances de useEffect).**_
 3. _Documenter ces risques en points de vigilance à intégrer dans la checklist du contrôle qualité_
 4. _Consulter le fichier d’anomalies rollback avant toute modification_
 
@@ -63,8 +63,10 @@ _EXEMPLE :_
 - [ ] Lecture complète du code concerné (dépendances, hooks, variables, fonctions…)
 - [ ] Initialisation systématique avant usage (hooks, variables, handlers)
 - [ ] Tous les hooks React (useState, useEffect, etc.) sont déclarés uniquement en haut du corps du composant fonctionnel, jamais dans une fonction, une boucle, un map, un if, etc. (respect des règles officielles des hooks)
+   - [ ] **Aucune variable d’état ou de hook n’est utilisée avant sa déclaration, y compris dans les dépendances d’autres hooks (ex : tableau de dépendances de useEffect).**
 - [ ] Séparation stricte des étapes : d’abord initialisation (useState, useEffect…), puis logique calculée, puis handlers/fonctions, puis rendu
 - [ ] Vérification : toute fonction ou handler utilisé dans le rendu est présent et initialisé avant usage  
+- [ ]  Il faut déclarer tous les hooks (useState, useEffect, etc.) AVANT toute utilisation de leurs variables, y compris dans les dépendances d’autres hooks.
 - [ ] Ordre et portée logiques stricts (jamais déclaration, appel ou usage prématuré)  
 - [ ] Pas de doublons ni de déclarations superflues  
 - [ ] Contrôle d’erreur systématique (compilation, runtime, SSR, rendu, accessibilité)  
@@ -108,8 +110,10 @@ _EXEMPLE :_
 ---
 
 ### Etape 6 — **Point de vigilance**
+
 1. Mettre ici le rapport lié à la lecture des entrées du fichier anomalies rollback adapté à la mise à jour actuelle (cf. Etape 4).
 2. Lister les erreurs similaires que la modification pourrait générer, suite au retour d’expérience documenté dans le fichier, afin de les éviter.
+   - **Vérifier qu’aucune variable d’état ou de hook n’est utilisée avant sa déclaration, y compris dans les dépendances d’autres hooks (ex : tableau de dépendances de useEffect).**
 3. Créer la checklist de vérification/point de vigilance, informer l’utilisateur que l’étape a été réalisée et indiquer l’impact attendu.
 
 _EXEMPLE :_

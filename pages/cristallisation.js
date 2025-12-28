@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import DefiCard from '../components/DefiCard';
+import { genererDefisCristallisation } from '../lib/defisCristallisationGenerator';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
 import { CRITERES_CRISTALLISATION } from '../data/referentiel';
@@ -172,6 +174,15 @@ export default function Cristallisation() {
         <p>Chargement...</p>
       </div>
     );
+  }
+
+  // === GÉNÉRATION DES DÉFIS COMPORTEMENTAUX (uniquement phase cristallisation) ===
+  let defisCristallisation = [];
+  if (programmeCristallisation && programmeCristallisation.bilanReprise) {
+    // Difficultés et contextes extraits du bilan de reprise (adapter selon structure réelle)
+    const difficultes = programmeCristallisation.bilanReprise.difficultes || [];
+    const contextes = programmeCristallisation.bilanReprise.contextes || [];
+    defisCristallisation = genererDefisCristallisation({ difficultes, contextes });
   }
 
   return (
@@ -388,6 +399,25 @@ export default function Cristallisation() {
         </div>
       </div>
 
+      {/* DÉFIS COMPORTEMENTAUX CRISTALLISATION */}
+      {programmeCristallisation && defisCristallisation.length > 0 && (
+        <div style={{
+          background: '#f5f7ff',
+          border: '2px solid #667eea',
+          borderRadius: 12,
+          padding: 20,
+          marginBottom: 20,
+        }}>
+          <h2 style={{ margin: '0 0 16px 0', fontSize: 20, color: '#333' }}>
+            🎯 Défis comportementaux personnalisés
+          </h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {defisCristallisation.map((defi, idx) => (
+              <DefiCard key={idx} defi={defi} />
+            ))}
+          </div>
+        </div>
+      )}
       {/* MESSAGE CONSTRUCTION */}
       <div style={{
         background: '#fff3cd',
@@ -404,7 +434,6 @@ export default function Cristallisation() {
         <div style={{ fontSize: 14, color: '#666' }}>
           Les sections suivantes seront ajoutées prochainement :
           <br />• Jeûnes ponctuels (16h, 24h, 48h)
-          <br />• Défis comportementaux
           <br />• Statistiques détaillées
         </div>
       </div>

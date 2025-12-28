@@ -81,8 +81,33 @@ Intégrer les défis personnalisés avec suggestion intelligente (IA) et gestion
 
 ### Etape 6 — **Point de vigilance**
 1. Rapport lié à la lecture des entrées du fichier anomalies rollback.
-2. Lister les erreurs similaires potentielles.
-3. Créer la checklist de vérification/point de vigilance, informer l’utilisateur, indiquer l’impact attendu.
+2. Création d’une checklist de contrôle issue de la lecture du fichier d’anomalies rollback, à appliquer avant le codage (conformité stricte au template).
+---
+**Checklist de contrôle — Points de vigilance critiques**
+
+1. Gestion de la date du jour dans /pages/suivi.js
+	- Vérifier que la date affichée par défaut est toujours la date du jour, sauf deep-link explicitement validé.
+	- Ne jamais écraser la date du jour par un paramètre URL sans confirmation utilisateur.
+	- Contrôler toute modification de selectedDate pour éviter la régression du workflow « saisie rapide repas du jour ».
+
+2. Gestion des props et hooks dans RepasBloc.js
+	- Ne jamais passer une expression inline comme prop à un composant si elle est utilisée dans un useEffect avec dependency array.
+	- S’assurer que les handlers (ex : onChangeChampsRepas) sont stables et mémorisés (useCallback ou déclaration hors render).
+	- Vérifier que les useEffect ne déclenchent pas de boucle infinie via des props/fonctions recalculées à chaque render.
+
+3. Respect strict du flow React
+	- Tous les hooks (useState, useEffect…) doivent être déclarés en haut du composant, jamais dans une condition, boucle, ou expression inline.
+	- Contrôler la stabilité des références passées en props pour éviter les re-render et boucles.
+
+4. Régression et robustesse
+	- Tester systématiquement le workflow utilisateur : saisie repas du jour, navigation, validation des défis, attribution des badges.
+	- Vérifier l’absence de crash, freeze, ou comportement bloquant après chaque modification.
+
+5. Documentation et rollback
+	- Documenter toute anomalie ou modification dans le fichier rollback, sans jamais supprimer d’entrées.
+	- Proposer un rollback immédiat en cas de bug critique, avec date, heure et contexte.
+3. Lister les erreurs similaires potentielles.
+4. Créer la checklist de vérification/point de vigilance, informer l’utilisateur, indiquer l’impact attendu.
 
 ---
 
