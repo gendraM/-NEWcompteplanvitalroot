@@ -10,6 +10,7 @@ import RecettesPhase2Modal from '../components/RecettesPhase2Modal';
 import RecettesPhase3Modal from '../components/RecettesPhase3Modal';
 import RecettesPhase4Modal from '../components/RecettesPhase4Modal';
 import RecettesPhase5Modal from '../components/RecettesPhase5Modal';
+import HistoriqueReprisesModal from '../components/HistoriqueReprisesModal';
 
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
@@ -2203,6 +2204,14 @@ export default function RepriseAlimentaireApresJeune() {
           }
         }
       `}</style>
+
+      {/* Modal Historique Reprises */}
+      {showHistoriqueModal && (
+        <HistoriqueReprisesModal
+          historiqueReprises={historiqueReprises}
+          onFermer={() => setShowHistoriqueModal(false)}
+        />
+      )}
     </div>
   );
 }
