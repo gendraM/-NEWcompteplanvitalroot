@@ -548,6 +548,53 @@ export default function RepriseAlimentaireApresJeune() {
         localStorage.setItem('bilanRepriseAlimentaire', JSON.stringify(bilanReprise));
         console.log('[BILAN REPRISE] Bilan calculé et sauvegardé:', bilanReprise);
         
+        // 🆕 ARCHIVER LA REPRISE (pattern jeûne.js, lignes 1163-1230)
+        try {
+          // Lire données depuis localStorage (comme jeûne.js le fait)
+          const dateDebutLS = JSON.parse(localStorage.getItem('programmeRepriseValide') || '{}').date_debut_reprise || programme.date_debut_reprise;
+          const dureeLS = programme.duree_reprise_jours;
+          const joursValidesLS = JSON.parse(localStorage.getItem('joursReprisesValides') || '[]').map(j => j.jour_numero);
+          const cleRepasLS = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
+          const repasConsommesLS = JSON.parse(localStorage.getItem(cleRepasLS) || '[]');
+          const bilanLS = JSON.parse(localStorage.getItem('bilanRepriseAlimentaire') || 'null');
+          const programmeRepriseLS = JSON.parse(localStorage.getItem('programmeRepriseValide') || 'null');
+          
+          if (joursValidesLS.length === 0 || !dateDebutLS) {
+            console.log('⚠️ Aucune reprise à archiver (0 jours validés ou pas de date)');
+          } else {
+            const idReprise = `${dateDebutLS}_${dureeLS}j`;
+            const dateFinArchivage = new Date().toISOString().split('T')[0];
+            
+            // Objet archive (adapté du pattern jeuneArchive)
+            const repriseArchive = {
+              id: idReprise,
+              dateDebut: dateDebutLS,
+              dateFin: dateFinArchivage,
+              duree: dureeLS,
+              joursValides: [...joursValidesLS],
+              repasConsommes: repasConsommesLS,
+              bilan: bilanLS,
+              programmeReprise: programmeRepriseLS,
+              statut: 'termine',
+              dateArchivage: new Date().toISOString()
+            };
+            
+            // Archiver comme jeûne.js
+            const historiqueActuel = JSON.parse(localStorage.getItem('historiqueReprises') || '[]');
+            const dejaArchive = historiqueActuel.some(r => r.id === repriseArchive.id);
+            
+            if (!dejaArchive) {
+              historiqueActuel.unshift(repriseArchive); // Plus récente en premier
+              localStorage.setItem('historiqueReprises', JSON.stringify(historiqueActuel));
+              console.log('✅ Reprise archivée avec succès:', repriseArchive.id);
+            } else {
+              console.log('ℹ️ Reprise déjà archivée:', repriseArchive.id);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Erreur archivage reprise:', error);
+        }
+        
         // Mettre à jour le programme
         const programmeMAJ = { 
           ...programme, 

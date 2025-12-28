@@ -89,6 +89,7 @@ laurelle  https://github.com/laurellebaylemankassa-create/-NEWcompteplanvitalroo
 # Ajouter le dépôt de Laurelle comme remote
 git remote add laurelle https://github.com/laurellebaylemankassa-create/-NEWcompteplanvitalroot.git
 ```
+git remote set-url laurelle https://github.com/laurellebaylemankassa-create/NEWcompteplanvitalroot.git
 
 ### ✅ Étape 3 : Vérifier les branches
 

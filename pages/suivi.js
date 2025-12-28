@@ -24,6 +24,7 @@ function RetourAccueil() {
 // ----------- HANDLER POUR LA SAUVEGARDE D'UN REPAS -----------
 // La fonction handleSaveRepas est définie plus bas dans le composant principal, après l’import unique de Supabase.
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import BandeauDefiActif from '../components/BandeauDefiActif';
 import { supabase } from '../lib/supabaseClient';
 import { 
@@ -356,13 +357,72 @@ function ZoneBadgesProgression({ progression, history, palier }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════
+// FONCTION POUR CALCULER L'ÉTAT DES PASTILLES DE CRITÈRES
+// ═══════════════════════════════════════════════════════════
+function calculerEtatPastille(criteriaId, typeRepas, champsRepasEnCours) {
+  if (!champsRepasEnCours || typeof champsRepasEnCours !== 'object') return 'neutral';
+  
+  const { aliment = '', quantite = '', heureRepas = '', categorie = '' } = champsRepasEnCours;
+  
+  // Récupérer les validations basées sur les critères
+  switch(criteriaId) {
+    case 1: // Portions: repères visuels
+      // Vérifier si quantité est renseignée
+      if (quantite && String(quantite).trim().length > 0) return 'ok';
+      if (aliment && String(aliment).trim().length > 0) return 'warn'; // Aliment renseigné mais pas de quantité
+      return 'neutral';
+    
+    case 2: // Dîner: sans féculents
+      if (typeRepas === 'Dîner') {
+        const feculents = ['pâtes', 'riz', 'pain', 'patate', 'pomme de terre', 'féculents', 'féculent'];
+        const alimentLower = String(aliment).toLowerCase();
+        const hasFeculents = feculents.some(f => alimentLower.includes(f));
+        
+        if (aliment && !hasFeculents) return 'ok'; // Aliment non-féculents OK
+        if (hasFeculents) return 'warn'; // Féculents détectés
+      }
+      return 'neutral';
+    
+    case 7: // Eau: ≥ 2L/jour
+      // Impossible à tracker par repas sans données externes
+      return 'neutral';
+    
+    case 8: // Dernier repas < 19h
+      if (typeRepas === 'Dîner' && heureRepas) {
+        const heure = parseInt(String(heureRepas).split(':')[0]);
+        if (heure < 19) return 'ok';
+        if (heure >= 19) return 'warn';
+      }
+      return 'neutral';
+    
+    case 9: // Repas ≤ 45 min
+      // Impossible à tracker sans données temporelles supplémentaires
+      return 'neutral';
+    
+    default:
+      return 'neutral';
+  }
+}
+
 // MAIN COMPONENT
 export default function Suivi() {
+  // ═══════════════════════════════════════════════════════════
+  // RÉCUPÉRER LES PARAMÈTRES DE FILTRAGE DEPUIS L'URL
+  // ═══════════════════════════════════════════════════════════
+  const router = useRouter();
+  const filtreFromTo = {
+    from: router.query.from || null,
+    to: router.query.to || null
+  };
+  
   // ----------- HOOKS PRINCIPAUX (ordre strict selon la checklist) -----------
   // Initialiser selectedDate AVANT tout usage dans un useEffect ou une variable calculée
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0,10));
   // Hook pour l'affichage de l'alerte calorique (DOIT ÊTRE DÉCLARÉ AVANT SON UTILISATION dans useEffect)
   const [repasSemaine, setRepasSemaine] = useState([]);
+  // Hook pour tracker les champs du repas en cours (portions, féculents, hydratation, etc.)
+  const [champsRepasEnCours, setChampsRepasEnCours] = useState({});
   // Récupérer la date du jeûne programmé (stockée en localStorage ou BDD)
   const [dateJeune, setDateJeune] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -422,7 +482,6 @@ export default function Suivi() {
   // NOUVEAU : VALIDATION AUTOMATIQUE DES CRITÈRES (26/12/2025)
   // ═══════════════════════════════════════════════════════════
   const [statutsValidationAuto, setStatutsValidationAuto] = useState({});
-  const [repasSemaine, setRepasSemaine] = useState([]);
   
   // État client-only pour éviter hydration mismatch (mini-bandeau préparation)
   const [isMounted, setIsMounted] = useState(false);
