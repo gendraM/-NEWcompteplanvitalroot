@@ -40,7 +40,6 @@ function CartePreparationJeune({ preparation, onDelete }) {
     <div style={{ background: '#F5F8FA', border: '1px solid #4F8FFF', borderRadius: 12, padding: 18, minWidth: 280, maxWidth: 340, boxShadow: '0 2px 8px rgba(79,143,255,0.08)', position: 'relative' }}>
       <button
         onClick={() => {
-          supprimerPreparationHistorique(id);
           if (onDelete) onDelete(id);
         }}
         style={{ position: 'absolute', top: 10, right: 10, background: '#FF6B6B', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
