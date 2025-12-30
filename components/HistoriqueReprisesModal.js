@@ -12,14 +12,15 @@ export default function HistoriqueReprisesModal({ historiqueReprises, onFermer, 
     return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
-  // Suppression reprise
+  // Suppression reprise (côté client uniquement)
   const supprimerReprise = (id) => {
-    const historiqueActuel = JSON.parse(localStorage.getItem('historiqueReprises') || '[]');
-    const historiqueFiltre = historiqueActuel.filter(r => r.id !== id);
-    localStorage.setItem('historiqueReprises', JSON.stringify(historiqueFiltre));
-    
-    // Recharger la liste
-    window.location.reload();
+    if (typeof window !== 'undefined') {
+      const historiqueActuel = JSON.parse(window.localStorage.getItem('historiqueReprises') || '[]');
+      const historiqueFiltre = historiqueActuel.filter(r => r.id !== id);
+      window.localStorage.setItem('historiqueReprises', JSON.stringify(historiqueFiltre));
+      // Recharger la liste côté client
+      window.location.reload();
+    }
   };
 
   if (!historiqueReprises || historiqueReprises.length === 0) {

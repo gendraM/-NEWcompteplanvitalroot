@@ -235,6 +235,7 @@ export default function RepriseAlimentaireApresJeune() {
 
   // 🆕 États pour historique reprises
   const [historiqueReprises, setHistoriqueReprises] = useState([]);
+  const [isHistoriqueLoaded, setIsHistoriqueLoaded] = useState(false);
   const [showHistoriqueModal, setShowHistoriqueModal] = useState(false);
   const [repriseConsultee, setRepriseConsultee] = useState(null);
 
@@ -258,12 +259,18 @@ export default function RepriseAlimentaireApresJeune() {
   // 🆕 CHARGER HISTORIQUE REPRISES AU MONTAGE
   useEffect(() => {
     try {
-      const historiqueLS = JSON.parse(localStorage.getItem('historiqueReprises') || '[]');
-      if (Array.isArray(historiqueLS)) {
-        setHistoriqueReprises(historiqueLS);
-        console.log('[HISTORIQUE REPRISES] Chargé:', historiqueLS.length, 'reprises archivées');
+      if (typeof window !== 'undefined') {
+        const historiqueLS = JSON.parse(localStorage.getItem('historiqueReprises') || '[]');
+        if (Array.isArray(historiqueLS)) {
+          setHistoriqueReprises(historiqueLS);
+          setIsHistoriqueLoaded(true);
+          console.log('[HISTORIQUE REPRISES] Chargé:', historiqueLS.length, 'reprises archivées');
+        } else {
+          setIsHistoriqueLoaded(true);
+        }
       }
     } catch (error) {
+      setIsHistoriqueLoaded(true);
       console.error('Erreur chargement historique reprises:', error);
     }
   }, []);
@@ -562,18 +569,27 @@ export default function RepriseAlimentaireApresJeune() {
           // Lire données depuis localStorage (comme jeûne.js le fait)
           const dateDebutLS = JSON.parse(localStorage.getItem('programmeRepriseValide') || '{}').date_debut_reprise || programme.date_debut_reprise;
           const dureeLS = programme.duree_reprise_jours;
-          const joursValidesLS = JSON.parse(localStorage.getItem('joursReprisesValides') || '[]').map(j => j.jour_numero);
+          // On récupère tous les jours validés (objets complets)
+          const joursValidesObjLS = JSON.parse(localStorage.getItem('joursReprisesValides') || '[]');
+          const joursValidesLS = joursValidesObjLS.map(j => j.jour_numero);
           const cleRepasLS = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
           const repasConsommesLS = JSON.parse(localStorage.getItem(cleRepasLS) || '[]');
           const bilanLS = JSON.parse(localStorage.getItem('bilanRepriseAlimentaire') || 'null');
           const programmeRepriseLS = JSON.parse(localStorage.getItem('programmeRepriseValide') || 'null');
-          
+
+          // Calcul de la phase max atteinte
+          let phaseMaxAtteinte = null;
+          if (joursValidesObjLS.length > 0) {
+            // On prend le max des phases validées (en nombre)
+            phaseMaxAtteinte = Math.max(...joursValidesObjLS.map(j => Number(j.phase) || 0));
+          }
+
           if (joursValidesLS.length === 0 || !dateDebutLS) {
             console.log('⚠️ Aucune reprise à archiver (0 jours validés ou pas de date)');
           } else {
             const idReprise = `${dateDebutLS}_${dureeLS}j`;
             const dateFinArchivage = new Date().toISOString().split('T')[0];
-            
+
             // Objet archive (adapté du pattern jeuneArchive)
             const repriseArchive = {
               id: idReprise,
@@ -585,13 +601,15 @@ export default function RepriseAlimentaireApresJeune() {
               bilan: bilanLS,
               programmeReprise: programmeRepriseLS,
               statut: 'termine',
-              dateArchivage: new Date().toISOString()
+              dateArchivage: new Date().toISOString(),
+              phaseMaxAtteinte: phaseMaxAtteinte, // 🆕 Ajout du champ ici
+              poidsFinReprise: poidsActuel || null // 🆕 Poids final saisi à la fin de la reprise (optionnel)
             };
-            
+
             // Archiver comme jeûne.js
             const historiqueActuel = JSON.parse(localStorage.getItem('historiqueReprises') || '[]');
             const dejaArchive = historiqueActuel.some(r => r.id === repriseArchive.id);
-            
+
             if (!dejaArchive) {
               historiqueActuel.unshift(repriseArchive); // Plus récente en premier
               localStorage.setItem('historiqueReprises', JSON.stringify(historiqueActuel));
@@ -2206,7 +2224,7 @@ export default function RepriseAlimentaireApresJeune() {
       `}</style>
 
       {/* Modal Historique Reprises */}
-      {showHistoriqueModal && (
+      {showHistoriqueModal && isHistoriqueLoaded && (
         <HistoriqueReprisesModal
           historiqueReprises={historiqueReprises}
           onFermer={() => setShowHistoriqueModal(false)}
