@@ -203,7 +203,12 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
     </>
   );
 }
+
+import ModalDifficultesIdentifiees from '../components/ModalDifficultesIdentifiees';
 import { useRouter } from 'next/router';
+  // 🆕 Modal difficultés identifiées
+  const [showModalDifficultes, setShowModalDifficultes] = useState(false);
+  const [difficultesReprise, setDifficultesReprise] = useState(null);
 
 export default function RepriseAlimentaireApresJeune() {
   const router = useRouter();
@@ -526,6 +531,11 @@ export default function RepriseAlimentaireApresJeune() {
         const tauxConformite = totalRepas > 0 ? Math.round((repasConformes / totalRepas) * 100) : 0;
         const nbJoursValides = joursValidesReprise.length;
         const tauxValidation = Math.round((nbJoursValides / programme.duree_reprise_jours) * 100);
+
+        // 🆕 Détection fin de reprise non optimale
+        if (tauxConformite < 70 || tauxValidation < 80) {
+          setShowModalDifficultes(true);
+        }
         
         // Poids de fin (à demander ou récupérer)
         const poidsActuel = localStorage.getItem('poidsActuel') 
@@ -657,6 +667,19 @@ export default function RepriseAlimentaireApresJeune() {
           type: 'success', 
           text: `🎉 Félicitations ! Tu as terminé ta reprise alimentaire avec ${tauxConformite}% de conformité. Direction la phase de cristallisation !` 
         });
+        // 🆕 Callback pour soumission des difficultés
+        const handleSubmitDifficultes = (difficultes) => {
+          setDifficultesReprise(difficultes);
+          // Sauvegarde locale (pattern simple, à adapter pour Supabase si besoin)
+          localStorage.setItem('difficultesReprise', JSON.stringify({
+            date: new Date().toISOString(),
+            tauxConformite: programme?.bilan_reprise?.taux_conformite,
+            tauxValidation: programme?.bilan_reprise?.taux_validation,
+            ...difficultes
+          }));
+          setShowModalDifficultes(false);
+          alert('Merci pour ton retour, il sera pris en compte pour la suite !');
+        };
       } else {
         setMessageValidation({ 
           type: 'success', 
@@ -679,6 +702,14 @@ export default function RepriseAlimentaireApresJeune() {
 
   // ...existing code...
   return (
+        {/* Modal Difficultés identifiées (fin de reprise non optimale) */}
+        <ModalDifficultesIdentifiees
+          isOpen={showModalDifficultes}
+          onClose={() => setShowModalDifficultes(false)}
+          onSubmit={handleSubmitDifficultes}
+          tauxConformite={programme?.bilan_reprise?.taux_conformite || 0}
+          tauxValidation={programme?.bilan_reprise?.taux_validation || 0}
+        />
     <div style={{
       padding: '2rem',
       maxWidth: '1200px',
