@@ -584,6 +584,27 @@ export default function RepriseAlimentaireApresJeune() {
             phaseMaxAtteinte = Math.max(...joursValidesObjLS.map(j => Number(j.phase) || 0));
           }
 
+          // 🆕 Regrouper les aliments consommés par phase
+          const alimentsConsommesParPhase = {};
+          repasConsommesLS.forEach(repas => {
+            const phase = repas.phase || 1;
+            // On prend nom_aliment ou aliments selon la structure
+            let aliments = [];
+            if (Array.isArray(repas.aliments)) {
+              aliments = repas.aliments;
+            } else if (repas.nom_aliment) {
+              aliments = [repas.nom_aliment];
+            }
+            if (!alimentsConsommesParPhase[phase]) {
+              alimentsConsommesParPhase[phase] = [];
+            }
+            aliments.forEach(aliment => {
+              if (aliment && !alimentsConsommesParPhase[phase].includes(aliment)) {
+                alimentsConsommesParPhase[phase].push(aliment);
+              }
+            });
+          });
+
           if (joursValidesLS.length === 0 || !dateDebutLS) {
             console.log('⚠️ Aucune reprise à archiver (0 jours validés ou pas de date)');
           } else {
@@ -603,7 +624,8 @@ export default function RepriseAlimentaireApresJeune() {
               statut: 'termine',
               dateArchivage: new Date().toISOString(),
               phaseMaxAtteinte: phaseMaxAtteinte, // 🆕 Ajout du champ ici
-              poidsFinReprise: poidsActuel || null // 🆕 Poids final saisi à la fin de la reprise (optionnel)
+              poidsFinReprise: poidsActuel || null, // 🆕 Poids final saisi à la fin de la reprise (optionnel)
+              alimentsConsommesParPhase: alimentsConsommesParPhase // 🆕 Aliments consommés regroupés par phase
             };
 
             // Archiver comme jeûne.js
