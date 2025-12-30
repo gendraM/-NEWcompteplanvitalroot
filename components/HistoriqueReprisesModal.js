@@ -172,6 +172,9 @@ export default function HistoriqueReprisesModal({ historiqueReprises, onFermer, 
                 <p style={{ margin: '6px 0' }}><strong>📅 Durée :</strong> {repriseSelectionnee.duree} jours</p>
                 <p style={{ margin: '6px 0' }}><strong>📆 Début :</strong> {formaterDate(repriseSelectionnee.dateDebut)}</p>
                 <p style={{ margin: '6px 0' }}><strong>🏁 Fin :</strong> {formaterDate(repriseSelectionnee.dateFin)}</p>
+                {repriseSelectionnee.poidsFinReprise !== undefined && repriseSelectionnee.poidsFinReprise !== null && (
+                  <p style={{ margin: '6px 0' }}><strong>⚖️ Poids fin reprise :</strong> {repriseSelectionnee.poidsFinReprise} kg</p>
+                )}
               </div>
 
               {/* PROGRESSION VISUELLE */}
@@ -242,11 +245,20 @@ export default function HistoriqueReprisesModal({ historiqueReprises, onFermer, 
                 <div style={{ marginBottom: 16, background: '#fff', padding: 12, borderRadius: 6, border: '1px solid #e0e0e0' }}>
                   <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#333' }}>📊 Bilan par phase</div>
                   <div style={{ fontSize: 12, color: '#666', lineHeight: 1.8 }}>
-                    {repriseSelectionnee.bilan.phase_1 && <p style={{ margin: 4 }}>• <strong>Phase 1:</strong> {repriseSelectionnee.bilan.phase_1.jours} jours</p>}
-                    {repriseSelectionnee.bilan.phase_2 && <p style={{ margin: 4 }}>• <strong>Phase 2:</strong> {repriseSelectionnee.bilan.phase_2.jours} jours</p>}
-                    {repriseSelectionnee.bilan.phase_3 && <p style={{ margin: 4 }}>• <strong>Phase 3:</strong> {repriseSelectionnee.bilan.phase_3.jours} jours</p>}
-                    {repriseSelectionnee.bilan.phase_4 && <p style={{ margin: 4 }}>• <strong>Phase 4:</strong> {repriseSelectionnee.bilan.phase_4.jours} jours</p>}
-                    {repriseSelectionnee.bilan.phase_5 && <p style={{ margin: 4 }}>• <strong>Phase 5:</strong> {repriseSelectionnee.bilan.phase_5.jours} jours</p>}
+                    {repriseSelectionnee.alimentsConsommesParPhase && Object.keys(repriseSelectionnee.alimentsConsommesParPhase).length > 0 ? (
+                      Object.entries(repriseSelectionnee.alimentsConsommesParPhase).map(([phase, aliments]) => (
+                        <div key={phase} style={{ marginBottom: 6 }}>
+                          <strong>Phase {phase} :</strong>{' '}
+                          {aliments && aliments.length > 0 ? (
+                            <span>{aliments.map((a, idx) => a.nom || a).join(', ')}</span>
+                          ) : (
+                            <span style={{ color: '#e65100', fontStyle: 'italic' }}>Aucun aliment consommé</span>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <span style={{ color: '#e65100', fontStyle: 'italic' }}>Aucun aliment consommé pour cette reprise</span>
+                    )}
                   </div>
                 </div>
               )}

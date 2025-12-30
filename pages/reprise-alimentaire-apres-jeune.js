@@ -594,19 +594,18 @@ export default function RepriseAlimentaireApresJeune() {
             phaseMaxAtteinte = Math.max(...joursValidesObjLS.map(j => Number(j.phase) || 0));
           }
 
-          // 🆕 Regrouper les aliments consommés par phase
+          // 🆕 Regrouper les aliments consommés par phase (initialise toutes les phases 1 à 5)
           const alimentsConsommesParPhase = {};
+          for (let p = 1; p <= 5; p++) {
+            alimentsConsommesParPhase[p] = [];
+          }
           repasConsommesLS.forEach(repas => {
             const phase = repas.phase || 1;
-            // On prend nom_aliment ou aliments selon la structure
             let aliments = [];
             if (Array.isArray(repas.aliments)) {
               aliments = repas.aliments;
             } else if (repas.nom_aliment) {
               aliments = [repas.nom_aliment];
-            }
-            if (!alimentsConsommesParPhase[phase]) {
-              alimentsConsommesParPhase[phase] = [];
             }
             aliments.forEach(aliment => {
               if (aliment && !alimentsConsommesParPhase[phase].includes(aliment)) {
