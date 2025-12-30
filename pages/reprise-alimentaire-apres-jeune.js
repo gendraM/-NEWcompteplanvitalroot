@@ -57,8 +57,32 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
     phasesToShow = phasesArray.slice(0, maxIdx + 1);
   }
 
+  // Fonctions utilitaires pour reset
+  const resetJourReprise = () => {
+    if (window && window.localStorage) {
+      const progStr = localStorage.getItem('programmeRepriseValide');
+      if (progStr) {
+        const prog = JSON.parse(progStr);
+        prog.date_debut_reprise = new Date().toISOString();
+        localStorage.setItem('programmeRepriseValide', JSON.stringify(prog));
+        window.location.reload();
+      }
+    }
+  };
+  const effacerNotes = () => {
+    if (window && window.localStorage) {
+      localStorage.removeItem('difficultesReprise');
+      window.location.reload();
+    }
+  };
+
   return (
     <>
+      {/* OUTILS DE RÉINITIALISATION */}
+      <div style={{display:'flex',gap:12,marginBottom:16}}>
+        <button onClick={resetJourReprise} style={{background:'#e3f2fd',color:'#1976d2',border:'1.5px solid #1976d2',borderRadius:8,padding:'0.5rem 1.2rem',fontWeight:700,cursor:'pointer'}}>Réinitialiser jour de reprise</button>
+        <button onClick={effacerNotes} style={{background:'#fffbe6',color:'#b28704',border:'1.5px solid #fbc02d',borderRadius:8,padding:'0.5rem 1.2rem',fontWeight:700,cursor:'pointer'}}>Effacer mes notes</button>
+      </div>
       {/* 🔘 Bouton toggle mobile */}
       <button
         onClick={() => {
@@ -538,18 +562,19 @@ export default function RepriseAlimentaireApresJeune() {
       }
 
       // 4️⃣ Vérifier si c'est le dernier jour de la reprise
+      let tauxConformite = 0;
+      let tauxValidation = 0;
       if (jourData.jour_numero === programme.duree_reprise_jours) {
         // 🆕 CALCULER LE BILAN COMPLET DE LA REPRISE
         const cleRepas = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
         const tousRepasReprise = JSON.parse(localStorage.getItem(cleRepas) || '[]');
         const joursValidesReprise = JSON.parse(localStorage.getItem('joursReprisesValides') || '[]');
-        
         // Statistiques de conformité
         const totalRepas = tousRepasReprise.length;
         const repasConformes = tousRepasReprise.filter(r => r.conforme === true).length;
-        const tauxConformite = totalRepas > 0 ? Math.round((repasConformes / totalRepas) * 100) : 0;
+        tauxConformite = totalRepas > 0 ? Math.round((repasConformes / totalRepas) * 100) : 0;
         const nbJoursValides = joursValidesReprise.length;
-        const tauxValidation = Math.round((nbJoursValides / programme.duree_reprise_jours) * 100);
+        tauxValidation = Math.round((nbJoursValides / programme.duree_reprise_jours) * 100);
 
         // 🆕 Détection fin de reprise non optimale
         if (tauxConformite < 70 || tauxValidation < 80) {
@@ -803,23 +828,45 @@ export default function RepriseAlimentaireApresJeune() {
             </button>
             <button
               onClick={() => {
-                // MODE TEST : Utiliser clés TEST_ pour isoler des données réelles
-                const programmeCristallisation = {
-                  dateDebut: new Date().toISOString(),
-                  bilanReprise: {
+                  // MODE TEST : Utiliser clés TEST_ pour isoler des données réelles
+                  let bilanReprise = {
                     scoreGlobal: 85,
                     hydratation: { score: 90 },
                     timing: { score: 80 },
                     quantites: { score: 85 },
                     qualite: { score: 88 }
-                  }
-                };
-                localStorage.setItem('TEST_programmeCristallisation', JSON.stringify(programmeCristallisation));
-                localStorage.setItem('TEST_joursValidesCristallisation', JSON.stringify([]));
-                localStorage.setItem('TEST_context', 'cristallisation');
-                console.log('[MODE TEST] Cristallisation test créée - données isolées');
-                window.location.href = '/cristallisation';
-              }}
+                  };
+                  try {
+                    const diffStr = localStorage.getItem('difficultesReprise');
+                    if (diffStr) {
+                      const diffObj = JSON.parse(diffStr);
+                      const difficultes = [];
+                      Object.entries(diffObj).forEach(([k, v]) => {
+                        if (typeof v === 'boolean' && v) difficultes.push(k);
+                        if (typeof v === 'string' && v.trim()) {
+                          // Analyse automatique du texte libre pour extraire toutes les difficultés
+                          const { difficultes: autoDiffs } = require('../lib/analyseContexteReprise').analyseContexteReprise(v.trim());
+                          if (autoDiffs && autoDiffs.length > 0) {
+                            autoDiffs.forEach(d => difficultes.push(d));
+                          } else {
+                            difficultes.push(v.trim());
+                          }
+                        }
+                      });
+                      // Toujours inclure le champ 'difficultes' dans le bilan, même vide
+                      bilanReprise.difficultes = Array.from(new Set(difficultes));
+                    }
+                  } catch(e) { console.warn('Erreur lecture difficultés (TEST):', e); }
+                  const programmeCristallisation = {
+                    dateDebut: new Date().toISOString(),
+                    bilanReprise
+                  };
+                  localStorage.setItem('TEST_programmeCristallisation', JSON.stringify(programmeCristallisation));
+                  localStorage.setItem('TEST_joursValidesCristallisation', JSON.stringify([]));
+                  localStorage.setItem('TEST_context', 'cristallisation');
+                  console.log('[MODE TEST] Cristallisation test créée - données isolées');
+                  window.location.href = '/cristallisation';
+                }}
               style={{
                 background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                 color: 'white',
@@ -1753,23 +1800,44 @@ export default function RepriseAlimentaireApresJeune() {
               </div>
 
               <div style={{display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16, flexWrap: 'wrap'}}>
+                {/* DEBUG : Affichage brut de la clé localStorage 'difficultesReprise' */}
+                {typeof window !== 'undefined' && (
+                  <div style={{background:'#fffbe6',border:'1.5px dashed #fbc02d',borderRadius:8,padding:10,marginBottom:10}}>
+                    <b>localStorage.difficultesReprise :</b><br/>
+                    <pre style={{fontSize:12,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0}}>{localStorage.getItem('difficultesReprise') || 'null'}</pre>
+                  </div>
+                )}
                 <button
                   onClick={() => {
-                    // Récupérer les difficultés du questionnaire si présentes
+                    // Centralisation FIABLE de la création du programme de cristallisation
                     let bilanReprise = { ...(programme.bilan_reprise || {}) };
+                    let difficultes = [];
                     try {
                       const diffStr = localStorage.getItem('difficultesReprise');
                       if (diffStr) {
                         const diffObj = JSON.parse(diffStr);
-                        // On stocke les clés cochées ou texte dans un tableau de difficultés
-                        const difficultes = [];
                         Object.entries(diffObj).forEach(([k, v]) => {
                           if (typeof v === 'boolean' && v) difficultes.push(k);
-                          if (typeof v === 'string' && v.trim()) difficultes.push(v.trim());
+                          if (typeof v === 'string' && v.trim()) {
+                            // Analyse automatique du texte libre pour extraire toutes les difficultés
+                            const { difficultes: autoDiffs } = require('../lib/analyseContexteReprise').analyseContexteReprise(v.trim());
+                            if (autoDiffs && autoDiffs.length > 0) {
+                              autoDiffs.forEach(d => difficultes.push(d));
+                            } else {
+                              difficultes.push(v.trim());
+                            }
+                          }
                         });
-                        bilanReprise.difficultes = difficultes;
                       }
                     } catch(e) { console.warn('Erreur lecture difficultés:', e); }
+                    // Si aucune difficulté détectée, tenter d'analyser le texte libre du bilan (fallback ultime)
+                    if ((!difficultes || difficultes.length === 0) && bilanReprise.texteLibre) {
+                      const { difficultes: autoDiffs } = require('../lib/analyseContexteReprise').analyseContexteReprise(bilanReprise.texteLibre);
+                      if (autoDiffs && autoDiffs.length > 0) {
+                        autoDiffs.forEach(d => difficultes.push(d));
+                      }
+                    }
+                    bilanReprise.difficultes = Array.from(new Set(difficultes));
                     const programmeCristallisation = {
                       dateDebut: new Date().toISOString(),
                       bilanReprise

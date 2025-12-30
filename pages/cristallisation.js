@@ -195,13 +195,14 @@ export default function Cristallisation() {
     // Analyse contextuelle du texte libre si présent
     let difficultes = programmeCristallisation.bilanReprise.difficultes || [];
     let contextes = programmeCristallisation.bilanReprise.contextes || [];
-
-    // Si un texte libre de feedback existe, on l'analyse pour extraire difficultés/contextes
-    if (programmeCristallisation.bilanReprise.texteLibre) {
-      const analyse = analyseContexteReprise(programmeCristallisation.bilanReprise.texteLibre);
-      // Fusionne les difficultés/contextes détectés avec ceux déjà présents
-      difficultes = Array.from(new Set([...(difficultes || []), ...(analyse.difficultes || [])]));
-      contextes = Array.from(new Set([...(contextes || []), ...(analyse.contexte ? [analyse.contexte] : [])]));
+    // Correction experte : si aucune difficulté n'est présente, on analyse dynamiquement le texte libre ou le champ "autre"
+    if ((!difficultes || difficultes.length === 0)) {
+      const texteLibre = programmeCristallisation.bilanReprise.texteLibre || programmeCristallisation.bilanReprise.autre || '';
+      if (texteLibre && typeof texteLibre === 'string') {
+        const analyse = analyseContexteReprise(texteLibre);
+        difficultes = Array.from(new Set([...(difficultes || []), ...(analyse.difficultes || [])]));
+        contextes = Array.from(new Set([...(contextes || []), ...(analyse.contexte ? [analyse.contexte] : [])]));
+      }
     }
     debugDifficultes = difficultes;
     debugContextes = contextes;

@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { analyseContexteReprise } from '../lib/analyseContexteReprise';
 
 export default function ModalDifficultesIdentifiees({ isOpen, onClose, onSubmit, tauxConformite, tauxValidation }) {
   const [difficultes, setDifficultes] = useState({
@@ -35,6 +36,9 @@ export default function ModalDifficultesIdentifiees({ isOpen, onClose, onSubmit,
     }
     onSubmit && onSubmit(difficultes);
   };
+
+  // Analyse automatique du champ "autre"
+  const synthese = difficultes.autre.trim() ? analyseContexteReprise(difficultes.autre) : null;
 
   return (
     <div style={{
@@ -72,6 +76,20 @@ export default function ModalDifficultesIdentifiees({ isOpen, onClose, onSubmit,
             </label>
           </div>
         </form>
+        {/* Synthèse extraite automatiquement du texte libre */}
+        {synthese && (
+          <div style={{background:'#f8f8fc',border:'1.5px solid #bdbdbd',borderRadius:8,padding:'1rem',marginBottom:16,textAlign:'left',fontSize:'0.98rem'}}>
+            <div style={{fontWeight:700, color:'#1976d2', marginBottom:6}}>Synthèse extraite :</div>
+            {synthese.difficultes.length > 0 && <div><b>Difficultés :</b> {synthese.difficultes.join(', ')}</div>}
+            {synthese.besoins.length > 0 && <div><b>Besoins :</b> {synthese.besoins.join(', ')}</div>}
+            {synthese.suggestions.length > 0 && <div><b>Suggestions :</b> {synthese.suggestions.join(' | ')}</div>}
+            {synthese.aliments && synthese.aliments.length > 0 && <div><b>Aliments :</b> {synthese.aliments.join(', ')}</div>}
+            {synthese.comportements && synthese.comportements.length > 0 && <div><b>Comportements :</b> {synthese.comportements.join(', ')}</div>}
+            {synthese.declencheurs && synthese.declencheurs.length > 0 && <div><b>Déclencheurs :</b> {synthese.declencheurs.join(', ')}</div>}
+            {synthese.ressentis && synthese.ressentis.length > 0 && <div><b>Ressentis :</b> {synthese.ressentis.join(', ')}</div>}
+            <div style={{marginTop:6, color:'#888'}}><i>Résumé :</i> {synthese.contexte}</div>
+          </div>
+        )}
         <button onClick={handleSubmit} style={{background:'linear-gradient(135deg,#e53935 0%,#c62828 100%)',color:'white',border:'none',borderRadius:8,padding:'0.8rem 1.7rem',fontWeight:700,fontSize:'1.08rem',cursor:'pointer',boxShadow:'0 2px 8px #e5393533'}}>Envoyer</button>
       </div>
     </div>
