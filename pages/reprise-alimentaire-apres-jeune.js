@@ -204,14 +204,16 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
   );
 }
 
+
 import ModalDifficultesIdentifiees from '../components/ModalDifficultesIdentifiees';
 import { useRouter } from 'next/router';
-  // 🆕 Modal difficultés identifiées
-  const [showModalDifficultes, setShowModalDifficultes] = useState(false);
-  const [difficultesReprise, setDifficultesReprise] = useState(null);
 
 export default function RepriseAlimentaireApresJeune() {
   const router = useRouter();
+
+  // 🆕 Modal difficultés identifiées
+  const [showModalDifficultes, setShowModalDifficultes] = useState(false);
+  const [difficultesReprise, setDifficultesReprise] = useState(null);
   const [programme, setProgramme] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -470,6 +472,23 @@ export default function RepriseAlimentaireApresJeune() {
     alert('✅ Poids final enregistré avec succès !');
   };
 
+  // 🆕 Callback pour soumission des difficultés (doit être défini au niveau du composant)
+  const handleSubmitDifficultes = (difficultes) => {
+    setDifficultesReprise(difficultes);
+    // Sauvegarde locale (pattern simple, à adapter pour Supabase si besoin)
+    localStorage.setItem('difficultesReprise', JSON.stringify({
+      date: new Date().toISOString(),
+      tauxConformite: programme?.bilan_reprise?.taux_conformite,
+      tauxValidation: programme?.bilan_reprise?.taux_validation,
+      ...difficultes
+    }));
+    setShowModalDifficultes(false);
+    alert('Merci pour ton retour, il sera pris en compte pour la suite !');
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  };
+
   // 🆕 Fonction de validation d'un jour
   const validerJour = async (jourData) => {
     if (!programme || !jourData) return;
@@ -666,19 +685,6 @@ export default function RepriseAlimentaireApresJeune() {
           type: 'success', 
           text: `🎉 Félicitations ! Tu as terminé ta reprise alimentaire avec ${tauxConformite}% de conformité. Direction la phase de cristallisation !` 
         });
-        // 🆕 Callback pour soumission des difficultés
-        const handleSubmitDifficultes = (difficultes) => {
-          setDifficultesReprise(difficultes);
-          // Sauvegarde locale (pattern simple, à adapter pour Supabase si besoin)
-          localStorage.setItem('difficultesReprise', JSON.stringify({
-            date: new Date().toISOString(),
-            tauxConformite: programme?.bilan_reprise?.taux_conformite,
-            tauxValidation: programme?.bilan_reprise?.taux_validation,
-            ...difficultes
-          }));
-          setShowModalDifficultes(false);
-          alert('Merci pour ton retour, il sera pris en compte pour la suite !');
-        };
       } else {
         setMessageValidation({ 
           type: 'success', 
@@ -686,10 +692,12 @@ export default function RepriseAlimentaireApresJeune() {
         });
       }
 
-      // 5️⃣ Recharger les données
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      // 5️⃣ Recharger les données UNIQUEMENT si le modal de difficultés n'est pas affiché
+      if (!(tauxConformite < 70 || tauxValidation < 80)) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }
 
     } catch (e) {
       console.error('[ERROR] Exception validation:', e);
@@ -701,15 +709,16 @@ export default function RepriseAlimentaireApresJeune() {
 
   // ...existing code...
   return (
-        {/* Modal Difficultés identifiées (fin de reprise non optimale) */}
-        <ModalDifficultesIdentifiees
-          isOpen={showModalDifficultes}
-          onClose={() => setShowModalDifficultes(false)}
-          onSubmit={handleSubmitDifficultes}
-          tauxConformite={programme?.bilan_reprise?.taux_conformite || 0}
-          tauxValidation={programme?.bilan_reprise?.taux_validation || 0}
-        />
-    <div style={{
+    <>
+      {/* Modal Difficultés identifiées (fin de reprise non optimale) */}
+      <ModalDifficultesIdentifiees
+        isOpen={showModalDifficultes}
+        onClose={() => setShowModalDifficultes(false)}
+        onSubmit={handleSubmitDifficultes}
+        tauxConformite={programme?.bilan_reprise?.taux_conformite || 0}
+        tauxValidation={programme?.bilan_reprise?.taux_validation || 0}
+      />
+      <div style={{
       padding: '2rem',
       maxWidth: '1200px',
       margin: '0 auto',
@@ -1746,14 +1755,27 @@ export default function RepriseAlimentaireApresJeune() {
               <div style={{display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16, flexWrap: 'wrap'}}>
                 <button
                   onClick={() => {
-                    // Créer le programme cristallisation
+                    // Récupérer les difficultés du questionnaire si présentes
+                    let bilanReprise = { ...(programme.bilan_reprise || {}) };
+                    try {
+                      const diffStr = localStorage.getItem('difficultesReprise');
+                      if (diffStr) {
+                        const diffObj = JSON.parse(diffStr);
+                        // On stocke les clés cochées ou texte dans un tableau de difficultés
+                        const difficultes = [];
+                        Object.entries(diffObj).forEach(([k, v]) => {
+                          if (typeof v === 'boolean' && v) difficultes.push(k);
+                          if (typeof v === 'string' && v.trim()) difficultes.push(v.trim());
+                        });
+                        bilanReprise.difficultes = difficultes;
+                      }
+                    } catch(e) { console.warn('Erreur lecture difficultés:', e); }
                     const programmeCristallisation = {
                       dateDebut: new Date().toISOString(),
-                      bilanReprise: programme.bilan_reprise || {}
+                      bilanReprise
                     };
                     localStorage.setItem('programmeCristallisation', JSON.stringify(programmeCristallisation));
                     localStorage.setItem('joursValidesCristallisation', JSON.stringify([]));
-                    // Redirection
                     window.location.href = '/cristallisation';
                   }}
                   style={{
@@ -1774,39 +1796,35 @@ export default function RepriseAlimentaireApresJeune() {
                   🏔️ Démarrer la Cristallisation
                 </button>
 
-                <Link
-                  href={{
-                    pathname: '/consolidation-45-jours',
-                    query: {
-                      // Transmettre TOUTES les données à la cristallisation
-                      bilan_reprise: JSON.stringify(programme.bilan_reprise || {}),
-                      duree_jeune: programme.duree_jeune_jours,
-                      duree_reprise: programme.duree_reprise_jours,
-                      poids_actuel: programme.bilan_reprise?.poids_fin_reprise || programme.poids_fin_jeune || programme.poids_depart,
-                      date_fin_reprise: programme.date_fin_reprise || new Date().toISOString().split('T')[0],
-                    reprise_id: programme.id,
-                    taux_conformite: programme.bilan_reprise?.taux_conformite || 0
-                  }
-                }}
-                style={{
-                  display: 'inline-block',
-                  background: 'linear-gradient(135deg, #d84315 0%, #bf360c 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 10,
-                  padding: '1rem 2.5rem',
-                  fontWeight: 800,
-                  fontSize: '1.2rem',
-                  textDecoration: 'none',
-                  boxShadow: '0 4px 16px rgba(216,67,21,0.3)',
-                  transition: 'transform 0.2s',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-              >
-                🏆 Ancienne page consolidation
-              </Link>
+                <button
+                  style={{
+                    display: 'inline-block',
+                    background: 'linear-gradient(135deg, #d84315 0%, #bf360c 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '1rem 2.5rem',
+                    fontWeight: 800,
+                    fontSize: '1.2rem',
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 16px rgba(216,67,21,0.3)',
+                    transition: 'transform 0.2s',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                  onClick={() => {
+                    // Remettre l'état à avant la validation du jour pour permettre le questionnaire
+                    // On force l'affichage du modal si critères non atteints
+                    if (programme?.bilan_reprise?.taux_conformite < 70 || programme?.bilan_reprise?.taux_validation < 80) {
+                      setShowModalDifficultes(true);
+                    } else {
+                      window.location.href = '/consolidation-45-jours';
+                    }
+                  }}
+                >
+                  🏆 Ancienne page consolidation
+                </button>
               </div>
               
               <div style={{
@@ -2276,12 +2294,13 @@ export default function RepriseAlimentaireApresJeune() {
       `}</style>
 
       {/* Modal Historique Reprises */}
-      {showHistoriqueModal && isHistoriqueLoaded && (
+      {showHistoriqueModal && (
         <HistoriqueReprisesModal
           historiqueReprises={historiqueReprises}
           onFermer={() => setShowHistoriqueModal(false)}
         />
       )}
     </div>
+    </>
   );
 }
