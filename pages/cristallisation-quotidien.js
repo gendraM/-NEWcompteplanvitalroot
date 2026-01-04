@@ -46,6 +46,30 @@ export default function CristallisationQuotidien() {
   const [badgesObtenus, setBadgesObtenus] = useState([]);
   const [badgeJustUnlocked, setBadgeJustUnlocked] = useState(null);
 
+  // === AUTO-VALIDATION DÉFIS <-> CRITÈRES ===
+  // Synchronise la validation des défis si un critère de cristallisation correspondant est validé
+  useEffect(() => {
+    if (!isClient || !defisPersonnalises || defisPersonnalises.length === 0 || !validationJour) return;
+    // On suppose que chaque défi a un champ "critereAssocie" (id du critère lié)
+    let maj = false;
+    const nouveauJournal = { ...journalDefi };
+    defisPersonnalises.forEach(defi => {
+      if (defi.critereAssocie && validationJour[defi.critereAssocie]) {
+        if (!nouveauJournal[defi.id]) {
+          nouveauJournal[defi.id] = true;
+          maj = true;
+        }
+      }
+    });
+    if (maj) {
+      setJournalDefi(nouveauJournal);
+      // Persistance locale (optionnel)
+      try {
+        localStorage.setItem(`journalDefiSync_${jourAffiche}`, JSON.stringify(nouveauJournal));
+      } catch (e) {}
+    }
+  }, [isClient, defisPersonnalises, validationJour, jourAffiche]);
+
   // === CLIENT DETECTION ===
   useEffect(() => {
     setIsClient(true);
@@ -514,8 +538,8 @@ export default function CristallisationQuotidien() {
                   key={defi.id}
                   onClick={() => handleSelectDefi(defi)}
                   style={{
-                    background: '#e3f2fd',
-                    border: '2px solid #1976d2',
+                    background: journalDefi[defi.id] ? '#e8f5e9' : '#e3f2fd',
+                    border: journalDefi[defi.id] ? '2px solid #4caf50' : '2px solid #1976d2',
                     borderRadius: 8,
                     padding: 14,
                     cursor: 'pointer',
@@ -528,8 +552,12 @@ export default function CristallisationQuotidien() {
                     <div style={{ fontSize: 13, color: '#333', marginTop: 4 }}>{defi.description}</div>
                   )}
                   {/* Affichage du statut de validation */}
-                  <div style={{ fontSize: 12, color: '#666', marginTop: 6 }}>
-                    Statut : {journalDefi[defi.id] ? '✅ Validé' : '⏳ À faire'}
+                  <div style={{ fontSize: 12, color: journalDefi[defi.id] ? '#388e3c' : '#666', marginTop: 6 }}>
+                    Statut : {journalDefi[defi.id]
+                      ? (defi.critereAssocie && validationJour[defi.critereAssocie]
+                        ? '✅ Auto-validé par critère'
+                        : '✅ Validé')
+                      : '⏳ À faire'}
                   </div>
                 </div>
               ))}

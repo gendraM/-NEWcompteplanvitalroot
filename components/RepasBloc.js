@@ -142,11 +142,7 @@ export default function RepasBloc({
     setFastFoodAliments([...fastFoodAliments, { nom: '', quantite: '', kcal: '' }]);
   };
 
-  // Handler pour modifier un aliment fast food
-  const handleChangeFastFoodAliment = (idx, field, value) => {
-    const newAliments = fastFoodAliments.map((a, i) => i === idx ? { ...a, [field]: value } : a);
-    setFastFoodAliments(newAliments);
-  };
+  // ... (suppression du doublon handleChangeFastFoodAliment, version complète plus bas)
 
   // Auto-remplissage uniquement lors de la création d’un nouveau repas (jamais en édition)
   useEffect(() => {
@@ -159,16 +155,22 @@ export default function RepasBloc({
     }
   }, [repasConforme, repasPrevu, categoriePrevu, quantitePrevu, kcalPrevu, aliment, categorie, quantite, kcal]);
 
-  // Calcul automatique des kcal pour fast food (référentiel)
-  useEffect(() => {
-    setFastFoodAliments(fastFoodAliments.map(a => {
-      const found = referentielAliments.find(r => r.nom.toLowerCase() === a.nom.toLowerCase());
-      if (found && a.quantite) {
-        return { ...a, kcal: (parseFloat(a.quantite) * found.kcal).toFixed(0) };
+  // Calcul automatique des kcal pour fast food (référentiel) déplacé dans le handler
+  const handleChangeFastFoodAliment = (idx, field, value) => {
+    const newAliments = fastFoodAliments.map((a, i) => {
+      if (i !== idx) return a;
+      let updated = { ...a, [field]: value };
+      // Calcul automatique des kcal si nom ou quantite modifié
+      if ((field === 'nom' || field === 'quantite') && updated.nom && updated.quantite) {
+        const found = referentielAliments.find(r => r.nom.toLowerCase() === updated.nom.toLowerCase());
+        if (found) {
+          updated.kcal = (parseFloat(updated.quantite) * found.kcal).toFixed(0);
+        }
       }
-      return a;
-    }));
-  }, [fastFoodAliments]);
+      return updated;
+    });
+    setFastFoodAliments(newAliments);
+  };
   // Validation stricte des props
   extrasRestants = typeof extrasRestants === 'number' && !isNaN(extrasRestants) ? extrasRestants : 0;
   const [estExtra, setEstExtra] = useState(false);
