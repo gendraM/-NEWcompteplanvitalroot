@@ -3,6 +3,7 @@
 **Date : 15 novembre 2025**
 
 ---
+Qualité Nutritionnelle traduit par le sigle QN signifie score de qualité nutritionnelle attribué à chaque aliment moins l'aliment est transformé plus sa qualité nutritionnelle est haute ex pomme son score QN est égale à 5/5
 
 ## 📍 OÙ SE TROUVE LE RÉFÉRENTIEL ALIMENTAIRE ?
 

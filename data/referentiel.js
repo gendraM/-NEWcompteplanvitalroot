@@ -3010,6 +3010,147 @@ const correctifsAliments = [
   { nom: "Nouilles sautées", categorie: "asiatique", sousCategorie: "Buffet chinois", marque: null, kcal: 150, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Riz cantonais", "Riz nature"] },
   { nom: "Riz cantonais", categorie: "asiatique", sousCategorie: "Buffet chinois", marque: null, kcal: 140, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Nouilles sautées", "Riz nature"] },
   { nom: "Crevettes sauce piquante", categorie: "asiatique", sousCategorie: "Buffet chinois", marque: null, kcal: 90, qn: 1, portionDefaut: "50g", unite: "g", alternatives: ["Crevettes sautées", "Poulet piquant"] },
+
+  // === MCDONALD'S === (Enrichissement 2026-01-07)
+  // Burgers
+  { nom: "McChicken", categorie: "fast-food", sousCategorie: "Burger", marque: "McDonald's", kcal: 400, kcalParUnite: 400, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Big Mac", "Royal Cheese"] },
+  { nom: "Royal Deluxe", categorie: "fast-food", sousCategorie: "Burger", marque: "McDonald's", kcal: 520, kcalParUnite: 520, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Big Mac", "Royal Cheese"] },
+  { nom: "Royal Cheese", categorie: "fast-food", sousCategorie: "Burger", marque: "McDonald's", kcal: 460, kcalParUnite: 460, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Big Mac", "Royal Deluxe"] },
+  { nom: "Double Cheese", categorie: "fast-food", sousCategorie: "Burger", marque: "McDonald's", kcal: 445, kcalParUnite: 445, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Big Mac", "Hamburger"] },
+  { nom: "Filet-O-Fish", categorie: "fast-food", sousCategorie: "Burger", marque: "McDonald's", kcal: 330, kcalParUnite: 330, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["McChicken", "Big Mac"] },
+  { nom: "McWrap Poulet", categorie: "fast-food", sousCategorie: "Wrap", marque: "McDonald's", kcal: 480, kcalParUnite: 480, qn: 2, portionDefaut: "1 wrap", unite: "piece", alternatives: ["McChicken", "Wrap KFC"] },
+  { nom: "Hamburger McDo", categorie: "fast-food", sousCategorie: "Burger", marque: "McDonald's", kcal: 250, kcalParUnite: 250, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Double Cheese", "Cheeseburger"] },
+  { nom: "Cheeseburger McDo", categorie: "fast-food", sousCategorie: "Burger", marque: "McDonald's", kcal: 300, kcalParUnite: 300, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Hamburger McDo", "Double Cheese"] },
+  
+  // Frites
+  { nom: "Frites McDo petite", categorie: "fast-food", sousCategorie: "Frites", marque: "McDonald's", kcal: 230, kcalParUnite: 230, qn: 1, portionDefaut: "1 portion", unite: "piece", alternatives: ["Frites McDo moyenne", "Frites BK petite"] },
+  { nom: "Frites McDo moyenne", categorie: "fast-food", sousCategorie: "Frites", marque: "McDonald's", kcal: 340, kcalParUnite: 340, qn: 1, portionDefaut: "1 portion", unite: "piece", alternatives: ["Frites McDo petite", "Frites McDo grande"] },
+  { nom: "Frites McDo grande", categorie: "fast-food", sousCategorie: "Frites", marque: "McDonald's", kcal: 480, kcalParUnite: 480, qn: 1, portionDefaut: "1 portion", unite: "piece", alternatives: ["Frites McDo moyenne", "Frites BK grande"] },
+  
+  // Nuggets
+  { nom: "Nuggets McDo 1 pièce", categorie: "fast-food", sousCategorie: "Nuggets", marque: "McDonald's", kcal: 45, kcalParUnite: 45, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Nuggets McDo menu 4 pièces", "Nuggets BK 1 pièce"] },
+  { nom: "Nuggets McDo menu 4 pièces", categorie: "fast-food", sousCategorie: "Nuggets", marque: "McDonald's", kcal: 180, kcalParUnite: 180, qn: 1, portionDefaut: "1 menu", unite: "piece", alternatives: ["Nuggets McDo 1 pièce", "Nuggets McDo menu 6 pièces"] },
+  { nom: "Nuggets McDo menu 6 pièces", categorie: "fast-food", sousCategorie: "Nuggets", marque: "McDonald's", kcal: 270, kcalParUnite: 270, qn: 1, portionDefaut: "1 menu", unite: "piece", alternatives: ["Nuggets McDo 1 pièce", "Nuggets McDo menu 9 pièces"] },
+  { nom: "Nuggets McDo menu 9 pièces", categorie: "fast-food", sousCategorie: "Nuggets", marque: "McDonald's", kcal: 405, kcalParUnite: 405, qn: 1, portionDefaut: "1 menu", unite: "piece", alternatives: ["Nuggets McDo 1 pièce", "Nuggets McDo menu 20 pièces"] },
+  { nom: "Nuggets McDo menu 20 pièces", categorie: "fast-food", sousCategorie: "Nuggets", marque: "McDonald's", kcal: 900, kcalParUnite: 900, qn: 1, portionDefaut: "1 menu", unite: "piece", alternatives: ["Nuggets McDo 1 pièce", "Nuggets BK menu 9 pièces"] },
+  
+  // Desserts
+  { nom: "McFlurry Oreo", categorie: "fast-food", sousCategorie: "Dessert", marque: "McDonald's", kcal: 340, kcalParUnite: 340, qn: 1, portionDefaut: "1 pot", unite: "piece", alternatives: ["McFlurry M&M's", "Sundae caramel"] },
+  { nom: "McFlurry M&M's", categorie: "fast-food", sousCategorie: "Dessert", marque: "McDonald's", kcal: 360, kcalParUnite: 360, qn: 1, portionDefaut: "1 pot", unite: "piece", alternatives: ["McFlurry Oreo", "Sundae chocolat"] },
+  { nom: "Sundae caramel McDo", categorie: "fast-food", sousCategorie: "Dessert", marque: "McDonald's", kcal: 280, kcalParUnite: 280, qn: 1, portionDefaut: "1 pot", unite: "piece", alternatives: ["Sundae chocolat McDo", "McFlurry Oreo"] },
+  { nom: "Sundae chocolat McDo", categorie: "fast-food", sousCategorie: "Dessert", marque: "McDonald's", kcal: 290, kcalParUnite: 290, qn: 1, portionDefaut: "1 pot", unite: "piece", alternatives: ["Sundae caramel McDo", "McFlurry M&M's"] },
+  { nom: "Donuts McDo", categorie: "fast-food", sousCategorie: "Dessert", marque: "McDonald's", kcal: 260, kcalParUnite: 260, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Cookie McDo", "Muffin McDo"] },
+  
+  // Boissons
+  { nom: "Coca-Cola McDo gobelet petit (25cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 105, kcalParUnite: 105, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Coca-Cola McDo gobelet moyen", "Sprite McDo gobelet petit"] },
+  { nom: "Coca-Cola McDo gobelet moyen (40cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 168, kcalParUnite: 168, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Coca-Cola McDo gobelet petit", "Coca-Cola McDo gobelet grand"] },
+  { nom: "Coca-Cola McDo gobelet grand (50cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 210, kcalParUnite: 210, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Coca-Cola McDo gobelet moyen", "Sprite McDo gobelet grand"] },
+  
+  { nom: "Sprite McDo gobelet petit (25cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 100, kcalParUnite: 100, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Sprite McDo gobelet moyen", "Coca-Cola McDo gobelet petit"] },
+  { nom: "Sprite McDo gobelet moyen (40cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 160, kcalParUnite: 160, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Sprite McDo gobelet petit", "Sprite McDo gobelet grand"] },
+  { nom: "Sprite McDo gobelet grand (50cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 200, kcalParUnite: 200, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Sprite McDo gobelet moyen", "Fanta McDo gobelet grand"] },
+  
+  { nom: "Fanta McDo gobelet petit (25cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 103, kcalParUnite: 103, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Fanta McDo gobelet moyen", "Coca-Cola McDo gobelet petit"] },
+  { nom: "Fanta McDo gobelet moyen (40cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 164, kcalParUnite: 164, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Fanta McDo gobelet petit", "Fanta McDo gobelet grand"] },
+  { nom: "Fanta McDo gobelet grand (50cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 205, kcalParUnite: 205, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Fanta McDo gobelet moyen", "Sprite McDo gobelet grand"] },
+  
+  { nom: "Milkshake vanille McDo petit (30cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 315, kcalParUnite: 315, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Milkshake vanille McDo moyen", "Milkshake chocolat McDo petit"] },
+  { nom: "Milkshake vanille McDo moyen (40cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 420, kcalParUnite: 420, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Milkshake vanille McDo petit", "Milkshake vanille McDo grand"] },
+  { nom: "Milkshake vanille McDo grand (50cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 525, kcalParUnite: 525, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Milkshake vanille McDo moyen", "Milkshake chocolat McDo grand"] },
+  
+  { nom: "Milkshake chocolat McDo petit (30cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 323, kcalParUnite: 323, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Milkshake chocolat McDo moyen", "Milkshake vanille McDo petit"] },
+  { nom: "Milkshake chocolat McDo moyen (40cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 430, kcalParUnite: 430, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Milkshake chocolat McDo petit", "Milkshake chocolat McDo grand"] },
+  { nom: "Milkshake chocolat McDo grand (50cl)", categorie: "fast-food", sousCategorie: "Boisson", marque: "McDonald's", kcal: 538, kcalParUnite: 538, qn: 1, portionDefaut: "1 gobelet", unite: "gobelet", alternatives: ["Milkshake chocolat McDo moyen", "Milkshake vanille McDo grand"] },
+
+  // === KFC === (Enrichissement 2026-01-07)
+  // Poulet
+  { nom: "Poulet Original KFC 1 pièce", categorie: "fast-food", sousCategorie: "Poulet", marque: "KFC", kcal: 290, kcalParUnite: 290, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Hot Wings KFC", "Tenders KFC"] },
+  { nom: "Hot Wings KFC 1 pièce", categorie: "fast-food", sousCategorie: "Poulet", marque: "KFC", kcal: 80, kcalParUnite: 80, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Hot Wings KFC menu 3 pièces", "Tenders KFC 1 pièce"] },
+  { nom: "Hot Wings KFC menu 3 pièces", categorie: "fast-food", sousCategorie: "Poulet", marque: "KFC", kcal: 240, kcalParUnite: 240, qn: 1, portionDefaut: "1 menu", unite: "piece", alternatives: ["Hot Wings KFC 1 pièce", "Hot Wings KFC menu 6 pièces"] },
+  { nom: "Hot Wings KFC menu 6 pièces", categorie: "fast-food", sousCategorie: "Poulet", marque: "KFC", kcal: 480, kcalParUnite: 480, qn: 1, portionDefaut: "1 menu", unite: "piece", alternatives: ["Hot Wings KFC 1 pièce", "Hot Wings KFC menu 3 pièces"] },
+  { nom: "Tenders KFC 1 pièce", categorie: "fast-food", sousCategorie: "Poulet", marque: "KFC", kcal: 130, kcalParUnite: 130, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Tenders KFC menu 3 pièces", "Hot Wings KFC 1 pièce"] },
+  { nom: "Tenders KFC menu 3 pièces", categorie: "fast-food", sousCategorie: "Poulet", marque: "KFC", kcal: 390, kcalParUnite: 390, qn: 1, portionDefaut: "1 menu", unite: "piece", alternatives: ["Tenders KFC 1 pièce", "Tenders KFC menu 6 pièces"] },
+  { nom: "Tenders KFC menu 6 pièces", categorie: "fast-food", sousCategorie: "Poulet", marque: "KFC", kcal: 780, kcalParUnite: 780, qn: 1, portionDefaut: "1 menu", unite: "piece", alternatives: ["Tenders KFC 1 pièce", "Tenders KFC menu 3 pièces"] },
+  { nom: "Bucket KFC menu 10 pièces", categorie: "fast-food", sousCategorie: "Poulet", marque: "KFC", kcal: 2900, kcalParUnite: 2900, qn: 1, portionDefaut: "1 bucket", unite: "piece", alternatives: ["Poulet Original KFC", "Hot Wings KFC menu 6 pièces"] },
+  
+  // Burgers
+  { nom: "Colonel Original KFC", categorie: "fast-food", sousCategorie: "Burger", marque: "KFC", kcal: 520, kcalParUnite: 520, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Zinger KFC", "Kentucky Burger"] },
+  { nom: "Zinger KFC", categorie: "fast-food", sousCategorie: "Burger", marque: "KFC", kcal: 550, kcalParUnite: 550, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Colonel Original KFC", "McChicken"] },
+  { nom: "Kentucky Burger", categorie: "fast-food", sousCategorie: "Burger", marque: "KFC", kcal: 480, kcalParUnite: 480, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Colonel Original KFC", "Zinger KFC"] },
+  
+  // Accompagnements
+  { nom: "Frites KFC petite", categorie: "fast-food", sousCategorie: "Frites", marque: "KFC", kcal: 220, kcalParUnite: 220, qn: 1, portionDefaut: "1 portion", unite: "piece", alternatives: ["Frites KFC moyenne", "Frites McDo petite"] },
+  { nom: "Frites KFC moyenne", categorie: "fast-food", sousCategorie: "Frites", marque: "KFC", kcal: 340, kcalParUnite: 340, qn: 1, portionDefaut: "1 portion", unite: "piece", alternatives: ["Frites KFC petite", "Frites KFC grande"] },
+  { nom: "Frites KFC grande", categorie: "fast-food", sousCategorie: "Frites", marque: "KFC", kcal: 390, kcalParUnite: 390, qn: 1, portionDefaut: "1 portion", unite: "piece", alternatives: ["Frites KFC moyenne", "Frites McDo grande"] },
+  { nom: "Coleslaw KFC", categorie: "fast-food", sousCategorie: "Accompagnement", marque: "KFC", kcal: 120, kcalParUnite: 120, qn: 2, portionDefaut: "1 portion", unite: "piece", alternatives: ["Purée KFC", "Maïs KFC"] },
+  { nom: "Purée KFC", categorie: "fast-food", sousCategorie: "Accompagnement", marque: "KFC", kcal: 110, kcalParUnite: 110, qn: 2, portionDefaut: "1 portion", unite: "piece", alternatives: ["Coleslaw KFC", "Maïs KFC"] },
+  { nom: "Maïs KFC", categorie: "fast-food", sousCategorie: "Accompagnement", marque: "KFC", kcal: 70, kcalParUnite: 70, qn: 2, portionDefaut: "1 portion", unite: "piece", alternatives: ["Coleslaw KFC", "Purée KFC"] },
+  
+  // Desserts
+  { nom: "Sundae KFC", categorie: "fast-food", sousCategorie: "Dessert", marque: "KFC", kcal: 240, kcalParUnite: 240, qn: 1, portionDefaut: "1 pot", unite: "piece", alternatives: ["Cookie KFC", "Brownie KFC"] },
+  { nom: "Cookie KFC", categorie: "fast-food", sousCategorie: "Dessert", marque: "KFC", kcal: 200, kcalParUnite: 200, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Brownie KFC", "Cookie Subway"] },
+  { nom: "Brownie KFC", categorie: "fast-food", sousCategorie: "Dessert", marque: "KFC", kcal: 280, kcalParUnite: 280, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Cookie KFC", "Sundae KFC"] },
+  { nom: "Glace vanille KFC", categorie: "fast-food", sousCategorie: "Dessert", marque: "KFC", kcal: 180, kcalParUnite: 180, qn: 1, portionDefaut: "1 pot", unite: "piece", alternatives: ["Glace chocolat KFC", "Sundae KFC"] },
+  { nom: "Glace chocolat KFC", categorie: "fast-food", sousCategorie: "Dessert", marque: "KFC", kcal: 190, kcalParUnite: 190, qn: 1, portionDefaut: "1 pot", unite: "piece", alternatives: ["Glace vanille KFC", "Sundae KFC"] },
+
+  // === SUBWAY === (Enrichissement 2026-01-07)
+  // Subs 15cm
+  { nom: "Sub Italian BMT 15cm", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 230, kcalParUnite: 230, qn: 2, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Sub Italian BMT 30cm", "Sub Jambon 15cm"] },
+  { nom: "Sub Thon 15cm", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 210, kcalParUnite: 210, qn: 2, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Sub Thon 30cm", "Sub Poulet Teriyaki 15cm"] },
+  { nom: "Sub Jambon 15cm", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 190, kcalParUnite: 190, qn: 2, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Sub Jambon 30cm", "Sub Italian BMT 15cm"] },
+  { nom: "Sub Poulet Teriyaki 15cm", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 240, kcalParUnite: 240, qn: 2, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Sub Poulet Teriyaki 30cm", "Sub Thon 15cm"] },
+  { nom: "Sub Veggie Delite 15cm", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 160, kcalParUnite: 160, qn: 3, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Sub Veggie Delite 30cm", "Salade Veggie Subway"] },
+  { nom: "Sub Steak & Cheese 15cm", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 280, kcalParUnite: 280, qn: 2, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Sub Steak & Cheese 30cm", "Sub Italian BMT 15cm"] },
+  
+  // Subs 30cm
+  { nom: "Sub Italian BMT 30cm", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 460, kcalParUnite: 460, qn: 2, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Sub Italian BMT 15cm", "Sub Jambon 30cm"] },
+  { nom: "Sub Thon 30cm", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 420, kcalParUnite: 420, qn: 2, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Sub Thon 15cm", "Sub Poulet Teriyaki 30cm"] },
+  { nom: "Sub Jambon 30cm", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 380, kcalParUnite: 380, qn: 2, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Sub Jambon 15cm", "Sub Italian BMT 30cm"] },
+  { nom: "Sub Poulet Teriyaki 30cm", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 480, kcalParUnite: 480, qn: 2, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Sub Poulet Teriyaki 15cm", "Sub Thon 30cm"] },
+  { nom: "Sub Veggie Delite 30cm", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 320, kcalParUnite: 320, qn: 3, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Sub Veggie Delite 15cm", "Salade Veggie Subway"] },
+  { nom: "Sub Steak & Cheese 30cm", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 560, kcalParUnite: 560, qn: 2, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Sub Steak & Cheese 15cm", "Sub Italian BMT 30cm"] },
+  
+  // Wraps
+  { nom: "Wrap Poulet Subway", categorie: "fast-food", sousCategorie: "Wrap", marque: "Subway", kcal: 380, kcalParUnite: 380, qn: 2, portionDefaut: "1 wrap", unite: "piece", alternatives: ["Wrap Thon Subway", "McWrap Poulet"] },
+  { nom: "Wrap Thon Subway", categorie: "fast-food", sousCategorie: "Wrap", marque: "Subway", kcal: 350, kcalParUnite: 350, qn: 2, portionDefaut: "1 wrap", unite: "piece", alternatives: ["Wrap Poulet Subway", "Wrap Veggie Subway"] },
+  { nom: "Wrap Veggie Subway", categorie: "fast-food", sousCategorie: "Wrap", marque: "Subway", kcal: 290, kcalParUnite: 290, qn: 3, portionDefaut: "1 wrap", unite: "piece", alternatives: ["Wrap Poulet Subway", "Sub Veggie Delite 30cm"] },
+  
+  // Salades
+  { nom: "Salade Poulet Subway", categorie: "fast-food", sousCategorie: "Salade", marque: "Subway", kcal: 220, kcalParUnite: 220, qn: 3, portionDefaut: "1 salade", unite: "piece", alternatives: ["Salade Thon Subway", "Wrap Poulet Subway"] },
+  { nom: "Salade Thon Subway", categorie: "fast-food", sousCategorie: "Salade", marque: "Subway", kcal: 200, kcalParUnite: 200, qn: 3, portionDefaut: "1 salade", unite: "piece", alternatives: ["Salade Poulet Subway", "Salade Veggie Subway"] },
+  { nom: "Salade Veggie Subway", categorie: "fast-food", sousCategorie: "Salade", marque: "Subway", kcal: 140, kcalParUnite: 140, qn: 4, portionDefaut: "1 salade", unite: "piece", alternatives: ["Salade Poulet Subway", "Sub Veggie Delite 30cm"] },
+  
+  // Accompagnements
+  { nom: "Cookie Subway", categorie: "fast-food", sousCategorie: "Dessert", marque: "Subway", kcal: 210, kcalParUnite: 210, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Cookie KFC", "Brownie KFC"] },
+  { nom: "Chips Lay's Subway", categorie: "fast-food", sousCategorie: "Accompagnement", marque: "Subway", kcal: 150, kcalParUnite: 150, qn: 1, portionDefaut: "1 sachet", unite: "piece", alternatives: ["Frites McDo petite", "Chips"] },
+
+  // === BURGER KING === (Enrichissement 2026-01-07)
+  // Burgers
+  { nom: "Whopper", categorie: "fast-food", sousCategorie: "Burger", marque: "Burger King", kcal: 660, kcalParUnite: 660, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Big Mac", "Double Whopper"] },
+  { nom: "Whopper Jr", categorie: "fast-food", sousCategorie: "Burger", marque: "Burger King", kcal: 340, kcalParUnite: 340, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Whopper", "Hamburger McDo"] },
+  { nom: "Double Whopper", categorie: "fast-food", sousCategorie: "Burger", marque: "Burger King", kcal: 900, kcalParUnite: 900, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Whopper", "Big Mac"] },
+  { nom: "Chicken Royale BK", categorie: "fast-food", sousCategorie: "Burger", marque: "Burger King", kcal: 550, kcalParUnite: 550, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["McChicken", "Crispy Chicken BK"] },
+  { nom: "Steakhouse BK", categorie: "fast-food", sousCategorie: "Burger", marque: "Burger King", kcal: 680, kcalParUnite: 680, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Whopper", "Royal Deluxe"] },
+  { nom: "Crispy Chicken BK", categorie: "fast-food", sousCategorie: "Burger", marque: "Burger King", kcal: 520, kcalParUnite: 520, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Chicken Royale BK", "McChicken"] },
+  { nom: "Fish King", categorie: "fast-food", sousCategorie: "Burger", marque: "Burger King", kcal: 410, kcalParUnite: 410, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Filet-O-Fish", "Chicken Royale BK"] },
+  
+  // Accompagnements
+  { nom: "Frites BK petite", categorie: "fast-food", sousCategorie: "Frites", marque: "Burger King", kcal: 240, kcalParUnite: 240, qn: 1, portionDefaut: "1 portion", unite: "piece", alternatives: ["Frites BK moyenne", "Frites McDo petite"] },
+  { nom: "Frites BK moyenne", categorie: "fast-food", sousCategorie: "Frites", marque: "Burger King", kcal: 360, kcalParUnite: 360, qn: 1, portionDefaut: "1 portion", unite: "piece", alternatives: ["Frites BK petite", "Frites BK grande"] },
+  { nom: "Frites BK grande", categorie: "fast-food", sousCategorie: "Frites", marque: "Burger King", kcal: 500, kcalParUnite: 500, qn: 1, portionDefaut: "1 portion", unite: "piece", alternatives: ["Frites BK moyenne", "Frites McDo grande"] },
+  { nom: "Onion Rings BK petite", categorie: "fast-food", sousCategorie: "Accompagnement", marque: "Burger King", kcal: 180, kcalParUnite: 180, qn: 1, portionDefaut: "1 portion", unite: "piece", alternatives: ["Onion Rings BK grande", "Frites BK petite"] },
+  { nom: "Onion Rings BK grande", categorie: "fast-food", sousCategorie: "Accompagnement", marque: "Burger King", kcal: 360, kcalParUnite: 360, qn: 1, portionDefaut: "1 portion", unite: "piece", alternatives: ["Onion Rings BK petite", "Frites BK grande"] },
+  { nom: "Nuggets BK 1 pièce", categorie: "fast-food", sousCategorie: "Nuggets", marque: "Burger King", kcal: 43, kcalParUnite: 43, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Nuggets BK menu 6 pièces", "Nuggets McDo 1 pièce"] },
+  { nom: "Nuggets BK menu 6 pièces", categorie: "fast-food", sousCategorie: "Nuggets", marque: "Burger King", kcal: 260, kcalParUnite: 260, qn: 1, portionDefaut: "1 menu", unite: "piece", alternatives: ["Nuggets BK 1 pièce", "Nuggets BK menu 9 pièces"] },
+  { nom: "Nuggets BK menu 9 pièces", categorie: "fast-food", sousCategorie: "Nuggets", marque: "Burger King", kcal: 390, kcalParUnite: 390, qn: 1, portionDefaut: "1 menu", unite: "piece", alternatives: ["Nuggets BK 1 pièce", "King Nuggets menu 20 pièces"] },
+  { nom: "King Nuggets menu 20 pièces", categorie: "fast-food", sousCategorie: "Nuggets", marque: "Burger King", kcal: 860, kcalParUnite: 860, qn: 1, portionDefaut: "1 menu", unite: "piece", alternatives: ["Nuggets BK 1 pièce", "Nuggets McDo menu 20 pièces"] },
+  
+  // Desserts
+  { nom: "Sundae BK caramel", categorie: "fast-food", sousCategorie: "Dessert", marque: "Burger King", kcal: 270, kcalParUnite: 270, qn: 1, portionDefaut: "1 pot", unite: "piece", alternatives: ["Sundae BK chocolat", "Sundae caramel McDo"] },
+  { nom: "Sundae BK chocolat", categorie: "fast-food", sousCategorie: "Dessert", marque: "Burger King", kcal: 280, kcalParUnite: 280, qn: 1, portionDefaut: "1 pot", unite: "piece", alternatives: ["Sundae BK caramel", "Sundae chocolat McDo"] },
+  { nom: "Cookie BK", categorie: "fast-food", sousCategorie: "Dessert", marque: "Burger King", kcal: 190, kcalParUnite: 190, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Brownie BK", "Cookie Subway"] },
+  { nom: "Brownie BK", categorie: "fast-food", sousCategorie: "Dessert", marque: "Burger King", kcal: 270, kcalParUnite: 270, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Cookie BK", "Brownie KFC"] },
+  { nom: "Glace vanille BK", categorie: "fast-food", sousCategorie: "Dessert", marque: "Burger King", kcal: 170, kcalParUnite: 170, qn: 1, portionDefaut: "1 pot", unite: "piece", alternatives: ["Sundae BK caramel", "Glace vanille KFC"] },
 ];
 correctifsAliments.forEach(nouveau => {
   const doublon = referentielAliments.some(existant =>
