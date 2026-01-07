@@ -76,14 +76,64 @@ const referentielAliments = [
     { nom: "Japchae", categorie: "asiatique", sousCategorie: "Buffet coréen", marque: null, kcal: 350, qn: 2, portionDefaut: "1 assiette", unite: "assiette", alternatives: ["Bibimbap", "Bulgogi"] },
     { nom: "Bulgogi", categorie: "asiatique", sousCategorie: "Buffet coréen", marque: null, kcal: 400, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Bibimbap", "Japchae"] },
     { nom: "Kimchi", categorie: "asiatique", sousCategorie: "Buffet coréen", marque: null, kcal: 25, qn: 4, portionDefaut: "50g", unite: "g", alternatives: ["Banchan", "Japchae"] },
+    { nom: "Kimbap", categorie: "asiatique", sousCategorie: "Buffet coréen", marque: null, kcal: 250, qn: 3, portionDefaut: "1 rouleau", unite: "piece", alternatives: ["Sushi saumon", "Bibimbap"] },
+    { nom: "MAPO Aubergine", categorie: "asiatique", sousCategorie: "Buffet coréen", marque: null, kcal: 180, qn: 3, portionDefaut: "200g", unite: "g", alternatives: ["Aubergine", "Tofu sauté"] },
+    { nom: "Nouilles larges épicées aubergine", categorie: "asiatique", sousCategorie: "Buffet coréen", marque: null, kcal: 380, qn: 2, portionDefaut: "1 assiette", unite: "assiette", alternatives: ["Japchae", "MAPO Aubergine"] },
+    { nom: "Jjajangmyeon", categorie: "asiatique", sousCategorie: "Buffet coréen", marque: null, kcal: 580, qn: 2, portionDefaut: "1 bol", unite: "bol", alternatives: ["Japchae", "Nouilles sautées"] },
+    { nom: "Naengmyeon", categorie: "asiatique", sousCategorie: "Buffet coréen", marque: null, kcal: 420, qn: 3, portionDefaut: "1 bol", unite: "bol", alternatives: ["Japchae", "Pho"] },
+    { nom: "Wontons huile pimentée", categorie: "asiatique", sousCategorie: "Buffet coréen", marque: null, kcal: 200, qn: 2, portionDefaut: "6 wontons", unite: "piece", alternatives: ["Raviolis vapeur", "Gyoza"] },
+
+    // Jjigae (ragoûts coréens)
+    { nom: "Kimchi Jjigae Ramyeon", categorie: "asiatique", sousCategorie: "Jjigae", marque: null, kcal: 480, qn: 2, portionDefaut: "1 bol", unite: "bol", alternatives: ["Kimchi", "Japchae"] },
+    { nom: "Sundubu-jjigae", categorie: "asiatique", sousCategorie: "Jjigae", marque: null, kcal: 180, qn: 3, portionDefaut: "1 bol", unite: "bol", alternatives: ["Kimchi Jjigae Ramyeon", "Bibimbap"] },
+    { nom: "Doenjang-jjigae", categorie: "asiatique", sousCategorie: "Jjigae", marque: null, kcal: 160, qn: 3, portionDefaut: "1 bol", unite: "bol", alternatives: ["Sundubu-jjigae", "Kimchi Jjigae Ramyeon"] },
+
+    // Street food coréen
+    { nom: "Tteokbokki", categorie: "asiatique", sousCategorie: "Street food coréen", marque: null, kcal: 280, qn: 2, portionDefaut: "150g", unite: "g", alternatives: ["Sotteok-Sotteok", "Japchae"] },
+    { nom: "Gochujang Tteokbokki", categorie: "asiatique", sousCategorie: "Street food coréen", marque: null, kcal: 300, qn: 2, portionDefaut: "150g", unite: "g", alternatives: ["Tteokbokki", "Sotteok-Sotteok"] },
+    { nom: "Yangnyeom Chicken", categorie: "asiatique", sousCategorie: "Street food coréen", marque: null, kcal: 320, qn: 2, portionDefaut: "150g", unite: "g", alternatives: ["Dakgalbi", "Bulgogi"] },
+    { nom: "Sotteok-Sotteok", categorie: "asiatique", sousCategorie: "Street food coréen", marque: null, kcal: 240, qn: 2, portionDefaut: "1 brochette", unite: "piece", alternatives: ["Tteokbokki", "Korean Corn Dog"] },
+    { nom: "Korean Corn Dog", categorie: "asiatique", sousCategorie: "Street food coréen", marque: null, kcal: 280, qn: 2, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Sotteok-Sotteok", "Hot Dog"] },
+
+    // Banchan (accompagnements coréens)
+    { nom: "Banchan légumes verts", categorie: "asiatique", sousCategorie: "Banchan", marque: null, kcal: 40, qn: 4, portionDefaut: "100g", unite: "g", alternatives: ["Kimchi", "Sigeumchi Namul"] },
+    { nom: "Kkaennip", categorie: "asiatique", sousCategorie: "Banchan", marque: null, kcal: 15, qn: 4, portionDefaut: "50g", unite: "g", alternatives: ["Banchan légumes verts", "Kimchi"] },
+    { nom: "Miyeok", categorie: "asiatique", sousCategorie: "Banchan", marque: null, kcal: 35, qn: 4, portionDefaut: "80g", unite: "g", alternatives: ["Banchan légumes verts", "Wakame"] },
+    { nom: "Oi Kimchi", categorie: "asiatique", sousCategorie: "Banchan", marque: null, kcal: 20, qn: 4, portionDefaut: "50g", unite: "g", alternatives: ["Kimchi", "Banchan légumes verts"] },
+    { nom: "Sigeumchi Namul", categorie: "asiatique", sousCategorie: "Banchan", marque: null, kcal: 35, qn: 4, portionDefaut: "80g", unite: "g", alternatives: ["Banchan légumes verts", "Miyeok"] },
+    { nom: "Kongnamul", categorie: "asiatique", sousCategorie: "Banchan", marque: null, kcal: 30, qn: 4, portionDefaut: "80g", unite: "g", alternatives: ["Sigeumchi Namul", "Banchan légumes verts"] },
+
+    // Jeon (crêpes coréennes)
+    { nom: "Kimchijeon", categorie: "asiatique", sousCategorie: "Jeon", marque: null, kcal: 200, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Pajeon", "Kimchi"] },
+    { nom: "Pajeon", categorie: "asiatique", sousCategorie: "Jeon", marque: null, kcal: 200, qn: 2, portionDefaut: "120g", unite: "g", alternatives: ["Kimchijeon", "Hachae jeon"] },
+    { nom: "Hachae jeon", categorie: "asiatique", sousCategorie: "Jeon", marque: null, kcal: 220, qn: 2, portionDefaut: "120g", unite: "g", alternatives: ["Pajeon", "Kimchijeon"] },
+
+    // BBQ coréen
+    { nom: "Samgyeopsal", categorie: "asiatique", sousCategorie: "BBQ coréen", marque: null, kcal: 380, qn: 2, portionDefaut: "120g", unite: "g", alternatives: ["Bulgogi", "Galbi"] },
+    { nom: "Galbi", categorie: "asiatique", sousCategorie: "BBQ coréen", marque: null, kcal: 420, qn: 2, portionDefaut: "150g", unite: "g", alternatives: ["Bulgogi", "Samgyeopsal"] },
+    { nom: "Dakgalbi", categorie: "asiatique", sousCategorie: "BBQ coréen", marque: null, kcal: 320, qn: 2, portionDefaut: "150g", unite: "g", alternatives: ["Bulgogi", "Yangnyeom Chicken"] },
 
     // Buffet africain (Sénégal, Congo, Côte d’Ivoire)
     { nom: "Poulet yassa", categorie: "africain", sousCategorie: "Buffet sénégalais", marque: null, kcal: 220, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Poisson yassa", "Thieboudienne"] },
     { nom: "Thieboudienne", categorie: "africain", sousCategorie: "Buffet sénégalais", marque: null, kcal: 250, qn: 2, portionDefaut: "150g", unite: "g", alternatives: ["Poulet yassa", "Mafé"] },
+    { nom: "Poisson yassa", categorie: "africain", sousCategorie: "Buffet sénégalais", marque: null, kcal: 240, qn: 3, portionDefaut: "120g", unite: "g", alternatives: ["Poulet yassa", "Thieboudienne"] },
+    { nom: "Pastels", categorie: "africain", sousCategorie: "Buffet sénégalais", marque: null, kcal: 180, qn: 2, portionDefaut: "80g", unite: "g", alternatives: ["Fataya", "Nems"] },
+    { nom: "Fataya", categorie: "africain", sousCategorie: "Buffet sénégalais", marque: null, kcal: 220, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Pastels", "Samoussa"] },
     { nom: "Mafé", categorie: "africain", sousCategorie: "Buffet congolais", marque: null, kcal: 300, qn: 2, portionDefaut: "150g", unite: "g", alternatives: ["Poulet yassa", "Thieboudienne"] },
     { nom: "Foufou", categorie: "africain", sousCategorie: "Buffet congolais", marque: null, kcal: 180, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Mafé", "Attiéké"] },
+    { nom: "Poulet moambe", categorie: "africain", sousCategorie: "Buffet congolais", marque: null, kcal: 380, qn: 2, portionDefaut: "150g", unite: "g", alternatives: ["Mafé", "Poulet yassa"] },
+    { nom: "Saka-saka", categorie: "africain", sousCategorie: "Buffet congolais", marque: null, kcal: 140, qn: 3, portionDefaut: "150g", unite: "g", alternatives: ["Foufou", "Épinards"] },
     { nom: "Attiéké", categorie: "africain", sousCategorie: "Buffet ivoirien", marque: null, kcal: 160, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Foufou", "Alloco"] },
     { nom: "Alloco", categorie: "africain", sousCategorie: "Buffet ivoirien", marque: null, kcal: 220, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Attiéké", "Foufou"] },
+    { nom: "Garba", categorie: "africain", sousCategorie: "Buffet ivoirien", marque: null, kcal: 320, qn: 2, portionDefaut: "200g", unite: "g", alternatives: ["Attiéké", "Alloco"] },
+    { nom: "Kedjenou", categorie: "africain", sousCategorie: "Buffet ivoirien", marque: null, kcal: 280, qn: 2, portionDefaut: "150g", unite: "g", alternatives: ["Poulet yassa", "Poulet moambe"] },
+    { nom: "Placali", categorie: "africain", sousCategorie: "Buffet ivoirien", marque: null, kcal: 200, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Foufou", "Attiéké"] },
+
+    // Maghreb (Algérie, Maroc, Tunisie)
+    { nom: "Couscous royal", categorie: "africain", sousCategorie: "Maghreb", marque: null, kcal: 380, qn: 2, portionDefaut: "250g", unite: "g", alternatives: ["Tajine poulet", "Riz cantonais"] },
+    { nom: "Tajine poulet citron", categorie: "africain", sousCategorie: "Maghreb", marque: null, kcal: 320, qn: 2, portionDefaut: "200g", unite: "g", alternatives: ["Couscous royal", "Poulet yassa"] },
+    { nom: "Tajine agneau pruneaux", categorie: "africain", sousCategorie: "Maghreb", marque: null, kcal: 420, qn: 2, portionDefaut: "200g", unite: "g", alternatives: ["Tajine poulet", "Mafé"] },
+    { nom: "Merguez", categorie: "africain", sousCategorie: "Maghreb", marque: null, kcal: 300, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Kefta", "Saucisse"] },
 
     // Fromages industriels
     { nom: "Kiri", categorie: "laitier", sousCategorie: "Fromage industriel", marque: "Kiri", kcal: 45, qn: 1, portionDefaut: "1 portion", unite: "piece", alternatives: ["Vache qui rit", "Babybel"] },
@@ -2982,7 +3032,6 @@ const correctifsAliments = [
   { nom: "Glace fraise Magnum", categorie: "snack", sousCategorie: "Glace", marque: "Magnum", kcal: 230, qn: 2, portionDefaut: "100ml", unite: "ml", alternatives: ["Glace vanille Magnum", "Glace Ben & Jerry’s"] },
 
   // Cuisine asiatique et chaînes
-  { nom: "Bibimbap", categorie: "asiatique", sousCategorie: "Coréen", marque: null, kcal: 420, qn: 2, portionDefaut: "1 bol", unite: "bol", alternatives: ["Bulgogi", "Japchae"] },
   { nom: "Bo Bun", categorie: "asiatique", sousCategorie: "Vietnamien", marque: null, kcal: 480, qn: 2, portionDefaut: "1 bol", unite: "bol", alternatives: ["Pho", "Nem"] },
   { nom: "Pho", categorie: "asiatique", sousCategorie: "Vietnamien", marque: null, kcal: 350, qn: 2, portionDefaut: "1 bol", unite: "bol", alternatives: ["Bo Bun", "Nem"] },
   { nom: "Pad Thaï", categorie: "asiatique", sousCategorie: "Thaï", marque: null, kcal: 550, qn: 2, portionDefaut: "1 assiette", unite: "assiette", alternatives: ["Bo Bun", "Nouilles sautées"] },
@@ -3009,6 +3058,7 @@ const correctifsAliments = [
   { nom: "Nouilles sautées", categorie: "asiatique", sousCategorie: "Buffet chinois", marque: null, kcal: 150, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Riz cantonais", "Riz nature"] },
   { nom: "Riz cantonais", categorie: "asiatique", sousCategorie: "Buffet chinois", marque: null, kcal: 140, qn: 2, portionDefaut: "100g", unite: "g", alternatives: ["Nouilles sautées", "Riz nature"] },
   { nom: "Crevettes sauce piquante", categorie: "asiatique", sousCategorie: "Buffet chinois", marque: null, kcal: 90, qn: 2, portionDefaut: "50g", unite: "g", alternatives: ["Crevettes sautées", "Poulet piquant"] },
+  { nom: "Nouilles sautées crevettes", categorie: "asiatique", sousCategorie: "Buffet chinois", marque: null, kcal: 450, qn: 2, portionDefaut: "250g", unite: "g", alternatives: ["Nouilles sautées", "Pad Thaï"] },
 
   // === MCDONALD'S === (Enrichissement 2026-01-07)
   // Burgers
