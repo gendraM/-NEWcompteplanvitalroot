@@ -126,9 +126,8 @@ export default function TableauDeBord() {
   const { debut, fin } = getPeriodeDates();
     // Rafraîchir l’historique fast food à chaque refresh manuel
     const { data: ffData } = await supabase
-      .from('repas_reels')
+      .from('fast_food_history')
       .select('*')
-      .or('categorie.eq.fast-food,tag.not.is.null')
       .gte('date', debut.toISOString().slice(0,10))
       .lte('date', fin.toISOString().slice(0,10))
       .order('date', { ascending: false });
@@ -637,11 +636,6 @@ export default function TableauDeBord() {
             🍔 {fastFoodCount}
           </div>
           <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Fast food sur la période</div>
-          {fastFoodHistory && fastFoodHistory.length > 0 && (
-            <div style={{marginTop:8, fontSize:'0.90rem', color:'#666', fontStyle:'italic'}}>
-              Dernier : {fastFoodHistory[0]?.tag || "Non identifié"}
-            </div>
-          )}
           {nextFastFoodDate && (
             <div style={{marginTop:8, fontSize:'0.98rem', color:'#1976d2'}}>
               Prochain créneau disponible : <b>{nextFastFoodDate.toLocaleDateString('fr-FR')}</b><br/>

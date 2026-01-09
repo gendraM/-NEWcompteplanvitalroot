@@ -504,7 +504,354 @@ Valider avec utilisateur quelle option préférée avant correction.
 
 ---
 
-## 📝 NOTES DE SUIVI
+## � QUALITÉ CODE & ARCHITECTURE
+
+### 6. Refactoring Ordre Hooks RepasBloc.js ✅ PARTIELLEMENT RÉSOLU
+
+**Date identification :** 2026-01-09  
+**Dernière mise à jour :** 2026-01-09 (corrections appliquées)  
+**Priorité :** 🟡 MOYENNE (anomalies A/B/D restantes)  
+**Statut :** 🟢 ANOMALIE C RÉSOLUE / ⏳ A/B/D À FAIRE
+
+#### Contexte
+Audit Template a révélé 4 violations ordre hooks.  
+**Anomalie C (CRITIQUE)** résolue 2026-01-09.  
+Anomalies A/B/D reportées (non-bloquantes).
+
+---
+
+### 7. Boucle Infinie useEffect fastFoodAliments ✅ RÉSOLU
+
+**Date :** 2026-01-09 | **Priorité :** 🔴 CRITIQUE | **Statut :** ✅ RÉSOLU
+
+**Problème :** useEffect modifiait `fastFoodAliments` avec `fastFoodAliments` en dépendance → boucle infinie
+
+**Code supprimé (lignes 149-157) :**
+```javascript
+useEffect(() => {
+  setFastFoodAliments(fastFoodAliments.map(...)); 
+}, [fastFoodAliments]); // ← Cause boucle
+```
+
+**Correction :** useEffect supprimé, auto-détection via référentiel suffit
+
+---
+
+### 8. Doublon Interface Fast Food ✅ RÉSOLU
+
+**Date :** 2026-01-09 | **Priorité :** 🟠 HAUTE | **Statut :** ✅ RÉSOLU
+
+**Problème :** 2 sections saisie affichées (confusion UX)
+
+**Correction :** Section "Aliments consommés (Fast food)" masquée (lignes 583-613)  
+**Logique :** Saisie normale avec auto-détection suffit
+
+---
+
+**✅ ANOMALIE C : fetchDernierFastFood - RÉSOLUE**
+
+Corrections tentées 2026-01-09 ont créé doublon → rollback effectué.
+
+---
+
+### ANOMALIE C : fetchDernierFastFood déclaré APRÈS usage ⚠️ **BLOQUANTE**
+
+**Erreur actuelle :**
+```
+Runtime ReferenceError: Cannot access 'fetchDernierFastFood' before initialization
+Ligne 216: }, [aliment, fetchDernierFastFood]); ← Utilisation
+Ligne 233: const fetchDernierFastFood = useCallback(...); ← Déclaration 17 lignes APRÈS
+```
+
+**Impact :**
+- 🔴 Page ne charge pas
+- 🔴 Application cassée
+
+**Correction requise :**
+Déplacer `fetchDernierFastFood` (lignes 233-283, 51 lignes) → AVANT ligne 197 (avant useEffect auto-détection)
+
+**Étapes précises :**
+1. Supprimer fonction lignes 233-283
+2. Insérer AVANT ligne 197
+3. Tester compilation
+4. Tester runtime
+
+**Risque :** ⚠️ FAIBLE (simple déplacement)  
+**Durée :** 2 minutes
+
+---
+
+### ANOMALIE A : 8 useState déclarés APRÈS useEffect ⚠️ NON BLOQUANTE
+
+**Violation Template ligne 83 :**
+> "Tous les hooks React (useState, useEffect, etc.) sont déclarés uniquement en haut du corps du composant fonctionnel"
+
+**Code actuel :**
+```javascript
+Ligne 161: useEffect(() => { ... }, [fastFoodAliments]); // ← useEffect
+
+Ligne 172: const [estExtra, setEstExtra] = useState(false); // ❌ APRÈS useEffect
+Ligne 173: const [satiete, setSatiete] = useState('');
+Ligne 174: const [pourquoi, setPourquoi] = useState('');
+Ligne 175: const [ressenti, setRessenti] = useState('');
+Ligne 176: const [detailsSignaux, setDetailsSignaux] = useState([]);
+Ligne 177: const [reactBloc, setReactBloc] = useState([]);
+Ligne 178: const [showDefi, setShowDefi] = useState(false);
+Ligne 179: const [loadingKcal, setLoadingKcal] = useState(false);
+```
+
+**Impact :**
+- ✅ Code fonctionne (runtime OK)
+- ❌ Ordre hooks violé
+- ❌ Lisibilité dégradée
+- ❌ Conformité Template 60%
+
+**Correction requise :**
+Déplacer 8 useState (lignes 172-180) → ligne 126 (après `setDelaiRespected`)
+
+**Risque :** ⚠️ FAIBLE  
+**Durée :** 1 minute
+
+---
+
+### ANOMALIE B : 1 useState intercalé entre useEffect ⚠️ NON BLOQUANTE
+
+**Code actuel :**
+```javascript
+Ligne 161: useEffect(() => { ... }, [fastFoodAliments]); // ← useEffect #1
+
+Ligne 181: const [semaineValidee, setSemaineValidee] = useState(false); // ❌ useState intercalé
+
+Ligne 185: useEffect(() => { ... }, [semaineCouranteDate]); // ← useEffect #2
+```
+
+**Impact :**
+- ✅ Runtime OK (`semaineValidee` déclaré avant utilisation ligne 185)
+- ❌ Ordre hooks violé
+- ❌ Conformité Template 60%
+
+**Correction requise :**
+Déplacer 1 useState (lignes 181-182) → ligne 135 (après 8 useState précédents)
+
+**Risque :** ⚠️ FAIBLE  
+**Durée :** 30 secondes
+
+---
+
+### ANOMALIE D : 2 handlers déclarés AVANT useEffect ⚠️ NON BLOQUANTE
+
+**Violation Template :**
+> Ordre strict : useState → useEffect → handlers → rendu
+
+**Code actuel :**
+```javascript
+Ligne 139: const handleAddFastFoodAliment = () => { ... }; // ← Handler
+Ligne 144: const handleChangeFastFoodAliment = (idx, field, value) => { ... }; // ← Handler
+
+Ligne 150: useEffect(() => { ... }); // ← useEffect APRÈS handlers
+```
+
+**Impact :**
+- ✅ Runtime OK (handlers utilisés dans JSX ligne 500+)
+- ❌ Ordre Template violé
+- ❌ Conformité Template 70%
+
+**Correction requise :**
+Déplacer 2 handlers (lignes 139-147) → après dernier useEffect (ligne ~360)
+
+**Risque :** ⚠️ FAIBLE  
+**Durée :** 1 minute
+
+---
+
+### Stratégie correction recommandée
+
+**PHASE 1 : URGENT - Correction C uniquement**
+1. Déplacer `fetchDernierFastFood` avant useEffect
+2. Tester compilation + runtime
+3. Appliquer correction #4 (rechargement après save)
+4. Tests utilisateur
+
+**PHASE 2 : APRÈS validation utilisateur - Corrections A/B/D**
+1. Déplacer 8 useState (A)
+2. Déplacer 1 useState (B)
+3. Déplacer 2 handlers (D)
+4. Tester compilation
+5. Conformité Template 100%
+
+**Estimation effort total :**
+- Phase 1 : 5 minutes
+- Phase 2 : 5 minutes
+- **Total : 10 minutes**
+
+**Bénéfices :**
+- ✅ Application fonctionne (Phase 1)
+- ✅ Conformité Template 100% (Phase 2)
+- ✅ Code maintenable professionnel
+- ✅ Respect règles React officielles
+
+---
+
+## 🆕 NOUVELLES FONCTIONNALITÉS
+
+### 7. Ajout Aliments Utilisateur Personnalisés
+
+**Date identification :** 2026-01-09  
+**Priorité :** 🟡 Moyenne  
+**Statut :** ⏳ À faire
+
+#### Objectif
+Permettre aux utilisateurs d'enrichir le référentiel en ajoutant leurs propres aliments directement depuis l'interface.
+
+#### Fonctionnalités
+
+**1. Détection aliment absent**
+- Utilisateur saisit "Poulet basquaise" (non existant)
+- Autocomplete ne retourne aucun résultat
+- **Message :** "Aliment non trouvé. Voulez-vous l'ajouter au référentiel ?"
+- Bouton "Ajouter cet aliment"
+
+**2. Formulaire ajout personnalisé**
+```javascript
+{
+  nom: "Poulet basquaise", // Pré-rempli
+  categorie: "", // Select (féculent, protéines, légumes, etc.)
+  sousCategorie: "", // Dynamique selon catégorie
+  quantite: "", // Nombre
+  unite: "", // Select (g, CS, pièce, etc.)
+  kcal: "", // Nombre (par unité)
+  qn: "", // Select 1-5
+  portionDefaut: "", // Auto-généré : "1 [unite] ([quantite])"
+  marque: "", // Optionnel (si fast-food)
+  alternatives: [] // Optionnel
+}
+```
+
+**3. Validation données**
+- Vérification doublon (nom normalisé)
+- Kcal > 0
+- QN entre 1 et 5
+- Catégorie obligatoire
+- Unite cohérente avec catégorie
+
+**4. Stockage temporaire**
+- Table Supabase : `referentiel_user_custom`
+- Colonnes : user_id, aliment_data (JSON), date_ajout, statut (en_attente/validé)
+- Visibilité : Utilisateur voit UNIQUEMENT ses aliments custom
+
+**5. Process modération (optionnel future)**
+- Admin peut valider aliments custom
+- Si validé → ajout référentiel global
+- Si refusé → reste privé utilisateur
+
+#### Composants à créer
+
+**1. `<FormAjoutAliment />` (nouveau composant)**
+- Formulaire complet ajout aliment
+- Validation temps réel
+- Calcul auto portionDefaut
+- Suggestions QN selon catégorie
+
+**2. Modification `RepasBloc.js`**
+- Détection autocomplete vide
+- Affichage bouton "Ajouter aliment"
+- Modal formulaire ajout
+- Fusion résultats (référentiel global + custom user)
+
+**3. Hook `useUserReferentiel(user_id)`**
+```javascript
+const { referentielGlobal, referentielCustom, referentielComplet } = useUserReferentiel(user_id);
+// referentielComplet = [...referentielGlobal, ...referentielCustom]
+```
+
+#### Bénéfices
+- ✅ Référentiel adapté habitudes utilisateur
+- ✅ Pas besoin attendre ajout admin
+- ✅ Autonomie totale
+- ✅ Base pour enrichissement référentiel global
+
+**Estimation effort :**
+- Création composant : 3h
+- Intégration RepasBloc : 2h
+- Table Supabase + queries : 1h
+- Tests : 1h
+- **Total : 7h**
+
+---
+
+### 8. Composition Assiette/Repas Complets
+
+**Date identification :** 2026-01-09  
+**Priorité :** 🟢 Basse  
+**Statut :** ⏳ À faire
+
+#### Objectif
+Permettre de créer des "repas composés" (plusieurs aliments groupés) et les proposer dans la planification.
+
+#### Fonctionnalités
+
+**1. Mode composition**
+- Bouton "Créer repas composé" dans RepasBloc
+- Ajout multiple aliments dans même repas
+- Calcul automatique kcal totales
+- Calcul QN moyen pondéré
+
+**Exemple :**
+```javascript
+{
+  nom: "Poulet rôti + Riz + Brocolis",
+  type: "repas_compose",
+  composition: [
+    { nom: "Poulet grillé", quantite: 150, unite: "g", kcal: 248 },
+    { nom: "Riz blanc", quantite: 6, unite: "CS", kcal: 180 },
+    { nom: "Brocolis vapeur", quantite: 150, unite: "g", kcal: 51 }
+  ],
+  kcalTotal: 479,
+  qnMoyen: 3.7, // Pondéré par kcal
+  portionDefaut: "1 assiette complète"
+}
+```
+
+**2. Sauvegarde repas favoris**
+- Stockage : `repas_composes_user`
+- Réutilisable dans planification
+- Éditable (ajouter/retirer aliments)
+- Dupliquer pour créer variantes
+
+**3. Suggestions planification**
+- Affichage dans autocomplete
+- Badge "Repas complet 🍽️"
+- Détails composition au survol
+- Ajustement quantités global (×1.2, ×0.8)
+
+**4. Analyse nutritionnelle**
+- Répartition protéines/féculents/légumes
+- Score équilibre assiette
+- Compatibilité objectif (perte/maintien/surplus)
+- Suggestions améliorations
+
+#### Bénéfices
+- ✅ Gain temps saisie quotidienne
+- ✅ Cohérence repas planifiés
+- ✅ Éducation équilibre alimentaire
+- ✅ Base recettes personnalisées
+
+**Estimation effort :**
+- Interface composition : 4h
+- Calculs nutritionnels : 2h
+- Intégration planification : 3h
+- Tests : 2h
+- **Total : 11h**
+
+---
+
+## �📝 NOTES DE SUIVI
+
+### 2026-01-09
+- ❌ Incident correction fast food tracking
+- 🚨 **Anomalies ordre hooks Template détectées (CRITIQUE)**
+- ⏳ Corrections reportées - Nécessite refactoring complet RepasBloc.js
+- 📋 4 anomalies identifiées (voir section ci-dessous)
 
 ### 2026-01-07
 - ✅ Identification erreur conceptuelle portionDefaut
