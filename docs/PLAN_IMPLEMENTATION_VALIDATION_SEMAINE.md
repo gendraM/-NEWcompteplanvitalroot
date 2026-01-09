@@ -260,13 +260,14 @@ Permettre aux utilisateurs de :
 
 ## **Etape 5 — Mise à jour de l'avancement**
 
-- [x] Non commencé | [ ] En cours | [ ] Terminé  
-- **Avancement actuel : 0%** (plan en cours de validation)
+- [ ] Non commencé | [x] En cours | [ ] Terminé  
+- **Avancement actuel : 5%** (plan validé, démarrage Phase 1)
 
 ### Historique mises à jour
 | Date | Heure | Avancement | Action |
 |------|-------|------------|--------|
 | 09/01/2026 | - | 0% | Plan d'implémentation créé, en attente validation |
+| 09/01/2026 | - | 5% | Plan validé utilisateur, début Phase 1 (BDD) |
 
 ---
 
@@ -577,21 +578,21 @@ useEffect(() => {
 
 ## **Etape 9 — Validation explicite de l'utilisateur (OBLIGATOIRE)**
 
-- [ ] **Plan validé par l'utilisateur à la date : ___________**
+- [x] **Plan validé par l'utilisateur à la date : 9 janvier 2026**
 
 ### Questions validation
 
 Avant de procéder à l'implémentation, l'utilisateur doit confirmer :
 
-1. ✅ Structure BDD proposée convient (colonnes extras_count, details, etc.) ?
-2. ✅ UX modal feedback convient (voir mockups HISTORIQUE document) ?
-3. ✅ UX drawer rétroactif convient (checkboxes multi-sélection) ?
-4. ✅ Suppression boutons repas.js validée (conservation emoji 🍔) ?
-5. ✅ Plan d'implémentation complet et clair ?
-6. ✅ Points de vigilance suffisants ?
-7. ✅ Prêt à démarrer Phase 1 (BDD) ?
+1. ✅ Structure BDD proposée convient (colonnes extras_count, details, etc.) ? **→ OUI**
+2. ✅ UX modal feedback convient (voir mockups HISTORIQUE document) ? **→ OUI**
+3. ✅ UX drawer rétroactif convient (checkboxes multi-sélection) ? **→ OUI**
+4. ✅ Suppression boutons repas.js validée (conservation emoji 🍔) ? **→ OUI**
+5. ✅ Plan d'implémentation complet et clair ? **→ OUI**
+6. ✅ Points de vigilance suffisants ? **→ OUI**
+7. ✅ Prêt à démarrer Phase 1 (BDD) ? **→ OUI**
 
-**⚠️ STOP — Attente validation utilisateur avant tout code**
+**✅ VALIDATION COMPLÈTE — Début implémentation autorisé**
 
 ---
 

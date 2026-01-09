@@ -26,7 +26,13 @@ function RetourAccueil() {
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import BandeauDefiActif from '../components/BandeauDefiActif';
+import ModalFeedbackValidation from '../components/ModalFeedbackValidation';
 import { supabase } from '../lib/supabaseClient';
+import { 
+  calculerExtrasSemaine, 
+  genererMessageFeedback, 
+  calculerVariation 
+} from '../lib/validationSemaine';
 import { 
   calculerJourRelatif, 
   isPeriodeActive, 
@@ -421,6 +427,13 @@ export default function Suivi() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0,10));
   // Hook pour l'affichage de l'alerte calorique (DOIT ÊTRE DÉCLARÉ AVANT SON UTILISATION dans useEffect)
   const [repasSemaine, setRepasSemaine] = useState([]);
+  
+  // ═══════════════════════════════════════════════════════════
+  // NOUVEAUX HOOKS VALIDATION SEMAINE (9 janvier 2026)
+  // ═══════════════════════════════════════════════════════════
+  const [feedbackData, setFeedbackData] = useState(null);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [derniereSemaineValidee, setDerniereSemaineValidee] = useState(null);
   // Hook pour tracker les champs du repas en cours (portions, féculents, hydratation, etc.)
   const [champsRepasEnCours, setChampsRepasEnCours] = useState({});
   // Récupérer la date du jeûne programmé (stockée en localStorage ou BDD)
@@ -884,7 +897,9 @@ export default function Suivi() {
 
   // ----------- LOGIQUE D'AFFICHAGE DYNAMIQUE MOTIVATION -----------
   const today = new Date();
-  const selected = new Date(selectedDate);
+  // FIX: Parser la date en local au lieu d'UTC pour éviter les décalages de timezone
+  const [year, month, day] = selectedDate.split('-').map(Number);
+  const selected = new Date(year, month - 1, day);
   const dayOfWeek = today.getDay();
   const selectedDayOfWeek = selected.getDay();
   const extrasEnCours = extrasThisWeek;
@@ -933,20 +948,55 @@ export default function Suivi() {
         monday.setHours(0,0,0,0);
         return monday.toISOString().slice(0,10);
       })();
-      // Persister la validation dans Supabase
-      const { error } = await supabase.from('semaines_validees').upsert([{ weekStart: selectedWeekStart, validee: true }]);
+      
+      // Calculer les extras de la semaine
+      const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasSemaine);
+      
+      // Charger les semaines validées pour calculer la variation
+      const { data: semainesValidees } = await supabase
+        .from('semaines_validees')
+        .select('weekStart, validee, extras_count');
+      
+      // Calculer la variation par rapport à la semaine précédente
+      const variation = calculerVariation(extrasInfo.count, semainesValidees || [], selectedWeekStart);
+      
+      // Générer le message de feedback
+      const message = genererMessageFeedback(extrasInfo.count, 2);
+      
+      // Persister la validation dans Supabase avec toutes les informations
+      const { error } = await supabase.from('semaines_validees').upsert([{ 
+        weekStart: selectedWeekStart, 
+        validee: true,
+        date_validation: new Date().toISOString(),
+        extras_count: extrasInfo.count,
+        extras_details: extrasInfo.details,
+        message_feedback: message,
+        variation: variation
+      }]);
       if (error) {
         setSnackbar({ open: true, message: error.message || "Erreur lors de la validation.", type: "error" });
         return;
       }
-      setSnackbar({ open: true, message: "Semaine validée avec succès !", type: "info" });
+      
+      // Afficher le modal de feedback au lieu du snackbar
+      const feedbackInfo = {
+        weekStart: selectedWeekStart,
+        extrasCount: extrasInfo.count,
+        extrasDetails: extrasInfo.details,
+        message: message,
+        variation: variation,
+        dateValidation: new Date().toISOString()
+      };
+      setFeedbackData(feedbackInfo);
+      setShowFeedbackModal(true);
+      setDerniereSemaineValidee(feedbackInfo);
       // Recharger l’historique pour mettre à jour la timeline
       const history = getWeeklyExtrasHistory(repasSemaine, selectedDate, 16);
-      const { data: semainesValidees } = await supabase
-  .from('semaines_validees')
+      const { data: semainesValideesRefresh } = await supabase
+        .from('semaines_validees')
         .select('weekStart, validee');
       const historyWithValidation = history.map(week => {
-        const valid = semainesValidees?.find(s => s.weekStart === week.weekStart)?.validee === true;
+        const valid = semainesValideesRefresh?.find(s => s.weekStart === week.weekStart)?.validee === true;
         return { ...week, validee: valid };
       });
       setWeeklyHistory(historyWithValidation);
@@ -989,6 +1039,33 @@ export default function Suivi() {
         <button onClick={handleRefresh} style={{
           background:'#1976d2', color:'#fff', border:'none', borderRadius:8, padding:'8px 22px', fontWeight:600, fontSize:16, cursor:'pointer'
         }}>🔄 Rafraîchir les statistiques</button>
+        
+        {/* ═══════════════════════════════════════════════════════════
+            BADGE "VOIR FEEDBACK DÉTAILLÉ" (9 janvier 2026)
+            Visible uniquement si semaine précédente validée ET pas dimanche
+            ═══════════════════════════════════════════════════════════ */}
+        {derniereSemaineValidee && new Date(selectedDate).getDay() !== 0 && (
+          <button 
+            onClick={() => {
+              setFeedbackData(derniereSemaineValidee);
+              setShowFeedbackModal(true);
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '8px 22px',
+              fontWeight: 600,
+              fontSize: 15,
+              cursor: 'pointer',
+              marginLeft: 12,
+              boxShadow: '0 2px 8px rgba(16,185,129,0.3)'
+            }}
+          >
+            ✅ Voir feedback semaine validée
+          </button>
+        )}
       </div>
 
       {/* Mini-bandeau Préparation en cours (synthétique avec coloration contextuelle) */}
@@ -1699,6 +1776,22 @@ export default function Suivi() {
             </Link>
           )}
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          MODAL FEEDBACK VALIDATION (9 janvier 2026)
+          Affiche feedback détaillé après validation de semaine
+          ═══════════════════════════════════════════════════════════ */}
+      <ModalFeedbackValidation
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        weekStart={feedbackData?.weekStart}
+        extrasCount={feedbackData?.extrasCount}
+        extrasDetails={feedbackData?.extrasDetails}
+        message={feedbackData?.message}
+        variation={feedbackData?.variation}
+        dateValidation={feedbackData?.dateValidation}
+        quota={2}
+      />
     </div>
   );
 }

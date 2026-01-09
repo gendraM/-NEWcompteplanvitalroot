@@ -105,22 +105,6 @@ export default function Repas() {
     fetchCaloriesForDay(selectedDate);
   }, [selectedDate, repas]);
 
-  async function handleValiderSemaine(r) {
-    setRepas(repas.map(rep =>
-      rep.date === r.date && rep.type === "Dîner"
-        ? { ...rep, validee: true }
-        : rep
-    ));
-  }
-
-  async function handleDevaliderSemaine(r) {
-    setRepas(repas.map(rep =>
-      rep.date === r.date && rep.type === "Dîner"
-        ? { ...rep, validee: false }
-        : rep
-    ));
-  }
-
   useEffect(() => {
     fetchRepas();
     fetchFastFoodRepas();
@@ -274,12 +258,7 @@ export default function Repas() {
                           alignItems: 'center',
                           gap: 8
                         }}>
-                          {r.validee ? 'Semaine validée' : 'Non validée'}
-                          {r.validee ? (
-                            <button type="button" style={{ background: "#b71c1c", color: "#fff", border: "none", borderRadius: 8, padding: "2px 10px", fontWeight: 600, fontSize: 14, cursor: "pointer", marginLeft: 8 }} onClick={() => handleDevaliderSemaine(r)} title="Dévalider la semaine">❌</button>
-                          ) : (
-                            <button type="button" style={{ background: "#43a047", color: "#fff", border: "none", borderRadius: 8, padding: "2px 10px", fontWeight: 600, fontSize: 14, cursor: "pointer", marginLeft: 8 }} onClick={() => handleValiderSemaine(r)} title="Valider la semaine">✓</button>
-                          )}
+                          {r.validee ? '✅ Semaine validée' : 'Non validée'}
                         </span>
                       );
                     }

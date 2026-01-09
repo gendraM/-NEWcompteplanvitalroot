@@ -4,6 +4,8 @@ import { supabase } from "../lib/supabaseClient";
 import { Line, Pie, Doughnut } from "react-chartjs-2";
 import TimelineProgression from "../components/TimelineProgression";
 import BadgeCard from "../components/BadgeCard";
+import DrawerValidation from "../components/DrawerValidation";
+import { getSemainesNonValidees, calculerExtrasSemaine, genererMessageFeedback, calculerVariation } from "../lib/validationSemaine";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -79,6 +81,11 @@ export default function TableauDeBord() {
   // État pour la bannière de préparation jeûne
   const [preparationData, setPreparationData] = useState(null);
   const [joursRestants, setJoursRestants] = useState(null);
+  
+  // État pour le drawer de validation rétroactive
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [nbSemainesNonValidees, setNbSemainesNonValidees] = useState(0);
+  const [semainesNonValideesFormatees, setSemainesNonValideesFormatees] = useState([]);
 
   // Calcul des bornes de période
   function getPeriodeDates() {
@@ -109,6 +116,14 @@ export default function TableauDeBord() {
         .from('semaines_validees')
         .select('*');
       setSemainesValidees(semaines || []);
+      
+      // Calculer le nombre de semaines non validées (8 dernières semaines)
+      const semainesNonValidees = getSemainesNonValidees(semaines || [], 8);
+      setNbSemainesNonValidees(semainesNonValidees.length);
+      
+      // getSemainesNonValidees retourne déjà le format attendu par le drawer
+      // { weekStart, label, estSemaineActuelle }
+      setSemainesNonValideesFormatees(semainesNonValidees);
     })();
     const { debut, fin } = getPeriodeDates();
     let label = '';
@@ -495,6 +510,85 @@ export default function TableauDeBord() {
     tauxSatiete,
   });
 
+  // Handler pour la validation batch depuis le drawer
+  const handleValidationBatch = async (weekStartArray) => {
+    try {
+      if (!weekStartArray || weekStartArray.length === 0) return false;
+      
+      // Trier les dates pour avoir min/max
+      const sorted = [...weekStartArray].sort();
+      const premiereLundi = sorted[0];
+      const dernierLundi = sorted[sorted.length - 1];
+      
+      // Calculer la fin de la dernière semaine (dimanche)
+      const dernierDimanche = new Date(dernierLundi);
+      dernierDimanche.setDate(dernierDimanche.getDate() + 6);
+      
+      // Charger tous les repas nécessaires
+      const { data: repasReels } = await supabase
+        .from('repas_reels')
+        .select('*')
+        .gte('date', premiereLundi)
+        .lte('date', dernierDimanche.toISOString().slice(0, 10));
+
+      // Charger le quota du palier actuel
+      const { data: palierData } = await supabase
+        .from('paliers_personnalises')
+        .select('quota_extras')
+        .eq('actif', true)
+        .single();
+      
+      const quota = palierData?.quota_extras || 5;
+
+      // Valider chaque semaine
+      for (const weekStart of weekStartArray) {
+        const extrasCount = calculerExtrasSemaine(weekStart, repasReels || []);
+        const message = genererMessageFeedback(extrasCount, quota);
+        const variation = calculerVariation(extrasCount, semainesValidees, weekStart);
+        
+        // Calculer fin de semaine (dimanche)
+        const finSemaine = new Date(weekStart);
+        finSemaine.setDate(finSemaine.getDate() + 6);
+        const finSemaineStr = finSemaine.toISOString().slice(0, 10);
+        
+        const extrasDetails = (repasReels || [])
+          .filter(r => {
+            if (!r.date) return false;
+            return r.date >= weekStart && r.date <= finSemaineStr && 
+                   (r.categorie === 'fast-food' || r.tag?.includes('🍔'));
+          })
+          .map(r => ({ date: r.date, type: r.type }));
+
+        await supabase.from('semaines_validees').upsert({
+          semaine_debut: weekStart,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          date_validation: new Date().toISOString(),
+          extras_count: extrasCount,
+          extras_details: extrasDetails,
+          message_feedback: message,
+          variation: variation
+        });
+      }
+
+      // Rafraîchir les données
+      const { data: semaines } = await supabase
+        .from('semaines_validees')
+        .select('*');
+      setSemainesValidees(semaines || []);
+      
+      const semainesNonValidees = getSemainesNonValidees(semaines || [], 8);
+      setNbSemainesNonValidees(semainesNonValidees.length);
+      
+      // getSemainesNonValidees retourne déjà le format attendu
+      setSemainesNonValideesFormatees(semainesNonValidees);
+      
+      return true;
+    } catch (error) {
+      console.error('Erreur validation batch:', error);
+      return false;
+    }
+  };
+
   // Affichage
   if (loading) {
     return (
@@ -530,6 +624,40 @@ export default function TableauDeBord() {
       >
         Tableau de Bord
       </h1>
+      
+      {/* Badge de notification pour semaines non validées */}
+      {nbSemainesNonValidees > 0 && (
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <button
+            onClick={() => setDrawerOpen(true)}
+            style={{
+              background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '24px',
+              padding: '12px 24px',
+              fontSize: '16px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'transform 0.2s, box-shadow 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(255, 107, 107, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 107, 107, 0.3)';
+            }}
+          >
+            🔔 {nbSemainesNonValidees} semaine{nbSemainesNonValidees > 1 ? 's' : ''} à valider
+          </button>
+        </div>
+      )}
       
       {/* Bannière Préparation Jeûne */}
       {preparationData && joursRestants !== null && joursRestants >= 0 && (
@@ -1133,6 +1261,25 @@ export default function TableauDeBord() {
           </button>
         </Link>
       </div>
+      
+      {/* Drawer de validation rétroactive */}
+      <DrawerValidation
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        semainesNonValidees={semainesNonValideesFormatees}
+        semainesValidees={semainesValidees.map(sv => ({
+          weekStart: sv.semaine_debut,
+          extras_count: sv.extras_count,
+          message_feedback: sv.message_feedback,
+          date_validation: sv.date_validation
+        }))}
+        onValider={handleValidationBatch}
+        onConsulterFeedback={(semaine) => {
+          // Ouvrir le modal de feedback avec les données de la semaine
+          console.log('Consulter feedback:', semaine);
+          // TODO: Implémenter l'ouverture du ModalFeedbackValidation
+        }}
+      />
     </div>
   );
 }
