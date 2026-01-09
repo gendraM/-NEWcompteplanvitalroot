@@ -18,22 +18,25 @@
 ### Objectifs
 1. **Corriger catégorisation** de 2 plats non-conformes (Class'Croute, Pitaya wok)
 2. **Enrichir référentiel** avec 24 nouveaux plats fast food (Pizza Hut, Quick, O'Tacos, Kebab)
-3. **Implémenter auto-détection** tracking fast food basée sur `categorie: "fast-food"`
-4. **Corriger bug calcul délai** (Math.ceil → Math.floor) pour cohérence affichage/validation
-5. **Mettre à jour liste restaurants** avec nouvelles chaînes ajoutées
+3. **SUPPRIMER checkbox "Fast food ?"** (doublon avec categorie référentiel)
+4. **Implémenter détection automatique** tracking fast food via `categorie: "fast-food"` uniquement
+5. **Ajouter bandeau info UX** (dernier fast food, prochain créneau, délai, badges)
+6. **Corriger bug calcul délai** (Math.ceil → Math.floor) pour cohérence affichage/validation
+7. **Ajouter bouton "Forcer fast food"** pour cas exceptionnels (restaurants hors référentiel)
 
 ### Résultat attendu
-- ✅ 0 doublon système (1 seul parcours tracking)
-- ✅ Tracking automatique 100% (plus d'oubli utilisateur)
+- ✅ 0 doublon système (catégorie référentiel = source unique de vérité)
+- ✅ Tracking automatique 100% silencieux (aucune action utilisateur)
+- ✅ UX enrichie avec infos utiles (dernier, prochain, délai respecté/non)
 - ✅ Calcul délai cohérent partout (Math.floor unifié)
 - ✅ Référentiel: 124 plats fast food conformes (+24 vs avant)
-- ✅ UX simplifiée (auto-complétion checkbox + restaurant)
+- ✅ Règle 45 jours = recommandation (non bloquante)
 
 ---
 
 ## **Fichiers concernés**
 - `/data/referentiel.js` (corrections ligne 3044-3045 + ajouts 24 plats)
-- `/components/RepasBloc.js` (auto-détection useEffect + fastFoodList)
+- `/components/RepasBloc.js` (SUPPRESSIONS checkbox/dropdown + détection auto + bandeau info)
 - `/pages/tableau-de-bord.js` (correction Math.floor ligne ~143)
 
 ---
@@ -186,15 +189,17 @@ Basée sur analyse anomalies + audit risques:
 
 **Avant Codage:**
 - [ ] Vérifier ordre hooks existants dans RepasBloc.js (ligne par ligne)
-- [ ] Identifier position exacte insertion nouveau useEffect
+- [ ] Identifier position exacte insertion nouveaux useState + useEffect
 - [ ] Vérifier syntaxe 104 plats fast food existants (sample test)
 - [ ] Confirmer structure objet plat conforme au Template
+- [ ] Identifier lignes exactes checkbox/dropdown à supprimer (545-567)
 
 **Pendant Codage:**
 - [ ] Valider syntaxe après chaque ajout de 6 plats (Pizza Hut, Quick batch, O'Tacos, Kebab)
 - [ ] Test import référentiel après chaque modification: `node -e "require('./data/referentiel.js')"`
-- [ ] Vérifier linter ESLint après ajout useEffect
-- [ ] Test manuel auto-détection après chaque modif RepasBloc
+- [ ] Vérifier linter ESLint après suppression checkbox/dropdown
+- [ ] Test manuel détection auto après chaque modif RepasBloc
+- [ ] Test bandeau info UX (affichage conditionnel)
 
 **Après Codage:**
 - [ ] Test parcours complet utilisateur (10 scénarios minimum)
@@ -233,11 +238,13 @@ Basée sur analyse anomalies + audit risques:
 | 5. Ajout Quick (10 plats) | 50% | 50 min | ⬜ Non commencé |
 | 6. Ajout O'Tacos (5 plats) | 60% | 25 min | ⬜ Non commencé |
 | 7. Ajout Kebab (3 plats) | 70% | 15 min | ⬜ Non commencé |
-| 8. Auto-détection useEffect | 80% | 30 min | ⬜ Non commencé |
-| 9. Mise à jour fastFoodList | 85% | 10 min | ⬜ Non commencé |
-| 10. Correction Math.floor | 90% | 5 min | ⬜ Non commencé |
-| 11. Tests complets | 95% | 30 min | ⬜ Non commencé |
-| 12. Documentation finale | 100% | 10 min | ⬜ Non commencé |
+| 8. Suppression checkbox/dropdown | 75% | 10 min | ⬜ Non commencé |
+| 9. Auto-détection useEffect | 80% | 20 min | ⬜ Non commencé |
+| 10. Bandeau info UX | 85% | 25 min | ⬜ Non commencé |
+| 11. Bouton "Forcer" | 87% | 10 min | ⬜ Non commencé |
+| 12. Correction Math.floor | 90% | 5 min | ⬜ Non commencé |
+| 13. Tests complets | 95% | 30 min | ⬜ Non commencé |
+| 14. Documentation finale | 100% | 10 min | ⬜ Non commencé |
 
 ### Historique des Mises à Jour
 - **2026-01-09 14:00** — Plan créé, avancement 0%
@@ -513,8 +520,42 @@ setFastFoodDelay(delay);
 
 **`/components/RepasBloc.js` (modifications):**
 
-**Ajout auto-détection (après ligne ~150, après derniers useState):**
+**SUPPRESSION Code Existant (lignes ~545-567):**
 ```javascript
+// ❌ SUPPRIMER COMPLÈTEMENT
+{/* Case à cocher Fast food */}
+<label>
+  <input type="checkbox" checked={isFastFood} onChange={e => setIsFastFood(e.target.checked)} />
+  Fast food ?
+</label>
+
+{/* Liste déroulante des restaurants si Fast food coché */}
+{isFastFood && (
+  <div style={{ marginBottom: 12 }}>
+    <label>Choix du restaurant</label>
+    <select value={fastFoodType} onChange={e => setFastFoodType(e.target.value)} required>
+      <option value="">Sélectionner…</option>
+      {fastFoodList.map(r => (
+        <option key={r} value={r}>{r}</option>
+      ))}
+    </select>
+    {/* Saisie manuelle si "Autre" */}
+    {fastFoodType === "Autre" && (
+      <input type="text" placeholder="Nom du restaurant" ... />
+    )}
+  </div>
+)}
+```
+
+**AJOUT Détection Automatique (après ligne ~150, après derniers useState):**
+```javascript
+// États pour tracking fast food
+const [dernierFastFood, setDernierFastFood] = useState(null);
+const [prochainCreneau, setProchainCreneau] = useState(null);
+const [joursRestants, setJoursRestants] = useState(null);
+const [delaiRespected, setDelaiRespected] = useState(false);
+const [showForceModal, setShowForceModal] = useState(false);
+
 // Auto-détection fast food basée sur catégorie référentiel
 useEffect(() => {
   if (aliment && aliment.trim() !== '') {
@@ -523,45 +564,139 @@ useEffect(() => {
     );
     
     if (found && found.categorie === 'fast-food') {
-      // Auto-cocher checkbox
+      // Auto-activer tracking (silencieux)
       setIsFastFood(true);
+      setFastFoodType(found.marque || 'Non identifié');
       
-      // Auto-remplir restaurant si marque disponible
-      if (found.marque) {
-        const marqueNormalisee = found.marque === "McDonald's" ? "McDonald's" : found.marque;
-        if (fastFoodList.includes(marqueNormalisee)) {
-          setFastFoodType(marqueNormalisee);
-        } else {
-          setFastFoodType('Autre');
-        }
-      }
-    } else if (found && found.categorie !== 'fast-food') {
-      // Décocher si aliment non fast food sélectionné
+      // Charger dernier fast food pour affichage
+      fetchDernierFastFood();
+    } else {
       setIsFastFood(false);
       setFastFoodType('');
+      setDernierFastFood(null);
     }
   }
-}, [aliment, referentielAliments, fastFoodList]);
+}, [aliment, referentielAliments]);
+
+// Fonction chargement dernier fast food
+const fetchDernierFastFood = async () => {
+  const { data } = await supabase
+    .from('fast_food_history')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('date', { ascending: false })
+    .limit(1);
+  
+  if (data && data.length > 0) {
+    const dernier = data[0];
+    setDernierFastFood(dernier);
+    
+    // Calculer prochain créneau
+    const dernierDate = new Date(dernier.date);
+    const prochainDate = new Date(dernierDate);
+    prochainDate.setDate(dernierDate.getDate() + 45);
+    setProchainCreneau(prochainDate.toLocaleDateString('fr-FR'));
+    
+    // Calculer jours restants
+    const today = new Date();
+    const diffMs = prochainDate - today;
+    const jours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+    setJoursRestants(jours);
+    setDelaiRespected(jours === 0);
+  }
+};
 ```
 
-**Mise à jour liste restaurants (ligne 116):**
+**AJOUT Bandeau Info UX (remplace checkbox/dropdown, ligne ~545):**
 ```javascript
-// AVANT
-const fastFoodList = ["McDo", "KFC", "Kebab", "Burger King", "Subway", "Autre"];
+{isFastFood && (
+  <div style={{
+    background: '#fff3cd',
+    border: '1px solid #ffc107',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 12
+  }}>
+    <div style={{fontWeight: 'bold', color: '#856404', marginBottom: 8}}>
+      ⚠️ FAST FOOD DÉTECTÉ
+    </div>
+    <div style={{fontSize: 14, marginTop: 4}}>
+      📍 Restaurant: <strong>{fastFoodType || 'Non identifié'}</strong>
+    </div>
+    {dernierFastFood && (
+      <>
+        <div style={{fontSize: 14, marginTop: 4}}>
+          📅 Dernier fast food: <strong>{new Date(dernierFastFood.date).toLocaleDateString('fr-FR')} ({dernierFastFood.restaurant})</strong>
+        </div>
+        <div style={{fontSize: 14, marginTop: 4}}>
+          🎯 Prochain créneau: <strong>{prochainCreneau}</strong>
+        </div>
+        <div style={{fontSize: 14, marginTop: 4}}>
+          ⏱️ Règle: <strong>Espacer de 45 jours minimum pour badges</strong>
+        </div>
+        {delaiRespected ? (
+          <div style={{fontSize: 14, marginTop: 8, color: '#28a745', fontWeight: 'bold'}}>
+            ✅ Délai de 45 jours respecté ! Badge accordé
+          </div>
+        ) : joursRestants > 0 ? (
+          <div style={{fontSize: 14, marginTop: 8, color: '#fd7e14'}}>
+            ⚠️ Recommandation: Attends encore <strong>{joursRestants} jour{joursRestants > 1 ? 's' : ''}</strong> pour le badge
+          </div>
+        ) : null}
+      </>
+    )}
+  </div>
+)}
 
-// APRÈS
-const fastFoodList = [
-  "McDonald's",
-  "KFC",
-  "Burger King",
-  "Subway",
-  "Quick",
-  "Pizza Hut",
-  "Domino's Pizza",
-  "O'Tacos",
-  "Kebab",
-  "Autre"
-];
+{/* Bouton "Forcer fast food" pour cas exceptionnels */}
+{!isFastFood && aliment && (
+  <button 
+    type="button" 
+    onClick={() => setShowForceModal(true)}
+    style={{
+      fontSize: 12, 
+      marginTop: 8,
+      padding: '4px 8px',
+      background: '#6c757d',
+      color: 'white',
+      border: 'none',
+      borderRadius: 4,
+      cursor: 'pointer'
+    }}
+  >
+    ➕ Marquer comme fast food (restaurant non listé)
+  </button>
+)}
+
+{showForceModal && (
+  <div style={{marginTop: 12, padding: 12, background: '#f8f9fa', borderRadius: 8}}>
+    <label>Nom du restaurant:</label>
+    <input 
+      type="text"
+      placeholder="Ex: Kebab du coin"
+      value={fastFoodType}
+      onChange={e => {
+        setFastFoodType(e.target.value);
+        setIsFastFood(true);
+      }}
+      style={{width: '100%', marginTop: 4}}
+    />
+    <button 
+      type="button"
+      onClick={() => setShowForceModal(false)}
+      style={{fontSize: 12, marginTop: 8}}
+    >
+      Annuler
+    </button>
+  </div>
+)}
+```
+
+**SUPPRESSION Variable fastFoodList (ligne 116 - devenue inutile):**
+```javascript
+// ❌ SUPPRIMER COMPLÈTEMENT
+const fastFoodList = ["McDo", "KFC", ...];
 ```
 
 **`/pages/tableau-de-bord.js` (correction ligne ~143):**
@@ -602,6 +737,415 @@ const delay = Math.max(0, Math.floor((nextDate - today) / (1000 * 60 * 60 * 24))
 
 ---
 
+## Etape 8.5 — **Checklist Tests Manuels (À RÉALISER PAR L'UTILISATEUR APRÈS IMPLÉMENTATION)**
+
+### 📋 TESTS OBLIGATOIRES AVANT VALIDATION FINALE
+
+**⚠️ IMPORTANT:** Cette checklist doit être complétée par l'utilisateur APRÈS l'implémentation du code, AVANT de valider la mission comme terminée.
+
+**Contexte:** Tests manuels Option A (durée estimée: 15 minutes)
+
+---
+
+#### 🧪 SCÉNARIO 1: Auto-Détection Fast Food avec Marque
+
+**Objectif:** Vérifier que la sélection d'un aliment fast food avec marque active automatiquement le tracking.
+
+- [ ] **Test 1.1 - McDonald's Big Mac**
+  - Action: Ouvrir page `/repas`, saisir "Big Mac" dans champ "Aliment mangé"
+  - Résultat attendu: 
+    - ✅ Checkbox "Fast food ?" = AUTO-COCHÉE
+    - ✅ Dropdown "Choix du restaurant" = AUTO-REMPLI avec "McDonald's"
+    - ✅ Kcal auto-rempli (503 kcal)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 1.2 - Burger King Whopper**
+  - Action: Saisir "Whopper" dans champ "Aliment mangé"
+  - Résultat attendu:
+    - ✅ Checkbox "Fast food ?" = AUTO-COCHÉE
+    - ✅ Dropdown = "Burger King"
+    - ✅ Kcal auto-rempli (660 kcal)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 1.3 - Subway Sub 15cm**
+  - Action: Saisir "Sub Italian BMT 15cm"
+  - Résultat attendu:
+    - ✅ Checkbox "Fast food ?" = AUTO-COCHÉE
+    - ✅ Dropdown = "Subway"
+    - ✅ Kcal auto-rempli (230 kcal)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 1.4 - KFC Wrap**
+  - Action: Saisir "Wrap KFC"
+  - Résultat attendu:
+    - ✅ Checkbox "Fast food ?" = AUTO-COCHÉE
+    - ✅ Dropdown = "KFC"
+    - ✅ Kcal auto-rempli (420 kcal)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 1.5 - Pizza Hut Pepperoni (nouveau)**
+  - Action: Saisir "Pizza Hut Pepperoni"
+  - Résultat attendu:
+    - ✅ Checkbox "Fast food ?" = AUTO-COCHÉE
+    - ✅ Dropdown = "Pizza Hut"
+    - ✅ Kcal auto-rempli (280 kcal)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 1.6 - Quick Giant (nouveau)**
+  - Action: Saisir "Giant Quick"
+  - Résultat attendu:
+    - ✅ Checkbox "Fast food ?" = AUTO-COCHÉE
+    - ✅ Dropdown = "Quick"
+    - ✅ Kcal auto-rempli (580 kcal)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 1.7 - O'Tacos M (nouveau)**
+  - Action: Saisir "Tacos O'Tacos M"
+  - Résultat attendu:
+    - ✅ Checkbox "Fast food ?" = AUTO-COCHÉE
+    - ✅ Dropdown = "O'Tacos"
+    - ✅ Kcal auto-rempli (680 kcal)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+---
+
+#### 🧪 SCÉNARIO 2: Auto-Détection Fast Food SANS Marque
+
+**Objectif:** Vérifier que les aliments fast food sans marque (kebab) activent le tracking avec "Autre" ou "Kebab".
+
+- [ ] **Test 2.1 - Kebab sandwich (nouveau)**
+  - Action: Saisir "Kebab sandwich"
+  - Résultat attendu:
+    - ✅ Checkbox "Fast food ?" = AUTO-COCHÉE
+    - ✅ Dropdown = "Kebab" OU "Autre" (selon implémentation)
+    - ✅ Kcal auto-rempli (550 kcal)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 2.2 - Kebab assiette (nouveau)**
+  - Action: Saisir "Kebab assiette"
+  - Résultat attendu:
+    - ✅ Checkbox "Fast food ?" = AUTO-COCHÉE
+    - ✅ Dropdown = "Kebab" OU "Autre"
+    - ✅ Kcal auto-rempli (700 kcal)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+---
+
+#### 🧪 SCÉNARIO 3: Sélection Aliment NON Fast Food
+
+**Objectif:** Vérifier que les aliments normaux NE déclenchent PAS l'auto-détection.
+
+- [ ] **Test 3.1 - Poulet grillé**
+  - Action: Saisir "Poulet grillé"
+  - Résultat attendu:
+    - ✅ Checkbox "Fast food ?" = PAS COCHÉE (reste décochée)
+    - ✅ Dropdown restaurant = VIDE
+    - ✅ Kcal auto-rempli selon référentiel
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 3.2 - Riz basmati**
+  - Action: Saisir "Riz basmati"
+  - Résultat attendu:
+    - ✅ Checkbox "Fast food ?" = PAS COCHÉE
+    - ✅ Dropdown = VIDE
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 3.3 - Class'Croute sandwich (catégorie corrigée)**
+  - Action: Saisir "Class'Croute sandwich"
+  - Résultat attendu:
+    - ✅ Checkbox "Fast food ?" = PAS COCHÉE (car categorie: "traiteur" maintenant)
+    - ✅ Dropdown = VIDE
+    - ✅ Kcal auto-rempli (320 kcal)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 3.4 - Pitaya wok (catégorie corrigée)**
+  - Action: Saisir "Pitaya wok"
+  - Résultat attendu:
+    - ✅ Checkbox "Fast food ?" = PAS COCHÉE (car categorie: "asiatique" maintenant)
+    - ✅ Dropdown = VIDE
+    - ✅ Kcal auto-rempli (600 kcal)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+---
+
+#### 🧪 SCÉNARIO 4: Modification Manuelle Utilisateur
+
+**Objectif:** Vérifier que l'utilisateur peut OVERRIDE l'auto-détection manuellement.
+
+- [ ] **Test 4.1 - Décocher après auto-détection**
+  - Action: 
+    1. Saisir "Big Mac" (checkbox auto-cochée)
+    2. Décocher manuellement la checkbox "Fast food ?"
+  - Résultat attendu:
+    - ✅ Checkbox reste DÉCOCHÉE (pas de re-cochage automatique)
+    - ✅ Dropdown reste affiché mais désactivé OU caché
+    - ✅ Soumission repas → PAS d'insertion dans fast_food_history
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 4.2 - Changer restaurant manuellement**
+  - Action:
+    1. Saisir "Big Mac" (dropdown auto-rempli "McDonald's")
+    2. Changer dropdown manuellement vers "KFC"
+  - Résultat attendu:
+    - ✅ Dropdown reste sur "KFC" (pas de re-remplissage auto)
+    - ✅ Soumission repas → restaurant="KFC" enregistré
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 4.3 - Cocher manuellement pour aliment non fast food**
+  - Action:
+    1. Saisir "Poulet grillé" (checkbox PAS cochée)
+    2. Cocher manuellement la checkbox
+    3. Sélectionner "Autre" dans dropdown
+  - Résultat attendu:
+    - ✅ Checkbox reste COCHÉE
+    - ✅ Dropdown = "Autre"
+    - ✅ Soumission repas → Insertion dans fast_food_history avec restaurant="Autre"
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+---
+
+#### 🧪 SCÉNARIO 5: Sauvegarde Base de Données
+
+**Objectif:** Vérifier que le tracking fast food s'enregistre correctement dans Supabase.
+
+- [ ] **Test 5.1 - Insertion fast_food_history**
+  - Action:
+    1. Saisir "Whopper" (auto-détection → Burger King)
+    2. Compléter formulaire (quantité, heure, etc.)
+    3. Soumettre repas
+    4. Vérifier BDD Supabase table `fast_food_history`
+  - Résultat attendu:
+    - ✅ Nouvelle ligne créée dans `fast_food_history`
+    - ✅ Champs: `user_id` (correct), `date` (date saisie), `restaurant` ("Burger King"), `aliments` (contient "Whopper")
+  - Commande SQL vérification:
+    ```sql
+    SELECT * FROM fast_food_history 
+    WHERE restaurant = 'Burger King' 
+    ORDER BY date DESC LIMIT 1;
+    ```
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 5.2 - Insertion repas_reels (table générale)**
+  - Action: Même repas que Test 5.1
+  - Résultat attendu:
+    - ✅ Nouvelle ligne créée dans `repas_reels` également
+    - ✅ Champs standards remplis (user_id, date, aliment, quantite, kcal, etc.)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 5.3 - Pas d'insertion si checkbox décochée**
+  - Action:
+    1. Saisir "Big Mac" (auto-coché)
+    2. Décocher manuellement
+    3. Soumettre repas
+    4. Vérifier BDD
+  - Résultat attendu:
+    - ✅ Insertion dans `repas_reels` uniquement
+    - ❌ PAS d'insertion dans `fast_food_history`
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+---
+
+#### 🧪 SCÉNARIO 6: Calcul Délai 45 Jours (Correction Math.floor)
+
+**Objectif:** Vérifier que le calcul du délai entre fast foods est cohérent (affichage = validation).
+
+**Prérequis:** Avoir un fast food enregistré dans l'historique (utiliser Test 5.1 si nécessaire).
+
+- [ ] **Test 6.1 - Délai 44 jours (validation refusée)**
+  - Action:
+    1. Enregistrer un fast food à la date J-44 (44 jours dans le passé)
+    2. Ouvrir tableau de bord
+    3. Tenter de saisir un nouveau fast food aujourd'hui
+  - Résultat attendu:
+    - ✅ Tableau de bord affiche: "Délai restant: **1 jour**" (Math.floor)
+    - ✅ Formulaire repas: Message "Dernier fast food il y a 44 jours, attends encore 1 jour"
+    - ✅ Badge/récompense: PAS accordé (diffDays = 44 < 45)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 6.2 - Délai 45 jours (validation acceptée)**
+  - Action:
+    1. Enregistrer un fast food à la date J-45 (45 jours dans le passé)
+    2. Ouvrir tableau de bord
+    3. Saisir un nouveau fast food aujourd'hui
+  - Résultat attendu:
+    - ✅ Tableau de bord affiche: "Délai restant: **0 jour**" (Math.floor)
+    - ✅ Formulaire repas: Message "Bravo, délai de 45 jours respecté !"
+    - ✅ Badge/récompense: ACCORDÉ (diffDays = 45 >= 45)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 6.3 - Délai 46 jours (validation acceptée)**
+  - Action: Enregistrer fast food à J-46, saisir nouveau aujourd'hui
+  - Résultat attendu:
+    - ✅ Tableau de bord affiche: "Délai restant: **0 jour**"
+    - ✅ Badge accordé
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 6.4 - Cohérence affichage vs validation**
+  - Action: Comparer message tableau de bord vs message formulaire
+  - Résultat attendu:
+    - ✅ Si tableau dit "1 jour restant" → formulaire REFUSE validation
+    - ✅ Si tableau dit "0 jour restant" → formulaire ACCEPTE validation
+    - ✅ Aucune incohérence Math.ceil vs Math.floor
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+---
+
+#### 🧪 SCÉNARIO 7: Affichage Badges/Récompenses
+
+**Objectif:** Vérifier que les badges fast food s'affichent correctement après validation délai.
+
+- [ ] **Test 7.1 - Badge après 1er délai respecté**
+  - Action:
+    1. Enregistrer 1er fast food
+    2. Attendre 45 jours (ou simuler date)
+    3. Enregistrer 2ème fast food
+    4. Vérifier tableau de bord section badges
+  - Résultat attendu:
+    - ✅ Badge "Délai respecté 1×" affiché
+    - ✅ Message: "Continue comme ça !"
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 7.2 - Badge spécial après 3 délais consécutifs**
+  - Action:
+    1. Enregistrer 3 fast foods espacés de 45+ jours chacun
+    2. Vérifier badges
+  - Résultat attendu:
+    - ✅ Badge spécial "Maîtrise du délai 3×" affiché
+    - ✅ Animation confettis (si implémentée)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+---
+
+#### 🧪 SCÉNARIO 8: Autocomplete Référentiel
+
+**Objectif:** Vérifier que l'autocomplete fonctionne avec les nouveaux plats ajoutés.
+
+- [ ] **Test 8.1 - Autocomplete Pizza Hut**
+  - Action: Taper "Pizza Hut" dans champ aliment
+  - Résultat attendu:
+    - ✅ Suggestions affichées: "Pizza Hut Pepperoni", "Pizza Hut Margherita", "Pizza Hut Supreme", "Pizza Hut 4 fromages"
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 8.2 - Autocomplete Quick**
+  - Action: Taper "Quick" dans champ aliment
+  - Résultat attendu:
+    - ✅ Suggestions affichées: "Giant Quick", "Long Chicken Quick", "Long Bacon Quick", "Frites Quick...", etc.
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 8.3 - Autocomplete O'Tacos**
+  - Action: Taper "Tacos O" dans champ aliment
+  - Résultat attendu:
+    - ✅ Suggestions affichées: "Tacos O'Tacos S", "Tacos O'Tacos M", "Tacos O'Tacos L", "Tacos O'Tacos XL"
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 8.4 - Autocomplete Kebab**
+  - Action: Taper "Kebab" dans champ aliment
+  - Résultat attendu:
+    - ✅ Suggestions affichées: "Kebab sandwich", "Kebab assiette", "Kebab galette"
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+---
+
+#### 🧪 SCÉNARIO 9: Régression - Fonctionnalités Existantes
+
+**Objectif:** Vérifier que les fonctionnalités existantes ne sont PAS cassées par les modifications.
+
+- [ ] **Test 9.1 - Saisie repas normal (non fast food)**
+  - Action: Saisir un repas classique (ex: "Poulet grillé + Riz basmati")
+  - Résultat attendu:
+    - ✅ Formulaire fonctionne normalement
+    - ✅ Sauvegarde BDD OK
+    - ✅ Affichage dans liste repas OK
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 9.2 - Statistiques tableau de bord**
+  - Action: Ouvrir tableau de bord
+  - Résultat attendu:
+    - ✅ Kcal totales affichées
+    - ✅ Nombre repas affiché
+    - ✅ Section fast food affichée (si fast foods enregistrés)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 9.3 - Navigation dates (semaine/mois)**
+  - Action: Changer de période dans tableau de bord
+  - Résultat attendu:
+    - ✅ Repas filtrés correctement selon période
+    - ✅ Aucun crash
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 9.4 - Modification repas existant**
+  - Action: Éditer un repas déjà enregistré
+  - Résultat attendu:
+    - ✅ Formulaire se remplit avec données existantes
+    - ✅ Auto-détection fonctionne si aliment = fast food
+    - ✅ Modification sauvegardée OK
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+---
+
+#### 🧪 SCÉNARIO 10: Performance & Stabilité
+
+**Objectif:** Vérifier qu'il n'y a pas de boucles infinies ou problèmes de performance.
+
+- [ ] **Test 10.1 - Pas de boucle infinie**
+  - Action:
+    1. Ouvrir console navigateur (F12)
+    2. Saisir "Big Mac"
+    3. Observer console pendant 10 secondes
+  - Résultat attendu:
+    - ✅ Aucun message d'erreur "Maximum update depth exceeded"
+    - ✅ Aucun log infini répété
+    - ✅ Application reste responsive
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 10.2 - Pas d'erreur compilation**
+  - Action: Vérifier terminal `npm run dev`
+  - Résultat attendu:
+    - ✅ Build successful
+    - ✅ Aucun warning ESLint critique
+    - ✅ Application démarre sans erreur
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+- [ ] **Test 10.3 - Pas d'erreur runtime console**
+  - Action: Ouvrir console navigateur, naviguer dans l'app
+  - Résultat attendu:
+    - ✅ Aucune erreur TypeError
+    - ✅ Aucune erreur ReferenceError
+    - ✅ Warnings mineurs acceptables (si documentés)
+  - Statut: ⬜ PASS | ⬜ FAIL
+
+---
+
+### 📊 RÉCAPITULATIF TESTS
+
+**Total tests:** 40 cases à cocher
+
+**Statut global:**
+- Tests passés: _____ / 40
+- Tests échoués: _____ / 40
+- Taux de réussite: _____ %
+
+**Seuil validation:** 95% minimum (38/40 tests passés)
+
+**Si < 95%:**
+- [ ] Documenter tests échoués dans fichier "Anomalie roll back"
+- [ ] Analyser cause racine
+- [ ] Proposer rollback OU correction ciblée
+- [ ] Re-tester après correction
+
+**Si >= 95%:**
+- [ ] Mission validée ✅
+- [ ] Documenter dans CHANGELOG.md
+- [ ] Commit final avec message: "feat: Fast Food Option B - Auto-détection + 24 plats + Correction délai"
+
+---
+
+**Date réalisation tests:** ________________  
+**Testeur:** ________________  
+**Résultat final:** ⬜ VALIDÉ | ⬜ CORRECTIONS REQUISES
+
+---
+
 ## Etape 9 — **Validation explicite de l'utilisateur (OBLIGATOIRE)**
 
 ### Questions Validation
@@ -609,36 +1153,36 @@ const delay = Math.max(0, Math.floor((nextDate - today) / (1000 * 60 * 60 * 24))
 Avant de procéder à l'implémentation, l'utilisateur doit valider:
 
 1. **Validation Approche Globale:**
-   - [ ] Je valide l'approche Option B (corrections + enrichissement + auto-détection + bug fix)
-   - [ ] Je comprends les risques identifiés dans l'audit (Etape 1)
-   - [ ] Je valide les fichiers concernés (referentiel.js, RepasBloc.js, tableau-de-bord.js)
+   - [ok ] Je valide l'approche Option B (corrections + enrichissement + auto-détection + bug fix)
+   - [ non]c est a toi copilot de comprendre les risque et de coder avec prudence en respectant les zones de vigilance et point d alerte pour garantir la conformité de cette maj (Etape 1)
+   - [ ok] Je valide les fichiers concernés (referentiel.js, RepasBloc.js, tableau-de-bord.js)
 
 2. **Validation Catégorisations:**
-   - [ ] Je valide: Pitaya wok → `categorie: "asiatique"`
-   - [ ] Je valide: Class'Croute → `categorie: "traiteur"`
-   - [ ] Je confirme: Ces changements n'impactent pas tracking existant (ou migration données nécessaire?)
+   - [ ok] Je valide: Pitaya wok → `categorie: "asiatique"`
+   - [ ok] Je valide: Class'Croute → `categorie: "traiteur"`
+   - [ ok] Je confirme: Ces changements n'impactent pas tracking existant (ou migration données nécessaire?)
 
 3. **Validation Enrichissement:**
-   - [ ] Je valide ajout Pizza Hut (6 plats)
-   - [ ] Je valide ajout Quick (10 plats)
-   - [ ] Je valide ajout O'Tacos (5 plats)
-   - [ ] Je valide ajout Kebab (3 plats)
-   - [ ] Les kcal/QN proposés semblent corrects (ou à ajuster?)
+   - [ ok] Je valide ajout Pizza Hut (6 plats)
+   - [ ok] Je valide ajout Quick (10 plats)
+   - [ok ] Je valide ajout O'Tacos (5 plats)
+   - [ok ] Je valide ajout Kebab (3 plats)
+   - [non ] =copilot tu m as rien montré a ce sujet. Les kcal/QN proposés semblent corrects (ou à ajuster?)
 
 4. **Validation Auto-détection:**
-   - [ ] Je valide comportement: sélection "Big Mac" → checkbox auto-cochée
-   - [ ] Je valide: restaurant auto-rempli si marque disponible
-   - [ ] Je valide: utilisateur peut toujours modifier manuellement
-   - [ ] Je valide: texte explicatif "(détecté automatiquement)" souhaité? (ou silencieux?)
+   - [ ok] Je valide comportement: sélection "Big Mac" → checkbox auto-cochée
+   - [ non] je comprend pas ya pas cette notion de restaurant dans la saisie donc je vois pas comment ca peut etre possible car c ets une info masqué pour utilisatur Je valide: restaurant auto-rempli si marque disponible
+   - [ ok] Je valide: utilisateur peut toujours modifier manuellement
+   - [ ] comment ça ? y aura ecrit quoi ? Je valide: texte explicatif "(détecté automatiquement)" souhaité? (ou silencieux?)
 
 5. **Validation Correction Bug:**
-   - [ ] Je valide: Math.ceil → Math.floor (affichage délai peut changer -1 jour)
-   - [ ] Je comprends: règle 45 jours devient stricte (pas d'arrondi supérieur)
+   - [ ok] Je valide: Math.ceil → Math.floor (affichage délai peut changer -1 jour)
+   - [ ok] mais c est en mode recommendation pour aider utilisateur a atteindre ce goal c est pas bloquant si il a manger en dehors de la regle on ne peut pas empecher la saisie .Je comprends: règle 45 jours devient stricte (pas d'arrondi supérieur)
 
 6. **Validation Rollback:**
-   - [ ] Je valide: backups créés avant modification
-   - [ ] Je valide: rollback possible à tout moment
-   - [ ] Je valide: documentation anomalies dans fichier dédié
+   - [ ok] git réalisé  Je valide: backups créés avant modification
+   - [non ] seulement si moi utilisateur je le demande mais oui ca doit etre possible a tout moment si je le demande Je valide: rollback possible à tout moment
+   - [ ok] Je valide: documentation anomalies dans fichier dédié
 
 ### Décision Finale
 

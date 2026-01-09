@@ -31,9 +31,9 @@ const referentielAliments = [
         { nom: "Nouilles sautées", categorie: "asiatique", sousCategorie: "Pitaya", marque: "Pitaya", kcal: 450, qn: 2, portionDefaut: "bol", unite: "bol", alternatives: ["Riz cantonais", "Pad Thaï poulet"] },
 
         // Subway
-        { nom: "Sub Poulet Teriyaki", categorie: "fast-food", sousCategorie: "Subway", marque: "Subway", kcal: 480, qn: 2, portionDefaut: "30cm", unite: "sandwich", alternatives: ["Sub Steak & Cheese", "Sub Végétarien"] },
-        { nom: "Sub Steak & Cheese", categorie: "fast-food", sousCategorie: "Subway", marque: "Subway", kcal: 600, qn: 2, portionDefaut: "30cm", unite: "sandwich", alternatives: ["Sub Poulet Teriyaki", "Sub Végétarien"] },
-        { nom: "Sub Végétarien", categorie: "fast-food", sousCategorie: "Subway", marque: "Subway", kcal: 420, qn: 2, portionDefaut: "30cm", unite: "sandwich", alternatives: ["Sub Poulet Teriyaki", "Sub Steak & Cheese"] },
+        { nom: "Sub Poulet Teriyaki", categorie: "sandwich", sousCategorie: "Subway", marque: "Subway", kcal: 480, qn: 2, portionDefaut: "30cm", unite: "sandwich", alternatives: ["Sub Steak & Cheese", "Sub Végétarien"] },
+        { nom: "Sub Steak & Cheese", categorie: "sandwich", sousCategorie: "Subway", marque: "Subway", kcal: 600, qn: 2, portionDefaut: "30cm", unite: "sandwich", alternatives: ["Sub Poulet Teriyaki", "Sub Végétarien"] },
+        { nom: "Sub Végétarien", categorie: "sandwich", sousCategorie: "Subway", marque: "Subway", kcal: 420, qn: 2, portionDefaut: "30cm", unite: "sandwich", alternatives: ["Sub Poulet Teriyaki", "Sub Steak & Cheese"] },
         { nom: "Cookie Subway", categorie: "snack", sousCategorie: "Subway", marque: "Subway", kcal: 210, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Chips Lay's Subway"] },
         { nom: "Chips Lay's Subway", categorie: "snack", sousCategorie: "Subway", marque: "Subway", kcal: 140, qn: 1, portionDefaut: "sachet", unite: "sachet", alternatives: ["Cookie Subway"] },
 
@@ -3041,74 +3041,10 @@ const correctifsAliments = [
   // Chaînes de restauration rapide
   { nom: "Big Mac", categorie: "fast-food", sousCategorie: "Burger", marque: "McDonald’s", kcal: 503, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["McChicken", "Whopper"] },
   { nom: "Subway Sub", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Subway", kcal: 350, qn: 1, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Wrap Subway", "Salade Subway"] },
-  { nom: "Pitaya wok", categorie: "asiatique", sousCategorie: "Wok asiatique", marque: "Pitaya", kcal: 600, qn: 2, portionDefaut: "1 box", unite: "box", alternatives: ["Pad Thaï", "Bo Bun"] },
-  { nom: "Class’Croute sandwich", categorie: "traiteur", sousCategorie: "Sandwich", marque: "Class’Croute", kcal: 320, qn: 1, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Salade Class’Croute", "Wrap Class’Croute"] },
+  { nom: "Pitaya wok", categorie: "fast-food", sousCategorie: "Wok asiatique", marque: "Pitaya", kcal: 600, qn: 2, portionDefaut: "1 box", unite: "box", alternatives: ["Pad Thaï", "Bo Bun"] },
+  { nom: "Class’Croute sandwich", categorie: "fast-food", sousCategorie: "Sandwich", marque: "Class’Croute", kcal: 320, qn: 1, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Salade Class’Croute", "Wrap Class’Croute"] },
   { nom: "Wrap KFC", categorie: "fast-food", sousCategorie: "Wrap", marque: "KFC", kcal: 420, qn: 1, portionDefaut: "1 wrap", unite: "piece", alternatives: ["Tacos O’Tacos", "Subway Sub"] },
   { nom: "Pizza Domino’s", categorie: "fast-food", sousCategorie: "Pizza", marque: "Domino’s Pizza", kcal: 250, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut Pepperoni", "Pizza 4 fromages"] },
-
-  // Pizza Hut (6 plats)
-  { nom: "Pizza Hut Pepperoni", categorie: "fast-food", sousCategorie: "Pizza", marque: "Pizza Hut", kcal: 280, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut 4 fromages", "Pizza Domino's"] },
-  { nom: "Pizza Hut 4 fromages", categorie: "fast-food", sousCategorie: "Pizza", marque: "Pizza Hut", kcal: 270, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut Pepperoni", "Pizza Margherita"] },
-  { nom: "Pizza Hut Margherita", categorie: "fast-food", sousCategorie: "Pizza", marque: "Pizza Hut", kcal: 220, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut 4 fromages", "Pizza Hut Végétarienne"] },
-  { nom: "Pizza Hut Végétarienne", categorie: "fast-food", sousCategorie: "Pizza", marque: "Pizza Hut", kcal: 240, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut Margherita", "Pizza Hut Suprême"] },
-  { nom: "Pizza Hut Suprême", categorie: "fast-food", sousCategorie: "Pizza", marque: "Pizza Hut", kcal: 310, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut Végétarienne", "Pizza Hut Pepperoni"] },
-  { nom: "Pizza Hut Poulet BBQ", categorie: "fast-food", sousCategorie: "Pizza", marque: "Pizza Hut", kcal: 290, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut Suprême", "Pizza Hut Pepperoni"] },
-
-  // Quick (10 plats)
-  { nom: "Quick Giant", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 600, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Big Mac", "Whopper"] },
-  { nom: "Quick Long Bacon", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 530, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Quick Giant", "Big Mac"] },
-  { nom: "Quick Long Chicken", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 480, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["McChicken", "KFC Wrap"] },
-  { nom: "Quick Magic", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 400, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Cheeseburger", "Hamburger"] },
-  { nom: "Quick Supreme Cheese", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 550, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Quick Giant", "Big Mac"] },
-  { nom: "Quick Fish", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 420, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Filet-O-Fish", "Subway Sub"] },
-  { nom: "Quick Veggie", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 380, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Burger végétarien", "Subway Sub"] },
-  { nom: "Quick Nuggets (6 pièces)", categorie: "fast-food", sousCategorie: "Nuggets", marque: "Quick", kcal: 280, qn: 1, portionDefaut: "6 pièces", unite: "portion", alternatives: ["McNuggets", "KFC Tenders"] },
-  { nom: "Quick Frites Moyenne", categorie: "fast-food", sousCategorie: "Frites", marque: "Quick", kcal: 320, qn: 1, portionDefaut: "portion", unite: "portion", alternatives: ["Frites McDonald's", "Frites Burger King"] },
-  { nom: "Quick Shake Vanille", categorie: "fast-food", sousCategorie: "Boisson", marque: "Quick", kcal: 350, qn: 1, portionDefaut: "1 verre", unite: "verre", alternatives: ["McFlurry", "Milkshake"] },
-
-  // O'Tacos (5 plats)
-  { nom: "O'Tacos M", categorie: "fast-food", sousCategorie: "Tacos", marque: "O'Tacos", kcal: 680, qn: 1, portionDefaut: "1 tacos", unite: "piece", alternatives: ["O'Tacos L", "Wrap KFC"] },
-  { nom: "O'Tacos L", categorie: "fast-food", sousCategorie: "Tacos", marque: "O'Tacos", kcal: 850, qn: 1, portionDefaut: "1 tacos", unite: "piece", alternatives: ["O'Tacos XL", "O'Tacos M"] },
-  { nom: "O'Tacos XL", categorie: "fast-food", sousCategorie: "Tacos", marque: "O'Tacos", kcal: 1020, qn: 1, portionDefaut: "1 tacos", unite: "piece", alternatives: ["O'Tacos L", "O'Tacos M"] },
-  { nom: "O'Tacos Box Tenders", categorie: "fast-food", sousCategorie: "Tenders", marque: "O'Tacos", kcal: 580, qn: 1, portionDefaut: "1 box", unite: "portion", alternatives: ["KFC Tenders", "McNuggets"] },
-  { nom: "O'Tacos Frites Fromage", categorie: "fast-food", sousCategorie: "Frites", marque: "O'Tacos", kcal: 480, qn: 1, portionDefaut: "portion", unite: "portion", alternatives: ["Frites McDonald's", "Quick Frites"] },
-
-  // Kebab (3 plats)
-  { nom: "Kebab sandwich", categorie: "fast-food", sousCategorie: "Kebab", marque: "Kebab", kcal: 550, qn: 1, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Kebab assiette", "Kebab galette"] },
-  { nom: "Kebab assiette", categorie: "fast-food", sousCategorie: "Kebab", marque: "Kebab", kcal: 700, qn: 1, portionDefaut: "1 assiette", unite: "assiette", alternatives: ["Kebab sandwich", "Kebab galette"] },
-  { nom: "Kebab galette", categorie: "fast-food", sousCategorie: "Kebab", marque: "Kebab", kcal: 580, qn: 1, portionDefaut: "1 galette", unite: "piece", alternatives: ["Kebab sandwich", "Kebab assiette"] },
-
-  // Pizza Hut (6 plats)
-  { nom: "Pizza Hut Pepperoni", categorie: "fast-food", sousCategorie: "Pizza", marque: "Pizza Hut", kcal: 280, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut 4 fromages", "Pizza Domino's"] },
-  { nom: "Pizza Hut 4 fromages", categorie: "fast-food", sousCategorie: "Pizza", marque: "Pizza Hut", kcal: 270, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut Pepperoni", "Pizza Margherita"] },
-  { nom: "Pizza Hut Margherita", categorie: "fast-food", sousCategorie: "Pizza", marque: "Pizza Hut", kcal: 220, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut 4 fromages", "Pizza Hut Végétarienne"] },
-  { nom: "Pizza Hut Végétarienne", categorie: "fast-food", sousCategorie: "Pizza", marque: "Pizza Hut", kcal: 240, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut Margherita", "Pizza Hut Suprême"] },
-  { nom: "Pizza Hut Suprême", categorie: "fast-food", sousCategorie: "Pizza", marque: "Pizza Hut", kcal: 310, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut Végétarienne", "Pizza Hut Pepperoni"] },
-  { nom: "Pizza Hut Poulet BBQ", categorie: "fast-food", sousCategorie: "Pizza", marque: "Pizza Hut", kcal: 290, qn: 1, portionDefaut: "1 part", unite: "part", alternatives: ["Pizza Hut Suprême", "Pizza Hut Pepperoni"] },
-
-  // Quick (10 plats)
-  { nom: "Quick Giant", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 600, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Big Mac", "Whopper"] },
-  { nom: "Quick Long Bacon", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 530, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Quick Giant", "Big Mac"] },
-  { nom: "Quick Long Chicken", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 480, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["McChicken", "KFC Wrap"] },
-  { nom: "Quick Magic", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 400, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Cheeseburger", "Hamburger"] },
-  { nom: "Quick Supreme Cheese", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 550, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Quick Giant", "Big Mac"] },
-  { nom: "Quick Fish", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 420, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Filet-O-Fish", "Subway Sub"] },
-  { nom: "Quick Veggie", categorie: "fast-food", sousCategorie: "Burger", marque: "Quick", kcal: 380, qn: 1, portionDefaut: "1 burger", unite: "piece", alternatives: ["Burger végétarien", "Subway Sub"] },
-  { nom: "Quick Nuggets (6 pièces)", categorie: "fast-food", sousCategorie: "Nuggets", marque: "Quick", kcal: 280, qn: 1, portionDefaut: "6 pièces", unite: "portion", alternatives: ["McNuggets", "KFC Tenders"] },
-  { nom: "Quick Frites Moyenne", categorie: "fast-food", sousCategorie: "Frites", marque: "Quick", kcal: 320, qn: 1, portionDefaut: "portion", unite: "portion", alternatives: ["Frites McDonald's", "Frites Burger King"] },
-  { nom: "Quick Shake Vanille", categorie: "fast-food", sousCategorie: "Boisson", marque: "Quick", kcal: 350, qn: 1, portionDefaut: "1 verre", unite: "verre", alternatives: ["McFlurry", "Milkshake"] },
-
-  // O'Tacos (5 plats)
-  { nom: "O'Tacos M", categorie: "fast-food", sousCategorie: "Tacos", marque: "O'Tacos", kcal: 680, qn: 1, portionDefaut: "1 tacos", unite: "piece", alternatives: ["O'Tacos L", "Wrap KFC"] },
-  { nom: "O'Tacos L", categorie: "fast-food", sousCategorie: "Tacos", marque: "O'Tacos", kcal: 850, qn: 1, portionDefaut: "1 tacos", unite: "piece", alternatives: ["O'Tacos XL", "O'Tacos M"] },
-  { nom: "O'Tacos XL", categorie: "fast-food", sousCategorie: "Tacos", marque: "O'Tacos", kcal: 1020, qn: 1, portionDefaut: "1 tacos", unite: "piece", alternatives: ["O'Tacos L", "O'Tacos M"] },
-  { nom: "O'Tacos Box Tenders", categorie: "fast-food", sousCategorie: "Tenders", marque: "O'Tacos", kcal: 580, qn: 1, portionDefaut: "1 box", unite: "portion", alternatives: ["KFC Tenders", "McNuggets"] },
-  { nom: "O'Tacos Frites Fromage", categorie: "fast-food", sousCategorie: "Frites", marque: "O'Tacos", kcal: 480, qn: 1, portionDefaut: "portion", unite: "portion", alternatives: ["Frites McDonald's", "Quick Frites"] },
-
-  // Kebab (3 plats)
-  { nom: "Kebab sandwich", categorie: "fast-food", sousCategorie: "Kebab", marque: "Kebab", kcal: 550, qn: 1, portionDefaut: "1 sandwich", unite: "piece", alternatives: ["Kebab assiette", "Kebab galette"] },
-  { nom: "Kebab assiette", categorie: "fast-food", sousCategorie: "Kebab", marque: "Kebab", kcal: 700, qn: 1, portionDefaut: "1 assiette", unite: "assiette", alternatives: ["Kebab sandwich", "Kebab galette"] },
-  { nom: "Kebab galette", categorie: "fast-food", sousCategorie: "Kebab", marque: "Kebab", kcal: 580, qn: 1, portionDefaut: "1 galette", unite: "piece", alternatives: ["Kebab sandwich", "Kebab assiette"] },
 
   // Buffet chinois
   { nom: "Nems au porc", categorie: "asiatique", sousCategorie: "Buffet chinois", marque: null, kcal: 90, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Nems aux crevettes", "Samoussa"] },

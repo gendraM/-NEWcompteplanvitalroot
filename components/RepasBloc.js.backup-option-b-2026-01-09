@@ -117,23 +117,25 @@ export default function RepasBloc({
   const [fastFoodHistory, setFastFoodHistory] = useState([]);
   const [fastFoodReward, setFastFoodReward] = useState(false);
   const [fastFoodAliments, setFastFoodAliments] = useState([{ nom: '', quantite: '', kcal: '' }]);
-  
-  // États pour auto-détection fast food Option B
-  const [dernierFastFood, setDernierFastFood] = useState(null);
-  const [prochainCreneau, setProchainCreneau] = useState(null);
-  const [joursRestants, setJoursRestants] = useState(null);
-  const [delaiRespected, setDelaiRespected] = useState(false);
 
-  // Vérification de la règle fast food (utilise BDD via fetchDernierFastFood)
+  // Vérification de la règle fast food
   useEffect(() => {
     if (!isFastFood) return;
-    // Filtrer l'historique local pour affichage uniquement (semaine courante)
+    // Filtrer l’historique pour ne garder que les fast food
     const fastFoodRepas = repasSemaine.filter(r => r.isFastFood || r.fastFoodType);
     setFastFoodHistory(fastFoodRepas);
-    
-    // La récompense est calculée dans fetchDernierFastFood via BDD (historique complet)
-    // On ne recalcule PAS ici pour éviter les conflits
-  }, [isFastFood, repasSemaine]);
+    if (fastFoodRepas.length > 0) {
+      // Dernier fast food
+      const lastFastFood = fastFoodRepas[fastFoodRepas.length - 1];
+      const lastDate = new Date(lastFastFood.date);
+      const currentDate = new Date(date);
+      const diffDays = Math.floor((currentDate - lastDate) / (1000 * 60 * 60 * 24));
+      // Récompense si délai respecté
+      setFastFoodReward(diffDays >= 45);
+    } else {
+      setFastFoodReward(true); // Premier fast food, récompense
+    }
+  }, [isFastFood, repasSemaine, date]);
 
   // Handler pour ajouter un aliment fast food
   const handleAddFastFoodAliment = () => {
@@ -192,29 +194,6 @@ export default function RepasBloc({
     }
     fetchValidation();
   }, [semaineCouranteDate]);
-
-  // Auto-détection fast food Option B (basée sur categorie référentiel)
-  useEffect(() => {
-    if (aliment && aliment.trim() !== '') {
-      const found = referentielAliments.find(
-        r => r.nom.toLowerCase() === aliment.toLowerCase()
-      );
-      
-      if (found && found.categorie === 'fast-food') {
-        // Auto-activer tracking (silencieux)
-        setIsFastFood(true);
-        setFastFoodType(found.marque || 'Non identifié');
-        
-        // Charger dernier fast food pour infos UX
-        fetchDernierFastFood();
-      } else {
-        setIsFastFood(false);
-        setFastFoodType('');
-        setDernierFastFood(null);
-      }
-    }
-  }, [aliment]);
-
   // Handler pour dévalider
   async function handleDevalider() {
     // Remplacer par l'appel réel à Supabase
@@ -229,56 +208,6 @@ export default function RepasBloc({
     setSemaineValidee(true);
     // Rafraîchir la liste ou l’état local si besoin
   }
-  // Fonction chargement dernier fast food (Option B auto-détection)
-  const fetchDernierFastFood = async () => {
-    try {
-      const { supabase } = await import('../lib/supabaseClient');
-      const { data: userData } = await supabase.auth.getUser();
-      const user_id = userData?.user?.id;
-      
-      if (!user_id) return;
-      
-      const { data, error } = await supabase
-        .from('fast_food_history')
-        .select('*')
-        .eq('user_id', user_id)
-        .order('date', { ascending: false })
-        .limit(1);
-      
-      if (error) {
-        console.error('Erreur chargement dernier fast food:', error);
-        return;
-      }
-      
-      if (data && data.length > 0) {
-        const dernier = data[0];
-        setDernierFastFood(dernier);
-        
-        // Calculer prochain créneau
-        const dernierDate = new Date(dernier.date);
-        const prochainDate = new Date(dernierDate);
-        prochainDate.setDate(dernierDate.getDate() + 45);
-        setProchainCreneau(prochainDate.toLocaleDateString('fr-FR'));
-        
-        // Calculer jours restants
-        const today = new Date();
-        const diffMs = prochainDate - today;
-        const jours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
-        setJoursRestants(jours);
-        setDelaiRespected(jours === 0);
-        
-        // Calculer récompense : délai respecté si ≥45 jours depuis dernier
-        const currentDate = new Date(date);
-        const diffDays = Math.floor((currentDate - dernierDate) / (1000 * 60 * 60 * 24));
-        setFastFoodReward(diffDays >= 45);
-      } else {
-        // Aucun historique BDD → premier fast food → récompense automatique
-        setFastFoodReward(true);
-      }
-    } catch (err) {
-      console.error('Erreur fetchDernierFastFood:', err);
-    }
-  };
   // ...existing code...
   // État pour afficher ou masquer l'historique des repas avec note
   const [showNotesHistory, setShowNotesHistory] = useState(false);
@@ -612,7 +541,33 @@ function getSuggestionsFromNotes(repasList) {
             <button type="button" onClick={handleAddFastFoodAliment} style={{ marginTop: 4 }}>Ajouter un aliment</button>
           </div>
         )}
-        
+        {/* Case à cocher Fast food */}
+        <label>
+          <input type="checkbox" checked={isFastFood} onChange={e => setIsFastFood(e.target.checked)} />
+          Fast food ?
+        </label>
+        {/* Liste déroulante des restaurants si Fast food coché */}
+        {isFastFood && (
+          <div style={{ marginBottom: 12 }}>
+            <label>Choix du restaurant</label>
+            <select value={fastFoodType} onChange={e => setFastFoodType(e.target.value)} required>
+              <option value="">Sélectionner…</option>
+              {fastFoodList.map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            {/* Saisie manuelle si "Autre" */}
+            {fastFoodType === "Autre" && (
+              <input
+                type="text"
+                placeholder="Nom du restaurant"
+                value={fastFoodType}
+                onChange={e => setFastFoodType(e.target.value)}
+                style={{ marginTop: 8 }}
+              />
+            )}
+          </div>
+        )}
         <h3>{type} du {date}</h3>
         <label>Aliment mangé</label>
         <div style={{ position: 'relative' }}>
