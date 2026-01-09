@@ -139,7 +139,7 @@ export default function TableauDeBord() {
       nextDate.setDate(lastDate.getDate() + 45);
       setNextFastFoodDate(nextDate);
       const today = new Date();
-      const delay = Math.max(0, Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24)));
+      const delay = Math.max(0, Math.floor((nextDate - today) / (1000 * 60 * 60 * 24)));
       setFastFoodDelay(delay);
     } else {
       setNextFastFoodDate(null);

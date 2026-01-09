@@ -110,20 +110,86 @@ export default function RepasBloc({
     }
   }, [aliment, quantite, heureRepas, categorie]);
 
-  // Ajout Fast food (déclaration unique, checklist respectée)
+  // États Fast food (Option B - détection automatique pure)
   const [isFastFood, setIsFastFood] = useState(false);
   const [fastFoodType, setFastFoodType] = useState('');
-  const fastFoodList = ["McDo", "KFC", "Kebab", "Burger King", "Subway", "Autre"];
   const [fastFoodHistory, setFastFoodHistory] = useState([]);
   const [fastFoodReward, setFastFoodReward] = useState(false);
   const [fastFoodAliments, setFastFoodAliments] = useState([{ nom: '', quantite: '', kcal: '' }]);
+  
+  // États pour bandeau info UX
+  const [dernierFastFood, setDernierFastFood] = useState(null);
+  const [prochainCreneau, setProchainCreneau] = useState(null);
+  const [joursRestants, setJoursRestants] = useState(null);
+  const [delaiRespected, setDelaiRespected] = useState(false);
+  const [showForceModal, setShowForceModal] = useState(false);
 
-  // Vérification de la règle fast food
+  // Auto-détection fast food + chargement infos UX (Option B)
+  useEffect(() => {
+    if (aliment && aliment.trim() !== '') {
+      const found = referentielAliments.find(
+        r => r.nom.toLowerCase() === aliment.toLowerCase()
+      );
+      
+      if (found && found.categorie === 'fast-food') {
+        // Auto-activer tracking (silencieux)
+        setIsFastFood(true);
+        setFastFoodType(found.marque || 'Non identifié');
+        
+        // Charger dernier fast food pour bandeau info
+        fetchDernierFastFood();
+      } else {
+        setIsFastFood(false);
+        setFastFoodType('');
+        setDernierFastFood(null);
+      }
+    }
+  }, [aliment, referentielAliments]);
+
+  // Fonction chargement dernier fast food
+  const fetchDernierFastFood = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('fast_food_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(1);
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const dernier = data[0];
+        setDernierFastFood(dernier);
+        
+        // Calculer prochain créneau
+        const dernierDate = new Date(dernier.date);
+        const prochainDate = new Date(dernierDate);
+        prochainDate.setDate(dernierDate.getDate() + 45);
+        setProchainCreneau(prochainDate.toLocaleDateString('fr-FR'));
+        
+        // Calculer jours restants
+        const today = new Date();
+        const diffMs = prochainDate - today;
+        const jours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+        setJoursRestants(jours);
+        setDelaiRespected(jours === 0);
+      }
+    } catch (err) {
+      console.error('Erreur chargement dernier fast food:', err);
+    }
+  };
+
+  // Mettre à jour historique fast food pour récompenses
   useEffect(() => {
     if (!isFastFood) return;
-    // Filtrer l’historique pour ne garder que les fast food
+    
+    // Filtrer l'historique pour ne garder que les fast food
     const fastFoodRepas = repasSemaine.filter(r => r.isFastFood || r.fastFoodType);
     setFastFoodHistory(fastFoodRepas);
+    
     if (fastFoodRepas.length > 0) {
       // Dernier fast food
       const lastFastFood = fastFoodRepas[fastFoodRepas.length - 1];
@@ -135,7 +201,8 @@ export default function RepasBloc({
     } else {
       setFastFoodReward(true); // Premier fast food, récompense
     }
-  }, [isFastFood, repasSemaine, date]);
+  }, [isFastFood, repasSemaine, date, user]);
+
 
   // Handler pour ajouter un aliment fast food
   const handleAddFastFoodAliment = () => {
@@ -541,33 +608,7 @@ function getSuggestionsFromNotes(repasList) {
             <button type="button" onClick={handleAddFastFoodAliment} style={{ marginTop: 4 }}>Ajouter un aliment</button>
           </div>
         )}
-        {/* Case à cocher Fast food */}
-        <label>
-          <input type="checkbox" checked={isFastFood} onChange={e => setIsFastFood(e.target.checked)} />
-          Fast food ?
-        </label>
-        {/* Liste déroulante des restaurants si Fast food coché */}
-        {isFastFood && (
-          <div style={{ marginBottom: 12 }}>
-            <label>Choix du restaurant</label>
-            <select value={fastFoodType} onChange={e => setFastFoodType(e.target.value)} required>
-              <option value="">Sélectionner…</option>
-              {fastFoodList.map(r => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-            {/* Saisie manuelle si "Autre" */}
-            {fastFoodType === "Autre" && (
-              <input
-                type="text"
-                placeholder="Nom du restaurant"
-                value={fastFoodType}
-                onChange={e => setFastFoodType(e.target.value)}
-                style={{ marginTop: 8 }}
-              />
-            )}
-          </div>
-        )}
+        
         <h3>{type} du {date}</h3>
         <label>Aliment mangé</label>
         <div style={{ position: 'relative' }}>
