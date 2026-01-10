@@ -28,6 +28,7 @@ import { useRouter } from 'next/router';
 import BandeauDefiActif from '../components/BandeauDefiActif';
 import ModalFeedbackValidation from '../components/ModalFeedbackValidation';
 import { supabase } from '../lib/supabaseClient';
+import { calculerProfilComplet } from '../lib/routeurPoids';
 import { 
   calculerExtrasSemaine, 
   genererMessageFeedback, 
@@ -684,14 +685,58 @@ export default function Suivi() {
   const [selectedType, setSelectedType] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'info' });
   // Objectif calorique et calories du jour
-  const [objectifCalorique, setObjectifCalorique] = useState(1800); // Valeur par défaut, à personnaliser
+  const [objectifCalorique, setObjectifCalorique] = useState(1800); // Valeur par défaut, sera remplacée par routeur poids
   const [caloriesDuJour, setCaloriesDuJour] = useState(0);
+  const [calculsRouteur, setCalculsRouteur] = useState(null); // BMR, TDEE, budget extras
   const [showInfo, setShowInfo] = useState(false);
   const [loading, setLoading] = useState(false);
   // Hook pour afficher/masquer l’historique des repas avec note
   const [showNotesHistory, setShowNotesHistory] = useState(false);
   // Plan de repas du jour (repas planifiés)
   const [repasPlan, setRepasPlan] = useState({});
+
+  // Chargement profil et calcul objectif calorique personnalisé (routeur poids)
+  useEffect(() => {
+    async function fetchProfilEtCalculs() {
+      const { data: profil, error } = await supabase
+        .from('profil')
+        .select('sexe, age, taille, poids_de_depart, niveau_activite, objectif')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!error && profil) {
+        // Si profil complet (sexe + niveau_activite renseignés) → utiliser routeur poids
+        if (profil.sexe && profil.niveau_activite) {
+          const objetPoids = profil.poids_de_depart > profil.objectif ? 'perte' : 
+                            (profil.poids_de_depart < profil.objectif ? 'prise' : 'maintien');
+          
+          const profilComplet = {
+            ...profil,
+            objectif: objetPoids
+          };
+
+          const calculs = calculerProfilComplet(profilComplet);
+          
+          if (calculs) {
+            setCalculsRouteur(calculs);
+            setObjectifCalorique(calculs.apport_calorique_cible); // Utiliser calcul personnalisé
+            console.log('[Routeur Poids] Objectif calorique personnalisé:', calculs.apport_calorique_cible, 'kcal');
+          }
+        } else {
+          // Profil incomplet → fallback sur valeur par défaut (1800 kcal)
+          console.log('[Routeur Poids] Profil incomplet (sexe ou activité manquants), utilisation valeur par défaut');
+          setObjectifCalorique(1800);
+        }
+      } else {
+        // Aucun profil → valeur par défaut
+        console.log('[Routeur Poids] Aucun profil trouvé, utilisation valeur par défaut');
+        setObjectifCalorique(1800);
+      }
+    }
+
+    fetchProfilEtCalculs();
+  }, []); // Exécuté une seule fois au chargement
 
   // Chargement automatique des repas et du plan depuis Supabase
   useEffect(() => {

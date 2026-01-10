@@ -869,7 +869,508 @@ Permettre de créer des "repas composés" (plusieurs aliments groupés) et les p
 
 ---
 
-**Dernière mise à jour :** 2026-01-07  
+## 🎯 ROUTEUR POIDS & PROFIL UTILISATEUR
+
+### 9. Synchronisation Suivi Journalier avec Routeur Poids
+
+**Date identification :** 2026-01-10  
+**Priorité :** 🔴 CRITIQUE  
+**Statut :** ⏳ À faire (Phase 0 incomplète)
+
+#### Contexte
+Phase 0 implémentée (migration BDD, routeurPoids.js, formulaire enrichi, calculs BMR/TDEE/budget).  
+**Incohérence détectée :** Suivi journalier affiche ancien calcul, pas calculs routeur poids.
+
+#### Problème actuel
+
+**Suivi journalier (`/pages/suivi.js`) :**
+```javascript
+Objectif calorique du jour : 1800 kcal  // ← Ancien besoin_objectif
+Consommé aujourd'hui : 0 kcal
+Reste à consommer : 1800 kcal
+```
+
+**Routeur poids (`/pages/profil.js`) :**
+```javascript
+BMR (Métabolisme de base) : 1802 kcal/jour
+TDEE (Dépense totale) : 2162 kcal/jour
+Budget extras hebdo : 500 kcal/semaine
+Apport calorique cible : 1730 kcal/jour  // ← Nouveau calcul personnalisé
+```
+
+**Écart :** 1800 kcal (ancien) vs 1730 kcal (routeur) = **70 kcal différence** ❌
+
+#### Origine problème
+
+**Fichier `/pages/suivi.js` (ligne ~20-50) :**
+```javascript
+const { data: profil } = await supabase
+  .from('profil')
+  .select('besoin_objectif')  // ← Utilise ANCIEN champ
+  .single();
+
+setObjectifCaloriqueJour(profil.besoin_objectif || 1800);
+```
+
+**Devrait utiliser :**
+```javascript
+import { calculerProfilComplet } from '../lib/routeurPoids';
+
+const { data: profil } = await supabase
+  .from('profil')
+  .select('sexe, age, taille, poids_de_depart, niveau_activite, objectif')
+  .single();
+
+const calculs = calculerProfilComplet(profil);
+setObjectifCaloriqueJour(calculs.apport_calorique_cible);
+```
+
+#### Fichiers à modifier
+
+**1. `/pages/suivi.js`**
+- Importer `calculerProfilComplet` depuis `/lib/routeurPoids.js`
+- Récupérer profil complet (pas juste besoin_objectif)
+- Calculer routeur poids au chargement
+- Utiliser `apport_calorique_cible` comme objectif journalier
+- Afficher BMR/TDEE en info complémentaire (optionnel)
+
+**2. Ajout affichage budget extras (optionnel)**
+```javascript
+// Suivi journalier enrichi
+Objectif calorique : 1730 kcal (TDEE: 2162 kcal, BMR: 1802 kcal)
+Budget extras semaine : 500 kcal (140 kcal consommés, reste 360 kcal)
+```
+
+#### Impact attendu
+- ✅ Cohérence totale entre profil et suivi
+- ✅ Calculs personnalisés (sexe, activité, objectif)
+- ✅ Budget extras visible quotidiennement
+- ✅ Utilisateur voit calculs routeur en action
+
+#### Estimation effort
+- Modification suivi.js : 1h
+- Tests cohérence : 30min
+- Affichage budget extras : 1h
+- **Total : 2h30**
+
+---
+
+### 10. Sélecteur Objectif Explicite (Perte/Maintien/Prise)
+
+**Date identification :** 2026-01-10  
+**Priorité :** 🟠 HAUTE  
+**Statut :** ⏳ À faire (Phase 0 incomplète)
+
+#### Problème actuel
+
+**Logique implicite (code actuel) :**
+```javascript
+// /pages/profil.js ligne ~95
+const objectifType = poids > obj ? 'perte' : (poids < obj ? 'prise' : 'maintien');
+```
+
+**Limitations :**
+- ❌ Utilisateur ne voit jamais "Que veux-tu ? Perdre/Maintenir/Prendre"
+- ❌ Objectif déduit automatiquement du poids_de_depart vs objectif
+- ❌ Impossible de choisir "maintien" si poids = objectif
+- ❌ Impossible de choisir "prise masse musculaire" si poids < objectif pour raison sportive
+
+**Exemple scénario cassé :**
+```
+Utilisateur : 75 kg actuel, veut MAINTENIR à 75 kg
+Formulaire : Poids départ 75, Objectif 75
+Code déduit : "maintien" → ✅ OK par chance
+
+Utilisateur : 70 kg actuel, veut PRISE MASSE (musculation) à 75 kg
+Formulaire : Poids départ 70, Objectif 75
+Code déduit : "prise" → ✅ OK par chance
+
+Utilisateur : 80 kg actuel, veut PERTE GRAISSEUSE mais MAINTIEN MUSCLE à 75 kg
+Formulaire : Poids départ 80, Objectif 75
+Code déduit : "perte" → ⚠️ Mais quel type perte ? Sèche sportive ou perte santé ?
+```
+
+#### Solution proposée
+
+**Ajout champ explicite dans FormulaireProfil.js :**
+```javascript
+<div>
+  <label>Quel est ton objectif ?</label>
+  <select
+    value={objectifType}
+    onChange={(e) => setObjectifType(e.target.value)}
+    required
+  >
+    <option value="">-- Sélectionner --</option>
+    <option value="perte">🔻 Perdre du poids (déficit calorique)</option>
+    <option value="maintien">⚖️ Maintenir mon poids actuel</option>
+    <option value="prise">🔺 Prendre du poids (surplus calorique)</option>
+  </select>
+</div>
+
+{objectifType === 'perte' && (
+  <p style={{fontSize: '0.9rem', color: '#666'}}>
+    💡 Déficit recommandé : -20% calories (perte progressive saine)
+  </p>
+)}
+
+{objectifType === 'maintien' && (
+  <p style={{fontSize: '0.9rem', color: '#666'}}>
+    💡 Apport = Dépense (TDEE). Idéal pour stabilisation.
+  </p>
+)}
+
+{objectifType === 'prise' && (
+  <p style={{fontSize: '0.9rem', color: '#666'}}>
+    💡 Surplus recommandé : +10-15% calories (prise masse propre)
+  </p>
+)}
+```
+
+**Migration BDD :**
+```sql
+ALTER TABLE profil 
+ADD COLUMN IF NOT EXISTS objectif_type TEXT CHECK (objectif_type IN ('perte', 'maintien', 'prise'));
+
+-- Remplir automatiquement pour profils existants
+UPDATE profil 
+SET objectif_type = CASE 
+  WHEN poids_de_depart > objectif THEN 'perte'
+  WHEN poids_de_depart < objectif THEN 'prise'
+  ELSE 'maintien'
+END
+WHERE objectif_type IS NULL;
+```
+
+**Utilisation dans calculerProfilComplet :**
+```javascript
+// Au lieu de deviner
+const budgetExtras = calculerBudgetExtras(profil.objectif_type, tdee);
+```
+
+#### Bénéfices
+- ✅ Clarté intention utilisateur
+- ✅ Calculs budget extras précis
+- ✅ Messages contextuels adaptés
+- ✅ Support objectifs sportifs (sèche/prise masse)
+
+#### Estimation effort
+- Migration SQL : 5min
+- Ajout select formulaire : 30min
+- Messages conditionnels : 20min
+- Mise à jour routeurPoids.js : 10min
+- Tests : 30min
+- **Total : 1h45**
+
+---
+
+### 11. Tooltips & Explications Formulaire Profil
+
+**Date identification :** 2026-01-10  
+**Priorité :** 🟡 MOYENNE  
+**Statut :** ⏳ À faire (Phase 0 incomplète)
+
+#### Problème actuel
+
+**Formulaire sans contexte :**
+```javascript
+<label>Sexe</label>  // ← Pourquoi on demande ça ?
+<select>...</select>
+
+<label>Niveau d'activité physique</label>  // ← Comment choisir ?
+<select>
+  <option value="sedentaire">Sédentaire (peu ou pas d'exercice)</option>
+  <option value="modere">Modérément actif (exercice 3-5 jours/semaine)</option>
+  ...
+</select>
+```
+
+**Questions utilisateur :**
+- ❓ "Pourquoi sexe ? C'est quoi BMR ?"
+- ❓ "Sédentaire vs modéré : je marche 30min/jour, c'est quoi ?"
+- ❓ "TDEE, ça veut dire quoi ?"
+- ❓ "Budget extras 500 kcal/semaine, c'est beaucoup ?"
+
+#### Solution proposée
+
+**1. Info-bulles ⓘ explicatives**
+```javascript
+<div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+  <label>Sexe</label>
+  <span 
+    title="Utilisé pour calculer ton métabolisme de base (BMR). Hommes et femmes ont des formules différentes."
+    style={{cursor: 'help', fontSize: '1rem', color: '#3498db'}}
+  >
+    ⓘ
+  </span>
+</div>
+```
+
+**2. Guide visuel niveau activité**
+```javascript
+<select value={niveauActivite} onChange={...}>
+  <option value="sedentaire">
+    🪑 Sédentaire - Travail bureau, peu de marche (×1.2)
+  </option>
+  <option value="modere">
+    🚶 Modéré - Marche quotidienne, sport 3×/semaine (×1.5)
+  </option>
+  <option value="actif">
+    🏃 Actif - Sport intense 6×/semaine, travail physique (×1.7)
+  </option>
+  <option value="intense">
+    💪 Très actif - Sportif professionnel, entraînement quotidien (×2.0)
+  </option>
+</select>
+
+<div style={{fontSize: '0.85rem', color: '#666', marginTop: '0.5rem'}}>
+  💡 Le coefficient (×1.2 à ×2.0) multiplie ton BMR pour calculer ta dépense totale (TDEE)
+</div>
+```
+
+**3. Glossaire déroulant**
+```javascript
+<button 
+  onClick={() => setAfficherGlossaire(!afficherGlossaire)}
+  style={{background: 'none', border: '1px solid #ddd', padding: '0.5rem', borderRadius: 8}}
+>
+  📖 Comprendre les calculs (BMR, TDEE, Budget)
+</button>
+
+{afficherGlossaire && (
+  <div style={{background: '#f7f9fc', padding: '1rem', borderRadius: 8, marginTop: '1rem'}}>
+    <h4>📊 Lexique</h4>
+    <ul>
+      <li><strong>BMR</strong> : Métabolisme de base. Calories brûlées au repos (respiration, digestion).</li>
+      <li><strong>TDEE</strong> : Dépense totale quotidienne. BMR × activité physique.</li>
+      <li><strong>Budget extras</strong> : Calories "bonus" hebdomadaires pour écarts/plaisirs.</li>
+    </ul>
+  </div>
+)}
+```
+
+**4. Validation intelligente**
+```javascript
+// Si âge > 60 et niveau_activite = 'intense'
+⚠️ Attention : Niveau "Très actif" inhabituel pour 65 ans. Confirmer ?
+
+// Si objectif_type = 'perte' et niveau_activite = 'sedentaire'
+💡 Astuce : Ajouter 30min marche/jour augmenterait ton TDEE de ~200 kcal
+```
+
+#### Composant réutilisable
+
+**`<InfoBulle texte="..." />`**
+```javascript
+export default function InfoBulle({ texte }) {
+  return (
+    <span 
+      title={texte}
+      style={{
+        cursor: 'help', 
+        fontSize: '1rem', 
+        color: '#3498db',
+        marginLeft: '0.5rem'
+      }}
+    >
+      ⓘ
+    </span>
+  );
+}
+
+// Utilisation
+<label>
+  Sexe <InfoBulle texte="Utilisé pour calculer BMR (métabolisme de base)" />
+</label>
+```
+
+#### Bénéfices
+- ✅ Utilisateur comprend pourquoi on demande ces infos
+- ✅ Choix éclairés (activité, objectif)
+- ✅ Éducation nutritionnelle progressive
+- ✅ Réduction erreurs saisie
+
+#### Estimation effort
+- Composant InfoBulle : 30min
+- Ajout tooltips formulaire : 1h
+- Guide niveaux activité : 30min
+- Glossaire déroulant : 1h
+- Validations intelligentes : 1h
+- **Total : 4h**
+
+---
+
+### 12. Onboarding Nouvel Utilisateur (Parcours Guidé)
+
+**Date identification :** 2026-01-10  
+**Priorité :** 🟡 MOYENNE  
+**Statut :** ⏳ À faire (Phase 0 incomplète)
+
+#### Problème actuel
+
+**Première connexion utilisateur :**
+1. Arrive sur page profil vide
+2. Formulaire 10 champs sans contexte
+3. Aucune explication objectif app
+4. Après save → redirigé où ? Tableau de bord vide ?
+5. Pas de guide "Prochaines étapes"
+
+**Taux abandon attendu :** 🔴 ÉLEVÉ (formulaire trop dense d'un coup)
+
+#### Solution proposée
+
+**Onboarding en 4 étapes (wizard)**
+
+**Étape 1 : Bienvenue + Intention**
+```javascript
+<div style={{textAlign: 'center', padding: '2rem'}}>
+  <h1>👋 Bienvenue sur [Nom App] !</h1>
+  <p>En quelques questions, on va personnaliser ton expérience.</p>
+  
+  <div style={{margin: '2rem 0'}}>
+    <h3>Que veux-tu accomplir ?</h3>
+    <button onClick={() => setObjectifType('perte')}>
+      🔻 Perdre du poids sainement
+    </button>
+    <button onClick={() => setObjectifType('maintien')}>
+      ⚖️ Maintenir mon poids actuel
+    </button>
+    <button onClick={() => setObjectifType('prise')}>
+      🔺 Prendre de la masse musculaire
+    </button>
+  </div>
+  
+  <button onClick={nextStep}>Suivant →</button>
+</div>
+```
+
+**Étape 2 : Profil physique**
+```javascript
+<h2>📏 Dis-nous en plus sur toi</h2>
+<input placeholder="Âge" />
+<select placeholder="Sexe">...</select>
+<input placeholder="Taille (cm)" />
+<input placeholder="Poids actuel (kg)" />
+<input placeholder="Poids objectif (kg)" />
+
+<button onClick={prevStep}>← Retour</button>
+<button onClick={nextStep}>Suivant →</button>
+```
+
+**Étape 3 : Niveau activité + Timeline**
+```javascript
+<h2>🏃 Ton mode de vie</h2>
+
+<div>
+  <label>Niveau d'activité physique</label>
+  <InfoBulle texte="Détermine ta dépense calorique quotidienne" />
+  <select>...</select>
+</div>
+
+<div>
+  <label>Objectif à atteindre en combien de mois ?</label>
+  <input type="number" />
+</div>
+
+<button onClick={prevStep}>← Retour</button>
+<button onClick={nextStep}>Suivant →</button>
+```
+
+**Étape 4 : Motivation + Résumé**
+```javascript
+<h2>💪 Dernière étape !</h2>
+
+<textarea placeholder="Pourquoi ce projet est important pour toi ?">
+</textarea>
+
+<div style={{background: '#e8f5e9', padding: '1.5rem', borderRadius: 12}}>
+  <h3>📊 Ton profil personnalisé</h3>
+  <ul>
+    <li>Objectif : Perdre 10 kg en 6 mois</li>
+    <li>BMR : 1802 kcal/jour</li>
+    <li>TDEE : 2162 kcal/jour</li>
+    <li>Apport cible : 1730 kcal/jour (-20% déficit)</li>
+    <li>Budget extras : 500 kcal/semaine</li>
+  </ul>
+  <p style={{fontSize: '0.9rem', color: '#666', marginTop: '1rem'}}>
+    Ces valeurs sont des estimations scientifiques. Consulter un professionnel pour suivi personnalisé.
+  </p>
+</div>
+
+<button onClick={prevStep}>← Retour</button>
+<button onClick={handleFinishOnboarding}>Terminé ! 🎉</button>
+```
+
+**Après onboarding :**
+```javascript
+// Redirection automatique vers dashboard avec message
+"🎉 Profil créé avec succès ! Prochaine étape : Enregistre ton premier repas"
+
+// Badge "Nouveau" sur bouton "Suivi journalier"
+// Tooltip "Clique ici pour commencer" qui apparaît 2 secondes
+```
+
+#### Composant
+
+**`/pages/onboarding.js` (nouvelle page)**
+```javascript
+export default function OnboardingPage() {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({});
+  
+  const steps = [
+    <StepBienvenue />,
+    <StepProfilPhysique />,
+    <StepActivite />,
+    <StepMotivation />
+  ];
+  
+  return (
+    <div className="onboarding-container">
+      <ProgressBar step={step} total={4} />
+      {steps[step - 1]}
+    </div>
+  );
+}
+```
+
+**Détection première connexion (_app.js) :**
+```javascript
+useEffect(() => {
+  const checkProfil = async () => {
+    const { data: profil } = await supabase
+      .from('profil')
+      .select('id')
+      .single();
+    
+    if (!profil) {
+      // Aucun profil → rediriger vers onboarding
+      router.push('/onboarding');
+    }
+  };
+  
+  checkProfil();
+}, []);
+```
+
+#### Bénéfices
+- ✅ Taux complétion formulaire +60%
+- ✅ Utilisateur comprend valeur app
+- ✅ Engagement immédiat (gamification steps)
+- ✅ Données profil plus qualitatives (motivation)
+- ✅ Abandon réduit
+
+#### Estimation effort
+- Design wizard 4 étapes : 2h
+- Composants steps : 3h
+- Logique navigation : 1h
+- Intégration _app.js : 1h
+- Tests parcours complet : 1h
+- **Total : 8h**
+
+---
+
+**Dernière mise à jour :** 2026-01-10  
 **Prochaine revue :** À définir selon priorités projet
 
 A ajouter permettre a l utilisateur quand il saisit aliment si non exiqstant dans le referentiel de l ajouter dans le meme style que existant pour enrichissement interne du referentiel, aussi permetre la compoqition d assiette complete/ repas complet avec ajout multiple de plusieurs aliment qui apres analyse pourront aussi etre propose dans planification des repas

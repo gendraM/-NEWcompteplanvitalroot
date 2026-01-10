@@ -324,7 +324,7 @@ Voir Etape 6 ci-dessous
 
 ### Avancement précis :
 
-**Pourcentage réel** : 15 %
+**Pourcentage réel** : 20 %
 
 **Historique des mises à jour** :
 
@@ -333,6 +333,7 @@ Voir Etape 6 ci-dessous
 | 2026-01-09 | 0% | Plan créé | Validation utilisateur requise |
 | 2026-01-10 | 5% | Phase 0 démarrée | Validation utilisateur obtenue |
 | 2026-01-10 | 15% | Phase 0 complétée | Migration SQL + helpers + formulaires |
+| 2026-01-10 | 20% | Synchronisation suivi | Suivi journalier utilise routeur poids |
 
 **Prochaines étapes** :
 1. Validation utilisateur du plan
