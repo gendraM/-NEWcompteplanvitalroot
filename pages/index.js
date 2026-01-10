@@ -108,6 +108,22 @@ export default function Home() {
         >
           🌟 Mes idéaux / routines
         </Link>
+        <Link 
+          href="/login"
+          style={{ 
+            display: 'inline-block',
+            padding: '0.75rem 1.5rem',
+            backgroundColor: '#27ae60',
+            color: '#fff',
+            borderRadius: '5px',
+            textDecoration: 'none',
+            fontWeight: 'bold',
+            marginRight: '1rem',
+            marginBottom: '1rem'
+          }}
+        >
+          🔐 Se connecter / S'inscrire
+        </Link>
         <button
           onClick={handleClickJeune}
           style={{
