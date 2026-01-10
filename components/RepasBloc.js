@@ -3,6 +3,7 @@ import { useSupabase } from '../lib/supabaseClient';
 import { useState, useEffect, useCallback } from 'react'
 import FlipNumbers from 'react-flip-numbers'
 import referentielAliments from '../data/referentiel';
+import { TYPES_EXTRAS, detecterTypeExtra, getOptionsExtras } from '../lib/extras';
 // import FlipNumbers from 'react-flip-numbers'
 
 // 🐛 DEBUG: Vérifier le référentiel chargé
@@ -151,6 +152,7 @@ export default function RepasBloc({
   // Validation stricte des props
   extrasRestants = typeof extrasRestants === 'number' && !isNaN(extrasRestants) ? extrasRestants : 0;
   const [estExtra, setEstExtra] = useState(false);
+  const [typeExtra, setTypeExtra] = useState(''); // Sera calculé automatiquement
   const [satiete, setSatiete] = useState('');
   const [pourquoi, setPourquoi] = useState('');
   const [ressenti, setRessenti] = useState('');
@@ -158,6 +160,16 @@ export default function RepasBloc({
   const [reactBloc, setReactBloc] = useState([]);
   const [showDefi, setShowDefi] = useState(false);
   const [loadingKcal, setLoadingKcal] = useState(false);
+  
+  // Auto-détection du type d'extra selon les kcal
+  useEffect(() => {
+    if (estExtra && kcal) {
+      const type = detecterTypeExtra(kcal);
+      setTypeExtra(type);
+    } else {
+      setTypeExtra('');
+    }
+  }, [estExtra, kcal]);
   // Ajout Fast food
   // Ajout pour gestion validation semaine
   const [semaineValidee, setSemaineValidee] = useState(false);
@@ -418,6 +430,7 @@ function getSuggestionsFromNotes(repasList) {
       setQuantite('');
       setKcal('');
       setEstExtra(false);
+      setTypeExtra('');
       setSatiete('');
       setPourquoi('');
       setRessenti('');
@@ -435,6 +448,7 @@ function getSuggestionsFromNotes(repasList) {
       quantite: categorie === 'Jeûne' ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite)),
       kcal: categorie === 'Jeûne' ? null : (kcal === '' ? null : isNaN(Number(kcal)) ? kcal : Number(kcal)),
       est_extra: estExtra,
+      type_extra: estExtra ? typeExtra : null, // Type d'extra (mini/normal/double/triple)
       satiete,
       pourquoi,
       ressenti,
@@ -454,6 +468,7 @@ function getSuggestionsFromNotes(repasList) {
     setQuantite('');
     setKcal('');
     setEstExtra(false);
+    setTypeExtra('');
     setSatiete('');
     setPourquoi('');
     setRessenti('');
@@ -762,6 +777,114 @@ function getSuggestionsFromNotes(repasList) {
             <input type="checkbox" checked={estExtra} onChange={e => setEstExtra(e.target.checked)} />
             Cet aliment est-il un extra ?
           </label>
+        )}
+
+        {/* Encadré pédagogique + Type d'extra (auto-détecté) */}
+        {estExtra && categorie !== 'Jeûne' && (
+          <div style={{
+            marginTop: '1rem',
+            marginBottom: '1rem',
+            padding: '1.5rem',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: 12,
+            color: '#fff',
+            fontSize: '0.9rem',
+            lineHeight: '1.6'
+          }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+              🎁 C'est quoi un EXTRA ?
+            </div>
+            
+            <div style={{ marginBottom: '1rem', opacity: 0.95 }}>
+              Un extra = <strong>moment de plaisir planifié et conscient</strong>, consommé <strong>HORS des repas équilibrés</strong> (dessert ajouté, viennoiserie, chocolat, apéritif, pop-corn, confiserie…).
+            </div>
+            
+            <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(255,255,255,0.15)', borderRadius: 8 }}>
+              ⚠️ <strong>Un extra ne remplace jamais un repas.</strong><br/>
+              S'il remplace un repas, ce n'est plus un extra.
+            </div>
+            
+            <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(255,200,100,0.2)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)' }}>
+              <strong>📌 Rappel important</strong><br/>
+              <div style={{ fontSize: '0.85rem', marginTop: '0.5rem', opacity: 0.95 }}>
+                Assurez-vous que la consommation saisie est bien un extra (cf. règle extra).<br/>
+                ⚠️ Les <strong>fast-foods ne sont pas des extras</strong>.<br/>
+                → Utilisez la catégorie appropriée (Fast-food, Déjeuner, Dîner, etc.) et <strong>décochez la case extra</strong>.
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: '1rem', borderTop: '1px solid rgba(255,255,255,0.3)', paddingTop: '1rem' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>🎯 L'art de l'équilibre alimentaire</div>
+              <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                La gestion des extras repose sur la <strong>régularité</strong>, pas sur la privation.<br/>
+                ✓ Constance et ancrage d'habitudes durables<br/>
+                ✓ Conscience du plaisir (sans automatisme)<br/>
+                ✓ Liberté mentale (sans peur de manquer)<br/>
+                ✓ Zéro culpabilité, zéro compensation<br/><br/>
+                <em>Dire non maintenant, ce n'est pas dire non pour toujours.</em><br/>
+                C'est choisir le meilleur moment pour consommer ce qui vous fait envie,<br/>
+                en vous permettant de vous rapprocher plus rapidement de votre objectif.
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: '1rem', borderTop: '1px solid rgba(255,255,255,0.3)', paddingTop: '1rem' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>✨ Pourquoi ce système fonctionne</div>
+              <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                Le type d'extra vous aide à :<br/>
+                ✓ <strong>Distinguer clairement</strong> repas et plaisirs hors repas<br/>
+                ✓ <strong>Organiser</strong> vos extras sans les subir<br/>
+                ✓ <strong>Visualiser</strong> vos habitudes (petits plaisirs et moments festifs)<br/>
+                ✓ <strong>Rester alignée</strong> avec votre objectif de perte de poids<br/><br/>
+                <em style={{ opacity: 0.95 }}>Un extra bien géré ne freine pas la perte.<br/>
+                Ce sont les accumulations non conscientes qui la bloquent.</em>
+              </div>
+            </div>
+            
+            {kcal && (
+              <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.2)', borderRadius: 8 }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                  📊 Type d'extra (calculé automatiquement)
+                </div>
+                
+                {typeExtra && (
+                  <>
+                    <div style={{ 
+                      fontSize: '1.1rem', 
+                      padding: '0.75rem', 
+                      background: typeExtra === 'majeur' ? 'rgba(255,107,107,0.3)' : 'rgba(255,255,255,0.25)', 
+                      borderRadius: 6, 
+                      marginBottom: '0.5rem',
+                      border: typeExtra === 'majeur' ? '2px solid #ff6b6b' : 'none'
+                    }}>
+                      {TYPES_EXTRAS[typeExtra].emoji} <strong>{TYPES_EXTRAS[typeExtra].label}</strong> ({TYPES_EXTRAS[typeExtra].seuil_min}-{TYPES_EXTRAS[typeExtra].seuil_max === 99999 ? '∞' : TYPES_EXTRAS[typeExtra].seuil_max} kcal)
+                    </div>
+                    
+                    <div style={{ fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+                      <strong>→</strong> {TYPES_EXTRAS[typeExtra].description}<br/>
+                      <em>Exemples : {TYPES_EXTRAS[typeExtra].exemples}</em>
+                    </div>
+                    
+                    {typeExtra === 'majeur' && (
+                      <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.2)', borderRadius: 6, marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                        <strong>⚠️ Impact très élevé sur le budget</strong><br/>
+                        <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', opacity: 0.95 }}>
+                          Un extra reste un extra quelle que soit sa valeur calorique.<br/>
+                          Les calories servent uniquement à mesurer l'impact sur votre budget hebdomadaire.<br/><br/>
+                          💡 <strong>Rappel</strong> : Si cela <strong>remplace</strong> un repas (restaurant, fast-food, brunch), utilisez la catégorie repas appropriée, pas "extra".
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            
+            {!kcal && (
+              <div style={{ fontSize: '0.85rem', opacity: 0.8, fontStyle: 'italic', marginTop: '1rem' }}>
+                💡 Saisissez les kcal pour voir le type d'extra auto-détecté
+              </div>
+            )}
+          </div>
         )}
 
         {categorie !== 'Jeûne' && <label>Satiété respectée ?</label>}
