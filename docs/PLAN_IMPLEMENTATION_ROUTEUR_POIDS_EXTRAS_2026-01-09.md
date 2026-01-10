@@ -318,20 +318,21 @@ Voir Etape 6 ci-dessous
 
 ### Statut :
 
-- [x] Non commencé
-- [ ] En cours
+- [ ] Non commencé
+- [x] En cours
 - [ ] Terminé
 
 ### Avancement précis :
 
-**Pourcentage réel** : 0 %
+**Pourcentage réel** : 15 %
 
 **Historique des mises à jour** :
 
 | Date | Avancement | Étape complétée | Remarques |
 |------|-----------|----------------|-----------|
 | 2026-01-09 | 0% | Plan créé | Validation utilisateur requise |
-| | | | |
+| 2026-01-10 | 5% | Phase 0 démarrée | Validation utilisateur obtenue |
+| 2026-01-10 | 15% | Phase 0 complétée | Migration SQL + helpers + formulaires |
 
 **Prochaines étapes** :
 1. Validation utilisateur du plan
@@ -582,11 +583,11 @@ export default function RouteurPoidsConfig({ userId, onSave }) {
 
 ### Plan validé par l'utilisateur :
 
-- [ ] Plan lu et compris
-- [ ] Architecture validée (mode dual)
-- [ ] Risques acceptés
-- [ ] Priorisation phases validée
-- [ ] Date validation : _______________
+- [x] Plan lu et compris
+- [x] Architecture validée (architecture en couches)
+- [x] Risques acceptés
+- [x] Priorisation phases validée
+- [x] Date validation : 10 janvier 2026
 
 ### Questions pour validation :
 
