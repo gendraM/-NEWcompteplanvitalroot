@@ -1,0 +1,808 @@
+PROBLÉMATIQUE DE DÉPART
+
+
+Le système initial “1 extra par semaine” génère de la frustration car il repose sur une logique symbolique et binaire, déconnectée de la réalité physiologique et comportementale.
+Dans ce système :
+un biscuit,
+
+
+une part de gâteau maison,
+
+
+un pop-corn cinéma,
+
+
+un fast-food complet
+
+
+sont comptabilisés de manière identique, ce qui est incohérent sur le plan calorique, métabolique et psychologique.
+Cette rigidité entraîne :
+une frustration anticipée,
+
+
+un sentiment de fermeture définitive,
+
+
+des comportements de type “foutu pour foutu”,
+
+
+une difficulté majeure à accepter la fin de la consommation.
+
+
+Objectif global :
+Créer un système d’extras qui favorise la perte de poids tout en développant l’autonomie, la constance et la capacité à dire stop dans le moment présent.
+
+PRINCIPE FONDAMENTAL
+
+
+Un extra n’est pas un aliment.
+Un extra est une dépense énergétique non nécessaire.
+La perte de poids ne dépend pas du type d’aliment consommé, mais du respect d’un déficit énergétique dans le temps.
+Consommer 100 % de ce qui est autorisé conduit au maintien.
+La perte de poids nécessite un “moins ou égal”, jamais un “tout utiliser”.
+
+CHANGEMENT D’UNITÉ : DU NOMBRE D’EXTRAS AU BUDGET CALORIQUE
+
+
+Le système repose désormais sur un budget calorique d’extras hebdomadaire, calculé en fonction du profil utilisateur via le routeur poids (TDEE, objectif, déficit visé).
+L’utilisateur voit des “extras” sous forme d’unités simples.
+L’application calcule en arrière-plan les calories correspondantes.
+Exemples d’unités visibles utilisateur :
+Biscuit : 1 mini-extra
+
+
+Part de gâteau maison : 1 extra
+
+
+Pop-corn cinéma : 2 extras
+
+
+Fast-food : 3 extras
+
+
+Traduction interne approximative :
+Mini-extra : 80–100 kcal
+
+
+Extra : 180–250 kcal
+
+
+2 extras : 300–400 kcal
+
+
+3 extras : 700–900 kcal
+
+
+
+BUDGET EXTRAS SELON LE PROFIL ROUTEUR POIDS
+
+
+Déficit fort (ex : 1200–1400 kcal/jour)
+Budget extras : 300 à 400 kcal / semaine
+Déficit modéré (ex : 1600–1800 kcal/jour)
+Budget extras : 500 à 700 kcal / semaine
+Maintien
+Budget extras : 800 à 1000 kcal / semaine
+Règle essentielle :
+Si le budget extras est utilisé à 100 % chaque semaine, la perte ralentit ou s’annule.
+Si le budget extras est utilisé à 70–80 %, la perte est favorisée.
+
+MESSAGE CLÉ DE PROGRESSION
+
+
+Lorsque le budget n’est pas entièrement consommé, l’application affiche un message de projection douce, chiffrée mais non anxiogène :
+“Tu as économisé un extra cette semaine.
+Tu te rapproches de ton objectif de perte de poids.”
+Optionnel, discret :
+“En moyenne, cela renforce une trajectoire de –X g à –Y g sur la durée.”
+Il s’agit d’une trajectoire, jamais d’une promesse.
+
+PROBLÈME CENTRAL À RÉSOUDRE : L’INCAPACITÉ À ACCEPTER LA FIN
+
+
+Le comportement de surconsommation est principalement lié à une peur implicite :
+peur que ce soit la dernière fois,
+
+
+peur que le futur n’existe plus,
+
+
+peur de la fermeture définitive.
+
+
+La fin de la consommation est vécue comme une privation.
+Objectif comportemental :
+Rendre la fin sécurisante en rendant le futur visible.
+
+MÉCANISME CLÉ : RITUEL DE FERMETURE DE L’EXTRA
+
+
+Après la consommation d’un extra, l’application déclenche un rituel de fermeture simple et explicite.
+Étape 1 : Nommer la fin
+“Cet extra est terminé.
+D’autres moments viendront.”
+Étape 2 : Rendre le futur visible
+Affichage d’une information factuelle :
+Budget extras restant cette semaine
+
+
+Date de renouvellement du budget hebdomadaire
+
+
+Étape 3 : Transformer la frustration en gain
+Si l’utilisateur s’arrête volontairement :
+“Tu laisses volontairement de l’espace.
+Cet espace nourrit ta perte de poids.”
+Les calories non consommées sont visibles comme un espace de déficit, jamais comme un stock.
+
+RÈGLE IMPORTANTE : PAS DE THÉSAURISATION AUTOMATIQUE
+
+
+Les calories non consommées ne sont pas automatiquement reportées à la semaine suivante.
+Raison :
+évite la logique de stock,
+
+
+évite la peur de manquer,
+
+
+favorise l’acceptation de la fin,
+
+
+renforce la constance.
+
+
+L’espace non consommé agit immédiatement sur la trajectoire de perte.
+
+NÉCESSITÉ DE PRENDRE EN COMPTE LA VIE RÉELLE
+
+
+La vie est marquée par des imprévus : mariages, restaurants, cinéma, vacances.
+Pour éviter le mode “demain n’existe pas”, l’application intègre un mécanisme volontaire, encadré et plafonné.
+
+MÉCANISME UNIQUE : EXTRA PLANIFIÉ
+
+
+“Planifier un extra” et “préparer un événement” sont une seule et même mécanique.
+Un extra planifié est un extra déplacé dans le temps, consciemment, dans un cadre énergétique limité.
+Deux portes d’entrée mènent au même mécanisme :
+Porte 1 : Planifier un extra (envie, quota atteint, tension)
+
+
+Porte 2 : Préparer un événement (restaurant, cinéma, mariage, vacances)
+
+
+
+RÈGLES STRICTES DE L’EXTRA PLANIFIÉ
+
+
+L’extra planifié n’est pas consommable immédiatement
+
+
+Il est daté ou rattaché à un contexte précis
+
+
+Il dispose d’un plafond calorique
+
+
+Il a une durée de validité limitée
+
+
+Il est réservé à l’événement déclaré
+
+
+Il ne peut pas être utilisé pour du grignotage
+
+
+Limite recommandée :
+1 extra planifié actif à la fois (maximum 2, déconseillé)
+
+
+Message clé :
+“Planifier un extra, ce n’est pas se retenir.
+C’est décider quand.”
+
+DISTINCTION ENTRE BUDGET HEBDOMADAIRE ET EXTRA PLANIFIÉ
+
+
+Budget hebdomadaire :
+Non reportable
+
+
+Sert à la vie courante
+
+
+Favorise la perte
+
+
+Se dissout s’il n’est pas utilisé
+
+
+Extra planifié :
+Temporairement réservé
+
+
+Sert à un moment choisi
+
+
+Protège l’équilibre
+
+
+Se déclenche à la date prévue
+
+
+Un extra planifié ne doit jamais devenir une dette mentale.
+
+IMPACT COMPORTEMENTAL RECHERCHÉ
+
+
+Ce système vise à :
+réduire la pulsion “autant finir”,
+
+
+sécuriser la fin de consommation,
+
+
+rendre le futur concret,
+
+
+favoriser la répétition de décisions alignées,
+
+
+développer la constance.
+
+
+La perte de poids n’est pas le résultat d’un grand effort ponctuel, mais de petits refus conscients répétés.
+Dire non maintenant n’est pas dire non pour toujours.
+
+PHILOSOPHIE FINALE DU SYSTÈME
+
+
+Tout n’est pas à prendre maintenant.
+Mais rien n’est interdit pour toujours.
+Ce cadre permet :
+la perte de poids,
+
+
+le respect de la réalité de vie,
+
+
+l’autonomie alimentaire,
+
+
+la durabilité du changement
+
+
+RÔLE CENTRAL DU ROUTEUR POIDS
+
+
+Le routeur poids est le moteur de décision principal du système extras.
+Il détermine :
+le métabolisme de base (BMR),
+
+
+le maintien calorique (TDEE),
+
+
+la tendance énergétique réelle (perte / maintien / surplus),
+
+
+le niveau de déficit visé,
+
+
+et donc le budget extras autorisé.
+
+
+La gestion des extras n’est jamais indépendante du routeur poids.
+Elle en est une application directe.
+
+DONNÉES D’ENTRÉE UTILISATEUR (ROUTEUR POIDS)
+
+
+Le routeur poids s’appuie sur les données suivantes :
+sexe
+
+
+âge
+
+
+taille
+
+
+poids
+
+
+niveau d’activité
+
+
+objectif (perte / maintien / surplus)
+
+
+À partir de ces données, l’application calcule :
+le BMR (formule Mifflin–St Jeor),
+
+
+le TDEE (BMR × facteur d’activité),
+
+
+puis le déficit ou surplus cible.
+
+
+
+POSITIONNEMENT DU PROFIL UTILISATEUR
+
+
+Le routeur classe l’utilisateur dans un profil énergétique, par exemple :
+déficit fort
+
+
+déficit modéré
+
+
+maintien
+
+
+surplus (optionnel)
+
+
+Ce profil n’est pas figé :
+il peut évoluer selon les tendances observées sur 7 à 14 jours.
+
+DÉTERMINATION DU BUDGET EXTRAS PAR PROFIL
+
+
+Le budget extras hebdomadaire est directement indexé sur le profil routeur poids.
+Exemples de règles métier :
+Profil déficit fort
+Budget extras = 300 à 400 kcal / semaine
+Profil déficit modéré
+Budget extras = 500 à 700 kcal / semaine
+Profil maintien
+Budget extras = 800 à 1000 kcal / semaine
+Ce budget représente la marge de plaisir compatible avec la trajectoire définie par le routeur poids.
+
+LIEN ENTRE TENDANCE ÉNERGÉTIQUE ET EXTRAS
+
+
+Le routeur poids analyse les cumuls énergétiques sur plusieurs fenêtres :
+3 jours (signal faible),
+
+
+7 jours (signal fiable),
+
+
+14 à 21 jours (validation de tendance).
+
+
+La consommation des extras est intégrée dans ces cumuls.
+Règle clé :
+si la tendance 7 jours est en surplus, l’application recommande une réduction du budget extras ou un arrêt temporaire,
+
+
+si la tendance est en déficit trop fort, l’application peut tolérer un léger relâchement sans culpabilisation.
+
+
+
+MESSAGES ADAPTÉS AU PROFIL ROUTEUR
+
+
+Les messages liés aux extras sont contextualisés par le profil.
+Exemples :
+Profil déficit fort :
+“Chaque extra compte davantage dans ta trajectoire. Le fait de t’arrêter maintenant renforce ton objectif.”
+Profil déficit modéré :
+“Tu gardes une marge de plaisir tout en restant alignée avec ta perte de poids.”
+Profil maintien :
+“Tu utilises ton budget dans un cadre stable. Observe simplement la tendance.”
+
+EXTRA PLANIFIÉ ET ROUTEUR POIDS
+
+
+La possibilité de planifier un extra est conditionnée par le routeur poids.
+Règles :
+l’extra planifié ne peut pas dépasser un pourcentage du budget extras (ex : 30 à 40 %),
+
+
+la durée de planification est limitée (ex : 2 à 4 semaines),
+
+
+un seul extra planifié actif recommandé.
+
+
+Le routeur vérifie que l’extra planifié reste compatible avec la trajectoire globale.
+
+PROJECTION DE PERTE LIÉE AUX EXTRAS NON CONSOMMÉS
+
+
+Lorsque l’utilisateur laisse volontairement une partie de son budget extras inutilisée, le routeur poids peut produire une projection douce.
+Exemple de message :
+“Tu as économisé un extra cette semaine.
+Tu te rapproches de ton objectif de perte de poids.”
+Optionnel :
+“À ce rythme, ta trajectoire correspond à environ X g de perte sur la durée.”
+Il s’agit toujours d’une projection, jamais d’une promesse.
+
+SYNTHÈSE LOGIQUE (POUR COPILOT)
+
+
+Le routeur poids :
+calcule la trajectoire énergétique,
+
+
+détermine le budget extras,
+
+
+contextualise les messages,
+
+
+ajuste les règles de planification,
+
+
+et garantit que les extras servent la perte de poids plutôt que de la freiner.
+
+
+Les extras ne sont jamais une règle isolée.
+Ils sont un levier piloté par le routeur poids.
+
+
+Section donnee supplémentaire 
+
+“ routeur poids”
+
+MOTEUR CALORIQUE + TENDANCE (PERTE / MAINTIEN / SURPLUS) — VERSION CONSOLIDÉE
+0) Objectif du module
+Permettre à l’app :
+de calculer automatiquement, pour n’importe quel profil, les calories de maintien (TDEE)
+
+
+
+
+de classer la tendance en perte / maintien / surplus via une moyenne glissante
+
+
+
+
+de convertir une partie des apports en unités visuelles (ex : féculents en cuillères à soupe – CAS)
+
+
+
+
+de produire des signaux et des ajustements pour les repas suivants (sans attendre le changement de poids)
+
+
+
+
+
+
+1) Entrées utilisateur (profil)
+sexe (F/H)
+
+
+
+
+âge (années)
+
+
+
+
+taille (cm)
+
+
+
+
+poids (kg)
+
+
+
+
+niveau d’activité (sédentaire / faible / modéré / élevé / très élevé)
+
+
+
+
+objectif (perte / maintien / surplus)
+
+
+
+
+unité visuelle préférée (ici : CAS pour féculents cuits)
+
+
+
+
+
+
+2) Calcul du métabolisme de base (BMR) — Mifflin–St Jeor
+Référence clinique courante.
+Femme :
+BMR = (10 × poids_kg) + (6,25 × taille_cm) − (5 × âge) − 161
+Homme :
+BMR = (10 × poids_kg) + (6,25 × taille_cm) − (5 × âge) + 5
+
+
+3) Calcul du maintien calorique (TDEE)
+TDEE = BMR × facteur_activité
+Facteurs usuels :
+sédentaire : 1.2
+
+
+
+
+faible : 1.375
+
+
+
+
+modéré : 1.55
+
+
+
+
+élevé : 1.725
+
+
+
+
+très élevé : 1.9
+
+
+
+
+Sortie : TDEE_kcal_jour
+Note app : le “maintien réel” se confirme par observation sur 2–3 semaines, mais le TDEE est le point de départ scientifique.
+
+
+4) Calcul du bilan énergétique quotidien
+Chaque jour, l’app calcule :
+écart_jour = apports_jour_kcal − TDEE_kcal_jour
+écart_jour < 0 : déficit
+
+
+
+
+écart_jour ≈ 0 : maintien
+
+
+
+
+écart_jour > 0 : surplus
+
+
+
+
+
+
+5) Fenêtres temporelles (échelle de temps / timer)
+Principe : le corps réagit sur des moyennes, pas sur une journée.
+Fenêtres recommandées :
+24h : info (ne pas décider)
+
+
+
+
+3 jours : alerte douce (signal faible)
+
+
+
+
+7 jours : décision (signal fiable)
+
+
+
+
+14–21 jours : validation (tendance réelle)
+
+
+
+
+À calculer :
+cumul_3j = somme(écart_jour sur les 3 derniers jours)
+
+
+
+
+cumul_7j = somme(écart_jour sur les 7 derniers jours)
+
+
+
+
+option : cumul_14j
+
+
+
+
+
+
+6) Règle énergie ↔ poids (projection)
+Constante pratique :
+~ 7700 kcal ≈ 1 kg de masse grasse (approximation utile pour projection)
+
+
+
+
+Projection hebdo :
+kg_théorique_7j = cumul_7j / 7700
+Important UX : afficher comme tendance, pas comme vérité absolue (eau/glycogène influencent le poids court terme).
+
+
+7) Classification tendance (sur 7 jours)
+Seuils (pragmatiques, stables, faciles à interpréter) :
+Tendance perte si cumul_7j ≤ −1500 kcal
+
+
+
+
+Tendance maintien si −500 kcal ≤ cumul_7j ≤ +500 kcal
+
+
+
+
+Tendance surplus si cumul_7j ≥ +1500 kcal
+
+
+
+
+Zones intermédiaires (entre −1500 et −500 / entre +500 et +1500) :
+classer “léger déficit” / “léger surplus” ou “zone grise”
+
+
+
+
+afficher un message “tendance faible, à confirmer”
+
+
+
+
+
+
+8) Conversion visuelle : féculents en cuillères à soupe (CAS)
+Objectif : guider sans balance.
+Définition (féculents cuits) :
+1 CAS rase ≈ 20–25 g cuits
+
+
+
+
+Base énergie simplifiée pour l’app : 1 CAS ≈ 25 kcal (moyenne utile)
+
+
+
+
+Calcul :
+kcal_féculents = CAS_féculents × 25
+Note : plus tard, l’app peut proposer un coefficient par aliment (riz/pâtes/lentilles), mais la base à 25 kcal/CAS permet la stabilité et la simplicité.
+
+
+9) Règles CAS par objectif (repères journaliers)
+Ces repères servent à “re-cadrer” l’utilisateur sans compter finement.
+Perte : 6 à 10 CAS / jour
+
+
+
+
+Maintien : 14 à 18 CAS / jour
+
+
+
+
+Surplus : 20 CAS et + / jour
+
+
+
+
+Répartition conseillée (optionnelle) :
+Perte : midi 6–8 CAS, soir 0–2 CAS
+
+
+
+
+Maintien : midi 8–9 CAS, soir 6–8 CAS
+
+
+
+
+
+
+10) Système de signaux (anticipation)
+L’app déclenche des signaux avant que le poids change.
+Exemples :
+Si cumul_3j > +600 kcal → signal “orange” (tendance hausse probable si ça continue)
+
+
+
+
+Si cumul_7j > +1500 kcal → signal “rouge” (surplus net)
+
+
+
+
+Si cumul_7j < −2000 kcal → signal “bleu foncé” (déficit fort : risque fatigue / adaptation)
+
+
+
+
+Règle UX : jamais de message définitif sur 24h. Toujours “si tu continues…”
+
+
+11) Ajustements automatiques pour le prochain repas (pilotage)
+Objectif : corriger la trajectoire, pas punir.
+Si tendance = surplus :
+option A : retirer −2 CAS au prochain repas
+
+
+
+
+option B : retirer −1 CAS + réduire la graisse visible (ex : −1 CAC huile)
+
+
+
+
+option C : remplacer 2 CAS féculents par légumes (volume)
+
+
+
+
+Si tendance = déficit fort :
+ajouter +2 CAS sur un repas
+
+
+
+
+ou répartir +1 CAS sur 2 repas
+
+
+
+
+Règle : ajustements petits mais constants > gros changements.
+
+
+12) Sorties du module (ce que l’app affiche)
+TDEE estimé (kcal/jour)
+
+
+
+
+écart_jour (kcal)
+
+
+
+
+cumul_3j / cumul_7j
+
+
+
+
+classification : perte / maintien / surplus (+ intensité : faible, net)
+
+
+
+
+projection kg_théorique_7j (optionnelle, présentée comme tendance)
+
+
+
+
+compteur de féculents en CAS/jour + position par rapport à l’objectif (perte/maintien/surplus)
+
+
+
+
+recommandation simple pour le prochain repas (ajustement en CAS et/ou en graisse)
+
+
+
+
+
+
+13) Garde-fous (important)
+Le poids journalier fluctue (eau/glycogène) : ne pas “réagir” sur une pesée isolée
+
+
+
+
+Toujours privilégier l’interprétation sur 7 jours minimum
+
+
+
+
+Le module donne une trajectoire probabiliste, pas une promesse
