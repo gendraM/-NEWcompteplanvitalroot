@@ -60,7 +60,8 @@ export default function Home() {
         </ul>
       </div>
       <p style={{ marginTop: '2rem' }}>
-        <Link href="/profil"
+        <Link 
+          href="/profil"
           style={{ 
             display: 'inline-block',
             padding: '0.75rem 1.5rem',
@@ -69,11 +70,30 @@ export default function Home() {
             borderRadius: '5px',
             textDecoration: 'none',
             fontWeight: 'bold',
-            marginRight: '1rem'
-          }}>
+            marginRight: '1rem',
+            marginBottom: '1rem'
+          }}
+        >
           → Accéder à mon profil
         </Link>
-        <Link href="/ideaux"
+        <Link 
+          href="/parametres/routeur-poids"
+          style={{ 
+            display: 'inline-block',
+            padding: '0.75rem 1.5rem',
+            backgroundColor: '#667eea',
+            color: '#fff',
+            borderRadius: '5px',
+            textDecoration: 'none',
+            fontWeight: 'bold',
+            marginRight: '1rem',
+            marginBottom: '1rem'
+          }}
+        >
+          ⚙️ Routeur Poids
+        </Link>
+        <Link 
+          href="/ideaux"
           style={{ 
             display: 'inline-block',
             padding: '0.75rem 1.5rem',
@@ -82,8 +102,10 @@ export default function Home() {
             borderRadius: '5px',
             textDecoration: 'none',
             fontWeight: 'bold',
-            marginRight: '1rem'
-          }}>
+            marginRight: '1rem',
+            marginBottom: '1rem'
+          }}
+        >
           🌟 Mes idéaux / routines
         </Link>
         <button
@@ -97,7 +119,8 @@ export default function Home() {
             textDecoration: 'none',
             fontWeight: 'bold',
             border: 'none',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            marginBottom: '1rem'
           }}
         >
           {etatJeune.phase === "jeune"
