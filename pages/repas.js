@@ -82,6 +82,10 @@ export default function Repas() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0,10));
   const [loading, setLoading] = useState(true);
   const [editRepas, setEditRepas] = useState(null);
+  
+  // ═══ NOUVEAUX FILTRES ═══
+  const [filtre, setFiltre] = useState('tout'); // 'tout' | 'extras' | 'fastfood'
+  const [periode, setPeriode] = useState('tout'); // 'tout' | 'jour' | 'semaine' | 'mois'
 
   useEffect(() => {
     setObjectifCalorique(1800);
@@ -210,6 +214,122 @@ export default function Repas() {
         </a>
       </div>
       <h1 style={{ textAlign: "center", marginBottom: 24 }}>🗑️ Gérer mes repas</h1>
+      
+      {/* ═══ FILTRES ═══ */}
+      <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f5f5f5', borderRadius: 8 }}>
+        {/* Ligne 1 : Type de repas */}
+        <div style={{ marginBottom: '0.75rem' }}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Type de repas :</div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setFiltre('tout')}
+              style={{
+                padding: '0.5rem 1rem',
+                border: filtre === 'tout' ? '2px solid #1976d2' : '1px solid #ddd',
+                background: filtre === 'tout' ? '#1976d2' : '#fff',
+                color: filtre === 'tout' ? '#fff' : '#333',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontWeight: filtre === 'tout' ? 'bold' : 'normal'
+              }}
+            >
+              📋 Tout
+            </button>
+            <button
+              onClick={() => setFiltre('extras')}
+              style={{
+                padding: '0.5rem 1rem',
+                border: filtre === 'extras' ? '2px solid #ff9800' : '1px solid #ddd',
+                background: filtre === 'extras' ? '#ff9800' : '#fff',
+                color: filtre === 'extras' ? '#fff' : '#333',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontWeight: filtre === 'extras' ? 'bold' : 'normal'
+              }}
+            >
+              ⭐ Extras uniquement
+            </button>
+            <button
+              onClick={() => setFiltre('fastfood')}
+              style={{
+                padding: '0.5rem 1rem',
+                border: filtre === 'fastfood' ? '2px solid #e91e63' : '1px solid #ddd',
+                background: filtre === 'fastfood' ? '#e91e63' : '#fff',
+                color: filtre === 'fastfood' ? '#fff' : '#333',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontWeight: filtre === 'fastfood' ? 'bold' : 'normal'
+              }}
+            >
+              🍔 Fast-food
+            </button>
+          </div>
+        </div>
+        
+        {/* Ligne 2 : Période */}
+        <div>
+          <div style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Période :</div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setPeriode('tout')}
+              style={{
+                padding: '0.5rem 1rem',
+                border: periode === 'tout' ? '2px solid #43a047' : '1px solid #ddd',
+                background: periode === 'tout' ? '#43a047' : '#fff',
+                color: periode === 'tout' ? '#fff' : '#333',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontWeight: periode === 'tout' ? 'bold' : 'normal'
+              }}
+            >
+              Tout
+            </button>
+            <button
+              onClick={() => setPeriode('jour')}
+              style={{
+                padding: '0.5rem 1rem',
+                border: periode === 'jour' ? '2px solid #43a047' : '1px solid #ddd',
+                background: periode === 'jour' ? '#43a047' : '#fff',
+                color: periode === 'jour' ? '#fff' : '#333',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontWeight: periode === 'jour' ? 'bold' : 'normal'
+              }}
+            >
+              Aujourd'hui
+            </button>
+            <button
+              onClick={() => setPeriode('semaine')}
+              style={{
+                padding: '0.5rem 1rem',
+                border: periode === 'semaine' ? '2px solid #43a047' : '1px solid #ddd',
+                background: periode === 'semaine' ? '#43a047' : '#fff',
+                color: periode === 'semaine' ? '#fff' : '#333',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontWeight: periode === 'semaine' ? 'bold' : 'normal'
+              }}
+            >
+              Cette semaine
+            </button>
+            <button
+              onClick={() => setPeriode('mois')}
+              style={{
+                padding: '0.5rem 1rem',
+                border: periode === 'mois' ? '2px solid #43a047' : '1px solid #ddd',
+                background: periode === 'mois' ? '#43a047' : '#fff',
+                color: periode === 'mois' ? '#fff' : '#333',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontWeight: periode === 'mois' ? 'bold' : 'normal'
+              }}
+            >
+              Ce mois
+            </button>
+          </div>
+        </div>
+      </div>
+      
       {/* Formulaire d'édition (s'affiche uniquement si on est en mode édition) */}
       {editRepas && (
         <RepasForm
@@ -223,7 +343,54 @@ export default function Repas() {
       ) : repas.length === 0 ? (
         <div>Aucun repas enregistré.</div>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <>
+          {/* ═══ FONCTION DE FILTRAGE ═══ */}
+          {(() => {
+            let repasFiltres = [...repas];
+            
+            // Filtre par type
+            if (filtre === 'extras') {
+              repasFiltres = repasFiltres.filter(r => r.est_extra === true);
+            } else if (filtre === 'fastfood') {
+              repasFiltres = repasFiltres.filter(r => r.tag || r.categorie === 'fast-food');
+            }
+            
+            // Filtre par période
+            const aujourdhui = new Date().toISOString().slice(0, 10);
+            const debutSemaine = (() => {
+              const today = new Date();
+              const dayOfWeek = today.getDay();
+              const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+              const monday = new Date(today);
+              monday.setDate(today.getDate() + diffToMonday);
+              return monday.toISOString().slice(0, 10);
+            })();
+            const debutMois = new Date().toISOString().slice(0, 7); // YYYY-MM
+            
+            if (periode === 'jour') {
+              repasFiltres = repasFiltres.filter(r => r.date === aujourdhui);
+            } else if (periode === 'semaine') {
+              repasFiltres = repasFiltres.filter(r => r.date >= debutSemaine);
+            } else if (periode === 'mois') {
+              repasFiltres = repasFiltres.filter(r => r.date && r.date.startsWith(debutMois));
+            }
+            
+            // Compteur
+            const totalFiltres = repasFiltres.length;
+            const totalKcal = repasFiltres.reduce((sum, r) => sum + (parseInt(r.kcal, 10) || 0), 0);
+            
+            return (
+              <>
+                <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#e3f2fd', borderRadius: 6, fontSize: '0.9rem' }}>
+                  📊 <strong>{totalFiltres} repas</strong> trouvés • <strong>{totalKcal} kcal</strong> au total
+                </div>
+                
+                {totalFiltres === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+                    Aucun repas correspondant aux filtres sélectionnés.
+                  </div>
+                ) : (
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f5f5f5" }}>
               <th style={{ padding: 8, border: "1px solid #ddd" }}>Date</th>
@@ -236,7 +403,7 @@ export default function Repas() {
             </tr>
           </thead>
           <tbody>
-            {repas.map((r) => (
+            {repasFiltres.map((r) => (
               <tr key={r.id}>
                 <td style={{ padding: 8, border: "1px solid #ddd", position: 'relative' }}>
                   {r.date || <span style={{ color: '#bbb' }}>—</span>}
@@ -269,6 +436,7 @@ export default function Repas() {
                 <td style={{ padding: 8, border: "1px solid #ddd" }}>
                   {r.aliment ? (
                     <span>
+                      {r.est_extra && <span style={{ marginRight: 6, fontSize: '1.2em' }} title="Extra">⭐</span>}
                       {r.aliment}
                       {r.planifie && (
                         <span style={{ marginLeft: 6, color: '#1976d2', fontWeight: 600, fontSize: '0.95em', background: '#e3f2fd', borderRadius: 4, padding: '2px 6px' }} title="Repas planifié">Planifié</span>
@@ -278,12 +446,12 @@ export default function Repas() {
                 </td>
                 <td style={{ padding: 8, border: "1px solid #ddd" }}>
                   {r.categorie ? r.categorie : <span style={{ color: '#bbb' }}>—</span>}
-                  {fastFoodRepas.some(ff =>
+                  {(fastFoodRepas.some(ff =>
                     ff.date === r.date &&
                     ff.aliments?.some(a =>
                       a.nom?.trim().toLowerCase() === r.aliment?.trim().toLowerCase()
                     )
-                  ) && (
+                  ) || r.tag || r.categorie === 'fast-food') && (
                     <span style={{ marginLeft: 6, fontSize: '1.3em' }} title="Fast food">🍔</span>
                   )}
                 </td>
@@ -297,6 +465,11 @@ export default function Repas() {
             ))}
           </tbody>
         </table>
+                )}
+              </>
+            );
+          })()}
+        </>
       )}
     </div>
   );
