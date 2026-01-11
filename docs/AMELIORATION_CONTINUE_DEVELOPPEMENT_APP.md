@@ -1,3 +1,40 @@
+# 🗓️ Amélioration à prévoir : Format date section "Tout" (gestion des repas)
+
+**Objectif :**
+Remplacer le format ISO (AAAA-MM-JJ) de la période globale affichée dans le bandeau bleu clair (mode "Tout") par un format français lisible (ex : du 5 janvier 2026 jusqu’à aujourd’hui).
+
+**Contexte :**
+Actuellement, la période globale s’affiche sous la forme « du 2026-01-05 jusqu’à aujourd’hui ». L’objectif est d’améliorer la lisibilité pour l’utilisateur.
+
+**Actions à mener :**
+- Adapter le formatage de la date la plus ancienne (début) en français long
+- Garder « jusqu’à aujourd’hui » pour la fin
+- Tester l’affichage sur différents jeux de données
+
+# 🆕 AJOUTS PROPOSÉS (2026-01-11)
+
+### 11. Ajout d'aliment personnalisé lors de la saisie
+
+**Objectif :** Permettre à l'utilisateur, lors de la saisie d'un repas, d'ajouter un aliment qui n'existe pas dans le référentiel, via un formulaire dédié, dans le même style que les aliments existants. L'aliment enrichira le référentiel interne (personnel ou global selon validation/modération).
+
+**Fonctionnalités attendues :**
+- Détection automatique d'absence dans l'autocomplete
+- Proposition d'ajout rapide (bouton ou lien)
+- Formulaire simplifié (nom, catégorie, kcal, portion, QN...)
+- Stockage temporaire (table custom ou localStorage)
+- Possibilité de validation/modération ultérieure
+
+### 12. Composition d'assiette/repas complet multi-aliments
+
+**Objectif :** Permettre à l'utilisateur de composer une assiette complète ou un repas composé de plusieurs aliments, avec analyse nutritionnelle globale, et possibilité de sauvegarder ces compositions pour les proposer ensuite dans la planification des repas.
+
+**Fonctionnalités attendues :**
+- Ajout multiple d'aliments dans une même saisie
+- Calcul automatique des kcal totales, QN moyen, répartition nutriments
+- Sauvegarde de la composition (repas favori)
+- Suggestion dans la planification
+- Analyse d'équilibre et compatibilité avec l'objectif
+
 # 🔧 AMÉLIORATIONS CONTINUES - DÉVELOPPEMENT APP
 
 **Objectif :** Backlog des améliorations identifiées à implémenter progressivement  

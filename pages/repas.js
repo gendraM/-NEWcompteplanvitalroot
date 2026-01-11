@@ -624,22 +624,22 @@ export default function Repas() {
                 ) : (
                   // Affichage simple sans regroupement quand filtre période actif
                   <>
-                    {periode === 'jour' && renderSection('JOUR SÉLECTIONNÉ', '📅', '#43a047', repasFiltres, repasFiltres.length > 0 ? repasFiltres[0].date : null)}
+                    {periode === 'jour' && renderSection('JOUR SÉLECTIONNÉ', '📅', '#43a047', repasFiltres, repasFiltres.length > 0 ?
+                      new Date(repasFiltres[0].date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : null)}
                     {periode === 'semaine' && renderSection('SEMAINE SÉLECTIONNÉE', '📆', '#1976d2', repasFiltres, (() => {
                       if (repasFiltres.length === 0) return null;
                       const dates = repasFiltres.map(r => r.date).filter(Boolean).sort();
                       if (dates.length === 0) return null;
-                      const debut = dates[0];
-                      const fin = dates[dates.length - 1];
-                      return `${debut} → ${fin}`;
+                      const debut = new Date(dates[0]);
+                      const fin = new Date(dates[dates.length - 1]);
+                      return `${debut.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} → ${fin.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
                     })())}
                     {periode === 'mois' && renderSection('MOIS SÉLECTIONNÉ', '🗓️', '#ff9800', repasFiltres, (() => {
                       if (repasFiltres.length === 0) return null;
                       const dates = repasFiltres.map(r => r.date).filter(Boolean).sort();
                       if (dates.length === 0) return null;
-                      const debut = dates[0];
-                      const fin = dates[dates.length - 1];
-                      return `${debut.slice(0,7)}`;
+                      const debut = new Date(dates[0]);
+                      return debut.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
                     })())}
                   </>
                 )}
