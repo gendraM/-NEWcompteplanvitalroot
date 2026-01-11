@@ -448,7 +448,6 @@ function getSuggestionsFromNotes(repasList) {
       quantite: categorie === 'Jeûne' ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite)),
       kcal: categorie === 'Jeûne' ? null : (kcal === '' ? null : isNaN(Number(kcal)) ? kcal : Number(kcal)),
       est_extra: estExtra,
-      type_extra: estExtra ? typeExtra : null, // Type d'extra (mini/normal/double/triple)
       satiete,
       pourquoi,
       ressenti,

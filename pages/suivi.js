@@ -27,6 +27,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import BandeauDefiActif from '../components/BandeauDefiActif';
 import ModalFeedbackValidation from '../components/ModalFeedbackValidation';
+import BudgetExtrasCard from '../components/BudgetExtrasCard';
 import { supabase } from '../lib/supabaseClient';
 import { calculerProfilComplet } from '../lib/routeurPoids';
 import { 
@@ -428,6 +429,8 @@ export default function Suivi() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0,10));
   // Hook pour l'affichage de l'alerte calorique (DOIT ÊTRE DÉCLARÉ AVANT SON UTILISATION dans useEffect)
   const [repasSemaine, setRepasSemaine] = useState([]);
+  // Hook pour userId (nécessaire pour BudgetExtrasCard)
+  const [userId, setUserId] = useState(null);
   
   // ═══════════════════════════════════════════════════════════
   // NOUVEAUX HOOKS VALIDATION SEMAINE (9 janvier 2026)
@@ -698,6 +701,12 @@ export default function Suivi() {
   // Chargement profil et calcul objectif calorique personnalisé (routeur poids)
   useEffect(() => {
     async function fetchProfilEtCalculs() {
+      // Récupérer userId
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+
       const { data: profil, error } = await supabase
         .from('profil')
         .select('sexe, age, taille, poids_de_depart, niveau_activite, objectif')
@@ -1207,6 +1216,11 @@ export default function Suivi() {
         </div>
       </div>
 
+      {/* ═══════════════════════════════════════════════════════════
+          BUDGET EXTRAS HEBDOMADAIRE (PHASE 3)
+          Affichage du budget calorique extras personnalisé
+          ═══════════════════════════════════════════════════════════ */}
+      {userId && <BudgetExtrasCard userId={userId} />}
 
       {/* --------- ZONE 1 : Feedback immédiat --------- */}
       <ZoneFeedbackHebdo
