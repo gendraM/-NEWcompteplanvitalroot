@@ -2,6 +2,84 @@ import BandeauDefiActif from '../components/BandeauDefiActif';
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
+// ═══════════════════════════════════════════════════════════
+// FONCTIONS UTILITAIRES - FORMATAGE DATES
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Formate une date de manière contextuelle
+ * @param {string} dateStr - Date au format YYYY-MM-DD
+ * @returns {string} - Format contextualisé
+ */
+function formatDateContextuelle(dateStr) {
+  if (!dateStr) return '—';
+  
+  const date = new Date(dateStr + 'T00:00:00');
+  const aujourdhui = new Date();
+  aujourdhui.setHours(0, 0, 0, 0);
+  
+  const diffTime = aujourdhui.getTime() - date.getTime();
+  const diffJours = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffJours === 0) return 'Aujourd\'hui';
+  if (diffJours === 1) return 'Hier';
+  if (diffJours > 1 && diffJours < 7) return `Il y a ${diffJours} jours`;
+  
+  // Format court pour dates anciennes
+  const jours = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+  const jourSemaine = jours[date.getDay()];
+  const jour = String(date.getDate()).padStart(2, '0');
+  const mois = String(date.getMonth() + 1).padStart(2, '0');
+  
+  return `${jourSemaine} ${jour}/${mois}`;
+}
+
+/**
+ * Regroupe les repas par période
+ * @param {Array} repas - Liste des repas
+ * @returns {Object} - Repas regroupés par période
+ */
+function regrouperParPeriode(repas) {
+  const aujourdhui = new Date();
+  aujourdhui.setHours(0, 0, 0, 0);
+  const aujourdhuiStr = aujourdhui.toISOString().slice(0, 10);
+  
+  // Calculer début de semaine (lundi)
+  const dayOfWeek = aujourdhui.getDay();
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const debutSemaine = new Date(aujourdhui);
+  debutSemaine.setDate(aujourdhui.getDate() + diffToMonday);
+  const debutSemaineStr = debutSemaine.toISOString().slice(0, 10);
+  
+  // Calculer début semaine dernière
+  const debutSemaineDerniere = new Date(debutSemaine);
+  debutSemaineDerniere.setDate(debutSemaine.getDate() - 7);
+  const debutSemaineDerniereStr = debutSemaineDerniere.toISOString().slice(0, 10);
+  
+  const groupes = {
+    aujourdhui: [],
+    cette_semaine: [],
+    semaine_derniere: [],
+    plus_ancien: []
+  };
+  
+  repas.forEach(r => {
+    if (r.date === aujourdhuiStr) {
+      groupes.aujourdhui.push(r);
+    } else if (r.date >= debutSemaineStr) {
+      groupes.cette_semaine.push(r);
+    } else if (r.date >= debutSemaineDerniereStr) {
+      groupes.semaine_derniere.push(r);
+    } else {
+      groupes.plus_ancien.push(r);
+    }
+  });
+  
+  return groupes;
+}
+
+// ═══════════════════════════════════════════════════════════
+
 function RepasForm({ initial, onCancel, onSave }) {
   const [form, setForm] = useState(
     initial || {
@@ -379,17 +457,67 @@ export default function Repas() {
             const totalFiltres = repasFiltres.length;
             const totalKcal = repasFiltres.reduce((sum, r) => sum + (parseInt(r.kcal, 10) || 0), 0);
             
-            return (
-              <>
-                <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#e3f2fd', borderRadius: 6, fontSize: '0.9rem' }}>
-                  📊 <strong>{totalFiltres} repas</strong> trouvés • <strong>{totalKcal} kcal</strong> au total
-                </div>
-                
-                {totalFiltres === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
-                    Aucun repas correspondant aux filtres sélectionnés.
+            // Si un filtre de période est actif, ne pas regrouper
+            const afficherRegroupement = periode === 'tout';
+            
+            // Regrouper par période uniquement si pas de filtre période
+            const groupes = afficherRegroupement ? regrouperParPeriode(repasFiltres) : null;
+            
+            // Calculer les dates de périodes pour affichage
+            const aujourdhuiDate = new Date();
+            aujourdhuiDate.setHours(0, 0, 0, 0);
+            const aujourdhuiStr = aujourdhuiDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            
+            // Semaine actuelle
+            const dayOfWeek = aujourdhuiDate.getDay();
+            const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            const lundiSemaine = new Date(aujourdhuiDate);
+            lundiSemaine.setDate(aujourdhuiDate.getDate() + diffToMonday);
+            const dimancheSemaine = new Date(lundiSemaine);
+            dimancheSemaine.setDate(lundiSemaine.getDate() + 6);
+            const semaineStr = `${lundiSemaine.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} → ${dimancheSemaine.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}`;
+            
+            // Semaine dernière
+            const lundiSemaineDerniere = new Date(lundiSemaine);
+            lundiSemaineDerniere.setDate(lundiSemaine.getDate() - 7);
+            const dimancheSemaineDerniere = new Date(lundiSemaineDerniere);
+            dimancheSemaineDerniere.setDate(lundiSemaineDerniere.getDate() + 6);
+            const semaineDerniereStr = `${lundiSemaineDerniere.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} → ${dimancheSemaineDerniere.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}`;
+            
+            // Fonction pour rendre une section
+            const renderSection = (titre, emoji, couleur, repasSection, datesPeriode = null) => {
+              if (repasSection.length === 0) return null;
+              
+              const kcalSection = repasSection.reduce((sum, r) => sum + (parseInt(r.kcal, 10) || 0), 0);
+              
+              return (
+                <div key={titre} style={{ marginBottom: '2rem' }}>
+                  {/* En-tête section */}
+                  <div style={{
+                    padding: '0.75rem 1rem',
+                    background: couleur,
+                    borderRadius: '8px 8px 0 0',
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    fontSize: '1rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span>
+                      {emoji} {titre}
+                      {datesPeriode && (
+                        <span style={{ fontWeight: 'normal', fontSize: '0.85rem', marginLeft: '0.5rem', opacity: 0.9 }}>
+                          ({datesPeriode})
+                        </span>
+                      )}
+                    </span>
+                    <span style={{ fontSize: '0.9rem', opacity: 0.95 }}>
+                      {repasSection.length} repas • {kcalSection} kcal
+                    </span>
                   </div>
-                ) : (
+                  
+                  {/* Tableau des repas */}
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f5f5f5" }}>
@@ -403,10 +531,10 @@ export default function Repas() {
             </tr>
           </thead>
           <tbody>
-            {repasFiltres.map((r) => (
+            {repasSection.map((r) => (
               <tr key={r.id}>
-                <td style={{ padding: 8, border: "1px solid #ddd", position: 'relative' }}>
-                  {r.date || <span style={{ color: '#bbb' }}>—</span>}
+                <td style={{ padding: 8, border: "1px solid #ddd", position: 'relative' }} title={r.date}>
+                  <span style={{ fontWeight: '600' }}>{formatDateContextuelle(r.date)}</span>
                   {/* Validation semaine (dîner du dimanche) */}
                   {(() => {
                     const d = new Date(r.date);
@@ -465,6 +593,55 @@ export default function Repas() {
             ))}
           </tbody>
         </table>
+                </div>
+              );
+            };
+            
+            return (
+              <>
+                <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#e3f2fd', borderRadius: 6, fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>
+                    📊 <strong>{totalFiltres} repas</strong> trouvés • <strong>{totalKcal} kcal</strong> au total
+                  </span>
+                  {afficherRegroupement && repasFiltres.length > 0 && (
+                    <span style={{ color: '#1976d2', fontWeight: 500, fontSize: '0.97em' }}>
+                      du {(() => {
+                        // Chercher la date la plus ancienne
+                        const dates = repasFiltres.map(r => r.date).filter(Boolean).sort();
+                        if (dates.length === 0) return '';
+                        const debut = dates[0];
+                        const fin = new Date().toISOString().slice(0, 10);
+                        return `${debut} jusqu’à aujourd’hui`;
+                      })()}
+                    </span>
+                  )}
+                </div>
+                
+                {totalFiltres === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+                    Aucun repas correspondant aux filtres sélectionnés.
+                  </div>
+                ) : (
+                  // Affichage simple sans regroupement quand filtre période actif
+                  <>
+                    {periode === 'jour' && renderSection('JOUR SÉLECTIONNÉ', '📅', '#43a047', repasFiltres, repasFiltres.length > 0 ? repasFiltres[0].date : null)}
+                    {periode === 'semaine' && renderSection('SEMAINE SÉLECTIONNÉE', '📆', '#1976d2', repasFiltres, (() => {
+                      if (repasFiltres.length === 0) return null;
+                      const dates = repasFiltres.map(r => r.date).filter(Boolean).sort();
+                      if (dates.length === 0) return null;
+                      const debut = dates[0];
+                      const fin = dates[dates.length - 1];
+                      return `${debut} → ${fin}`;
+                    })())}
+                    {periode === 'mois' && renderSection('MOIS SÉLECTIONNÉ', '🗓️', '#ff9800', repasFiltres, (() => {
+                      if (repasFiltres.length === 0) return null;
+                      const dates = repasFiltres.map(r => r.date).filter(Boolean).sort();
+                      if (dates.length === 0) return null;
+                      const debut = dates[0];
+                      const fin = dates[dates.length - 1];
+                      return `${debut.slice(0,7)}`;
+                    })())}
+                  </>
                 )}
               </>
             );
