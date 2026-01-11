@@ -1220,7 +1220,18 @@ export default function Suivi() {
           BUDGET EXTRAS HEBDOMADAIRE (PHASE 3)
           Affichage du budget calorique extras personnalisé
           ═══════════════════════════════════════════════════════════ */}
-      {userId && <BudgetExtrasCard userId={userId} />}
+      <div style={{padding: '1rem', background: 'rgba(100,150,255,0.1)', borderRadius: 8, margin: '1rem 0', border: '2px dashed #6496ff'}}>
+        <div style={{fontSize: '0.9rem', marginBottom: '0.5rem'}}>
+          🔍 <strong>DEBUG Budget Extras Card:</strong>
+        </div>
+        <div style={{fontSize: '0.85rem', fontFamily: 'monospace'}}>
+          • userId from Supabase: <strong>{userId || 'NULL (pas connecté)'}</strong><br/>
+          • Mode: <strong>{userId ? 'Authentifié' : 'localStorage (sans authentification)'}</strong><br/>
+          • Composant: <strong>{userId ? '✅ Mode authentifié' : '⚠️ Mode TEST (localStorage)'}</strong>
+        </div>
+      </div>
+      {/* Afficher en mode localStorage (userId=null) ou authentifié */}
+      <BudgetExtrasCard userId={userId} />
 
       {/* --------- ZONE 1 : Feedback immédiat --------- */}
       <ZoneFeedbackHebdo

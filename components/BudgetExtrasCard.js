@@ -12,9 +12,13 @@ export default function BudgetExtrasCard({ userId }) {
   const [budgetData, setBudgetData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [modeLocalStorage, setModeLocalStorage] = useState(false);
 
   useEffect(() => {
-    if (!userId) return;
+    // Mode localStorage : pas d'authentification
+    if (!userId) {
+      setModeLocalStorage(true);
+    }
     
     chargerBudgetExtras();
   }, [userId]);
@@ -25,16 +29,20 @@ export default function BudgetExtrasCard({ userId }) {
       setError(null);
 
       // 1. Récupérer profil utilisateur (pour calculs routeur poids)
-      const { data: profil, error: profilError } = await supabase
-        .from('profil')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+      // MODE LOCALSTORAGE : sans filtre user_id
+      const query = supabase.from('profil').select('*').order('created_at', { ascending: false }).limit(1);
+      
+      // MODE AUTHENTIFIÉ : avec filtre user_id
+      if (userId) {
+        query.eq('user_id', userId);
+      }
+      
+      const { data: profil, error: profilError } = await query.single();
 
       if (profilError) throw profilError;
 
       // 2. Vérifier si profil complet (sexe, niveau_activite)
-      if (!profil.sexe || !profil.niveau_activite) {
+      if (!profil || !profil.sexe || !profil.niveau_activite) {
         setBudgetData({
           profilIncomplet: true,
           message: "Complétez votre profil (sexe, niveau d'activité) pour voir votre budget extras."
@@ -43,10 +51,36 @@ export default function BudgetExtrasCard({ userId }) {
         return;
       }
 
+      // IMPORTANT: Transformer objectif kg → objectif type (perte/maintien/prise)
+      let objectifType = 'perte'; // Défaut
+      if (profil.poids_de_depart && profil.objectif) {
+        if (profil.poids_de_depart > profil.objectif) {
+          objectifType = 'perte';
+        } else if (profil.poids_de_depart < profil.objectif) {
+          objectifType = 'prise';
+        } else {
+          objectifType = 'maintien';
+        }
+      }
+
+      // Créer profil complet pour calculs
+      const profilComplet = {
+        sexe: profil.sexe,
+        age: profil.age,
+        taille: profil.taille,
+        poids_de_depart: profil.poids_de_depart,
+        niveau_activite: profil.niveau_activite,
+        objectif: objectifType // Ici c'est le type, pas le kg
+      };
+
+      console.log('[BudgetExtrasCard] Profil pour calcul:', profilComplet);
+
       // 3. Calculer budget via routeur poids
-      const calculs = calculerProfilComplet(profil);
+      const calculs = calculerProfilComplet(profilComplet);
+      console.log('[BudgetExtrasCard] Résultat calculs:', calculs);
+      
       if (!calculs) {
-        throw new Error('Impossible de calculer le budget extras');
+        throw new Error(`Impossible de calculer le budget extras. Profil: ${JSON.stringify(profilComplet)}`);
       }
 
       // 4. Obtenir date lundi de la semaine actuelle
@@ -57,6 +91,57 @@ export default function BudgetExtrasCard({ userId }) {
       monday.setDate(today.getDate() + diffToMonday);
       monday.setHours(0, 0, 0, 0);
       const dateSemaine = monday.toISOString().split('T')[0];
+      const finSemaine = new Date(monday.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      // ═══════════════════════════════════════════════════════════
+      // MODE LOCALSTORAGE : Calcul simplifié sans table extras_budget
+      // ═══════════════════════════════════════════════════════════
+      if (!userId) {
+        // Récupérer extras de la semaine directement
+        console.log('[BudgetExtrasCard] Recherche extras entre', dateSemaine, 'et', finSemaine);
+        
+        const { data: repas, error: repasError } = await supabase
+          .from('repas_reels')
+          .select('kcal, date, aliment, est_extra')
+          .eq('est_extra', true)
+          .gte('date', dateSemaine)
+          .lt('date', finSemaine);
+
+        if (repasError) throw repasError;
+
+        console.log('[BudgetExtrasCard] Extras trouvés:', repas);
+        console.log('[BudgetExtrasCard] Nombre d\'extras:', repas.length);
+        
+        // Afficher détail de chaque extra
+        repas.forEach((r, i) => {
+          console.log(`  Extra ${i+1}: ${r.aliment} - ${r.kcal} kcal (${r.date})`);
+        });
+
+        const budgetConsomme = repas.reduce((sum, r) => sum + (r.kcal || 0), 0);
+        console.log('[BudgetExtrasCard] Budget consommé:', budgetConsomme, 'kcal');
+        const budgetLibre = calculs.budgetExtras - budgetConsomme;
+        const pourcentageConsomme = Math.round((budgetConsomme / calculs.budgetExtras) * 100);
+
+        setBudgetData({
+          profilIncomplet: false,
+          modeLocalStorage: true,
+          budget_hebdo: calculs.budgetExtras,
+          budget_consomme: budgetConsomme,
+          budget_reserve: 0,
+          budget_libre: budgetLibre,
+          pourcentage_consomme: pourcentageConsomme,
+          objectif: objectifType,
+          tdee: calculs.tdee,
+          extras_detail: repas // Liste complète des extras pour affichage
+        });
+
+        setLoading(false);
+        return;
+      }
+
+      // ═══════════════════════════════════════════════════════════
+      // MODE AUTHENTIFIÉ : Utilisation table extras_budget
+      // ═══════════════════════════════════════════════════════════
 
       // 5. Récupérer ou créer entrée budget pour cette semaine
       let { data: budgetSemaine, error: budgetError } = await supabase
@@ -105,8 +190,8 @@ export default function BudgetExtrasCard({ userId }) {
         .select('kcal')
         .eq('user_id', userId)
         .eq('est_extra', true)
-        .gte('date_creation', dateSemaine)
-        .lt('date_creation', new Date(monday.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+        .gte('date', dateSemaine)
+        .lt('date', finSemaine);
 
       if (repasError) throw repasError;
 
@@ -213,8 +298,25 @@ export default function BudgetExtrasCard({ userId }) {
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       borderRadius: 12,
       color: '#fff',
-      marginBottom: '1rem'
+      marginBottom: '1rem',
+      position: 'relative'
     }}>
+      {/* Badge mode localStorage */}
+      {budgetData.modeLocalStorage && (
+        <div style={{
+          position: 'absolute',
+          top: '0.5rem',
+          right: '0.5rem',
+          padding: '0.25rem 0.5rem',
+          background: 'rgba(255,255,255,0.3)',
+          borderRadius: 4,
+          fontSize: '0.7rem',
+          fontWeight: 'bold'
+        }}>
+          MODE TEST
+        </div>
+      )}
+      
       <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '1rem' }}>
         💰 Budget Extras Hebdomadaire
       </div>
@@ -316,6 +418,52 @@ export default function BudgetExtrasCard({ userId }) {
         }}>
           <strong>⚠️ Budget bientôt épuisé</strong><br/>
           Il vous reste environ 1 mini extra (&lt; 150 kcal).
+        </div>
+      )}
+
+      {/* DÉTAIL DES EXTRAS CONSOMMÉS */}
+      {budgetData.extras_detail && budgetData.extras_detail.length > 0 && (
+        <div style={{ 
+          marginTop: '1rem', 
+          padding: '1rem', 
+          background: 'rgba(255,255,255,0.15)', 
+          borderRadius: 8
+        }}>
+          <div style={{ 
+            fontSize: '0.95rem', 
+            fontWeight: 'bold', 
+            marginBottom: '0.75rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span>📋 Extras consommés cette semaine ({budgetData.extras_detail.length})</span>
+          </div>
+          <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+            {budgetData.extras_detail.map((extra, index) => (
+              <div 
+                key={index}
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  padding: '0.5rem 0',
+                  borderBottom: index < budgetData.extras_detail.length - 1 ? '1px solid rgba(255,255,255,0.2)' : 'none',
+                  fontSize: '0.85rem'
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <span style={{ opacity: 0.8 }}>
+                    {new Date(extra.date).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                  </span>
+                  {' • '}
+                  <span style={{ fontWeight: 'bold' }}>{extra.aliment || 'Sans nom'}</span>
+                </div>
+                <div style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '1rem' }}>
+                  {extra.kcal} kcal
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
