@@ -72,6 +72,10 @@ _EXEMPLE :_
 - [ ] Contrôle d’erreur systématique (compilation, runtime, SSR, rendu, accessibilité)  
 - [ ] Test du rendu sur tous les cas d’usage et cas limites  
 - [ ] Préservation stricte des fonctionnalités existantes : aucune suppression destructrice, aucune perte de comportement  
+- [ ] Garantir l'unicité des variables globales et de bloc dans tout le fichier (éviter les conflits et redéfinitions).
+- [ ] Vérification de la présence de toute déclaration en double, surtout en fin de fichier ou lors d’ajouts massifs.
+- [ ] Audit complet du fichier, pas seulement du tableau principal, pour détecter les conflits de nommage.
+
 - [ ] Mise à jour précise et justifiée du pourcentage d’avancement  
 - [ ] Toute anomalie ou erreur ➔ rollback immédiat, rapport d’anomalie avec contexte, date et heure (cf. fichier ANOMALIE)  
 - [ ] Documentation claire de chaque étape, chaque validation, et toute action automatisée (Copilot/IA)
@@ -205,6 +209,10 @@ Permettre à l’utilisateur de suivre sa progression, valider chaque critère, 
 - Ne jamais supposer qu’un état est synchronisé sans vérification concrète (affichage, console, tests).
 - Ajouter un contrôle visuel ou un feedback à chaque action clé pour garantir la conformité UX et métier.
 - Documenter toute anomalie ou écart dans le fichier dédié et proposer immédiatement une correction ou un rollback (ajout à la fin du fichier, jamais suppression).
+
+- Ajout systématique d’une étape “vérification des déclarations de variables et exports” dans le contrôle qualité.
+- Utilisation d’outils de linting et d’analyse statique pour détecter les redéfinitions et conflits.
+- Documentation de chaque correction d’anomalie, même hors du scope direct de l’enrichissement.
 - Relire le plan et le template avant chaque implémentation pour s’assurer que toutes les étapes sont respectées.
 - Se parler à soi-même (Copilot/humain) : « Ai-je bien relié chaque étape du plan au code ? Ai-je testé le workflow complet ? Ai-je documenté chaque action et chaque anomalie ? »
 
