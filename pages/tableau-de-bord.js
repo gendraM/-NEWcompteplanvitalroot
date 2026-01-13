@@ -14,30 +14,66 @@ import {
   CategoryScale,
   LinearScale,
   PointElement,
-  LineElement,
-  Title,
-} from "chart.js";
-import Link from "next/link";
+  LineElement
+} from 'chart.js';
 
-ChartJS.register(
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title
-);
+// ...existing code...
 
-const COLORS = [
-  "#43a047", // vert
-  "#1976d2", // bleu
-  "#ffa726", // orange
-  "#e53935", // rouge
-  "#9c27b0", // violet
-];
+export default function TableauDeBord() {
+  // ...déclaration des hooks et logique...
 
+  return (
+    <div style={{
+      padding: "2rem",
+      maxWidth: "1200px",
+      margin: "0 auto",
+      fontFamily: "Arial, sans-serif"
+    }}>
+      <h1
+        style={{
+          textAlign: "center",
+          marginBottom: "2.2rem",
+          color: "#1976d2",
+          fontWeight: 800,
+          fontSize: "2.7rem",
+          letterSpacing: "0.5px",
+        }}
+      >
+        Tableau de Bord
+      </h1>
+
+      {/* Ajout du bouton de déconnexion en haut de la page */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+        <button
+          onClick={async () => {
+            if (window && window.supabase) {
+              await window.supabase.auth.signOut();
+              window.location.href = '/';
+            } else if (typeof supabase !== 'undefined') {
+              await supabase.auth.signOut();
+              window.location.href = '/';
+            }
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #43cea2 100%)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '24px',
+            padding: '10px 22px',
+            fontSize: '1rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(67, 126, 234, 0.15)',
+            marginRight: '0.5rem'
+          }}
+        >
+          Se déconnecter
+        </button>
+      </div>
+
+      {/* Badge de notification pour semaines non validées */}
+      {nbSemainesNonValidees > 0 && (
+        /*...existing code...*/
 function getMotivationMessage({ progression, extras, humeurCounts, tauxSatiete }) {
   if (progression.badge) {
     return `🏆 ${progression.badge} : ${progression.message}`;
