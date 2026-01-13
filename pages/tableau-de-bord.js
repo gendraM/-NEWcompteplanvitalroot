@@ -71,9 +71,36 @@ export default function TableauDeBord() {
         </button>
       </div>
 
+
       {/* Badge de notification pour semaines non validées */}
       {nbSemainesNonValidees > 0 && (
-        /*...existing code...*/
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <button
+            onClick={() => setDrawerOpen(true)}
+            style={{
+              background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '24px',
+              padding: '12px 24px',
+              fontSize: '16px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'transform 0.2s, box-shadow 0.2s'
+            }}
+            onMouseEnter={(e) => {/* ... */}}
+            onMouseLeave={(e) => {/* ... */}}
+          >
+            🔔 {nbSemainesNonValidees} semaine{nbSemainesNonValidees > 1 ? 's' : ''} à valider
+          </button>
+        </div>
+      )}
+
+// Fonction utilitaire hors composant React
 function getMotivationMessage({ progression, extras, humeurCounts, tauxSatiete }) {
   if (progression.badge) {
     return `🏆 ${progression.badge} : ${progression.message}`;
