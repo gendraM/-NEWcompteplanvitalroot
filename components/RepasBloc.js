@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import FlipNumbers from 'react-flip-numbers'
 import referentielAliments from '../data/referentiel';
 import { TYPES_EXTRAS, detecterTypeExtra, getOptionsExtras } from '../lib/extras';
+import useUserReferentiel from '../lib/useUserReferentiel';
 // import FlipNumbers from 'react-flip-numbers'
 
 // 🐛 DEBUG: Vérifier le référentiel chargé
@@ -363,6 +364,16 @@ function getSuggestionsFromNotes(repasList) {
 
   // ...existing code...
 
+  // DEBUG: Chargement du référentiel fusionné
+  const userId = 'demo'; // À remplacer par user_id réel (auth)
+  const { referentielComplet } = useUserReferentiel(userId);
+  console.log('🔍 DEBUG RepasBloc - Référentiel fusionné:', {
+    nombreAliments: referentielComplet.length,
+    premiersAliments: referentielComplet.slice(0, 5).map(a => a.nom),
+    contientOeuf: referentielComplet.some(a => a.nom.toLowerCase().includes('oeuf') || a.nom.toLowerCase().includes('œuf')),
+    alimentsAvecOeuf: referentielComplet.filter(a => a.nom.toLowerCase().includes('oeuf') || a.nom.toLowerCase().includes('œuf')).map(a => a.nom)
+  });
+
   useEffect(() => {
     const context = { estExtra, satiete, categorie, planCategorie, routineCount, extrasRestants }
     const blocs = rules.filter(rule => rule.check(context))
@@ -606,7 +617,7 @@ function getSuggestionsFromNotes(repasList) {
                   .replace(/œ/g, 'oe');
                 
                 const valNormalisee = normaliser(val);
-                const filtrees = referentielAliments.filter(a => 
+                const filtrees = referentielComplet.filter(a => 
                   normaliser(a.nom).includes(valNormalisee)
                 ).slice(0, 10); // Max 10 suggestions
                 
