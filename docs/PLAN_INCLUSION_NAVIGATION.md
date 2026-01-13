@@ -42,6 +42,12 @@ Inclure le composant Navigation dans le layout global pour garantir son affichag
 - [ ] Aucune variable d’état ou de hook utilisée avant sa déclaration.
 - [ ] Navigation inclus dans _app.js AVANT le composant principal.
 - [ ] Test du rendu sur toutes les pages.
+- [ ] Garantir l'unicité des variables globales et de bloc dans tout le fichier (éviter les conflits et redéfinitions).
+- [ ] Vérification de la présence de toute déclaration en double, surtout en fin de fichier ou lors d’ajouts massifs.
+- [ ] Audit complet du fichier, pas seulement du tableau principal, pour détecter les conflits de nommage.
+- [ ] Ajout systématique d’une étape “vérification des déclarations de variables et exports” dans le contrôle qualité.
+- [ ] Utilisation d’outils de linting et d’analyse statique pour détecter les redéfinitions et conflits.
+- [ ] Documentation de chaque correction d’anomalie, même hors du scope direct de l’enrichissement.
 - [ ] Documentation claire de chaque étape et validation utilisateur obligatoire.
 
 ---
