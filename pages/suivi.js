@@ -1028,7 +1028,12 @@ export default function Suivi() {
         variation: variation
       }]);
       if (error) {
-        setSnackbar({ open: true, message: error.message || "Erreur lors de la validation.", type: "error" });
+        // Gestion explicite de l'erreur de clé unique
+        if (error.message && error.message.includes('duplicate key value')) {
+          setSnackbar({ open: true, message: "Cette semaine a déjà été validée. Vous ne pouvez la valider qu'une seule fois.", type: "error" });
+        } else {
+          setSnackbar({ open: true, message: error.message || "Erreur lors de la validation.", type: "error" });
+        }
         return;
       }
       
@@ -1221,17 +1226,47 @@ export default function Suivi() {
           Affichage du budget calorique extras personnalisé
           ═══════════════════════════════════════════════════════════ */}
       <div style={{padding: '1rem', background: 'rgba(100,150,255,0.1)', borderRadius: 8, margin: '1rem 0', border: '2px dashed #6496ff'}}>
+        <div style={{
+          fontSize: '1.05rem',
+          fontWeight: 700,
+          color: '#fff',
+          background: 'linear-gradient(90deg, #6496ff 0%, #1976d2 100%)',
+          borderRadius: '8px',
+          padding: '6px 0',
+          marginBottom: '0.7rem',
+          textAlign: 'center',
+          letterSpacing: '0.5px',
+          boxShadow: '0 1px 4px rgba(100,150,255,0.10)'
+        }}>
+          📅 Semaine du {(() => {
+            const selectedDateObj = new Date(selectedDate);
+            const day = selectedDateObj.getDay();
+            const monday = new Date(selectedDateObj);
+            monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            function fmt(d) {
+              return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+            return `${fmt(monday)} au ${fmt(sunday)}`;
+          })()}
+        </div>
         <div style={{fontSize: '0.9rem', marginBottom: '0.5rem'}}>
           🔍 <strong>DEBUG Budget Extras Card:</strong>
         </div>
         <div style={{fontSize: '0.85rem', fontFamily: 'monospace'}}>
           • userId from Supabase: <strong>{userId || 'NULL (pas connecté)'}</strong><br/>
           • Mode: <strong>{userId ? 'Authentifié' : 'localStorage (sans authentification)'}</strong><br/>
-          • Composant: <strong>{userId ? '✅ Mode authentifié' : '⚠️ Mode TEST (localStorage)'}</strong>
+          • Composant: <strong>{userId ? '✅ Mode authentifié' : '⚠️ Mode TEST (localStorage)'}</strong><br/>
+          <span style={{color:'#1976d2',fontWeight:600}}>
+            {calculsRouteur && calculsRouteur.budget_extras_kcal
+              ? `Budget extras personnalisé : ${calculsRouteur.budget_extras_kcal} kcal/semaine`
+              : 'Budget extras non disponible'}
+          </span>
         </div>
       </div>
       {/* Afficher en mode localStorage (userId=null) ou authentifié */}
-      <BudgetExtrasCard userId={userId} />
+      <BudgetExtrasCard userId={userId} selectedDate={selectedDate} />
 
       {/* --------- ZONE 1 : Feedback immédiat --------- */}
       <ZoneFeedbackHebdo
