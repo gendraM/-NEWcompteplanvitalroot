@@ -142,6 +142,8 @@ git push
 # 5. Télécharger les modifications de Laurelle (sans modifier votre code)
 git fetch laurelle
 
+git fetch origin && git merge origin/test-migration-supabase, ou nom de la branche concernée
+
 # 6. Voir ce qui a changé chez Laurelle
 git log HEAD..laurelle/main --oneline
 
