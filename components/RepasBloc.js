@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import FlipNumbers from 'react-flip-numbers'
 import referentielAliments from '../data/referentiel';
 import { TYPES_EXTRAS, detecterTypeExtra, getOptionsExtras } from '../lib/extras';
+import useUserReferentiel from '../lib/useUserReferentiel';
+import FormAjoutAliment from './FormAjoutAliment';
+import foodsUser from '../data/foods_user';
 // import FlipNumbers from 'react-flip-numbers'
 
 // 🐛 DEBUG: Vérifier le référentiel chargé
@@ -75,6 +78,9 @@ export default function RepasBloc({
   onChangeChampsRepas
 }) {  // Hook Supabase avec contexte (doit être en premier)
   const supabase = useSupabase();
+  // État pour afficher le formulaire d’ajout personnalisé
+  const [showFormAjoutAliment, setShowFormAjoutAliment] = useState(false);
+  const [alimentPropose, setAlimentPropose] = useState('');
     // Déclaration des hooks d’état PRINCIPAUX tout en haut du composant (checklist React)
   // Ajout d'un état pour afficher l'erreur Supabase (doit être tout en haut)
   const [supabaseError, setSupabaseError] = useState(null);
@@ -363,6 +369,16 @@ function getSuggestionsFromNotes(repasList) {
 
   // ...existing code...
 
+  // DEBUG: Chargement du référentiel fusionné
+  const userId = 'demo'; // À remplacer par user_id réel (auth)
+  const { referentielComplet } = useUserReferentiel(userId);
+  console.log('🔍 DEBUG RepasBloc - Référentiel fusionné:', {
+    nombreAliments: referentielComplet.length,
+    premiersAliments: referentielComplet.slice(0, 5).map(a => a.nom),
+    contientOeuf: referentielComplet.some(a => a.nom.toLowerCase().includes('oeuf') || a.nom.toLowerCase().includes('œuf')),
+    alimentsAvecOeuf: referentielComplet.filter(a => a.nom.toLowerCase().includes('oeuf') || a.nom.toLowerCase().includes('œuf')).map(a => a.nom)
+  });
+
   useEffect(() => {
     const context = { estExtra, satiete, categorie, planCategorie, routineCount, extrasRestants }
     const blocs = rules.filter(rule => rule.check(context))
@@ -495,6 +511,22 @@ function getSuggestionsFromNotes(repasList) {
     }
   }
 
+  // Handler pour ajout mock d’un aliment personnalisé (avant Supabase)
+  function handleAjoutAlimentPerso(data) {
+    // Ajout dans le mock foodsUser (simulation, non persistant)
+    foodsUser.push({
+      id: foodsUser.length + 1,
+      user_id: userId,
+      ...data
+    });
+    setShowFormAjoutAliment(false);
+    setAliment(data.nom);
+    setSuggestionsFiltrees([]);
+    setAfficherSuggestions(false);
+    // Optionnel : message de succès
+    alert('Aliment personnalisé ajouté ! Il est maintenant disponible dans la liste.');
+  }
+
   return (
   <div>
       {/* Compteur flipboard stylisé pour extras restants */}
@@ -593,29 +625,35 @@ function getSuggestionsFromNotes(repasList) {
         <h3>{type} du {date}</h3>
         <label>Aliment mangé</label>
         <div style={{ position: 'relative' }}>
+          {/* DEBUG affichage état formulaire ajout personnalisé */}
+          <div style={{ fontSize: 12, color: '#b71c1c', marginBottom: 4 }}>
+            <b>DEBUG formulaire ajout :</b> showFormAjoutAliment={String(showFormAjoutAliment)} | alimentPropose="{alimentPropose}"<br/>
+            Suggestions ({suggestionsFiltrees.length}) : [{suggestionsFiltrees.map(s => s.nom).join(', ')}]
+          </div>
           <input
             value={aliment}
             onChange={e => {
               const val = e.target.value;
               setAliment(val);
-              
-              // Filtrer les suggestions
+              const normaliser = (str) => str.toLowerCase()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                .replace(/œ/g, 'oe');
+              const valNormalisee = normaliser(val);
+              let filtrees = [];
               if (val.length >= 1) {
-                const normaliser = (str) => str.toLowerCase()
-                  .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-                  .replace(/œ/g, 'oe');
-                
-                const valNormalisee = normaliser(val);
-                const filtrees = referentielAliments.filter(a => 
+                filtrees = referentielComplet.filter(a => 
                   normaliser(a.nom).includes(valNormalisee)
                 ).slice(0, 10); // Max 10 suggestions
-                
                 setSuggestionsFiltrees(filtrees);
                 setAfficherSuggestions(true);
               } else {
                 setSuggestionsFiltrees([]);
                 setAfficherSuggestions(false);
               }
+              // Détection aliment inconnu (toujours mise à jour)
+              const found = referentielComplet.find(a => normaliser(a.nom) === valNormalisee);
+              setShowFormAjoutAliment(!found && val.length > 2);
+              setAlimentPropose(val);
             }}
             onFocus={() => {
               if (aliment.length >= 1 && suggestionsFiltrees.length > 0) {
@@ -623,7 +661,6 @@ function getSuggestionsFromNotes(repasList) {
               }
             }}
             onBlur={() => {
-              // Délai pour permettre le clic sur une suggestion
               setTimeout(() => setAfficherSuggestions(false), 200);
             }}
             placeholder="Saisissez un aliment (ex: oeuf, riz, poulet...)"
@@ -680,6 +717,16 @@ function getSuggestionsFromNotes(repasList) {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {/* Affichage du formulaire d’ajout personnalisé si aliment inconnu */}
+          {showFormAjoutAliment && (
+            <div style={{ marginTop: 16, background: '#fffbe6', border: '1px solid #ffe082', borderRadius: 8, padding: 16 }}>
+              <FormAjoutAliment
+                nomInitial={alimentPropose}
+                onSave={handleAjoutAlimentPerso}
+                onCancel={() => setShowFormAjoutAliment(false)}
+              />
             </div>
           )}
         </div>

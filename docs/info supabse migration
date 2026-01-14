@@ -1,0 +1,150 @@
+postgres=> DO $$
+postgres$> DECLARE
+postgres$>   rec RECORD;
+postgres$>   cnt INTEGER;
+postgres$> BEGIN
+postgres$>   FOR rec IN
+postgres$>     SELECT table_name
+postgres$>     FROM information_schema.columns
+postgres$>     WHERE table_schema = 'public'
+postgres$>       AND column_name = 'user_id'
+postgres$>   LOOP
+postgres$>     EXECUTE format(
+postgres$>       'SELECT COUNT(*) FROM public.%I WHERE user_id IS NULL',
+postgres$>       rec.table_name
+postgres$>     )
+postgres$>     INTO cnt;
+postgres$>
+postgres$>     IF cnt > 0 THEN
+postgres$>       RAISE NOTICE '❌ % : % lignes avec user_id NULL', rec.table_name, cnt;
+postgres$>     ELSE
+postgres$>       RAISE NOTICE '✅ % : OK (aucune ligne user_id NULL)', rec.table_name;
+postgres$>     END IF;
+postgres$>   END LOOP;
+postgres$> END $$;
+NOTICE:  ? messages_dynamiques : OK (aucune ligne user_id NULL)
+NOTICE:  ? extras : OK (aucune ligne user_id NULL)
+NOTICE:  ? extras_budget : OK (aucune ligne user_id NULL)
+NOTICE:  ? repas_reels : 447 lignes avec user_id NULL
+NOTICE:  ? repas_complets : OK (aucune ligne user_id NULL)
+NOTICE:  ? feedbacks : OK (aucune ligne user_id NULL)
+NOTICE:  ? jeune : OK (aucune ligne user_id NULL)
+NOTICE:  ? plan_alimentaire : OK (aucune ligne user_id NULL)
+NOTICE:  ? jeune_analyse : OK (aucune ligne user_id NULL)
+NOTICE:  ? repas_planifies : 93 lignes avec user_id NULL
+NOTICE:  ? unites_personnelles : OK (aucune ligne user_id NULL)
+NOTICE:  ? parcours_cristallisation : OK (aucune ligne user_id NULL)
+NOTICE:  ? defis : 11 lignes avec user_id NULL
+NOTICE:  ? combos_enregistres : OK (aucune ligne user_id NULL)
+NOTICE:  ? fast_food_history : 5 lignes avec user_id NULL
+NOTICE:  ? stats_comportementales : OK (aucune ligne user_id NULL)
+NOTICE:  ? historique_poids : 1 lignes avec user_id NULL
+NOTICE:  ? journal_spirituel_questions : OK (aucune ligne user_id NULL)
+NOTICE:  ? journal_spirituel_versets : OK (aucune ligne user_id NULL)
+NOTICE:  ? parcours_jeune : 19 lignes avec user_id NULL
+NOTICE:  ? jeune_jour : OK (aucune ligne user_id NULL)
+NOTICE:  ? ideaux : 2 lignes avec user_id NULL
+NOTICE:  ? defis_personnalises : OK (aucune ligne user_id NULL)
+NOTICE:  ? journal_defis : OK (aucune ligne user_id NULL)
+NOTICE:  ? routines : OK (aucune ligne user_id NULL)
+NOTICE:  ? journal_spirituel_audios : OK (aucune ligne user_id NULL)
+NOTICE:  ? journal_spirituel_intentions : OK (aucune ligne user_id NULL)
+NOTICE:  ? reprises_alimentaires : OK (aucune ligne user_id NULL)
+NOTICE:  ? reprises_jours_valides : OK (aucune ligne user_id NULL)
+NOTICE:  ? reprises_repas_consommes : OK (aucune ligne user_id NULL)
+NOTICE:  ? actions : OK (aucune ligne user_id NULL)
+NOTICE:  ? objectifs : OK (aucune ligne user_id NULL)
+NOTICE:  ? seances_reelles : 26 lignes avec user_id NULL
+NOTICE:  ? alternatives : OK (aucune ligne user_id NULL)
+NOTICE:  ? semaines_validees : 6 lignes avec user_id NULL
+NOTICE:  ? journal_spirituel_meditations : OK (aucune ligne user_id NULL)
+NOTICE:  ? journal_spirituel_ecrits : OK (aucune ligne user_id NULL)
+NOTICE:  ? conseils_cristallisation : OK (aucune ligne user_id NULL)
+NOTICE:  ? listes_courses_generees : OK (aucune ligne user_id NULL)
+NOTICE:  ? preparations_jeune : OK (aucune ligne user_id NULL)
+NOTICE:  ? bilans_jeune : 1 lignes avec user_id NULL
+NOTICE:  ? profil : 3 lignes avec user_id NULL
+NOTICE:  ? defis_cristallisation : OK (aucune ligne user_id NULL)
+NOTICE:  ? journal_defi_cristallisation : OK (aucune ligne user_id NULL)
+NOTICE:  ? badges_cristallisation : OK (aucune ligne user_id NULL)
+NOTICE:  ? validations_cristallisation : OK (aucune ligne user_id NULL)
+
+
+
+O
+postgres=> DO $$
+postgres$> DECLARE
+postgres$>   sql TEXT := '';
+postgres$>   rec RECORD;
+postgres$> BEGIN
+postgres$>   FOR rec IN
+postgres$>     SELECT DISTINCT table_name
+postgres$>     FROM information_schema.columns
+postgres$>     WHERE column_name = 'user_id' AND table_schema = 'public'
+postgres$>   LOOP
+postgres$>     IF sql <> '' THEN
+postgres$>       sql := sql || ' UNION ALL ';
+postgres$>     END IF;
+postgres$>     sql := sql || format(
+postgres$>       'SELECT %L::text AS table_name, COUNT(*)::int AS count_not_null FROM public.%I WHERE user_id IS NOT NULL',
+postgres$>       rec.table_name, rec.table_name
+postgres$>     );
+postgres$>   END LOOP;
+postgres$>
+postgres$>   IF sql = '' THEN
+postgres$>     RAISE NOTICE 'Aucune table trouvée avec une colonne user_id';
+postgres$>   ELSE
+postgres$>     FOR rec IN EXECUTE sql LOOP
+postgres$>       RAISE NOTICE '% = %', rec.table_name, rec.count_not_null;
+postgres$>     END LOOP;
+postgres$>     RAISE NOTICE 'Requête générée : %', sql;
+postgres$>   END IF;
+postgres$> END $$;
+NOTICE:  actions = 0
+NOTICE:  alternatives = 0
+NOTICE:  badges_cristallisation = 0
+NOTICE:  bilans_jeune = 0
+NOTICE:  combos_enregistres = 0
+NOTICE:  conseils_cristallisation = 0
+NOTICE:  defis = 0
+NOTICE:  defis_cristallisation = 0
+NOTICE:  defis_personnalises = 0
+NOTICE:  extras = 0
+NOTICE:  extras_budget = 0
+NOTICE:  fast_food_history = 0
+NOTICE:  feedbacks = 0
+NOTICE:  historique_poids = 0
+NOTICE:  ideaux = 0
+NOTICE:  jeune = 0
+NOTICE:  jeune_analyse = 0
+NOTICE:  jeune_jour = 0
+NOTICE:  journal_defi_cristallisation = 0
+NOTICE:  journal_defis = 0
+NOTICE:  journal_spirituel_audios = 0
+NOTICE:  journal_spirituel_ecrits = 0
+NOTICE:  journal_spirituel_intentions = 0
+NOTICE:  journal_spirituel_meditations = 0
+NOTICE:  journal_spirituel_questions = 0
+NOTICE:  journal_spirituel_versets = 0
+NOTICE:  listes_courses_generees = 0
+NOTICE:  messages_dynamiques = 0
+NOTICE:  objectifs = 0
+NOTICE:  parcours_cristallisation = 0
+NOTICE:  parcours_jeune = 0
+NOTICE:  plan_alimentaire = 0
+NOTICE:  preparations_jeune = 0
+NOTICE:  profil = 0
+NOTICE:  repas_complets = 0
+NOTICE:  repas_planifies = 0
+NOTICE:  repas_reels = 0
+NOTICE:  reprises_alimentaires = 0
+NOTICE:  reprises_jours_valides = 0
+NOTICE:  reprises_repas_consommes = 0
+NOTICE:  routines = 0
+NOTICE:  seances_reelles = 0
+NOTICE:  semaines_validees = 0
+NOTICE:  stats_comportementales = 0
+NOTICE:  unites_personnelles = 0
+NOTICE:  validations_cristallisation = 0
+NOTICE:  Requ^te g'n'r'e : SELECT 'actions'::text AS table_name, COUNT(*)::int AS count_not_null FROM public.actions WHERE user_id IS NOT NULL UNION ALL SELECT 'alternatives'::text AS table_name, COUNT(*)::int AS count_not_null FROM public.alternatives WHERE user_id IS NOT NULL UNION ALL SELECT 'badges_cristallisation'::text AS table_name, COUNT(*)::int AS count_not_null FROM public.badges_cristallisation WHERE user_id IS NOT NULL UNION ALL SELECT 'bilans_jeune'::text AS table_name, COUNT(*)::int AS count_not_nul
+b.
