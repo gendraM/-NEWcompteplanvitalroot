@@ -1,3 +1,17 @@
+# 🆕 À PRÉVOIR — Bilan hebdomadaire alimentaire (ajouts futurs)
+
+## Répartition des extras (type, moment, planifié/impulsif)
+**Objectif :** Permettre d’analyser et d’afficher la répartition des extras consommés selon leur type (mini, normal, majeur), le moment (matin, midi, soir, nuit) et s’ils étaient planifiés ou impulsifs. Cette fonctionnalité vise à affiner le feedback et à proposer des conseils plus personnalisés.
+
+## Fermeture consciente (stop conscient)
+**Objectif :** Intégrer un suivi de la compétence “fermeture consciente” (ex : bouton “J’ai fermé” après un extra, identification du moment le plus dur, déclencheur dominant). Permettra d’accompagner l’utilisateur dans la gestion des écarts et la reprise du contrôle.
+
+## Message motivationnel personnalisé
+**Objectif :** Générer un message de motivation dynamique et personnalisé selon la situation de la semaine (sous budget, surplus, progression, etc.), pour renforcer l’engagement et la bienveillance.
+
+## UI en cartes + suggestion micro-action
+**Objectif :** Refondre l’UI du bilan hebdomadaire sous forme de 4 cartes (axes) + 1 zone “action pour demain”, avec pour chaque carte : 3 chiffres max, 1 phrase de lecture, 1 suggestion micro-action. Vise à améliorer la lisibilité et l’impact pédagogique.
+
 # 🗓️ Amélioration à prévoir : Format date section "Tout" (gestion des repas)
 
 **Objectif :**
