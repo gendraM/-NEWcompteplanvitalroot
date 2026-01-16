@@ -371,13 +371,36 @@ function getSuggestionsFromNotes(repasList) {
 
   // DEBUG: Chargement du référentiel fusionné
   const userId = 'demo'; // À remplacer par user_id réel (auth)
-  const { referentielComplet } = useUserReferentiel(userId);
+  const { referentielComplet, referentielCustom } = useUserReferentiel(userId);
   console.log('🔍 DEBUG RepasBloc - Référentiel fusionné:', {
     nombreAliments: referentielComplet.length,
     premiersAliments: referentielComplet.slice(0, 5).map(a => a.nom),
     contientOeuf: referentielComplet.some(a => a.nom.toLowerCase().includes('oeuf') || a.nom.toLowerCase().includes('œuf')),
     alimentsAvecOeuf: referentielComplet.filter(a => a.nom.toLowerCase().includes('oeuf') || a.nom.toLowerCase().includes('œuf')).map(a => a.nom)
   });
+
+  // Fonction utilitaire pour normaliser le nom d'un aliment (anti-doublon)
+  function normalizeNomAliment(nom) {
+    return nom.trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  // FUSION AUTOCOMPLETE : suggestions issues du référentiel global + custom user
+  function getSuggestions(input) {
+    if (!input || input.length < 2) return [];
+    const inputNorm = normalizeNomAliment(input);
+    // On fusionne les deux référentiels, puis on filtre sur le nom
+    const fusion = Array.isArray(referentielComplet) ? referentielComplet : referentielAliments;
+    return fusion.filter(alim =>
+      normalizeNomAliment(alim.nom).includes(inputNorm)
+    );
+  }
+
+  // Contrôle anti-doublon lors de l'ajout custom
+  function existeDejaDansCustom(nom) {
+    if (!Array.isArray(referentielCustom)) return false;
+    const nomNorm = normalizeNomAliment(nom);
+    return referentielCustom.some(alim => normalizeNomAliment(alim.nom) === nomNorm);
+  }
 
   useEffect(() => {
     const context = { estExtra, satiete, categorie, planCategorie, routineCount, extrasRestants }
@@ -519,12 +542,17 @@ function getSuggestionsFromNotes(repasList) {
       user_id: userId,
       ...data
     });
-    setShowFormAjoutAliment(false);
+    setShowFormAjoutAliment(false); // Fermeture automatique du formulaire
     setAliment(data.nom);
     setSuggestionsFiltrees([]);
     setAfficherSuggestions(false);
     // Optionnel : message de succès
     alert('Aliment personnalisé ajouté ! Il est maintenant disponible dans la liste.');
+    // Focus automatique sur l’input principal après fermeture (UX)
+    setTimeout(() => {
+      const input = document.querySelector('input[name="aliment"]');
+      if (input) input.focus();
+    }, 200);
   }
 
   return (
