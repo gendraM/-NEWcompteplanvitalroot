@@ -13,7 +13,22 @@ Actuellement, la période globale s’affiche sous la forme « du 2026-01-05 jus
 
 # 🆕 AJOUTS PROPOSÉS (2026-01-11)
 
-### 11. Ajout d'aliment personnalisé lors de la saisie
+
+### 11.1 À FAIRE — Encadré explicatif “Comment classer mon aliment ?” dans le formulaire d’ajout
+
+**Objectif :**
+Guider l’utilisateur pour choisir la bonne catégorie et sous-catégorie lors de l’ajout d’un aliment personnalisé, avec des exemples concrets (aliments inventés ou non présents dans le référentiel) pour chaque grande famille, et des cas fréquents/ambigus.
+
+**Actions à mener :**
+- Ajouter un encadré ou une info-bulle “Comment classer mon aliment ?” dans le formulaire d’ajout d’aliment personnalisé.
+- Expliquer la différence catégorie/sous-catégorie.
+- Donner des exemples concrets pour chaque catégorie (sans reprendre d’aliments déjà présents dans le référentiel).
+- Conseiller l’utilisateur en cas de doute (s’inspirer de l’autocomplete, choisir la catégorie la plus générale, préciser en sous-catégorie).
+
+**Bénéfices :**
+- Réduit les erreurs de classement, améliore la cohérence des données, facilite l’expérience utilisateur.
+
+**Statut :** À faire
 
 **Objectif :** Permettre à l'utilisateur, lors de la saisie d'un repas, d'ajouter un aliment qui n'existe pas dans le référentiel, via un formulaire dédié, dans le même style que les aliments existants. L'aliment enrichira le référentiel interne (personnel ou global selon validation/modération).
 

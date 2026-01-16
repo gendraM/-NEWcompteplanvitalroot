@@ -1,5 +1,85 @@
 # Historique de la réflexion sur l'ajout d'aliment personnalisé et la gestion avancée des repas
 
+---
+
+## Fil rouge complet — Historique enrichi de la fonctionnalité « Ajout d’aliment personnalisé »
+
+### 0. Brainstorming initial & genèse
+- **Objectif utilisateur** : Permettre à chacun d’ajouter un aliment absent du référentiel, de façon guidée, rapide, et réutilisable, tout en gardant la traçabilité et la qualité des données.
+- **Problématique** : Les référentiels globaux ne couvrent pas tous les usages, d’où la nécessité d’un référentiel utilisateur, fusionné à l’autocomplete, mais privé par défaut.
+- **Premières idées** :
+	- Détection automatique d’absence dans l’autocomplete
+	- Proposition d’ajout rapide (bouton/lien)
+	- Formulaire guidé (nom, catégorie, portion, kcal, QN…)
+	- Stockage dans foods_user, visible uniquement par l’utilisateur
+	- Pipeline communautaire (modération, enrichissement global) envisagé pour le futur
+
+### 1. Structuration technique et planification
+- **Modèles de données** :
+	- foods_global (officiel, partagé)
+	- foods_user (personnel, privé)
+	- food_aliases (synonymes, optionnel)
+	- meal_templates (repas types)
+- **Séparation stricte** entre global/user, privacy garantie
+- **Fusion dynamique** dans tous les composants de saisie
+- **Validation** : anti-doublon, cohérence QN/kcal, conversion portions
+- **Extensibilité** : modération, suggestions communautaires, templates repas
+
+### 2. Documentation, plan d’action et validation
+- **Documentation** :
+	- Cahier technique, plan d’enrichissement, historique des choix
+	- Plan d’implémentation détaillé (phases, priorités, TODO)
+- **Validation** :
+	- Plan validé étape par étape avant chaque modification
+	- Rollback systématique possible (sauvegardes, backups, git)
+
+### 3. Implémentation progressive (extraits du fil d’échange)
+- **Phase 1** : Enrichissement du référentiel global (de 11 à 187 aliments, ajout QN, portionDefaut, unité, kcalParUnite)
+- **Phase 2** : Correction du doublon local, import du référentiel unique, calcul automatique des kcal, autocomplete intelligent, UX améliorée
+- **Phase 3** : (optionnel) Conscience alimentaire, bienfaits, affichage enrichi
+- **Phase 4** : (optionnel) Ajout d’aliments personnalisés (foods_user), formulaire guidé, fusion suggestions, modération future
+- **Phase 5** : (à faire) Statistiques détaillées, migration BDD, adaptation RepasBloc.js, affichage réel dans le tableau de bord
+
+#### Extraits de décisions et échanges clés :
+- « Si on part sur référentiel, faudra tout recoder ? » → Non, enrichissement et correction ciblée, pas de refonte
+- « Fusionner référentiel + aliments custom dans suggestions »
+- « Formulaire complet ajout aliment, validation temps réel, suggestions QN selon catégorie »
+- « Détection autocomplete vide, affichage bouton “Ajouter aliment”, modal formulaire »
+- « Hook useUserReferentiel(user_id) pour fusionner global + custom »
+- « Pipeline communautaire : modération, mapping user/global, suggestions »
+
+### 4. Debug, tests, corrections et retours utilisateur
+- **Problème rencontré** : Formulaire d’ajout personnalisé non affiché (erreur de logique de rendu conditionnel)
+- **Corrections** : Ajout du bloc de rendu conditionnel, handler manquant, debug output pour traçabilité
+- **Tests** : Plusieurs cycles de test utilisateur, validation du workflow complet (saisie, ajout, réutilisation)
+- **Feedback** : Correction immédiate des bugs, explications détaillées, audit trail maintenu
+
+### 5. Documentation et synthèse des choix
+- **Docs clés** :
+	- AMELIORATION_CONTINUE_DEVELOPPEMENT_APP.md : objectifs, backlog, estimation effort, composants à créer, bénéfices
+	- CONVERSATION_COPILOT_PREPARATION_IMPLEMENTATION_REFERENTIEL.md : analyse complète, différences plan/repas réel, étapes techniques, TODO, validation
+	- PLAN_ENRICHISSEMENT_REFERENTIEL_723.md : plan d’enrichissement massif, checklist, rollback
+- **Synthèse** :
+	- Historique complet, aucune perte de données, toutes les décisions, corrections, et validations sont tracées ici
+	- Ce document est la référence unique pour toute évolution future de la fonctionnalité « ajout d’aliment personnalisé »
+
+### 6. Exemples de flux utilisateur (UX)
+1. L’utilisateur saisit un aliment absent → message “Aliment non trouvé. Voulez-vous l’ajouter ?”
+2. Clique “Ajouter cet aliment” → formulaire guidé (nom, catégorie, portion, kcal, QN…)
+3. Validation → aliment ajouté à foods_user, disponible dans l’autocomplete
+4. Réutilisation immédiate possible, modération future envisagée
+
+### 7. Points de vigilance et extension future
+- **Privacy** : foods_user strictement privé, jamais fusionné dans global sans modération
+- **Conversion portions** : gestion fine des unités, suggestion à l’utilisateur
+- **Validation temps réel** : dans le formulaire, feedback immédiat
+- **Extensibilité** : pipeline communautaire, templates repas, suggestions IA
+
+---
+
+**Ce fil rouge a été enrichi à partir de l’intégralité de notre échange, sans aucune perte de données, pour garantir la traçabilité, la qualité, et l’auditabilité de la fonctionnalité.**
+
+
 ## 1. Contexte initial
 
 ## 2. Prérequis techniques et modèles de données
