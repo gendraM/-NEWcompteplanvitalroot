@@ -86,7 +86,8 @@ Le référentiel actuel compte **425 plats**. Objectif: atteindre **723 plats** 
 4. Diversité internationale (couverture équilibrée 9 pays, habitudes alimentaires réelles)
 
 #### Contraintes qualité
-- Aucun doublon accepté (vérification grep systématique)
+- Chaque plat ajouté doit comporter un champ typeOrigine (valeurs possibles : "maison", "restaurant", "industriel"). Ce champ permet de différencier l’origine du plat pour l’utilisateur, le filtrage, les statistiques et l’adaptation du score QN ou des valeurs nutritionnelles. L’UI pourra afficher un emoji correspondant (🏠, 🍽️, 🏭) selon la valeur de typeOrigine.
+- Aucun doublon accepté (vérification stricte : nom, variantes, alternatives, sous-catégories – toute entrée déjà présente sous une forme ou une autre est exclue de l’ajout. Recherche systématique dans tout le référentiel avant chaque batch.)
 - QN validé par comparaison plats similaires
 - Kcal réalistes (sources nutritionnelles fiables)
 - Portions standardisées (format cohérent)
