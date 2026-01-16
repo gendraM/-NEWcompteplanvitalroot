@@ -72,12 +72,20 @@ Le référentiel actuel compte **425 plats**. Objectif: atteindre **723 plats** 
 - 🇯🇵 Cuisine japonaise: 15 plats (Ramen, Udon, Tonkatsu, Okonomiyaki, etc.)
 - 🇹🇭 Complétion thaï: 10 plats
 
+
 **Phase 3 - Complétion (150 plats)**
 - 🇫🇷 Produits grande surface: 40 plats (plats préparés, conserves, etc.)
 - 🇫🇷 Poissonnerie: 20 plats (Saumon, Thon, Dorade, Cabillaud, etc.)
 - Expansion cuisines existantes: 40 plats
 - Street food international: 30 plats
-- Desserts/Pâtisseries: 20 plats
+- Desserts/Pâtisseries: 10 plats
+- Gâteaux (catégorie dédiée, 10 plats) :
+  - Cakes (cake aux fruits, cake marbré, cake citron…)
+  - Tartes (tarte aux pommes, tarte citron, tarte poire-chocolat…)
+  - Biscuits (sablés, madeleines, cookies, palets…)
+  - Entremets (millefeuille, opéra, bavarois…)
+  - Spécialités régionales (kouglof, cannelé, far breton, clafoutis…)
+  (La répartition exacte sera affinée lors de la phase correspondante)
 
 #### Typologie aliments à ajouter
 1. Street food internationale (Tacos mexicains, Falafel, Döner kebab, Poutine, Arepas)
@@ -132,6 +140,60 @@ Autocomplete et cohérence : validés
 ---
 
 (Copie fidèle du plan, prêt à être enrichi selon la logique à venir)
+
+---
+
+## 📌 Phase à prévoir – Complétion des manquants phase 1
+
+Suite à la vérification du référentiel :
+
+- **Cuisine thaïlandaise** : seuls Pad Thaï et Curry vert sont présents. À ajouter pour respecter le plan :
+  - Tom Yum
+  - Som Tam
+  - Larb
+  - Massaman
+  - Khao Pad
+  - Khao Soi
+  - Laab
+  - Yam
+  - Kai Med Ma Muang
+  - Moo Satay
+  - Gai Yang
+  - Nam Tok
+  - Pla Rad Prik
+  - Autres plats typiques selon plan
+
+- **Cuisine camerounaise** : aucun plat du plan (Ndolé, Poulet DG, Koki, Eru, etc.) n’est présent. À ajouter :
+  - Ndolé
+  - Poulet DG
+  - Koki
+  - Eru
+  - Kondré
+  - Achu
+  - Sanga
+  - Mbongo Tchobi
+  - Kati kati
+  - Taro sauce jaune
+
+- **Viandes boucherie françaises** : seuls quelques plats classiques sont présents (escalope de poulet à la crème, steak haché purée, blanquette de veau, etc.). À ajouter pour respecter le plan :
+  - Bavette
+  - Entrecôte
+  - Côte de porc
+  - Gigot d’agneau
+  - Rumsteck
+  - Onglet
+  - Tournedos
+  - Faux-filet
+  - Côtelette d’agneau
+  - Jarret de veau
+  - Pot-au-feu
+  - Navarin d’agneau
+  - Sauté de veau
+  - Brochette de bœuf
+  - Carpaccio de bœuf
+  - Tartare de bœuf
+
+Ces ajouts sont nécessaires pour valider la complétion de la phase 1 conformément au plan initial.
 # 🗓️ Plan d’implémentation enrichissement référentiel alimentaire (copie)
 
 Ce fichier est une copie du plan d’implémentation complet pour l’enrichissement du référentiel alimentaire, issu de AMELIORATION_CONTINUE_DEVELOPPEMENT_APP.md.
