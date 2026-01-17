@@ -1,4 +1,22 @@
 const referentielAliments = [
+  // Enrichissement catégorie "pâtisserie" (boulangerie)
+  { nom: "Tartelette aux fruits", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: 220, qn: 1, portionDefaut: "1 tartelette (90g)", unite: "g", alternatives: ["Paris-Brest", "Opéra"], typeOrigine: "boulangerie" },
+  { nom: "Paris-Brest", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: 320, qn: 1, portionDefaut: "part (100g)", unite: "g", alternatives: ["Tartelette aux fruits", "Saint-Honoré"], typeOrigine: "boulangerie" },
+  { nom: "Opéra", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: 350, qn: 1, portionDefaut: "part (90g)", unite: "g", alternatives: ["Paris-Brest", "Saint-Honoré"], typeOrigine: "boulangerie" },
+  { nom: "Saint-Honoré", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: 340, qn: 1, portionDefaut: "part (100g)", unite: "g", alternatives: ["Opéra", "Paris-Brest"], typeOrigine: "boulangerie" },
+  // Enrichissement catégorie "gâteau" (ajout 15%)
+  { nom: "Gâteau au yaourt", categorie: "gâteaux", sousCategorie: null, marque: null, kcal: 250, qn: 1, portionDefaut: "part (80g)", unite: "g", alternatives: ["Quatre-quarts", "Fondant au chocolat"], typeOrigine: "maison" },
+  { nom: "Fondant au chocolat", categorie: "gâteaux", sousCategorie: null, marque: null, kcal: 350, qn: 1, portionDefaut: "part (90g)", unite: "g", alternatives: ["Gâteau au yaourt", "Quatre-quarts"], typeOrigine: "maison" },
+  { nom: "Quatre-quarts", categorie: "gâteaux", sousCategorie: null, marque: "Ker Cadélac", kcal: 370, qn: 1, portionDefaut: "tranche (40g)", unite: "g", alternatives: ["Gâteau au yaourt", "Madeleine"], typeOrigine: "industriel" },
+  { nom: "Madeleine", categorie: "gâteaux", sousCategorie: null, marque: "St Michel", kcal: 130, qn: 1, portionDefaut: "1 madeleine (25g)", unite: "g", alternatives: ["Quatre-quarts", "Gâteau au yaourt"], typeOrigine: "industriel" },
+  // Catégories ajoutées explicitement pour futurs enregistrements (structure, à enrichir)
+  { nom: "Exemple gâteau", categorie: "gâteaux", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
+  { nom: "Exemple pâtisserie", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
+  { nom: "Exemple viennoiserie", categorie: "viennoiserie", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
+  { nom: "Exemple céréales", categorie: "céréales", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
+  { nom: "Exemple charcuterie", categorie: "charcuterie", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
+  { nom: "Exemple poisson", categorie: "poisson", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
+  { nom: "Exemple fromage", categorie: "fromage", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
             // Bonbons et confiseries
             { nom: "Maltesers", categorie: "confiserie", sousCategorie: "Chocolat", marque: "Maltesers", kcal: 150, qn: 1, portionDefaut: "25g", unite: "g", alternatives: ["M&M’s", "Smarties"] },
             { nom: "M&M’s", categorie: "confiserie", sousCategorie: "Chocolat", marque: "M&M’s", kcal: 140, qn: 1, portionDefaut: "25g", unite: "g", alternatives: ["Maltesers", "Smarties"] },
