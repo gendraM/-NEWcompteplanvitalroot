@@ -279,6 +279,56 @@ Le référentiel actuel compte **425 plats**. Objectif: atteindre **723 plats** 
 1. Street food internationale (Tacos mexicains, Falafel, Döner kebab, Poutine, Arepas)
 2. Restaurants (plats faits maison, brasserie, bistronomie)
 3. Grande surface France (plats préparés, surgelés, conserves, produits frais)
+
+### ➡️ Plan d’enrichissement « Grande surface France »
+
+**Objectif :** Ajouter 40 plats emblématiques des rayons grande distribution, couvrant la diversité des formats et usages (plats préparés, surgelés, conserves, produits frais, plats exotiques, végétariens, minceur, etc.).
+
+#### 1. Rayons & sous-catégories à couvrir
+- Plats cuisinés individuels (ex : Hachis Parmentier, Gratin dauphinois, Lasagnes, Parmentier de poisson, Cassoulet, Couscous, Choucroute, Blanquette de veau, Bœuf bourguignon)
+- Plats surgelés (ex : Pizza surgelée, Poêlée campagnarde, Poêlée asiatique, Poisson pané, Nuggets, Cordon bleu, Gratin de légumes, Tartiflette surgelée)
+- Plats exotiques industriels (ex : Poulet curry, Riz cantonais, Paëlla, Chili con carne, Tajine, Moussaka, Pad Thaï industriel)
+- Plats végétariens/vegan (ex : Lasagnes végétariennes, Chili sin carne, Galettes de légumes, Curry de pois chiches)
+- Plats minceur/diététiques (ex : Plats Weight Watchers, plats « Ligne », plats allégés)
+- Conserves repas (ex : Cassoulet en conserve, Ravioli en boîte, Lentilles saucisses, Petit salé, Haricots à la tomate)
+- Salades repas prêtes à consommer (ex : Salade piémontaise, Salade de pâtes, Taboulé, Salade César industrielle)
+- Plats frais traiteur (ex : Quiche lorraine, Tarte aux légumes, Croque-monsieur, Sandwich triangle, Wrap industriel)
+
+#### 2. Exemples concrets de plats à ajouter
+- Hachis Parmentier (industriel, surgelé Picard)
+- Lasagnes bolognaise (industriel, Fleury Michon)
+- Gratin dauphinois (industriel, Marie)
+- Couscous royal (industriel, William Saurin)
+- Cassoulet (conserve, William Saurin)
+- Pizza 4 fromages (surgelée, Buitoni)
+- Poêlée campagnarde (surgelée, Findus)
+- Nuggets de poulet (surgelés, Carrefour)
+- Poisson pané (surgelé, Findus)
+- Paëlla (industriel, Sodebo)
+- Chili con carne (industriel, Weight Watchers)
+- Lasagnes végétariennes (industriel, Marie)
+- Galettes de légumes (industriel, Céréal Bio)
+- Ravioli pur bœuf (conserve, Zapetti)
+- Salade piémontaise (industrielle, Fleury Michon)
+- Quiche lorraine (industrielle, Marie)
+- Croque-monsieur (industriel, Sodebo)
+- Wrap poulet crudités (industriel, Sodebo)
+- Sandwich triangle jambon emmental (industriel, Daunat)
+- Tarte aux légumes (industrielle, Marie)
+
+#### 3. Règles anti-doublon et différenciation typeOrigine
+- Avant chaque ajout, vérifier si le plat existe déjà en version « maison » ou « restaurant » : si oui, ajouter la version « industriel » uniquement si le champ `typeOrigine` est bien différencié et les valeurs adaptées.
+- Aucun doublon exact accepté pour un même typeOrigine (nom, alternatives, sous-catégorie).
+- Mention explicite dans le nom ou l’UI pour différencier les versions (ex : « Hachis Parmentier (industriel, Picard) » vs « Hachis Parmentier (maison) »).
+- Adapter portions, QN, kcal, alternatives à la version industrielle.
+
+#### 4. Sources nutritionnelles recommandées
+- Open Food Facts, sites officiels des marques, étiquetage produits.
+
+#### 5. Batchs d’ajout recommandés
+- Ajouter par lots de 10-15 plats, avec validation anti-doublon et conformité après chaque batch.
+
+---
 4. Diversité internationale (couverture équilibrée 9 pays, habitudes alimentaires réelles)
 
 #### Contraintes qualité

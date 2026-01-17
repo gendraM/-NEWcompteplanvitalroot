@@ -1,3 +1,46 @@
+#### Étapes à prévoir (à faire plus tard)
+
+2. Refonte progressive des catégories existantes
+  - Revoir les plats classés dans « plat principal », « extra », « snack » et les répartir dans les nouvelles catégories ou dans des sous-catégories plus précises.
+  - Regrouper ou enrichir les catégories peu représentées (ex : tarte, dessert, entrée, salade) pour éviter les doublons ou les catégories orphelines.
+  - Harmoniser l’usage des catégories pour chaque nouvel ajout.
+
+3. Impact pour les utilisateurs existants
+  - Effets positifs :
+    - Meilleure clarté lors de la recherche ou de la saisie d’un aliment.
+    - Suggestions plus pertinentes dans l’autocomplete.
+    - Réduction des erreurs de classement et des doublons.
+    - Possibilité de filtrer ou d’analyser plus finement les repas par famille d’aliments.
+  - Points de vigilance :
+    - Les aliments déjà saisis avec une ancienne catégorie (« extra », « plat principal », etc.) devront être reclassés automatiquement ou semi-automatiquement dans la nouvelle catégorie correspondante.
+    - Les historiques de repas resteront intacts, mais l’affichage de la catégorie pourra changer (ex : un plat anciennement « extra » apparaîtra désormais comme « gâteau » ou « pâtisserie »).
+    - Il faudra prévoir une migration des données pour reclasser les anciennes entrées, avec une règle de correspondance claire (mapping).
+    - L’utilisateur ne perdra aucune donnée : seules les étiquettes/catégories affichées évolueront pour plus de cohérence.
+
+4. Recommandation technique
+  - Mettre en place un script de migration pour reclasser les anciennes entrées selon le nouveau mapping.
+  - Ajouter une info-bulle ou un message temporaire pour expliquer à l’utilisateur le changement de catégories lors de la saisie ou de la consultation de l’historique.
+### 13. Amélioration des catégories du référentiel alimentaire (2026-01-17)
+
+**Objectif :**
+Optimiser la cohérence, la granularité et la représentativité des catégories du référentiel alimentaire.
+
+**Actions à mener :**
+- Revoir la granularité de « plat principal », « extra », « snack » (créer des sous-catégories ou répartir dans des catégories plus précises).
+- Regrouper ou enrichir les catégories peu représentées pour éviter les doublons ou les catégories orphelines.
+- Harmoniser l’usage des catégories pour chaque plat ajouté à l’avenir.
+- Ajouter explicitement : gâteaux, pâtisserie, viennoiserie, céréales, charcuterie, poisson, fromage.
+
+**Proposition immédiate :**
+- Démarrer la création des catégories manquantes (gâteaux, pâtisserie, viennoiserie, céréales, charcuterie, poisson, fromage) dans le référentiel.
+- Lancer l’audit et la refonte progressive des catégories existantes selon les axes ci-dessus.
+
+**Bénéfices attendus :**
+- Cohérence et clarté pour l’utilisateur lors de la saisie ou de la recherche d’aliments.
+- Réduction des erreurs de classement et des doublons.
+- Meilleure couverture des familles d’aliments et adaptation aux besoins réels.
+
+**Statut :** À faire
 # 🗓️ Amélioration à prévoir : Format date section "Tout" (gestion des repas)
 
 **Objectif :**

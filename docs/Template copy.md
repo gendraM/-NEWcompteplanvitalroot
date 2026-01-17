@@ -1,0 +1,282 @@
+## ⚡️ Processus allégé pour corrections mineures
+
+**Pour toute modification ou correction inférieure à 10 lignes de code :**
+- Un process allégé peut être appliqué (validation rapide, traçabilité minimale), sauf si l’utilisateur exige explicitement le process complet.
+- La validation utilisateur reste obligatoire, mais l’audit complet, la checklist exhaustive et le rapport détaillé peuvent être simplifiés.
+- Toute suppression de plus de 10 lignes ou modification jugée à risque doit suivre le process complet (audit, checklist, traçabilité maximale).
+
+**Exemple :**
+- Correction d’une faute de frappe, ajustement d’un nom de variable, ajout d’un import manquant : validation rapide possible après présentation du diff et accord utilisateur.
+
+**Attention :**
+- L’utilisateur peut à tout moment exiger le process complet, même pour une correction mineure.
+
+---
+# 🟢 TEMPLATE — PLAN D’IMPLÉMENTATION COPILOT ( — À REMPLIR & VALIDER AVANT TOUTE MODIF CODE)
+
+**⚠️  AUCUNE modification de code ne doit être produite tant que l’utilisateur n’a pas validé explicitement ce plan d’implémentation rempli et relu par Copilot.**
+
+─────────────────────────────────────────────────────────────
+Attention ce fichier template ne doit jamais être modifier !!
+Attention ne jamais utiliser SED pour suppression massive! toute suppresion doit avoir ete autorisé explicitement par l utilisateur, copilot doit informer de l objet de la suppresion et de l impact et de la raison de la suppression et cela doit etre fait apres accord explicite de facon minitieuse ligne apres ligne point après point pour eviter toute anomalie !!
+
+INTERDICTION ABSOLUE :
+
+❌ JAMAIS utiliser sed pour supprimer du code
+❌ JAMAIS supprimer > 10 lignes sans accord explicite
+✅ TOUJOURS montrer le code à supprimer
+✅ TOUJOURS attendre validation utilisateur
+1 Créer un nouveau fichier afin de réaliser les actions ci dessous : 
+
+## Titre de la tâche  
+_EXEMPLE : Enrichir la page préparation jeûne (`/pages/preparation-jeune.js`)_
+
+---
+
+## **Description précise de la modification attendue**  
+_Décrire exactement ce qui est attendu (fonctionnalité, écran, comportement, objectif)_
+
+_EXEMPLE : Ajouter un indicateur de progression et une synthèse utilisateur à la fin du formulaire._
+
+---
+
+## **Fichiers concernés**
+- `/chemin/vers/fichier1`
+- `/chemin/vers/fichier2`
+
+_EXEMPLE :_
+- `/pages/preparation-jeune.js`
+- `/components/SynthesePreparation.js`
+
+---
+
+### Etape 1 — **Audit des risques préalable**
+1. _Lister tous les risques : technique, UX, sécurité, conflit, régression, perte de données, robustesse, accessibilité, etc._
+2. _Identifier l’ordre de tous les hooks React (useState, useEffect, etc.) afin de s’assurer qu’ils sont déclarés uniquement en haut du corps du composant fonctionnel, et jamais dans une fonction, une boucle, un map, un if, etc. (respect strict des règles officielles des hooks)._ **TOUTE VARIABLE D’ÉTAT OU DE HOOK DOIT ÊTRE DÉCLARÉE AVANT TOUTE UTILISATION, Y COMPRIS DANS LES DÉPENDANCES D’AUTRES HOOKS (ex : tableau de dépendances de useEffect).**_
+3. _Documenter ces risques en points de vigilance à intégrer dans la checklist du contrôle qualité_
+4. _Consulter le fichier d’anomalies rollback avant toute modification_
+
+_EXEMPLE :_
+- Risque : Runtime TypeError si un hook est utilisé avant import ou initialisation.
+- Risque UX : Perte de fonction d’enregistrement si la déclaration est déplacée.
+- Risque robustesse : Oubli d’un useEffect ➔ Non mise à jour d’état.
+
+---
+
+### Etape 2 — **Sous-checklist à valider systématiquement**
+- [ ] Vérification de la présence/import de toutes les fonctions, hooks et variables utilisées dans le code modifié
+
+_EXEMPLE :_
+- [ ] useState importé ?
+- [ ] useEffect importé ?
+- [ ] Toutes les variables présentes AVANT leur usage ?
+
+---
+
+
+### Etape 3 — **Checklist stricte sécurité & qualité (à cocher AVANT toute modification)**
+- [ ] Lecture complète du code concerné (dépendances, hooks, variables, fonctions…)
+- [ ] Initialisation systématique avant usage (hooks, variables, handlers)
+- [ ] Tous les hooks React (useState, useEffect, etc.) sont déclarés uniquement en haut du corps du composant fonctionnel, jamais dans une fonction, une boucle, un map, un if, etc. (respect des règles officielles des hooks)
+   - [ ] **Aucune variable d’état ou de hook n’est utilisée avant sa déclaration, y compris dans les dépendances d’autres hooks (ex : tableau de dépendances de useEffect).**
+- [ ] Séparation stricte des étapes : d’abord initialisation (useState, useEffect…), puis logique calculée, puis handlers/fonctions, puis rendu
+- [ ] Vérification : toute fonction ou handler utilisé dans le rendu est présent et initialisé avant usage  
+- [ ]  Il faut déclarer tous les hooks (useState, useEffect, etc.) AVANT toute utilisation de leurs variables, y compris dans les dépendances d’autres hooks.
+- [ ] Ordre et portée logiques stricts (jamais déclaration, appel ou usage prématuré)  
+- [ ] Pas de doublons ni de déclarations superflues  
+- [ ] Contrôle d’erreur systématique (compilation, runtime, SSR, rendu, accessibilité)  
+- [ ] Test du rendu sur tous les cas d’usage et cas limites  
+- [ ] Préservation stricte des fonctionnalités existantes : aucune suppression destructrice, aucune perte de comportement  
+- [ ] Garantir l'unicité des variables globales et de bloc dans tout le fichier (éviter les conflits et redéfinitions).
+- [ ] Vérification de la présence de toute déclaration en double, surtout en fin de fichier ou lors d’ajouts massifs.
+- [ ] Audit complet du fichier, pas seulement du tableau principal, pour détecter les conflits de nommage.
+- [ ] Mise à jour précise et justifiée du pourcentage d’avancement  
+- [ ] Toute anomalie ou erreur ➔ rollback immédiat, rapport d’anomalie avec contexte, date et heure (cf. fichier ANOMALIE)  
+- [ ] Documentation claire de chaque étape, chaque validation, et toute action automatisée (Copilot/IA)
+- [ ] Relecture **manuelle obligatoire** des déclarations de tous les hooks, variables et fonctions AVANT chaque utilisation. NE PAS se baser sur la mémoire du modèle Copilot.
+- [ ] Validation utilisateur OBLIGATOIRE avant toute implémentation
+- [ ] Toutes les cases ci-dessus doivent être cochées et documentées avant de poursuivre.
+
+---
+
+## ✅ **CHECKLIST SÉCURITÉ AVANT VALIDATION FINALE**
+
+Le produit final, avant validation, doit remplir **TOUTES CES CONDITIONS** :
+
+1. **Sécurisation technique complète :**
+   - Tous les hooks React (`useState`, `useEffect`, etc.) respectent strictement leur emplacement approprié (aucun dans des boucles, conditions, etc.).
+   - Pas d’erreur ou de faille de compilation (lancer un Build).
+
+2. **Traçabilité garantie :**
+   - 📋 Rapport généré (via Markdown) pour enregistrer toutes les étapes avant/après.
+
+3. **Tests complets :**
+   - **PAS de warning runtime.**
+   - Vérifiez plusieurs cas limites (valeurs nulles, absence de données, etc.).
+
+---
+
+## ✅ **POST-VALIDATION (Contrôles définitifs)**
+Après implémentation, suivez ces étapes :
+1. **Tests manuels & dynamiques :** Effectuez un parcours utilisateur **complet**.
+2. **Contrôle d’erreurs & logs :** Validez que **TOUS LES LOGS sont propres.**
+3. **Documentation et captures :** Générer des captures des outputs.
+
+---
+
+_EXEMPLE :_
+- [ ] J’ai relu, ligne par ligne et **manuellement**, la déclaration de tous les useState et useEffect AVANT chaque appel.
+
+---
+
+### Etape 4 — **Contrôles conformité à réaliser (en suivant l’ordre ci-dessous)**
+_Ex : tests de sauvegarde/restauration, accessibilité, non-régression, performance, multi-device, compatibilité, échappement, robustesse, cas limites_
+
+1. Lire toutes les entrées d'anomalies enregistrées dans le fichier anomalies rollback afin d’identifier les points de vigilance pour anticiper le risque d’erreur similaire lors du codage de cette modification.  
+   **ATTENTION : aucune suppression ne doit être effectuée sur le fichier rollback lors de l’ajout d’une entrée, tout doit être ajouté à la suite, la traçabilité doit être totale.**
+2. Suite à cette analyse, créer une checklist de contrôle à appliquer avant le codage pour s'assurer d'un codage conforme, à ajouter dans la section Point de vigilance.
+3. Ajouter l’analyse de l’audit des risques et s’assurer qu'il n’y a aucune anomalie bloquante avant d’implémenter la modification.
+4. _Si à ce stade une anomalie/bug est identifié, proposition immédiate de rollback à l’endroit où l'anomalie a été détectée (pour revenir à l’état où il n’y avait pas de bug) à confirmer avec l’utilisateur (ou revenir à l’état initial du code avant modification), documenter automatiquement dans le fichier Anomalie rollback avec date et heure._
+
+_EXEMPLE :_
+- 21/11/2025 — Entrée rollback : erreur SSR car useEffect appelé dans une boucle
+- Checklist créée : vérifier appel de tous les hooks en haut du composant
+
+---
+
+### Etape 5 — **Mise à jour de l’avancement**
+- [ ] Non commencé | [ ] En cours | [ ] Terminé  
+- Avancement précis/Pourcentage réel (**à MAJ à chaque étape**) : ____ %
+- Historique des mises à jour : ___
+
+_EXEMPLE :_
+- 22/11/2025, Avancement 30 % — Checklist d’import réalisée
+
+---
+
+### Etape 6 — **Point de vigilance**
+
+1. Mettre ici le rapport lié à la lecture des entrées du fichier anomalies rollback adapté à la mise à jour actuelle (cf. Etape 4).
+2. Lister les erreurs similaires que la modification pourrait générer, suite au retour d’expérience documenté dans le fichier, afin de les éviter.
+   - **Vérifier qu’aucune variable d’état ou de hook n’est utilisée avant sa déclaration, y compris dans les dépendances d’autres hooks (ex : tableau de dépendances de useEffect).**
+3. Créer la checklist de vérification/point de vigilance, informer l’utilisateur que l’étape a été réalisée et indiquer l’impact attendu.
+
+_EXEMPLE :_
+- Problème potentiel useState appelé dans un if : vérifier partout qu’aucun hook ne l’est.
+- Anomalie rollback 20/11/2025 : double déclaration de useEffect ➔ contrôle obligatoire.
+
+---
+
+### Etape 7 — **Proposition de rollback**
+_Pour tout risque ou anomalie détecté :_
+- Décrire l’action de rollback, son contexte (fichier, modification en cause), l’alternative sûre proposée.
+- Ajouter cette donnée dans le fichier ANOMALIE rollback : date, heure, détail complet pour traçabilité.
+- **Aucune suppression dans le fichier, toujours ajouter à la suite.**
+
+_EXEMPLE :_
+- Rollback déclenché le 22/11/2025, 12h41 — raison : apparition erreur SSR sur composant, retour à la version taguée v1.7.0.
+
+---
+
+### Etape 8 — **Rapport Markdown Copilot**
+1. Générer un rapport structuré AVANT et APRÈS toute modification (structure, fonctions, hooks, changements, etc.).
+2. Ce rapport doit permettre une validation éclairée, claire et synthétique.
+3. À valider par l’utilisateur avant code.
+
+_EXEMPLE :_
+#### AVANT
+- useState non importé, déclaration dans bloc conditionnel
+- debugInfo non initialisé
+
+#### APRÈS
+- useState importé en haut
+- debugInfo initialisé avant tout usage
+- Plus d’erreur de compilation
+
+---
+
+### Etape 9 — **Validation explicite de l’utilisateur (OBLIGATOIRE)**
+- [ ] Plan validé par l’utilisateur à la date : ___
+
+---
+
+## 📝 **EXEMPLE DE TÂCHE DÉTAILLÉE**
+
+### Titre de la tâche  
+Enrichir `/pages/preparation-jeune.js` pour intégrer la progression réelle et une synthèse personnalisée
+
+**Description**  
+Permettre à l’utilisateur de suivre sa progression, valider chaque critère, personnaliser le message final, et voir une synthèse claire à la fin (respect stricte de la séparation initialisation/logique/handler/rendu).
+
+**Fichiers concernés**
+- `/pages/preparation-jeune.js`
+- `/components/SynthesePreparation.js`
+
+**Audit des risques**
+- Régression sur la logique d’éligibilité
+- Perte de données ou de notifications
+- Conflit avec l’existant sur les hooks de sauvegarde
+- Potentiel problème SSR si useEffect mal placé  
+- Non-respect du flow initialisation ➔ logique ➔ handler ➔ rendu  
+- [En cas de risque] : rollback automatique, rapport détaillé dans `ANOMALIE rollback`, avec heure
+
+**Checklist stricte**  
+- [ ] Lecture complète du composant et de tous les hooks actuels
+- [ ] Initialisation de tous les nouveaux hooks/états en début de composant
+- [ ] Ajout de la logique métier (synthèse) après initialisation, sans écraser l’existant
+- [ ] Handlers/fonctions (onChange, onComplete) déclarés avant leur utilisation dans le rendu
+- [ ] Zéro doublon, tout hook déclaré une fois
+- [ ] Test sur tous les cas limites (ex : progression à 100 % dès le début, pas de progression…)
+- [ ] Aucun comportement supprimé ou modifié sans relecture intégrale et rapport
+- [ ] Rapport Markdown avant/après code généré
+- [ ] Validation utilisateur explicitement requise avant commit
+
+**Contrôles qualité**
+- Test sauvegarde, restauration, accessibilité, non-régression, cohérence UI, test multi-device
+
+**Mise à jour de l’avancement**
+- [x] Non commencé | [ ] En cours | [ ] Terminé
+- Progression : 0 %
+- Historique : 22/11/2025, démarrage
+
+---
+
+# 🟢 Amélioration continue Copilot
+
+- Toujours relier explicitement chaque action utilisateur (ex : validation de la modale) à la mise à jour des états métier (activation, initialisation des critères, affichage dynamique).
+- **Relecture manuelle obligatoire** à chaque étape : ne pas supposer que la mémoire Copilot suffit, lecture ligne à ligne humaine imposée.
+- Vérifier systématiquement que chaque étape du plan est traduite en code et testée dans le workflow réel (affichage, activation, réinitialisation, feedback).
+- Après chaque modification, tester le parcours complet utilisateur et documenter le résultat (capture, rapport d’exécution).
+- Ne jamais supposer qu’un état est synchronisé sans vérification concrète (affichage, console, tests).
+- Ajouter un contrôle visuel ou un feedback à chaque action clé pour garantir la conformité UX et métier.
+- Documenter toute anomalie ou écart dans le fichier dédié et proposer immédiatement une correction ou un rollback (ajout à la fin du fichier, jamais suppression).
+
+- Ajout systématique d’une étape “vérification des déclarations de variables et exports” dans le contrôle qualité.
+- Utilisation d’outils de linting et d’analyse statique pour détecter les redéfinitions et conflits.
+- Documentation de chaque correction d’anomalie, même hors du scope direct de l’enrichissement.
+- Relire le plan et le template avant chaque implémentation pour s’assurer que toutes les étapes sont respectées.
+- Se parler à soi-même (Copilot/humain) : « Ai-je bien relié chaque étape du plan au code ? Ai-je testé le workflow complet ? Ai-je documenté chaque action et chaque anomalie ? »
+
+**Rollback automatique (si nécessaire)**
+- Inversion immédiate du code (rollback Git)
+- Signalement fichier ANOMALIE rollback (date/heure), détail impact, **ajout en fin de fichier uniquement**
+- Proposition alternative si risque
+
+**Rapport Markdown Copilot** (date/heure)
+- Rapport initial, et rapport après modif, détaillant changements dans chaque section (initialisation, logique, handlers, rendu)
+- Toujours relier explicitement chaque action utilisateur (ex : validation de la modale) à la mise à jour des états métier (activation, initialisation des critères, affichage dynamique).
+- Vérifier systématiquement que chaque étape du plan est traduite en code et testée dans le workflow réel (affichage, activation, réinitialisation, feedback).
+- Après chaque modification, tester le parcours complet utilisateur et documenter le résultat (capture, rapport d’exécution).
+- Ne jamais supposer qu’un état est synchronisé sans vérification concrète (affichage, console, tests).
+- Ajouter un contrôle visuel ou un feedback à chaque action clé pour garantir la conformité UX et métier.
+- Documenter toute anomalie ou écart dans le fichier dédié et proposer immédiatement une correction ou un rollback (ajout à la fin du fichier, jamais suppression).
+- Relire le plan et le template avant chaque implémentation pour s’assurer que toutes les étapes sont respectées.
+- **Relecture manuelle systématique, pas de confiance "mémoire IA".**
+
+---
+
+**Validation**
+- [ ] Plan validé par l’utilisateur à la date : ___
+
+**⚠️ Copilot NE PEUT PAS générer de code avant validation explicite du plan, et doit se conformer à cette checklist/détail à CHAQUE tâche.**
+New regle stricte ! Faire une deuxieme lecture de la template comparé avec le plan d implmentation crée pour la mission en cours, identifier les ecart et informer l utilisateur dans la conversation afin de s'assurer que chaque etape du plan a bien été respecté ensuite demander a l utilisateur quoi faire pour poursuivre 
