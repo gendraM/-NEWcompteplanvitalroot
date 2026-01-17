@@ -6,7 +6,7 @@ import referentielAliments from '../data/referentiel';
 import { TYPES_EXTRAS, detecterTypeExtra, getOptionsExtras } from '../lib/extras';
 import useUserReferentiel from '../lib/useUserReferentiel';
 import FormAjoutAliment from './FormAjoutAliment';
-import foodsUser from '../data/foods_user';
+// import foodsUser from '../data/foods_user';
 // import FlipNumbers from 'react-flip-numbers'
 
 // 🐛 DEBUG: Vérifier le référentiel chargé
@@ -77,7 +77,7 @@ export default function RepasBloc({
   kcalPrevu,
   onChangeChampsRepas
 }) {  // Hook Supabase avec contexte (doit être en premier)
-  const supabase = useSupabase();
+  // (supabase déjà déclaré plus bas, ne pas redéclarer ici)
   // État pour afficher le formulaire d’ajout personnalisé
   const [showFormAjoutAliment, setShowFormAjoutAliment] = useState(false);
   const [alimentPropose, setAlimentPropose] = useState('');
@@ -370,7 +370,18 @@ function getSuggestionsFromNotes(repasList) {
   // ...existing code...
 
   // DEBUG: Chargement du référentiel fusionné
-  const userId = 'demo'; // À remplacer par user_id réel (auth)
+  // Récupération de l'user_id réel via Supabase Auth
+  const supabase = useSupabase();
+  const [userId, setUserId] = useState(null);
+  useEffect(() => {
+    async function fetchUserId() {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData && userData.user && userData.user.id) {
+        setUserId(userData.user.id);
+      }
+    }
+    fetchUserId();
+  }, [supabase]);
   const { referentielComplet, referentielCustom } = useUserReferentiel(userId);
   console.log('🔍 DEBUG RepasBloc - Référentiel fusionné:', {
     nombreAliments: referentielComplet.length,
@@ -390,9 +401,19 @@ function getSuggestionsFromNotes(repasList) {
     const inputNorm = normalizeNomAliment(input);
     // On fusionne les deux référentiels, puis on filtre sur le nom
     const fusion = Array.isArray(referentielComplet) ? referentielComplet : referentielAliments;
-    return fusion.filter(alim =>
+    const suggestions = fusion.filter(alim =>
       normalizeNomAliment(alim.nom).includes(inputNorm)
     );
+    // DEBUG
+    console.log('🔍 DEBUG getSuggestions:', {
+      input,
+      inputNorm,
+      fusionLength: fusion.length,
+      suggestionsLength: suggestions.length,
+      suggestions: suggestions.map(a => a.nom),
+      fusionPreview: fusion.slice(0, 5).map(a => a.nom)
+    });
+    return suggestions;
   }
 
   // Contrôle anti-doublon lors de l'ajout custom
@@ -535,24 +556,41 @@ function getSuggestionsFromNotes(repasList) {
   }
 
   // Handler pour ajout mock d’un aliment personnalisé (avant Supabase)
-  function handleAjoutAlimentPerso(data) {
-    // Ajout dans le mock foodsUser (simulation, non persistant)
-    foodsUser.push({
-      id: foodsUser.length + 1,
-      user_id: userId,
-      ...data
-    });
-    setShowFormAjoutAliment(false); // Fermeture automatique du formulaire
-    setAliment(data.nom);
-    setSuggestionsFiltrees([]);
-    setAfficherSuggestions(false);
-    // Optionnel : message de succès
-    alert('Aliment personnalisé ajouté ! Il est maintenant disponible dans la liste.');
-    // Focus automatique sur l’input principal après fermeture (UX)
-    setTimeout(() => {
-      const input = document.querySelector('input[name="aliment"]');
-      if (input) input.focus();
-    }, 200);
+  async function handleAjoutAlimentPerso(data) {
+    try {
+      if (!userId) {
+        alert("Utilisateur non authentifié : impossible d'ajouter l'aliment personnalisé.");
+        return;
+      }
+      // Insertion dans Supabase
+      const { error } = await supabase
+        .from('referentiel_user_custom')
+        .insert([
+          {
+            user_id: userId,
+            aliment_data: data,
+            statut: 'en_attente',
+            date_ajout: new Date().toISOString()
+          }
+        ]);
+      if (error) {
+        alert('Erreur lors de l\'ajout de l\'aliment personnalisé : ' + error.message);
+        return;
+      }
+      setShowFormAjoutAliment(false); // Fermeture automatique du formulaire
+      setAliment(data.nom);
+      setSuggestionsFiltrees([]);
+      setAfficherSuggestions(false);
+      alert('Aliment personnalisé ajouté ! Il est maintenant disponible dans la liste (privé, en attente de modération).');
+      // Focus automatique sur l’input principal après fermeture (UX)
+      setTimeout(() => {
+        const input = document.querySelector('input[name="aliment"]');
+        if (input) input.focus();
+      }, 200);
+    } catch (e) {
+      alert('Erreur technique lors de l\'ajout de l\'aliment personnalisé.');
+      console.error(e);
+    }
   }
 
   return (

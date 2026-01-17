@@ -4360,3 +4360,36 @@ useEffect(() => {
     // Utiliser le state aujourdhui pour cohérence
     const today = new Date(aujourdhui);
     today
+
+    ═══════════════════════════════════════════════════════════════════════════════
+🛑 ANOMALIE 17/01/2026 — Correction Copilot RepasBloc.js (ordre des hooks) INVALIDE, rollback demandé
+═══════════════════════════════════════════════════════════════════════════════
+Date/Heure : 17 janvier 2026
+Fichier concerné : RepasBloc.js
+Sévérité : 🔴 CRITIQUE — Erreur de build bloquante (Next.js)
+
+SYMPTÔME :
+
+Build Error : "Expected ',', got 'const'"
+Runtime Error : "Cannot access 'referentielComplet' before initialization"
+Application inutilisable, autocomplétion et pré-remplissage cassés
+CAUSE :
+
+Correction Copilot visant à harmoniser le pré-remplissage pour les aliments personnalisés
+Mauvais placement des hooks (useSupabase, useUserReferentiel, useState, useEffect) en dehors du corps de la fonction composant
+Violation de la règle React : tous les hooks doivent être déclarés en haut du corps de la fonction composant
+IMPACT :
+
+Application ne compile plus (erreur de syntaxe)
+Crash runtime si build réussi
+Régression sur l'autocomplétion et le pré-remplissage des aliments personnalisés
+ACTION UTILISATEUR :
+
+Correction déclarée INVALIDE
+Rollback demandé à l'état antérieur à la correction Copilot
+Documentation de l'anomalie et de la demande de rollback à partir de la ligne 4500 du fichier
+RESPONSABILITÉ :
+
+Copilot (non-respect de la structure React, absence de test build, absence de validation utilisateur)
+═══════════════════════════════════════════════════════════════════════════════
+
