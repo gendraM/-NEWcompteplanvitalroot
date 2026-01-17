@@ -52,7 +52,9 @@ export default function FormAjoutAliment({ nomInitial = '', onSave, onCancel }) 
       return;
     }
     setErreur('');
-    onSave({ nom: autoCorrectNom(nom), categorie, sousCategorie, unite, quantite, kcal, qn, portionDefaut, marque, alternatives });
+    // Ajoute aussi kcalParUnite pour compatibilité avec le calcul automatique
+    const kcalNum = Number(kcal);
+    onSave({ nom: autoCorrectNom(nom), categorie, sousCategorie, unite, quantite, kcal: kcalNum, kcalParUnite: kcalNum, qn, portionDefaut, marque, alternatives });
   }
 
   return (

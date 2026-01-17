@@ -4393,3 +4393,36 @@ RESPONSABILITÉ :
 Copilot (non-respect de la structure React, absence de test build, absence de validation utilisateur)
 ═══════════════════════════════════════════════════════════════════════════════
 
+
+
+ — 17/01/2026
+1. Erreur de build — mauvaise position du hook useEffect
+
+Contexte : Ajout du debug useEffect dans le JSX au lieu du corps du composant.
+Impact : Erreur de compilation Next.js : “Expected '</', got '('”.
+Correction : Déplacement du useEffect dans le corps du composant, hors du JSX.
+2. Erreur de build — propriétés de style hors balise JSX
+
+Contexte : Bloc de propriétés (position, top, left, etc.) inséré en dehors d’un objet ou d’une balise JSX.
+Impact : Erreur de compilation Next.js : “Expected '</', got 'string literal (absolute, 'absolute')'”.
+Correction : Repositionnement du style dans l’attribut style={{ ... }} de la balise concernée.
+3. Erreur de build — accolade fermante isolée avant style
+
+Contexte : Présence d’une accolade fermante }} juste avant l’attribut style={{ ... }} dans le JSX.
+Impact : Erreur de compilation Next.js : “Expected '</', got '}'”.
+Correction : Suppression de l’accolade isolée, placement correct du style dans la balise JSX.
+4. Risque de non-respect du template de modification
+
+Contexte : Modifications apportées sans validation explicite d’un plan d’implémentation conforme au template.
+Impact : Risque de régression, de suppression non validée, de non-respect des étapes de sécurité et qualité.
+Action requise : Générer et valider un plan d’implémentation strict avant toute nouvelle modification.
+5. Risque d’utilisation de hooks React en dehors du corps du composant
+
+Contexte : Ajout de useEffect dans une fonction ou dans le JSX.
+Impact : Erreur de compilation, risque SSR, instabilité du composant.
+Action requise : Vérification systématique de la position des hooks, relecture manuelle avant toute modification.
+6. Risque de suppression massive non validée
+
+Contexte : Correction de code ayant pu entraîner la suppression de blocs entiers (>10 lignes) sans validation utilisateur.
+Impact : Risque de perte de fonctionnalité, non-respect du template.
+Action requise : Toujours demander validation explicite avant toute suppression importante.

@@ -97,6 +97,9 @@ export default function RepasBloc({
   const [categorie, setCategorie] = useState('');
   const [quantite, setQuantite] = useState('');
   const [kcal, setKcal] = useState('');
+  // --- DEBUG: log avant render (hors JSX)
+  // (ce log sera exécuté à chaque render, avant le return)
+  console.log('[DEBUG] Avant render champ Kcal :', kcal);
   // Champ Note pour analyse comportementale
   const [note, setNote] = useState('');
   // Auto-remplissage conditionnel des champs si repas conforme au planning ET données planifiées valides
@@ -753,6 +756,22 @@ function getSuggestionsFromNotes(repasList) {
                   key={idx}
                   onClick={() => {
                     setAliment(a.nom);
+                    // Pré-remplissage des champs à partir du référentiel complet (global + custom)
+                    const found = referentielComplet.find(alim => alim.nom && alim.nom.toLowerCase() === a.nom.toLowerCase());
+                    console.log('[DEBUG RepasBloc] Aliment sélectionné:', found);
+                    if (found) {
+                      if (found.categorie) setCategorie(found.categorie);
+                      if (found.quantite) setQuantite(String(found.quantite));
+                      // Correction : remplir Kcal avec kcal ou kcalParUnite
+                      if (found.kcalParUnite) {
+                        setKcal(String(Number(found.kcalParUnite)));
+                        console.log('[DEBUG] setKcal appelé avec (kcalParUnite):', found.kcalParUnite);
+                      } else if (found.kcal) {
+                        setKcal(String(Number(found.kcal)));
+                        console.log('[DEBUG] setKcal appelé avec (kcal):', found.kcal);
+                      }
+                      // Ajout d'autres champs si besoin (unite, portionDefaut...)
+                    }
                     setAfficherSuggestions(false);
                   }}
                   style={{
@@ -797,7 +816,8 @@ function getSuggestionsFromNotes(repasList) {
           )}
         </div>
         {(() => {
-          const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
+          // Recherche dans le référentiel complet (global + custom)
+          const found = referentielComplet.find(a => a.nom && a.nom.toLowerCase() === aliment.toLowerCase());
           return found && found.portionDefaut ? (
             <div style={{ fontSize: 12, color: '#666', marginTop: 4, marginBottom: 8 }}>
               📏 Portion recommandée : {found.portionDefaut}
@@ -830,7 +850,7 @@ function getSuggestionsFromNotes(repasList) {
         </datalist>
 
         <label>Quantité{(() => {
-          const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
+          const found = referentielComplet.find(a => a.nom && a.nom.toLowerCase() === aliment.toLowerCase());
           if (found && found.unite) {
             const uniteLabel = {
               'CS': 'cuillère(s) à soupe',
@@ -860,17 +880,18 @@ function getSuggestionsFromNotes(repasList) {
           value={kcal} 
           onChange={e => setKcal(e.target.value)}
           readOnly={(() => {
-            const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
-            return found && found.kcalParUnite && quantite;
+            const found = referentielComplet.find(a => a.nom && a.nom.toLowerCase() === aliment.toLowerCase());
+            // Autorise le calcul automatique si kcalParUnite ou kcal sont présents
+            return found && ((found.kcalParUnite || found.kcal) && quantite);
           })()}
           style={(() => {
-            const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
-            return (found && found.kcalParUnite && quantite) ? { background: '#f0f0f0' } : {};
+            const found = referentielComplet.find(a => a.nom && a.nom.toLowerCase() === aliment.toLowerCase());
+            return (found && (found.kcalParUnite || found.kcal) && quantite) ? { background: '#f0f0f0' } : {};
           })()}
         />
         {(() => {
-          const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
-          return (found && found.kcalParUnite && quantite) ? (
+          const found = referentielComplet.find(a => a.nom && a.nom.toLowerCase() === aliment.toLowerCase());
+          return (found && (found.kcalParUnite || found.kcal) && quantite) ? (
             <div style={{ fontSize: 12, color: '#4caf50', marginTop: 4 }}>
               ✨ Calculé automatiquement
             </div>
