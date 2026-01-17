@@ -997,38 +997,45 @@ export default function Suivi() {
   };
   // ----------- HANDLER DE VALIDATION DE LA SEMAINE -----------
   const handleValiderSemaine = async () => {
-      // Identification des écarts métier
-      let ecarts = [];
-      if (extrasInfo.count > currentPalier) ecarts.push(`Extras hors quota : ${extrasInfo.count} (quota : ${currentPalier})`);
-      if (scoreHebdomadaire < 80) ecarts.push(`Repas non alignés : discipline ${scoreHebdomadaire}% (<80%)`);
-      if (kcalSemaine > objectifCalorique * 7) ecarts.push(`Calories dépassées : ${kcalSemaine} kcal (> ${objectifCalorique * 7} kcal/semaine)`);
-      if (satieteMoyenne < 3) ecarts.push(`Satiété basse : ${satieteMoyenne}/5 (<3)`);
-      if (humeurMoyenne < 3) ecarts.push(`Humeur basse : ${humeurMoyenne}/5 (<3)`);
-      // Synthèse axes d’amélioration
-      const axesAmelioration = ecarts.length > 0 ? ecarts.join(' | ') : 'Aucun écart significatif, continue ainsi !';
-      // Points forts
-      let pointsFortsArr = [];
-      if (extrasInfo.count <= currentPalier) pointsFortsArr.push('Respect du quota extras');
-      if (scoreHebdomadaire >= 80) pointsFortsArr.push('Discipline repas alignés');
-      if (satieteMoyenne >= 3) pointsFortsArr.push('Bonne satiété');
-      if (humeurMoyenne >= 3) pointsFortsArr.push('Bonne humeur');
-      const pointsForts = pointsFortsArr.length > 0 ? pointsFortsArr.join(' | ') : 'Points forts à travailler.';
-      // Feedback détaillé
-      const feedbackDetaille = `Semaine du ${selectedWeekStart} : ${message}\nÉcarts : ${axesAmelioration}\nPoints forts : ${pointsForts}\nDiscipline : ${scoreHebdomadaire}%\nSatiété : ${satieteMoyenne}/5\nHumeur : ${humeurMoyenne}/5\nKcal consommées : ${kcalSemaine}`;
+
+    // Calculer la date de début de la semaine sélectionnée (toujours lundi)
+    const selectedDateObj = new Date(selectedDate);
+    const day = selectedDateObj.getDay();
+    const monday = new Date(selectedDateObj);
+    monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
+    monday.setHours(0,0,0,0);
+    const selectedWeekStart = monday.toISOString().slice(0,10);
+    // Calculer les extras de la semaine
+    const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasSemaine);
+
+    // Calculs nécessaires AVANT toute utilisation
+    // Kcal consommées sur la semaine
+    const kcalSemaine = semaineDates.reduce((acc, r) => acc + (r.kcal || 0), 0);
+    // Satiété moyenne
+    const satieteMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.satiete || 0), 0) / semaineDates.length) : 0;
+    // Humeur moyenne
+    const humeurMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.humeur || 0), 0) / semaineDates.length) : 0;
+
+    // Identification des écarts métier
+    let ecarts = [];
+    if (extrasInfo.count > currentPalier) ecarts.push(`Extras hors quota : ${extrasInfo.count} (quota : ${currentPalier})`);
+    if (scoreHebdomadaire < 80) ecarts.push(`Repas non alignés : discipline ${scoreHebdomadaire}% (<80%)`);
+    if (kcalSemaine > objectifCalorique * 7) ecarts.push(`Calories dépassées : ${kcalSemaine} kcal (> ${objectifCalorique * 7} kcal/semaine)`);
+    if (satieteMoyenne < 3) ecarts.push(`Satiété basse : ${satieteMoyenne}/5 (<3)`);
+    if (humeurMoyenne < 3) ecarts.push(`Humeur basse : ${humeurMoyenne}/5 (<3)`);
+    // Synthèse axes d’amélioration
+    const axesAmelioration = ecarts.length > 0 ? ecarts.join(' | ') : 'Aucun écart significatif, continue ainsi !';
+    // Points forts
+    let pointsFortsArr = [];
+    if (extrasInfo.count <= currentPalier) pointsFortsArr.push('Respect du quota extras');
+    if (scoreHebdomadaire >= 80) pointsFortsArr.push('Discipline repas alignés');
+    if (satieteMoyenne >= 3) pointsFortsArr.push('Bonne satiété');
+    if (humeurMoyenne >= 3) pointsFortsArr.push('Bonne humeur');
+    const pointsForts = pointsFortsArr.length > 0 ? pointsFortsArr.join(' | ') : 'Points forts à travailler.';
+    // Feedback détaillé (message sera défini plus bas après calcul)
+    let message = '';
+    let feedbackDetaille = '';
     try {
-      // Calculer la date de début de la semaine sélectionnée
-      // Calculer la date de début de semaine (toujours lundi)
-      const selectedDateObj = new Date(selectedDate);
-      const day = selectedDateObj.getDay();
-      const monday = new Date(selectedDateObj);
-      // Si le jour sélectionné est dimanche (0), on recule de 6 jours, sinon on recule de (jour-1)
-      monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
-      monday.setHours(0,0,0,0);
-      const selectedWeekStart = monday.toISOString().slice(0,10);
-
-      // Calculer les extras de la semaine
-      const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasSemaine);
-
       // Charger les semaines validées pour calculer la variation
       const { data: semainesValidees } = await supabase
         .from('semaines_validees')
@@ -1038,7 +1045,7 @@ export default function Suivi() {
       const variation = calculerVariation(extrasInfo.count, semainesValidees || [], selectedWeekStart);
 
       // Générer le message de feedback
-      const message = genererMessageFeedback(extrasInfo.count, 2);
+      message = genererMessageFeedback(extrasInfo.count, 2);
 
       // Calculs complets pour le bilan hebdomadaire
       // Kcal consommées sur la semaine
@@ -1047,6 +1054,9 @@ export default function Suivi() {
       const satieteMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.satiete || 0), 0) / semaineDates.length) : 0;
       // Humeur moyenne
       const humeurMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.humeur || 0), 0) / semaineDates.length) : 0;
+      // Score discipline hebdomadaire
+      // Feedback détaillé
+      feedbackDetaille = `Semaine du ${selectedWeekStart} : ${message}\nÉcarts : ${axesAmelioration}\nPoints forts : ${pointsForts}\nDiscipline : ${scoreHebdomadaire}%\nSatiété : ${satieteMoyenne}/5\nHumeur : ${humeurMoyenne}/5\nKcal consommées : ${kcalSemaine}`;
       // Score discipline hebdomadaire
       const scoreDiscipline = scoreHebdomadaire;
       // Points forts

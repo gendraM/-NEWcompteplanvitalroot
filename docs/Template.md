@@ -231,3 +231,41 @@ Permettre à l’utilisateur de suivre sa progression, valider chaque critère, 
 
 **⚠️ Copilot NE PEUT PAS générer de code avant validation explicite du plan, et doit se conformer à cette checklist/détail à CHAQUE tâche.**
 New regle stricte ! Faire une deuxieme lecture de la template comparé avec le plan d implmentation crée pour la mission en cours, identifier les ecart et informer l utilisateur dans la conversation afin de s'assurer que chaque etape du plan a bien été respecté ensuite demander a l utilisateur quoi faire pour poursuivre 
+
+Copilot prêtre attention à cette ETAPE qui sera a affectué APRES application de la nouvelle fonctionalité c'est la verification du code implementé ! :
+
+🔎 Contrôles post-implémentation à systématiser (après chaque modification)
+1. Lecture manuelle ligne à ligne
+Relire chaque déclaration de variable, hook, fonction, et s’assurer qu’aucune n’est utilisée avant d’être initialisée.
+Vérifier que tous les hooks React sont déclarés en haut du composant, jamais dans une fonction, boucle, ou condition.
+2. Audit des dépendances et imports
+Vérifier que toutes les fonctions, hooks et variables utilisés sont bien importés et présents dans le fichier.
+Contrôler que les dépendances des hooks (tableaux de dépendances de useEffect) sont correctes et complètes.
+3. Tests d’exécution réels
+Effectuer un parcours utilisateur complet sur tous les cas d’usage : validation, annulation, navigation, etc.
+Tester les cas limites en rapport avec la fonctionnalité implémementé: validation le dimanche soir ( pour la focntionalité de bian de la semaine ), absence de données, valeurs nulles ou extrêmes.
+4. Contrôle d’erreur runtime et compilation
+Vérifier qu’aucune erreur n’apparaît dans la console (ReferenceError, TypeError, etc.).
+Lancer un build complet (si applicable) pour détecter d’éventuelles erreurs SSR ou de compilation.
+5. Feedback utilisateur
+S’assurer que chaque action utilisateur déclenche un feedback visuel (modal, snackbar, message).
+Vérifier que les messages d’erreur sont explicites et compréhensibles.
+6. Remonter chaque anomalie detecté a l utilisateur dans la conversation et proposer une solution; chaque anomalie detecté doit être enregistré dans le fichier anomalie roll back sans supression des entrée existante
+6. Rollback et traçabilité
+En cas d’anomalie, documenter immédiatement dans le fichier anomalies/rollback sans suppression des entrée déjà existante dans le fichier : date, heure, contexte, correction apportée.
+Informer l utilisateur a chaque  anomalie critique détectée; et proposer un rollback immédiat ne l'executer que si utilisateur le valide.
+7. Checklist Copilot finale
+ Tous les hooks/variables sont initialisés avant usage
+ Aucun doublon, aucune déclaration superflue
+ Aucun warning ou erreur dans la console
+ Tous les cas d’usage testés manuellement
+ Feedback utilisateur systématique
+ Documentation de toute correction ou rollback
+ Rapport Markdown avant/après modif généré
+ Validation utilisateur finale demandée
+Action à faire après chaque mission :
+
+Appliquer cette checklist stricte.
+Générer un rapport Markdown synthétique (avant/après, anomalies, corrections).
+Demander validation utilisateur finale.
+Souhaitez-vous que je génère un exemple de rapport Markdown post-contrôle pour la dernière correction ?

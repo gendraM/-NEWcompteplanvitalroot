@@ -3239,4 +3239,48 @@ ACTION CORRECTIVE GLOBALE :
 → Désormais : TOUJOURS tester dans le navigateur AVANT de valider
 → Workflow strict : Code → Build → Dev server → Browser → User validation
 
+17/01/2026 — Anomalie critique : ReferenceError sur variable non initialisée
+Fichier concerné : suivi.js
+Contexte : Lors de la validation de la semaine (fonction handleValiderSemaine), la variable kcalSemaine était utilisée avant d’être initialisée.
+Erreur rencontrée :
+Runtime ReferenceError
+kcalSemaine is not defined
+at handleValiderSemaine (pages/suivi.js:1015:5)
+Impact : Blocage total de la validation pour l’utilisateur (aucun feedback, plantage de la fonctionnalité bilan hebdo, impossibilité de valider la semaine le dimanche soir).
+Cause : Ordre d’initialisation non respecté (variable calculée après son premier usage dans la logique métier).
+Correction apportée :
+Déplacement de l’initialisation de kcalSemaine, satieteMoyenne et humeurMoyenne AVANT toute utilisation dans la fonction.
+Relecture manuelle ligne à ligne pour s’assurer qu’aucune variable n’est utilisée avant déclaration.
+Date/heure correction : 17/01/2026, immédiatement après détection.
+Traçabilité : Cette entrée doit être ajoutée à la suite du fichier anomalies/rollback, sans suppression des entrées précédentes.
+Souhaitez-vous que je génère la checklist de points de vigilance et la section rapport Markdown post-correction, comme demandé dans le template ?
 ═══════════════════════════════════════════════════════════════════════════════
+
+
+🔴 ANOMALIE CRITIQUE 17/01/2026 — ReferenceError sur variable non initialisée
+Date/Heure : 17 janvier 2026, 15:30
+Fichier concerné : suivi.js
+Sévérité : 🔴 CRITIQUE - Blocage validation utilisateur
+Contexte :
+Validation de la semaine via le bouton « Valider ma semaine » (dimanche soir, bilan hebdo)
+
+Symptômes :
+
+Affichage d’un message d’erreur rouge « Erreur lors de la validation. »
+Console navigateur :
+ReferenceError: kcalSemaine is not defined
+at handleValiderSemaine (suivi.js:1015:5)
+Cause racine :
+
+La variable kcalSemaine était utilisée avant d’être initialisée dans la fonction handleValiderSemaine.
+Ordre d’initialisation non respecté (variable calculée après son premier usage dans la logique métier).
+Correction apportée :
+
+Déplacement de l’initialisation de kcalSemaine, satieteMoyenne et humeurMoyenne AVANT toute utilisation dans la fonction.
+Relecture manuelle ligne à ligne pour s’assurer qu’aucune variable n’est utilisée avant déclaration.
+Impact :
+
+Blocage total de la validation pour l’utilisateur (aucun feedback, plantage de la fonctionnalité bilan hebdo, impossibilité de valider la semaine le dimanche soir).
+Correction appliquée immédiatement après détection.
+Traçabilité :
+
