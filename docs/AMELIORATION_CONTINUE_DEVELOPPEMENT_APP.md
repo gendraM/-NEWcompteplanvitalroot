@@ -1426,3 +1426,33 @@ useEffect(() => {
 **Prochaine revue :** À définir selon priorités projet
 
 A ajouter permettre a l utilisateur quand il saisit aliment si non exiqstant dans le referentiel de l ajouter dans le meme style que existant pour enrichissement interne du referentiel, aussi permetre la compoqition d assiette complete/ repas complet avec ajout multiple de plusieurs aliment qui apres analyse pourront aussi etre propose dans planification des repas
+
+
+anomalie a corigé constaté le 17 01 2026
+Problème principal :
+
+Le calcul dynamique des Kcal ne fonctionne que pour les aliments globaux, pas pour les aliments personnalisés (custom).
+Les hooks React (useEffect, useState, etc.) ont été mal placés lors d’une précédente correction, provoquant des erreurs de build et de runtime (voir rollback du 17/01/2026).
+Toute tentative de correction doit respecter strictement l’ordre et la position des hooks dans le composant, sans jamais les placer dans le JSX ou dans des callbacks.
+Tests et tentatives déjà réalisés :
+
+Ajout de logs pour tracer la valeur de Kcal après chaque setKcal, dans le useEffect et avant le render.
+Correction des erreurs de build liées à la mauvaise position des hooks (déplacement dans le corps du composant).
+Correction des erreurs de style (propriétés hors balise JSX, accolades mal placées).
+Vérification que le calcul dynamique des Kcal fonctionne pour les aliments globaux, mais pas pour les custom.
+Diagnostic : le useEffect de calcul dynamique ne consultait que le référentiel global (referentielAliments), pas le référentiel fusionné (referentielComplet).
+Demande utilisateur : ne pas remplacer la logique, mais l’étendre pour supporter les deux référentiels sans régression.
+Recommandations strictes :
+Toujours déclarer les hooks en haut du composant, jamais dans le JSX ou dans une fonction.
+Ne jamais supprimer de blocs importants sans validation explicite.
+Générer un plan d’implémentation avant toute modification.
+Recommandations et leçons tirées :
+
+Respect absolu de l’ordre des hooks React (useState → useEffect → logique → JSX).
+Toute lecture de localStorage ou accès à window doit être protégée par un flag client-only (isMounted).
+Ne jamais référencer une variable de state dans un useEffect avant sa déclaration.
+Toujours tester manuellement après chaque correction, car certaines erreurs ne sont pas détectées par les outils automatiques.
+Documenter chaque anomalie, rollback et correction dans le fichier d’audit.
+Prochaine étape :
+
+Générer un plan d’implémentation strict pour corriger le calcul dynamique des Kcal afin qu’il fonctionne pour les deux types d’aliments, sans casser l’existant, et valider ce plan avec l’utilisateur avant toute modification du code.
