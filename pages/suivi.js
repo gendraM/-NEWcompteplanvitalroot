@@ -416,6 +416,8 @@ function calculerEtatPastille(criteriaId, typeRepas, champsRepasEnCours) {
 
 // MAIN COMPONENT
 export default function Suivi() {
+    // State pour gestion d'erreur validation semaine (conforme template, point de vigilance)
+    const [validationError, setValidationError] = useState('');
   // ═══════════════════════════════════════════════════════════
   // RÉCUPÉRER LES PARAMÈTRES DE FILTRAGE DEPUIS L'URL
   // ═══════════════════════════════════════════════════════════
@@ -998,23 +1000,31 @@ export default function Suivi() {
   // ----------- HANDLER DE VALIDATION DE LA SEMAINE -----------
   const handleValiderSemaine = async () => {
 
-    // Calculer la date de début de la semaine sélectionnée (toujours lundi)
+    // DEBUG - début fonction
+    console.log('DEBUG handleValiderSemaine');
+    console.log('selectedDate:', selectedDate);
     const selectedDateObj = new Date(selectedDate);
     const day = selectedDateObj.getDay();
     const monday = new Date(selectedDateObj);
     monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
     monday.setHours(0,0,0,0);
     const selectedWeekStart = monday.toISOString().slice(0,10);
+    console.log('selectedWeekStart:', selectedWeekStart);
+    console.log('repasSemaine:', repasSemaine);
     // Calculer les extras de la semaine
     const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasSemaine);
-
+    console.log('extrasInfo:', extrasInfo);
+    console.log('semaineDates:', semaineDates);
     // Calculs nécessaires AVANT toute utilisation
     // Kcal consommées sur la semaine
     const kcalSemaine = semaineDates.reduce((acc, r) => acc + (r.kcal || 0), 0);
+    console.log('kcalSemaine:', kcalSemaine);
     // Satiété moyenne
     const satieteMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.satiete || 0), 0) / semaineDates.length) : 0;
+    console.log('satieteMoyenne:', satieteMoyenne);
     // Humeur moyenne
     const humeurMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.humeur || 0), 0) / semaineDates.length) : 0;
+    console.log('humeurMoyenne:', humeurMoyenne);
 
     // Identification des écarts métier
     let ecarts = [];
@@ -1035,7 +1045,10 @@ export default function Suivi() {
     // Feedback détaillé (message sera défini plus bas après calcul)
     let message = '';
     let feedbackDetaille = '';
+    setValidationError(''); // Reset avant validation
     try {
+      // ...existing code logique métier et persistance...
+      // (aucune suggestion d'action, mode test)
       // Charger les semaines validées pour calculer la variation
       const { data: semainesValidees } = await supabase
         .from('semaines_validees')
@@ -1050,23 +1063,38 @@ export default function Suivi() {
       // Calculs complets pour le bilan hebdomadaire
       // Kcal consommées sur la semaine
       const kcalSemaine = semaineDates.reduce((acc, r) => acc + (r.kcal || 0), 0);
-      // Satiété moyenne
-      const satieteMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.satiete || 0), 0) / semaineDates.length) : 0;
-      // Humeur moyenne
-      const humeurMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.humeur || 0), 0) / semaineDates.length) : 0;
+      // Satiété moyenne (robuste, jamais NaN)
+      // Mapping string -> score numérique pour la satiété
+      const satieteMapping = {
+        'oui': 5, // Satiété respectée
+        'non': 2, // Satiété dépassée
+        'pas de faim': 0 // Pas de faim
+      };
+      const satieteValues = semaineDates.map(r => satieteMapping[r.satiete] !== undefined ? satieteMapping[r.satiete] : 0);
+      // Filtrer les valeurs valides (numériques)
+      const satieteValides = satieteValues.filter(v => typeof v === 'number' && !isNaN(v));
+      const satieteSum = satieteValides.reduce((acc, v) => acc + v, 0);
+      const satieteMoyenne = satieteValides.length > 0 ? Math.round(satieteSum / satieteValides.length) : 0;
+      // Humeur moyenne (robuste, jamais NaN)
+      const humeurValues = semaineDates.map(r => Number.isFinite(r.humeur) ? r.humeur : 0);
+      const humeurSum = humeurValues.reduce((acc, v) => acc + v, 0);
+      const humeurMoyenne = humeurValues.length > 0 && humeurSum > 0 ? Math.round(humeurSum / humeurValues.length) : 0;
+      console.log('satieteValues:', satieteValues);
+      console.log('humeurValues:', humeurValues);
       // Score discipline hebdomadaire
-      // Feedback détaillé
-      feedbackDetaille = `Semaine du ${selectedWeekStart} : ${message}\nÉcarts : ${axesAmelioration}\nPoints forts : ${pointsForts}\nDiscipline : ${scoreHebdomadaire}%\nSatiété : ${satieteMoyenne}/5\nHumeur : ${humeurMoyenne}/5\nKcal consommées : ${kcalSemaine}`;
+
       // Score discipline hebdomadaire
       const scoreDiscipline = scoreHebdomadaire;
       // Points forts
       const pointsForts = `Discipline : ${scoreDiscipline}% | Satiété : ${satieteMoyenne}/5 | Humeur : ${humeurMoyenne}/5`;
       // Axes d'amélioration
       const axesAmelioration = scoreDiscipline < 80 ? 'Améliorer la régularité des repas alignés.' : 'Maintenir la discipline.';
+      // Feedback détaillé (tous champs déjà initialisés)
+      feedbackDetaille = `Semaine du ${selectedWeekStart} : ${message}\nÉcarts : ${axesAmelioration}\nPoints forts : ${pointsForts}\nDiscipline : ${scoreHebdomadaire}%\nSatiété : ${satieteMoyenne}/5\nHumeur : ${humeurMoyenne}/5\nKcal consommées : ${kcalSemaine}`;
       // Tendance mensuelle (exemple simplifié)
       const tendanceMensuelle = `Kcal semaine : ${kcalSemaine} | Extras : ${extrasInfo.count}`;
-      // Feedback détaillé
-      const feedbackDetaille = `Semaine du ${selectedWeekStart} : ${message}\nDiscipline : ${scoreDiscipline}%\nSatiété : ${satieteMoyenne}/5\nHumeur : ${humeurMoyenne}/5\nKcal consommées : ${kcalSemaine}`;
+      // Feedback détaillé synthétique
+      const feedbackDetailleSynth = `Semaine du ${selectedWeekStart} : ${message}\nDiscipline : ${scoreDiscipline}%\nSatiété : ${satieteMoyenne}/5\nHumeur : ${humeurMoyenne}/5\nKcal consommées : ${kcalSemaine}`;
 
       // Persister la validation dans Supabase avec toutes les informations, y compris les nouveaux champs
       const { error } = await supabase.from('semaines_validees').upsert([{ 
@@ -1084,14 +1112,13 @@ export default function Suivi() {
       }]);
       if (error) {
         // Gestion explicite de l'erreur de clé unique
-        if (error.message && error.message.includes('duplicate key value')) {
-          setSnackbar({ open: true, message: "Cette semaine a déjà été validée. Vous ne pouvez la valider qu'une seule fois.", type: "error" });
-        } else {
-          setSnackbar({ open: true, message: error.message || "Erreur lors de la validation.", type: "error" });
-        }
+        console.error('Erreur validation semaine:', error);
+        setValidationError(error.message || "Erreur lors de la validation.");
+        setSnackbar({ open: true, message: error.message || "Erreur lors de la validation.", type: "error" });
         return;
       }
 
+      // ...suite logique métier et affichage feedback...
       // Afficher le modal de feedback au lieu du snackbar
       const feedbackInfo = {
         weekStart: selectedWeekStart,
@@ -1128,7 +1155,9 @@ export default function Suivi() {
       });
       setWeeklyHistory(historyWithValidation);
     } catch (e) {
-      setSnackbar({ open: true, message: "Erreur lors de la validation.", type: "error" });
+      console.error('Erreur JS validation semaine:', e);
+      setValidationError(e.message || "Erreur lors de la validation.");
+      setSnackbar({ open: true, message: e.message || "Erreur lors de la validation.", type: "error" });
     }
   };
   // ----------- AFFICHAGE -----------

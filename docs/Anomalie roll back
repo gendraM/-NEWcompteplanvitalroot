@@ -3284,3 +3284,22 @@ Blocage total de la validation pour l’utilisateur (aucun feedback, plantage de
 Correction appliquée immédiatement après détection.
 Traçabilité :
 
+
+
+
+Entrées d’anomalies — rollback (conformité Template.md)
+17/01/2026 — suivi.js
+1. ReferenceError
+Contexte : Ajout de la gestion d’erreur explicite dans handleValiderSemaine.
+Erreur : setValidationError is not defined
+Cause : State non déclaré dans le composant principal.
+Correction apportée : Déclaration du state validationError/setValidationError dans le composant principal.
+2. TypeError
+Contexte : Correction précédente, déclaration du state en dehors du composant.
+Erreur : Cannot read properties of null (reading 'useState')
+Cause : Déclaration du state en dehors du composant principal (hors logique React).
+Correction apportée : Déplacement de la déclaration du state à l’intérieur du composant principal.
+─────────────────────────────────────────────
+Traçabilité : Aucune suppression, chaque entrée ajoutée à la suite.
+Impact : Correction des erreurs runtime, conformité stricte aux règles React et au template.
+
