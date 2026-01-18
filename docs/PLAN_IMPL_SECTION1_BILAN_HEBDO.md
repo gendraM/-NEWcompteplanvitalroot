@@ -147,9 +147,25 @@ Implémenter l’affichage progressif et testable de la section 1 du bilan hebdo
 ---
 
 ### Etape 5 — Mise à jour de l’avancement
-- [ ] Non commencé | [ ] En cours | [ ] Terminé
-- Avancement précis/Pourcentage réel : ____ %
-- Historique des mises à jour : ___
+- [x] Terminé (Section 1 conforme à la fiche métier, validée par l’utilisateur le 18/01/2026)
+- Avancement précis/Pourcentage réel : 100 %
+- Historique des mises à jour : Section 1 finalisée, conformité métier validée, tous les verbatims et règles dynamiques en place.
+
+---
+
+## 🚩 Clôture de la phase Section 1
+
+- La Section 1 (Bilan hebdomadaire alimentaire — diagnostic, extras, analyse dynamique) est désormais strictement conforme à la fiche métier et validée par l’utilisateur.
+- Tous les blocs, verbatims, dynamiques et alertes visuelles sont en place, sans doublon ni omission.
+- Passage à la Section 2 selon la même méthodologie (audit, plan, validation incrémentale, conformité stricte).
+
+---
+
+## 🟢 Initialisation méthodologique Section 2 — Tendance et trajectoire (7j + 14j)
+
+- Reprendre la même démarche : audit fiche métier vs existant, plan d’implémentation, étapes incrémentales, validation utilisateur à chaque étape, conformité stricte des verbatims et dynamiques.
+- Définir les blocs attendus : tendance, comparaison N/N-1, moyenne 14j, positionnement, phrase signature.
+- Préparer la checklist de conformité et les points de vigilance.
 
 ---
 

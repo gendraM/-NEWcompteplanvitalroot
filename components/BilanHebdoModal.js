@@ -19,6 +19,8 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
       return extras > 0 && kcalExtras > budgetExtras * 1.2; // Dépassement net du budget
     }
     // Bloc "En savoir plus" (toujours après les blocs chiffrés)
+    // Fonction de réduction/extension pour la section "En savoir plus"
+    const [showSavoirPlus, setShowSavoirPlus] = React.useState(false);
     function BlocEnSavoirPlus() {
       if (typeof bilan?.apportsTotaux !== 'number' || typeof bilan?.kcalExtras !== 'number' || typeof bilan?.objectifHebdo !== 'number') return null;
       const horsExtras = bilan.apportsTotaux - bilan.kcalExtras;
@@ -51,29 +53,35 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
       }
       return (
         <section style={{marginBottom: '2rem', background: bgColor, borderRadius: 10, padding: '1.1rem 1.3rem', boxShadow: '0 1px 4px #e5e7eb', border: borderColor ? `2px solid ${borderColor}` : undefined}}>
-          <h4 style={{color: '#334155', marginBottom: '0.7rem', fontSize: '1.08rem'}}>En savoir plus</h4>
-          {icon && messageAlerte && (
-            <div style={{marginBottom:'0.7rem', display:'flex', alignItems:'center'}}>{icon}{messageAlerte}</div>
+          <h4 style={{color: '#334155', marginBottom: '0.7rem', fontSize: '1.08rem', cursor:'pointer'}} onClick={() => setShowSavoirPlus(v => !v)}>
+            {showSavoirPlus ? '▼' : '►'} En savoir plus
+          </h4>
+          {showSavoirPlus && (
+            <>
+              {icon && messageAlerte && (
+                <div style={{marginBottom:'0.7rem', display:'flex', alignItems:'center'}}>{icon}{messageAlerte}</div>
+              )}
+              <div style={{marginBottom: '0.6rem'}}>
+                <b>Lecture “repas vs extras”</b><br/>
+                Sans extras, ta semaine est à <b>{horsExtras}</b> kcal.<br/>
+                Avec extras, elle monte à <b>{bilan.apportsTotaux}</b> kcal.<br/>
+                <span style={{color:'#64748b'}}>→ Ça signifie que la différence se joue majoritairement sur les extras, pas sur les repas.</span>
+              </div>
+              <div style={{marginBottom: '0.6rem'}}>
+                <b>Lecture “écart expliqué”</b><br/>
+                Objectif : <b>{bilan.objectifHebdo}</b> kcal<br/>
+                Réalisé : <b>{bilan.apportsTotaux}</b> kcal<br/>
+                <span style={{color:'#64748b'}}>→ {ecartStr} kcal : c’est le signal principal de la semaine.</span>
+              </div>
+              <div style={{marginBottom: '0.6rem'}}>
+                <b>Lecture “fréquence vs intensité”</b><br/>
+                Extras : <b>{bilan.extras}</b><br/>
+                Poids calorique extras : <b>{bilan.kcalExtras}</b> kcal<br/>
+                Budget extras : <b>{bilan.budgetExtras}</b> kcal<br/>
+                <span style={{color:'#64748b'}}>→ Cette semaine, les extras sont à la fois présents (fréquence) et très lourds (intensité).</span>
+              </div>
+            </>
           )}
-          <div style={{marginBottom: '0.6rem'}}>
-            <b>Lecture “repas vs extras”</b><br/>
-            Sans extras, ta semaine est à <b>{horsExtras}</b> kcal.<br/>
-            Avec extras, elle monte à <b>{bilan.apportsTotaux}</b> kcal.<br/>
-            <span style={{color:'#64748b'}}>→ Ça signifie que la différence se joue majoritairement sur les extras, pas sur les repas.</span>
-          </div>
-          <div style={{marginBottom: '0.6rem'}}>
-            <b>Lecture “écart expliqué”</b><br/>
-            Objectif : <b>{bilan.objectifHebdo}</b> kcal<br/>
-            Réalisé : <b>{bilan.apportsTotaux}</b> kcal<br/>
-            <span style={{color:'#64748b'}}>→ {ecartStr} kcal : c’est le signal principal de la semaine.</span>
-          </div>
-          <div style={{marginBottom: '0.6rem'}}>
-            <b>Lecture “fréquence vs intensité”</b><br/>
-            Extras : <b>{bilan.extras}</b><br/>
-            Poids calorique extras : <b>{bilan.kcalExtras}</b> kcal<br/>
-            Budget extras : <b>{bilan.budgetExtras}</b> kcal<br/>
-            <span style={{color:'#64748b'}}>→ Cette semaine, les extras sont à la fois présents (fréquence) et très lourds (intensité).</span>
-          </div>
         </section>
       );
     }
