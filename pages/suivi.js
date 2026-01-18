@@ -1001,13 +1001,9 @@ export default function Suivi() {
   };
   // ----------- HANDLER DE VALIDATION DE LA SEMAINE -----------
   const handleValiderSemaine = async () => {
-    setValidationError(''); // Reset avant validation
-    try {
-      // === INITIALISATION STRICTE DE TOUTES LES VARIABLES UTILISÉES ===
-      // Correction stricte : le bilan porte toujours sur la semaine du lundi au dimanche contenant la date sélectionnée
+      // Correction : déclarer selectedWeekStart et selectedWeekEnd avant le log
       const selectedDateObj = new Date(selectedDate);
       const day = selectedDateObj.getDay();
-      // 0 = dimanche, 1 = lundi, ..., 6 = samedi
       const monday = new Date(selectedDateObj);
       monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
       monday.setHours(0,0,0,0);
@@ -1017,21 +1013,43 @@ export default function Suivi() {
         sunday.setDate(monday.getDate() + 6);
         return sunday.toISOString().slice(0,10);
       })();
-
       // 1. Récupérer les repas de la semaine courante depuis Supabase (fraîcheur garantie)
-      // (déclaration unique, pas de redéclaration)
       const { data, error } = await supabase
         .from('repas_reels')
-        .select('*')
-        .gte('date', selectedWeekStart)
-        .lte('date', selectedWeekEnd);
-      if (error) throw new Error('Erreur chargement repas: ' + error.message);
-      const repasData = data;
-      // 1. Récupérer les repas de la semaine courante depuis Supabase (fraîcheur garantie)
-      // (supprimer toute redéclaration, utiliser la version corrigée plus haut)
+        try {
+          // === CENTRALISATION EXPERTE DE LA PÉRIODE ===
+          // 1. Calcul strict du lundi et dimanche de la semaine à partir de la date sélectionnée
+          const selectedDateObj = new Date(selectedDate);
+          const day = selectedDateObj.getDay();
+          const monday = new Date(selectedDateObj);
+          monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
+          monday.setHours(0,0,0,0);
+          const sunday = new Date(monday);
+          sunday.setDate(monday.getDate() + 6);
+          const selectedWeekStart = monday.toISOString().slice(0,10);
+          const selectedWeekEnd = sunday.toISOString().slice(0,10);
 
-      // 2. Calculs métier sur les repas récupérés
-      const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasData);
+          // 2. Récupérer tous les repas de la période (lundi-dimanche)
+          const { data, error } = await supabase
+            .from('repas_reels')
+            .select('*')
+            .gte('date', selectedWeekStart)
+            .lte('date', selectedWeekEnd);
+          if (error) throw new Error('Erreur chargement repas: ' + error.message);
+          const repasData = data;
+
+          // 3. Calcul des extras et du total kcal sur cette période
+          const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasData);
+          const totalKcal = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
+
+          // 4. Log unique et clair pour audit
+          console.log('[AUDIT EXPERT] Date sélectionnée :', selectedDate);
+          console.log('[AUDIT EXPERT] Lundi calculé :', selectedWeekStart);
+          console.log('[AUDIT EXPERT] Dimanche calculé :', selectedWeekEnd);
+          console.log('[AUDIT EXPERT] Repas filtrés (lundi-dimanche) :', repasData);
+          console.log('[AUDIT EXPERT] Extras calculés :', extrasInfo);
+          console.log('[AUDIT EXPERT] Total kcal :', totalKcal);
+      // Calculs complémentaires et mise à jour du bilan
       const history = getWeeklyExtrasHistory(repasData, selectedDate, 16);
       const semaineDates = repasData;
       const satieteMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.satiete || 0), 0) / semaineDates.length) : 0;
@@ -1077,6 +1095,7 @@ export default function Suivi() {
       setShowBilanModal(true);
       // Recharger l’historique pour mettre à jour la timeline
       const historyTimeline = getWeeklyExtrasHistory(repasData, selectedDate, 16);
+      // Rafraîchissement des semaines validées
       const { data: semainesValideesRefresh } = await supabase
         .from('semaines_validees')
         .select('weekStart, validee');

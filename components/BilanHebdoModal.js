@@ -36,11 +36,13 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
             console.log('[AUDIT MODAL] Date sélectionnée reçue :', selectedDate);
             const refDate = new Date(selectedDate);
             const day = refDate.getDay();
+            // Correction stricte : lundi de la semaine courante
             const monday = new Date(refDate);
-            monday.setDate(refDate.getDate() - (day === 0 ? 6 : day - 1));
+            monday.setDate(refDate.getDate() - ((day + 6) % 7));
             monday.setHours(0,0,0,0);
             const sunday = new Date(monday);
             sunday.setDate(monday.getDate() + 6);
+            sunday.setHours(23,59,59,999);
             const fmt = d => d.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
             return `Semaine du lundi ${fmt(monday)} au dimanche ${fmt(sunday)}`;
           })() : ''}
