@@ -15,7 +15,35 @@ dont budget extras hebdo : X kcal
 Consommé : Y kcal
 Écart : +/– Z kcal
 Nombre d’extras (et répartition par type) :
- mini / normal / 2x / majeur
+ mini / normal / 2x / majeur = non plus adapté
+nouvelle règle :
+Titre du sous bloc
+Lecture des extras de la semaine
+Ici, on regarde comment les extras se sont exprimés cette semaine :
+par leur nombre et par leur poids calorique total.
+Nombre d’extras consommés
+C’est ici que tu fais toute la différence.
+Lecture automatique parmi ces cas :
+ Cas 1 — Peu d’extras, mais très caloriques
+Cette semaine, les extras ont été peu nombreux mais très chargés.
+Leur impact vient surtout de leur intensité.
+ Ex : 1–2 extras = 600 kcal
+
+ Cas 2 — Plusieurs extras, charge modérée
+Cette semaine, les extras ont été fréquents mais répartis en petites quantités.
+Leur impact vient de l’accumulation.
+ Ex : 5–6 extras = 550 kcal
+
+ Cas 3 — Plusieurs extras, charge élevée
+Cette semaine, les extras ont été à la fois fréquents et chargés.
+La répétition et l’intensité se sont additionnées.
+Ex : 6 extras = 900 kcal
+ Cas 4 — Extras maîtrisés
+Cette semaine, le nombre et la charge des extras sont restés dans le budget prévu.
+Ex : 3 extras = 350 kcal / budget 500 kcal
+“Moments extras” : combien ont été planifiés vs impulsifs (si tu as l’info, sinon “non disponible” en mode test)
+en gros :
+
 “Moments extras” : combien ont été planifiés vs impulsifs (si tu as l’info, sinon “non disponible” en mode test)
 en gros :
  SECTION 1 — Gestion des kcal et développement du plaisir conscient

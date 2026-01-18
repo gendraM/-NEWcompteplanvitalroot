@@ -147,12 +147,16 @@ Implémenter l’affichage progressif et testable de la section 1 du bilan hebdo
 
 ## 🟢 Plan d’action étape par étape (Section 1)
 
-1. Afficher les données principales (kcal, budget extras, extras, répartition)
-2. Ajouter les calculs complémentaires (objectif hebdo, écart, tendance)
-3. Distinguer extras planifiés/impulsifs via repas conforme
-4. Générer le message motivationnel et la mini-action
-5. Tester chaque étape indépendamment
-6. Recueillir le feedback utilisateur et ajuster au fil de l’eau
+1. Afficher les données principales (kcal, budget extras, extras) dans une carte dédiée
+2. Ajouter la nouvelle sous-section "Lecture des extras de la semaine" :
+	- Titre et sous-titre pédagogiques strictement conformes à la fiche métier
+	- Affichage croisé du nombre d’extras, total kcal extras, budget extras
+	- Générer et afficher le verbatim automatique selon les cas métier (cas 1 à 4)
+3. Ajouter les calculs complémentaires (objectif hebdo, écart, tendance)
+4. Distinguer extras planifiés/impulsifs via repas conforme (ou "non disponible")
+5. Générer le message motivationnel et la mini-action pour la semaine suivante
+6. Tester chaque étape indépendamment
+7. Recueillir le feedback utilisateur et ajuster au fil de l’eau
 
 ---
 
