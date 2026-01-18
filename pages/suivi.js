@@ -1001,54 +1001,83 @@ export default function Suivi() {
   };
   // ----------- HANDLER DE VALIDATION DE LA SEMAINE -----------
   const handleValiderSemaine = async () => {
-      // Correction : déclarer selectedWeekStart et selectedWeekEnd avant le log
+    try {
+      // 1. Calcul strict du lundi et dimanche de la semaine à partir de la date sélectionnée
       const selectedDateObj = new Date(selectedDate);
       const day = selectedDateObj.getDay();
       const monday = new Date(selectedDateObj);
       monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
       monday.setHours(0,0,0,0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
       const selectedWeekStart = monday.toISOString().slice(0,10);
-      const selectedWeekEnd = (() => {
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-        return sunday.toISOString().slice(0,10);
-      })();
-      // 1. Récupérer les repas de la semaine courante depuis Supabase (fraîcheur garantie)
+      const selectedWeekEnd = sunday.toISOString().slice(0,10);
+
+      // 2. Récupérer tous les repas de la période (lundi-dimanche)
       const { data, error } = await supabase
         .from('repas_reels')
-        try {
-          // === CENTRALISATION EXPERTE DE LA PÉRIODE ===
-          // 1. Calcul strict du lundi et dimanche de la semaine à partir de la date sélectionnée
-          const selectedDateObj = new Date(selectedDate);
-          const day = selectedDateObj.getDay();
-          const monday = new Date(selectedDateObj);
-          monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
-          monday.setHours(0,0,0,0);
-          const sunday = new Date(monday);
-          sunday.setDate(monday.getDate() + 6);
-          const selectedWeekStart = monday.toISOString().slice(0,10);
-          const selectedWeekEnd = sunday.toISOString().slice(0,10);
+        .select('*')
+        .gte('date', selectedWeekStart)
+        .lte('date', selectedWeekEnd);
+      if (error) throw new Error('Erreur chargement repas: ' + error.message);
+      const repasData = data;
 
-          // 2. Récupérer tous les repas de la période (lundi-dimanche)
-          const { data, error } = await supabase
-            .from('repas_reels')
-            .select('*')
-            .gte('date', selectedWeekStart)
-            .lte('date', selectedWeekEnd);
-          if (error) throw new Error('Erreur chargement repas: ' + error.message);
-          const repasData = data;
+      // 3. Récupérer le profil utilisateur pour le calcul du budget extras (logique BudgetExtrasCard)
+      let budgetExtras = 0;
+      let objectifType = 'perte';
+      let profilComplet = null;
+      let calculs = null;
+      const { data: profil, error: profilError } = await supabase
+        .from('profil')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (!profilError && profil && profil.sexe && profil.niveau_activite) {
+        if (profil.poids_de_depart && profil.objectif) {
+          if (profil.poids_de_depart > profil.objectif) {
+            objectifType = 'perte';
+          } else if (profil.poids_de_depart < profil.objectif) {
+            objectifType = 'prise';
+          } else {
+            objectifType = 'maintien';
+          }
+        }
+        profilComplet = {
+          sexe: profil.sexe,
+          age: profil.age,
+          taille: profil.taille,
+          poids_de_depart: profil.poids_de_depart,
+          niveau_activite: profil.niveau_activite,
+          objectif: objectifType
+        };
+        calculs = calculerProfilComplet(profilComplet);
+        if (calculs && typeof calculs.budgetExtras === 'number' && !isNaN(calculs.budgetExtras)) {
+          budgetExtras = calculs.budgetExtras;
+        }
+      }
 
-          // 3. Calcul des extras et du total kcal sur cette période
-          const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasData);
-          const totalKcal = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
+      // 4. Calcul des extras et du total kcal sur cette période
+      const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasData);
+      const totalKcal = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
+      const totalKcalExtras = Array.isArray(extrasInfo.details)
+        ? extrasInfo.details.reduce((sum, r) => sum + (typeof r.kcal === 'number' && !isNaN(r.kcal) ? r.kcal : 0), 0)
+        : 0;
+      const pourcentageBudget = (budgetExtras > 0)
+        ? Math.round((totalKcalExtras / budgetExtras) * 100)
+        : 0;
 
-          // 4. Log unique et clair pour audit
-          console.log('[AUDIT EXPERT] Date sélectionnée :', selectedDate);
-          console.log('[AUDIT EXPERT] Lundi calculé :', selectedWeekStart);
-          console.log('[AUDIT EXPERT] Dimanche calculé :', selectedWeekEnd);
-          console.log('[AUDIT EXPERT] Repas filtrés (lundi-dimanche) :', repasData);
-          console.log('[AUDIT EXPERT] Extras calculés :', extrasInfo);
-          console.log('[AUDIT EXPERT] Total kcal :', totalKcal);
+      // 4. Log unique et clair pour audit
+      console.log('[DEBUG BILAN] --- AUDIT COMPLET POURCENTAGE BUDGET EXTRAS ---');
+      console.log('[DEBUG BILAN] selectedDate:', selectedDate);
+      console.log('[DEBUG BILAN] selectedWeekStart:', selectedWeekStart);
+      console.log('[DEBUG BILAN] selectedWeekEnd:', selectedWeekEnd);
+      console.log('[DEBUG BILAN] repasData:', repasData);
+      console.log('[DEBUG BILAN] extrasInfo:', extrasInfo);
+      console.log('[DEBUG BILAN] extrasInfo.details:', extrasInfo.details);
+      console.log('[DEBUG BILAN] totalKcalExtras:', totalKcalExtras);
+      console.log('[DEBUG BILAN] budgetExtras:', budgetExtras);
+      console.log('[DEBUG BILAN] pourcentageBudget:', pourcentageBudget);
       // Calculs complémentaires et mise à jour du bilan
       const history = getWeeklyExtrasHistory(repasData, selectedDate, 16);
       const semaineDates = repasData;
@@ -1071,9 +1100,10 @@ export default function Suivi() {
         objectifHebdo: calculsRouteur?.apport_calorique_cible ? calculsRouteur.apport_calorique_cible * 7 : undefined,
         verbatim: 'Ton corps évolue dans le temps. Ce bilan te montre la trajectoire, pas un jugement.',
         extras: extrasInfo.count,
-        budget: (calculsRouteur?.budget_extras && calculsRouteur.budget_extras > 0)
-          ? Math.round((extrasInfo.count / calculsRouteur.budget_extras) * 100)
-          : undefined,
+        budget: pourcentageBudget, // Pour compatibilité ancienne prop
+        budgetExtras: budgetExtras,
+        kcalExtras: totalKcalExtras,
+        pourcentageBudget: pourcentageBudget,
         pointsForts: pointsForts,
         axesAmelioration: axesAmelioration,
         tendanceMensuelle: tendanceMensuelle,

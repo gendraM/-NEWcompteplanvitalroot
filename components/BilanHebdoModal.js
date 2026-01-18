@@ -53,30 +53,36 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
         <section style={{marginBottom: '2rem', background: '#f7fafd', borderRadius: 12, padding: '1.2rem 1.5rem', boxShadow: '0 1px 6px #e0e0e0'}}>
           <h3 style={{marginBottom: '1rem', color: '#1976d2', fontSize: '1.15rem'}}>Résumé des données principales</h3>
           <ul style={{listStyle: 'none', padding: 0, margin: 0, fontSize: '1.08rem'}}>
-            {/* Champ métier : Extras consommés (verbatim métier, affichage robuste) */}
-            <li style={{marginBottom: 12}}>
-              <span>
-                Tu as consommé <span style={{fontWeight:700, color:'#e53935'}}>{
-                  typeof bilan?.extras === 'number' ? bilan.extras : '—'
-                }</span> extra{bilan?.extras > 1 ? 's' : ''} cette semaine, soit <span style={{fontWeight:700, color:'#ff9800'}}>{
-                  typeof bilan?.budget === 'number' ? bilan.budget : '—'
-                }</span>% de ton budget hebdo.
-              </span>
+            {/* Rappel du budget extras hebdo */}
+            <li style={{marginBottom: 8}}>
+              <span style={{fontWeight:600}}>Budget extras hebdo&nbsp;:</span> <span style={{fontWeight:700, color:'#1976d2'}}>{typeof bilan?.budgetExtras === 'number' ? bilan.budgetExtras : '—'}</span> kcal
             </li>
-            {/* Champ métier : Calories totales (séparées sur deux lignes) */}
-            <li style={{marginBottom: 6}}>
-              <span>
-                Calories consommées&nbsp;: <span style={{fontWeight:700, color:'#1976d2'}}>{
-                  typeof bilan?.apportsTotaux === 'number' ? bilan.apportsTotaux : '—'
-                }</span> kcal
-              </span>
+            {/* Total kcal consommés via extras */}
+            <li style={{marginBottom: 8}}>
+              <span style={{fontWeight:600}}>Total consommé via extras&nbsp;:</span> <span style={{fontWeight:700, color:'#ff9800'}}>{typeof bilan?.kcalExtras === 'number' ? bilan.kcalExtras : '—'}</span> kcal
             </li>
-            <li style={{marginBottom: 12}}>
-              <span>
-                Objectif hebdomadaire&nbsp;: <span style={{fontWeight:700}}>{
-                  typeof bilan?.objectifHebdo === 'number' ? bilan.objectifHebdo : '—'
-                }</span> kcal
-              </span>
+            {/* Nombre d'extras et % du budget extras */}
+            <li style={{marginBottom: 8}}>
+              <span style={{fontWeight:600}}>Tu as consommé&nbsp;:</span> <span style={{fontWeight:700, color:'#e53935'}}>{typeof bilan?.extras === 'number' ? bilan.extras : '—'}</span> extra{bilan?.extras > 1 ? 's' : ''} cette semaine, soit <span style={{fontWeight:700, color:'#e53935'}}>{typeof bilan?.pourcentageBudget === 'number' ? bilan.pourcentageBudget : '—'}</span>% de ton budget extras
+            </li>
+            {/* Calories totales consommées (avec et hors extras) */}
+            <li style={{marginBottom: 8}}>
+              <span style={{fontWeight:600}}>Calories consommées (hors extras)&nbsp;:</span> <span style={{fontWeight:700, color:'#1976d2'}}>{
+                typeof bilan?.apportsTotaux === 'number' && typeof bilan?.kcalExtras === 'number'
+                  ? (bilan.apportsTotaux - bilan.kcalExtras)
+                  : '—'
+              }</span> kcal
+            </li>
+            <li style={{marginBottom: 8}}>
+              <span style={{fontWeight:600}}>Calories consommées (total avec extras)&nbsp;:</span> <span style={{fontWeight:700, color:'#1976d2'}}>{
+                typeof bilan?.apportsTotaux === 'number' ? bilan.apportsTotaux : '—'
+              }</span> kcal
+            </li>
+            {/* Objectif hebdomadaire (incluant extras) */}
+            <li style={{marginBottom: 8}}>
+              <span style={{fontWeight:600}}>Objectif hebdomadaire (incluant extras)&nbsp;:</span> <span style={{fontWeight:700}}>{
+                typeof bilan?.objectifHebdo === 'number' ? bilan.objectifHebdo : '—'
+              }</span> kcal
             </li>
           </ul>
         </section>

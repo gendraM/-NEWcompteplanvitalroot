@@ -1,0 +1,163 @@
+# Procédure à Suivre Automatiquement par Copilot pour Identifier et Résoudre des Anomalies avec des Logs
+
+Ce document explique à Copilot comment générer des logs sûrs et pertinents afin d’aider à diagnostiquer des anomalies dans l’application **sans introduire de nouvelles erreurs**.
+
+---
+
+## 1. Rôles et Objectifs
+
+Lorsque tu es chargé d’ajouter des logs pour m’aider à identifier une anomalie, tu dois :
+
+1. **Ne pas modifier le comportement existant du code.**
+   - Ne **supprime**, **ne déplace** ni **ne changes** les structures ou la logique du code.
+   - Ajoute uniquement des lignes pour enregistrer les informations nécessaires.
+
+2. **Créer des messages de log clairs et lisibles.**
+   - Chaque log doit inclure un message décrivant son objectif.
+   - Les valeurs des variables pertinentes doivent être clairement affichées.
+
+3. **Rester sécurisé :** N’ajoute aucune information sensible dans les logs.
+
+---
+
+## 2. Directives à Respecter
+
+Lorsque tu ajoutes des logs dans une partie du code, suis les *étapes strictes* suivantes :
+
+### Étape 1 : Vérifie la Fonctionnalité à Journaliser
+- Identifie uniquement les étapes importantes de la fonctionnalité donnée.
+- Pour chaque étape clé :
+  1. Ajoute un log indiquant **le début de l’étape.**
+  2. Capture les valeurs importantes utilisées à cette étape.
+  3. Si une erreur peut survenir, ajoute un log pour enregistrer l’erreur.
+
+### Étape 2 : N’Effectue Aucune Action Dangereuse
+- **Ne modifie pas** ou **n’interromps pas** la logique du programme.
+- **Ne renomme pas** les variables ou fonctions existantes.
+- Ajoute uniquement des instructions de log qui :
+  - N'interfèrent pas avec l’exécution.
+  - Restent lisibles et faciles à supprimer si nécessaire.
+
+> 👉 **Exemple correct :**
+> ```python
+> # Log au début de la fonction
+> print("Début de la fonction processData")
+> ```
+
+> ❌ **Exemple incorrect (introduction d’erreur) :**
+> ```python
+> input_data = None  # (Copilot ne doit pas introduire une variable inexistante)
+> print(f"Valeur : {input_data}")
+> ```
+
+### Étape 3 : Règles Générales pour les Logs
+Lorsque tu ajoutes un log, respecte la structure suivante :
+1. **Un commentaire explicatif au-dessus** de chaque log.
+2. **Un message clair dans le log**, par exemple :
+   ```python
+   print("Étape 1 : données d'entrée vérifiées")
+   ```
+
+3. **N’enregistre rien de sensible !** Vérifie que les logs n'affichent pas de :
+   - Mots de passe.
+   - Clés API ou jetons secrets.
+   - Informations confidentielles des utilisateurs.
+
+### Étape 4 : Vérifie les Blocs de Code où les Logs Sont Ajoutés
+- Ajoute les logs :
+  - **Avant une étape critique :** Pour confirmer qu’elle s’exécute.
+  - **Après une étape clé :** Pour capturer les résultats de l’étape.
+  - **Dans les blocs d’erreur (`catch`, `except`, etc.) :** Pour diagnostiquer les problèmes.
+
+---
+
+## 3. Conventions Par Langage
+
+### Pour Python
+1. Utilise des messages clairs et formatés :
+   ```python
+   print("Début de la fonction processData")
+   print(f"Valeur de input_data : {input_data}")
+   ```
+
+2. Dans un bloc d’exception :
+   ```python
+   except Exception as e:
+       print(f"Erreur détectée dans processData : {e}")
+   ```
+
+### Pour JavaScript
+1. Utilise `console.log` pour suivre les étapes principales :
+   ```javascript
+   console.log("Initialisation de fetchData");
+   console.log(`Valeur reçue : ${response.data}`);
+   ```
+
+2. Dans un bloc `catch` :
+   ```javascript
+   catch (error) {
+       console.error(`Erreur dans l'appel API : ${error.message}`);
+   }
+   ```
+
+### Pour d’autres langages
+- Suis les mêmes conventions et ajoute des messages lisibles en utilisant la fonction de log native.
+
+---
+
+## 4. Structure Demandée des Logs
+
+### Exemple Acceptable dans Toute Fonctionnalité
+Voici un exemple générique que tu dois suivre pour ajouter des logs dans une méthode ou fonction donnée.
+
+#### Fonction existante :
+```python
+def processData(input_data):
+    processed_data = process_input(input_data)
+    return processed_data
+```
+
+#### Fonction après ajout de logs :
+```python
+def processData(input_data):
+    # Log au début de la fonction
+    print("Début de la fonction processData")
+
+    try:
+        # Log des données d'entrée
+        print(f"Données d'entrée : {input_data}")
+
+        # Simulation du traitement
+        processed_data = process_input(input_data)
+
+        # Log des données traitées avec succès
+        print(f"Données traitées : {processed_data}")
+
+        return processed_data
+    except Exception as e:
+        # Log d'erreur si une exception est levée
+        print(f"Erreur dans processData : {e}")
+        raise
+```
+
+---
+
+## 5. Instructions Particulières
+
+Lorsqu’un utilisateur te demande :
+1. Concentre-toi UNIQUEMENT sur l’ajout des logs nécessaires à résoudre l’anomalie.
+2. Indique explicitement chaque étape, chaque valeur, et capture toutes les erreurs potentiellement levées.
+3. **Sois minimaliste :** ne surcharge pas le code avec des logs inutiles.
+
+---
+
+## 6. Vérification et Amélioration
+
+Avant de conclure, vérifie :
+- Que tous les logs sont correctement placés et lisibles.
+- Que tes modifications ne changent pas la logique existante de l’application.
+- Que l'utilisateur peut tester rapidement et collecter les informations dans la console.
+
+---
+
+Avec ces instructions, tu (Copilot) peux générer des logs utiles et sans risques pour aider à diagnostiquer efficacement les anomalies.
