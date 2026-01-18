@@ -1004,40 +1004,58 @@ export default function Suivi() {
     setValidationError(''); // Reset avant validation
     try {
       // === INITIALISATION STRICTE DE TOUTES LES VARIABLES UTILISÉES ===
-      // (Aucune ReferenceError possible, même placeholders)
+      // Correction stricte : le bilan porte toujours sur la semaine du lundi au dimanche contenant la date sélectionnée
       const selectedDateObj = new Date(selectedDate);
       const day = selectedDateObj.getDay();
+      // 0 = dimanche, 1 = lundi, ..., 6 = samedi
       const monday = new Date(selectedDateObj);
       monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
       monday.setHours(0,0,0,0);
       const selectedWeekStart = monday.toISOString().slice(0,10);
+      const selectedWeekEnd = (() => {
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        return sunday.toISOString().slice(0,10);
+      })();
 
-      // Extras de la semaine
-      const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasSemaine);
-      // Historique pour graphiques
-      const history = getWeeklyExtrasHistory(repasSemaine, selectedDate, 16);
-      // Satiété et humeur moyennes
+      // 1. Récupérer les repas de la semaine courante depuis Supabase (fraîcheur garantie)
+      // (déclaration unique, pas de redéclaration)
+      const { data, error } = await supabase
+        .from('repas_reels')
+        .select('*')
+        .gte('date', selectedWeekStart)
+        .lte('date', selectedWeekEnd);
+      if (error) throw new Error('Erreur chargement repas: ' + error.message);
+      const repasData = data;
+      // 1. Récupérer les repas de la semaine courante depuis Supabase (fraîcheur garantie)
+      // (supprimer toute redéclaration, utiliser la version corrigée plus haut)
+
+      // 2. Calculs métier sur les repas récupérés
+      const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasData);
+      const history = getWeeklyExtrasHistory(repasData, selectedDate, 16);
+      const semaineDates = repasData;
       const satieteMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.satiete || 0), 0) / semaineDates.length) : 0;
       const humeurMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.humeur || 0), 0) / semaineDates.length) : 0;
-      // Déclarations métier strictes pour le bilan (placeholders à remplacer par la logique réelle)
       const pointsForts = 'À calculer selon la logique métier';
       const axesAmelioration = 'À calculer selon la logique métier';
       const tendanceMensuelle = 'À calculer selon la logique métier';
       const feedbackDetaille = 'À calculer selon la logique métier';
       const feedbackDetailleSynth = 'À calculer selon la logique métier';
+      const repartitionTypes = calculerRepartitionTypes(repasData);
+      const repartitionMoments = calculerRepartitionMoments(repasData);
+      const { joursRespectes, joursNonRespectes } = calculerJoursRespectes(repasData, selectedWeekStart);
 
-      // Calcul dynamique des répartitions extras (types et moments)
-      const repartitionTypes = calculerRepartitionTypes(repasSemaine);
-      const repartitionMoments = calculerRepartitionMoments(repasSemaine);
-
-      // Calcul dynamique des jours respectés/non respectés
-      const { joursRespectes, joursNonRespectes } = calculerJoursRespectes(repasSemaine, selectedWeekStart);
-
+      // Centralisation stricte : transmettre la date sélectionnée (selectedDate) au bilan
+      console.log('[AUDIT] Date sélectionnée pour bilan :', selectedDate);
       setBilanData({
-        periode: selectedWeekStart,
+        periode: selectedDate, // On transmet la date sélectionnée, pas le lundi calculé
+        apportsTotaux: repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0),
+        objectifHebdo: calculsRouteur?.apport_calorique_cible ? calculsRouteur.apport_calorique_cible * 7 : undefined,
         verbatim: 'Ton corps évolue dans le temps. Ce bilan te montre la trajectoire, pas un jugement.',
         extras: extrasInfo.count,
-        budget: calculsRouteur?.budget_extras ? Math.round((extrasInfo.count / calculsRouteur.budget_extras) * 100) : undefined,
+        budget: (calculsRouteur?.budget_extras && calculsRouteur.budget_extras > 0)
+          ? Math.round((extrasInfo.count / calculsRouteur.budget_extras) * 100)
+          : undefined,
         pointsForts: pointsForts,
         axesAmelioration: axesAmelioration,
         tendanceMensuelle: tendanceMensuelle,
@@ -1058,7 +1076,7 @@ export default function Suivi() {
       });
       setShowBilanModal(true);
       // Recharger l’historique pour mettre à jour la timeline
-      const historyTimeline = getWeeklyExtrasHistory(repasSemaine, selectedDate, 16);
+      const historyTimeline = getWeeklyExtrasHistory(repasData, selectedDate, 16);
       const { data: semainesValideesRefresh } = await supabase
         .from('semaines_validees')
         .select('weekStart, validee');
@@ -1927,6 +1945,7 @@ export default function Suivi() {
         open={showBilanModal}
         onClose={() => setShowBilanModal(false)}
         bilan={bilanData}
+        selectedDate={selectedDate} // On transmet explicitement la date sélectionnée
         onLearnMore={() => {
           setShowBilanModal(false);
           // TODO: ouvrir la section "en savoir plus" ou naviguer vers l’historique détaillé

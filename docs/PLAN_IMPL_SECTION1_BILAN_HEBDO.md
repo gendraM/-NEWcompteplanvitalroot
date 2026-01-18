@@ -1,3 +1,31 @@
+# Structure visuelle attendue pour la Section 1 (modale bilan hebdo)
+
+## Structure de base à respecter (avant ajout des champs métier)
+
+- Titre principal en haut de la modale : **Bilan hebdomadaire**
+- Carte/encadré visuel pour la section 1 (fond clair, arrondi, padding, ombre légère)
+- Sous-titre dans la carte : **Résumé des données principales**
+- Liste des champs métier à afficher dans la carte, un par un, avec :
+	- Label explicite (ex : "Apports totaux (kcal)")
+	- Valeur bien visible, couleur différenciée si besoin
+	- Espacement/marge entre chaque ligne
+
+## Exemple de rendu visuel attendu (wireframe simplifié)
+
+--------------------------------------
+|  Bilan hebdomadaire                |
+|  --------------------------------  |
+|  | Résumé des données principales | |
+|  |  Apports totaux (kcal) :  ...  | |
+|  |  Budget extras (%) :       ...  | |
+|  |  Extras consommés :        ...  | |
+|  |  Répartition extras :      ...  | |
+|  --------------------------------  |
+--------------------------------------
+
+Chaque champ métier doit être ajouté/corrigé dans cette carte, un par un, en respectant la validation utilisateur à chaque étape.
+
+
 # 🟢 PLAN D’IMPLÉMENTATION — Bilan Hebdomadaire Alimentaire (Section 1)
 
 ## Titre de la tâche
