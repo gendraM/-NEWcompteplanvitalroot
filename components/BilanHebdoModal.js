@@ -80,20 +80,83 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
     // Bloc "Lecture de la semaine" (diagnostic global)
     function BlocLectureSemaine() {
       const { apportsTotaux, objectifHebdo, kcalExtras, extras, budgetExtras } = bilan || {};
-      if (!isEcartSignificatif(apportsTotaux, objectifHebdo)) return null;
+      // Log au début de la fonction
+      console.log('[LectureSemaine] Début BlocLectureSemaine');
+      // Log des valeurs d'entrée
+      console.log('[LectureSemaine] apportsTotaux:', apportsTotaux, 'objectifHebdo:', objectifHebdo, 'kcalExtras:', kcalExtras, 'extras:', extras, 'budgetExtras:', budgetExtras);
+      if (
+        typeof apportsTotaux !== 'number' ||
+        typeof objectifHebdo !== 'number' ||
+        typeof kcalExtras !== 'number' ||
+        typeof extras !== 'number' ||
+        typeof budgetExtras !== 'number'
+      ) {
+        console.log('[LectureSemaine] Données manquantes, bloc non affiché');
+        return null;
+      }
+
+      // Génération séquentielle des phrases métier validées
+      const phrases = [];
+      const horsExtras = apportsTotaux - kcalExtras;
+      const ecartSignificatif = Math.abs(apportsTotaux - objectifHebdo) > 200;
+      const extrasResponsables = Math.abs(horsExtras - objectifHebdo) < 150 && ecartSignificatif;
+      const extrasHorsBudget = extras > 0 && kcalExtras > budgetExtras * 1.2;
+      const causeUniqueExtras = extrasResponsables && extrasHorsBudget;
+      const causesMultiples = Math.abs(horsExtras - objectifHebdo) > 200 && extrasHorsBudget;
+      // Log des conditions métier
+      console.log('[LectureSemaine] horsExtras:', horsExtras);
+      console.log('[LectureSemaine] ecartSignificatif:', ecartSignificatif);
+      console.log('[LectureSemaine] extrasResponsables:', extrasResponsables);
+      console.log('[LectureSemaine] extrasHorsBudget:', extrasHorsBudget);
+      console.log('[LectureSemaine] causeUniqueExtras:', causeUniqueExtras);
+      console.log('[LectureSemaine] causesMultiples:', causesMultiples);
+
+      // Bloc complet strict métier (4 phrases) si cause unique extras
+      if (causeUniqueExtras) {
+        console.log('[LectureSemaine] Cas causeUniqueExtras (séquence complète)');
+        phrases.push('Cette semaine, la trajectoire globale s’éloigne de l’objectif hebdomadaire.');
+        phrases.push('L’écart constaté ne s’explique pas par les repas hors extras, qui restent proches du cadre prévu, mais par le poids cumulé des extras sur la semaine.');
+        phrases.push('Le nombre d’extras consommés, combiné à leur charge calorique totale, place cette semaine hors zone d’équilibre par rapport au budget fixé.');
+      }
+      // Sinon, séquence dynamique selon la réalité
+      else {
+        if (ecartSignificatif) {
+          console.log('[LectureSemaine] Cas ecartSignificatif');
+          phrases.push('Cette semaine, la trajectoire globale s’éloigne de l’objectif hebdomadaire.');
+        } else {
+          console.log('[LectureSemaine] Cas conformité');
+          phrases.push('Cette semaine reste proche de l’objectif, bravo, continue sur cette lancée.');
+        }
+        if (extrasResponsables) {
+          console.log('[LectureSemaine] Cas extrasResponsables');
+          phrases.push('L’écart constaté ne s’explique pas par les repas hors extras, qui restent proches du cadre prévu, mais par le poids cumulé des extras sur la semaine.');
+        } else if (Math.abs(horsExtras - objectifHebdo) > 200) {
+          console.log('[LectureSemaine] Cas repas hors cadre');
+          phrases.push('Les repas principaux de la semaine dépassent le cadre prévu : il est important de retrouver une structure plus régulière pour revenir à l’équilibre.');
+        }
+        if (extrasHorsBudget) {
+          console.log('[LectureSemaine] Cas extrasHorsBudget');
+          phrases.push('Le nombre d’extras consommés, combiné à leur charge calorique totale, place cette semaine hors zone d’équilibre par rapport au budget fixé.');
+        }
+      }
+      // Phrase d’observation fine (lecture claire/cause unique extras)
+      let phraseClair = null;
+      if (causeUniqueExtras) {
+        console.log('[LectureSemaine] Affichage phraseClair causeUniqueExtras');
+        phraseClair = <div style={{marginBottom:'0.6rem', fontWeight:600, color:'#0f172a'}}>👉 La lecture est claire : ce ne sont pas les repas qui déséquilibrent la semaine, mais la manière dont les extras se sont exprimés.</div>;
+      } else if (causesMultiples) {
+        console.log('[LectureSemaine] Affichage phraseClair causesMultiples');
+        phraseClair = <div style={{marginBottom:'0.6rem', fontWeight:600, color:'#0f172a'}}>👉 Plusieurs facteurs expliquent l’écart cette semaine : repas et extras contribuent tous deux à la situation observée.</div>;
+      }
+      // Log des phrases générées
+      console.log('[LectureSemaine] Phrases générées:', phrases);
       return (
         <section style={{marginBottom: '2rem', background: '#f1f5f9', borderRadius: 10, padding: '1.1rem 1.3rem', boxShadow: '0 1px 4px #cbd5e1'}}>
           <h4 style={{color: '#0f172a', marginBottom: '0.7rem', fontSize: '1.08rem'}}>Lecture de la semaine</h4>
-          <div style={{marginBottom: '0.6rem'}}>Cette semaine, la trajectoire globale s’éloigne de l’objectif hebdomadaire.</div>
-          {isExtrasResponsables(apportsTotaux, kcalExtras, objectifHebdo) && (
-            <div style={{marginBottom: '0.6rem'}}>L’écart constaté ne s’explique pas par les repas hors extras, qui restent proches du cadre prévu, mais par le poids cumulé des extras sur la semaine.</div>
-          )}
-          {isExtrasHorsBudget(extras, kcalExtras, budgetExtras) && (
-            <div style={{marginBottom: '0.6rem'}}>Le nombre d’extras consommés, combiné à leur charge calorique totale, place cette semaine hors zone d’équilibre par rapport au budget fixé.</div>
-          )}
-          {isExtrasResponsables(apportsTotaux, kcalExtras, objectifHebdo) && isExtrasHorsBudget(extras, kcalExtras, budgetExtras) && (
-            <div style={{marginBottom: '0.6rem', fontWeight:600}}>👉 Le constat est clair : ce ne sont pas les repas qui déséquilibrent la semaine, mais la manière dont les extras se sont exprimés.</div>
-          )}
+          {phrases.map((p, i) => (
+            <div key={i} style={{marginBottom: '0.6rem'}}>{p}</div>
+          ))}
+          {phraseClair}
         </section>
       );
     }
@@ -187,7 +250,7 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
       }}
     >
       <div className={styles.modal}>
-        {/* SECTION 1 : Données principales du bilan hebdo */}
+        {/* Titre, période, phrase pédagogique */}
         <h2 style={{marginBottom: '0.7rem', color: '#1976d2'}}>Bilan de ta semaine alimentaire</h2>
         <div style={{fontWeight: 500, color: '#444', marginBottom: '0.5rem', fontSize: '1.08rem'}}>
           {selectedDate ? (() => {
@@ -206,7 +269,9 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
         <div style={{fontStyle: 'italic', color: '#1976d2', marginBottom: '1.2rem', fontSize: '1.01rem'}}>
           Ton corps évolue dans le temps. Ce bilan te montre la trajectoire, pas un jugement.
         </div>
-        {/* SECTION 1 : Résumé des données principales (désormais en premier) */}
+        {/* Bloc diagnostic dynamique métier (Lecture de la semaine) */}
+        {BlocLectureSemaine()}
+        {/* Résumé des données principales */}
         <section style={{marginBottom: '2rem', background: '#f4f8ff', borderRadius: 12, padding: '1.2rem 1.5rem', boxShadow: '0 1px 6px #dbeafe'}}>
           <h3 style={{marginBottom: '1rem', color: '#1976d2', fontSize: '1.15rem'}}>Résumé des données principales</h3>
           <ul style={{listStyle: 'none', padding: 0, margin: 0, fontSize: '1.08rem'}}>
@@ -255,7 +320,7 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
             })()}
           </div>
         </section>
-        {/* NOUVELLE SOUS-SECTION MÉTIER : Lecture des extras de la semaine (désormais après le résumé) */}
+        {/* Lecture des extras de la semaine */}
         <section style={{marginBottom: '2rem', background: '#fffef6', borderRadius: 10, padding: '1.1rem 1.3rem', boxShadow: '0 1px 4px #fde68a'}}>
           <h3 style={{color: '#b45309', marginBottom: '0.7rem', fontSize: '1.13rem'}}>Lecture des extras de la semaine</h3>
           <div style={{fontStyle: 'italic', color: '#444', marginBottom: '0.7rem', fontSize: '1.01rem'}}>
@@ -278,10 +343,7 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
         </section>
         {/* Bloc En savoir plus (analyse croisée) */}
         {BlocEnSavoirPlus()}
-        {/* Bloc Lecture de la semaine (diagnostic global) */}
-        {BlocLectureSemaine()}
-        {/* Blocs approfondis (si conditions réunies) */}
-        {BlocApprofondi()}
+        {/* Plus de bloc approfondi en bas : tout est fusionné dans la lecture principale */}
       </div>
     </div>
   );
