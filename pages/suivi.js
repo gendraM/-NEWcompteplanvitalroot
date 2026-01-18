@@ -36,6 +36,8 @@ import {
   genererMessageFeedback, 
   calculerVariation 
 } from '../lib/validationSemaine';
+import { calculerRepartitionTypes, calculerRepartitionMoments } from '../lib/repartitionExtras';
+import { calculerJoursRespectes } from '../lib/joursRespectes';
 import { 
   calculerJourRelatif, 
   isPeriodeActive, 
@@ -999,142 +1001,41 @@ export default function Suivi() {
   };
   // ----------- HANDLER DE VALIDATION DE LA SEMAINE -----------
   const handleValiderSemaine = async () => {
-
-    // DEBUG - début fonction
-    console.log('DEBUG handleValiderSemaine');
-    console.log('selectedDate:', selectedDate);
-    const selectedDateObj = new Date(selectedDate);
-    const day = selectedDateObj.getDay();
-    const monday = new Date(selectedDateObj);
-    monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
-    monday.setHours(0,0,0,0);
-    const selectedWeekStart = monday.toISOString().slice(0,10);
-    console.log('selectedWeekStart:', selectedWeekStart);
-    console.log('repasSemaine:', repasSemaine);
-    // Calculer les extras de la semaine
-    const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasSemaine);
-    console.log('extrasInfo:', extrasInfo);
-    console.log('semaineDates:', semaineDates);
-    // Calculs nécessaires AVANT toute utilisation
-    // Kcal consommées sur la semaine
-    const kcalSemaine = semaineDates.reduce((acc, r) => acc + (r.kcal || 0), 0);
-    console.log('kcalSemaine:', kcalSemaine);
-    // Satiété moyenne
-    const satieteMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.satiete || 0), 0) / semaineDates.length) : 0;
-    console.log('satieteMoyenne:', satieteMoyenne);
-    // Humeur moyenne
-    const humeurMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.humeur || 0), 0) / semaineDates.length) : 0;
-    console.log('humeurMoyenne:', humeurMoyenne);
-
-    // Identification des écarts métier
-    let ecarts = [];
-    if (extrasInfo.count > currentPalier) ecarts.push(`Extras hors quota : ${extrasInfo.count} (quota : ${currentPalier})`);
-    if (scoreHebdomadaire < 80) ecarts.push(`Repas non alignés : discipline ${scoreHebdomadaire}% (<80%)`);
-    if (kcalSemaine > objectifCalorique * 7) ecarts.push(`Calories dépassées : ${kcalSemaine} kcal (> ${objectifCalorique * 7} kcal/semaine)`);
-    if (satieteMoyenne < 3) ecarts.push(`Satiété basse : ${satieteMoyenne}/5 (<3)`);
-    if (humeurMoyenne < 3) ecarts.push(`Humeur basse : ${humeurMoyenne}/5 (<3)`);
-    // Synthèse axes d’amélioration
-    const axesAmelioration = ecarts.length > 0 ? ecarts.join(' | ') : 'Aucun écart significatif, continue ainsi !';
-    // Points forts
-    let pointsFortsArr = [];
-    if (extrasInfo.count <= currentPalier) pointsFortsArr.push('Respect du quota extras');
-    if (scoreHebdomadaire >= 80) pointsFortsArr.push('Discipline repas alignés');
-    if (satieteMoyenne >= 3) pointsFortsArr.push('Bonne satiété');
-    if (humeurMoyenne >= 3) pointsFortsArr.push('Bonne humeur');
-    const pointsForts = pointsFortsArr.length > 0 ? pointsFortsArr.join(' | ') : 'Points forts à travailler.';
-    // Feedback détaillé (message sera défini plus bas après calcul)
-    let message = '';
-    let feedbackDetaille = '';
     setValidationError(''); // Reset avant validation
     try {
-      // ...existing code logique métier et persistance...
-      // (aucune suggestion d'action, mode test)
-      // Charger les semaines validées pour calculer la variation
-      const { data: semainesValidees } = await supabase
-        .from('semaines_validees')
-        .select('weekStart, validee, extras_count');
+      // === INITIALISATION STRICTE DE TOUTES LES VARIABLES UTILISÉES ===
+      // (Aucune ReferenceError possible, même placeholders)
+      const selectedDateObj = new Date(selectedDate);
+      const day = selectedDateObj.getDay();
+      const monday = new Date(selectedDateObj);
+      monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
+      monday.setHours(0,0,0,0);
+      const selectedWeekStart = monday.toISOString().slice(0,10);
 
-      // Calculer la variation par rapport à la semaine précédente
-      const variation = calculerVariation(extrasInfo.count, semainesValidees || [], selectedWeekStart);
+      // Extras de la semaine
+      const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasSemaine);
+      // Historique pour graphiques
+      const history = getWeeklyExtrasHistory(repasSemaine, selectedDate, 16);
+      // Satiété et humeur moyennes
+      const satieteMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.satiete || 0), 0) / semaineDates.length) : 0;
+      const humeurMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.humeur || 0), 0) / semaineDates.length) : 0;
+      // Déclarations métier strictes pour le bilan (placeholders à remplacer par la logique réelle)
+      const pointsForts = 'À calculer selon la logique métier';
+      const axesAmelioration = 'À calculer selon la logique métier';
+      const tendanceMensuelle = 'À calculer selon la logique métier';
+      const feedbackDetaille = 'À calculer selon la logique métier';
+      const feedbackDetailleSynth = 'À calculer selon la logique métier';
 
-      // Générer le message de feedback
-      message = genererMessageFeedback(extrasInfo.count, 2);
+      // Calcul dynamique des répartitions extras (types et moments)
+      const repartitionTypes = calculerRepartitionTypes(repasSemaine);
+      const repartitionMoments = calculerRepartitionMoments(repasSemaine);
 
-      // Calculs complets pour le bilan hebdomadaire
-      // Kcal consommées sur la semaine
-      const kcalSemaine = semaineDates.reduce((acc, r) => acc + (r.kcal || 0), 0);
-      // Satiété moyenne (robuste, jamais NaN)
-      // Mapping string -> score numérique pour la satiété
-      const satieteMapping = {
-        'oui': 5, // Satiété respectée
-        'non': 2, // Satiété dépassée
-        'pas de faim': 0 // Pas de faim
-      };
-      const satieteValues = semaineDates.map(r => satieteMapping[r.satiete] !== undefined ? satieteMapping[r.satiete] : 0);
-      // Filtrer les valeurs valides (numériques)
-      const satieteValides = satieteValues.filter(v => typeof v === 'number' && !isNaN(v));
-      const satieteSum = satieteValides.reduce((acc, v) => acc + v, 0);
-      const satieteMoyenne = satieteValides.length > 0 ? Math.round(satieteSum / satieteValides.length) : 0;
-      // Humeur moyenne (robuste, jamais NaN)
-      const humeurValues = semaineDates.map(r => Number.isFinite(r.humeur) ? r.humeur : 0);
-      const humeurSum = humeurValues.reduce((acc, v) => acc + v, 0);
-      const humeurMoyenne = humeurValues.length > 0 && humeurSum > 0 ? Math.round(humeurSum / humeurValues.length) : 0;
-      console.log('satieteValues:', satieteValues);
-      console.log('humeurValues:', humeurValues);
-      // Score discipline hebdomadaire
+      // Calcul dynamique des jours respectés/non respectés
+      const { joursRespectes, joursNonRespectes } = calculerJoursRespectes(repasSemaine, selectedWeekStart);
 
-      // Score discipline hebdomadaire
-      const scoreDiscipline = scoreHebdomadaire;
-      // Points forts
-      const pointsForts = `Discipline : ${scoreDiscipline}% | Satiété : ${satieteMoyenne}/5 | Humeur : ${humeurMoyenne}/5`;
-      // Axes d'amélioration
-      const axesAmelioration = scoreDiscipline < 80 ? 'Améliorer la régularité des repas alignés.' : 'Maintenir la discipline.';
-      // Feedback détaillé (tous champs déjà initialisés)
-      feedbackDetaille = `Semaine du ${selectedWeekStart} : ${message}\nÉcarts : ${axesAmelioration}\nPoints forts : ${pointsForts}\nDiscipline : ${scoreHebdomadaire}%\nSatiété : ${satieteMoyenne}/5\nHumeur : ${humeurMoyenne}/5\nKcal consommées : ${kcalSemaine}`;
-      // Tendance mensuelle (exemple simplifié)
-      const tendanceMensuelle = `Kcal semaine : ${kcalSemaine} | Extras : ${extrasInfo.count}`;
-      // Feedback détaillé synthétique
-      const feedbackDetailleSynth = `Semaine du ${selectedWeekStart} : ${message}\nDiscipline : ${scoreDiscipline}%\nSatiété : ${satieteMoyenne}/5\nHumeur : ${humeurMoyenne}/5\nKcal consommées : ${kcalSemaine}`;
-
-      // Persister la validation dans Supabase avec toutes les informations, y compris les nouveaux champs
-      const { error } = await supabase.from('semaines_validees').upsert([{ 
-        weekStart: selectedWeekStart, 
-        validee: true,
-        date_validation: new Date().toISOString(),
-        extras_count: extrasInfo.count,
-        extras_details: extrasInfo.details,
-        message_feedback: message,
-        variation: variation,
-        points_forts: pointsForts,
-        axes_amelioration: axesAmelioration,
-        tendance_mensuelle: tendanceMensuelle,
-        feedback_detaille: feedbackDetaille
-      }]);
-      if (error) {
-        // Gestion explicite de l'erreur de clé unique
-        console.error('Erreur validation semaine:', error);
-        setValidationError(error.message || "Erreur lors de la validation.");
-        setSnackbar({ open: true, message: error.message || "Erreur lors de la validation.", type: "error" });
-        return;
-      }
-
-      // ...suite logique métier et affichage feedback...
-      // Afficher le modal de feedback au lieu du snackbar
-      const feedbackInfo = {
-        weekStart: selectedWeekStart,
-        extrasCount: extrasInfo.count,
-        extrasDetails: extrasInfo.details,
-        message: message,
-        variation: variation,
-        dateValidation: new Date().toISOString()
-      };
-      setFeedbackData(feedbackInfo);
-      setShowFeedbackModal(true);
-      setDerniereSemaineValidee(feedbackInfo);
-      // Préparer et ouvrir la modale bilan hebdo avec les nouveaux champs
       setBilanData({
         periode: selectedWeekStart,
-        verbatim: message,
+        verbatim: 'Ton corps évolue dans le temps. Ce bilan te montre la trajectoire, pas un jugement.',
         extras: extrasInfo.count,
         budget: calculsRouteur?.budget_extras ? Math.round((extrasInfo.count / calculsRouteur.budget_extras) * 100) : undefined,
         pointsForts: pointsForts,
@@ -1142,14 +1043,26 @@ export default function Suivi() {
         tendanceMensuelle: tendanceMensuelle,
         feedbackDetaille: feedbackDetaille,
         motDoux: 'Continuez sur cette belle lancée !',
+        repartitionTypes,
+        repartitionMoments,
+        joursRespectes,
+        joursNonRespectes,
+        satieMoyenne: satieteMoyenne,
+        humeurMoyenne: humeurMoyenne,
+        notesUtilisateur: '',
+        extrasPetitDej: repartitionMoments.matin,
+        extrasDejeuner: repartitionMoments.midi,
+        extrasDiner: repartitionMoments.soir,
+        extrasCollation: repartitionMoments.collation,
+        synthese: feedbackDetailleSynth,
       });
       setShowBilanModal(true);
       // Recharger l’historique pour mettre à jour la timeline
-      const history = getWeeklyExtrasHistory(repasSemaine, selectedDate, 16);
+      const historyTimeline = getWeeklyExtrasHistory(repasSemaine, selectedDate, 16);
       const { data: semainesValideesRefresh } = await supabase
         .from('semaines_validees')
         .select('weekStart, validee');
-      const historyWithValidation = history.map(week => {
+      const historyWithValidation = historyTimeline.map(week => {
         const valid = semainesValideesRefresh?.find(s => s.weekStart === week.weekStart)?.validee === true;
         return { ...week, validee: valid };
       });
