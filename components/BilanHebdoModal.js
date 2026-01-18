@@ -84,7 +84,31 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
                 typeof bilan?.objectifHebdo === 'number' ? bilan.objectifHebdo : '—'
               }</span> kcal
             </li>
+            {/* Écart hebdomadaire */}
+            <li style={{marginBottom: 8}}>
+              <span style={{fontWeight:600}}>Écart hebdomadaire&nbsp;:</span> <span style={{fontWeight:700, color:'#e53935'}}>{
+                typeof bilan?.apportsTotaux === 'number' && typeof bilan?.objectifHebdo === 'number'
+                  ? ((bilan.apportsTotaux - bilan.objectifHebdo) > 0 ? '+' : '') + (bilan.apportsTotaux - bilan.objectifHebdo) + ' kcal'
+                  : '—'
+              }</span>
+            </li>
           </ul>
+          {/* Phrase de lecture automatique selon l'écart */}
+          <div style={{marginTop: '0.7rem', fontStyle: 'italic', color: '#1976d2', fontSize: '1.04rem'}}>
+            {(() => {
+              if (typeof bilan?.apportsTotaux === 'number' && typeof bilan?.objectifHebdo === 'number') {
+                const ecart = bilan.apportsTotaux - bilan.objectifHebdo;
+                if (ecart < -100) {
+                  return "Cette semaine crée un déficit énergétique. Elle va dans le sens de la perte de poids.";
+                } else if (ecart > 100) {
+                  return "Cette semaine est plus riche en énergie. Le corps aura besoin de temps pour s’ajuster.";
+                } else {
+                  return "Cette semaine est globalement en maintien. La trajectoire est stable.";
+                }
+              }
+              return null;
+            })()}
+          </div>
         </section>
       </div>
     </div>

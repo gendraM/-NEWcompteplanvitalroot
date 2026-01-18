@@ -28,6 +28,7 @@ import { useRouter } from 'next/router';
 import BandeauDefiActif from '../components/BandeauDefiActif';
 import ModalFeedbackValidation from '../components/ModalFeedbackValidation';
 import BilanHebdoModal from '../components/BilanHebdoModal';
+import { fetchRepasPeriode } from '../lib/repasUtils';
 import BudgetExtrasCard from '../components/BudgetExtrasCard';
 import { supabase } from '../lib/supabaseClient';
 import { calculerProfilComplet } from '../lib/routeurPoids';
@@ -1001,26 +1002,50 @@ export default function Suivi() {
   };
   // ----------- HANDLER DE VALIDATION DE LA SEMAINE -----------
   const handleValiderSemaine = async () => {
+    // Log début de la fonction de validation de la semaine
+    console.log('[LOG BILAN] Début handleValiderSemaine');
     try {
       // 1. Calcul strict du lundi et dimanche de la semaine à partir de la date sélectionnée
+      // Correction universelle ISO 8601 : semaine du lundi au dimanche
+      // Correction stricte métier : lundi = jour 1, dimanche = jour 7, toujours inclus
       const selectedDateObj = new Date(selectedDate);
+      // Trouver le lundi de la semaine courante (jour 1)
       const day = selectedDateObj.getDay();
+      // En JS : 0=dimanche, 1=lundi, ..., 6=samedi
+      // Pour lundi : day=1, donc diff=0 ; pour dimanche : day=0, donc diff=-6
+      const diffToMonday = day === 0 ? -6 : 1 - day;
       const monday = new Date(selectedDateObj);
-      monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
+      monday.setDate(selectedDateObj.getDate() + diffToMonday);
       monday.setHours(0,0,0,0);
+      // Dimanche = lundi + 6 jours
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23,59,59,999);
       const selectedWeekStart = monday.toISOString().slice(0,10);
       const selectedWeekEnd = sunday.toISOString().slice(0,10);
+      // Log des bornes de la semaine et des dates prises en compte
+      const joursSemaine = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        joursSemaine.push(d.toISOString().slice(0,10));
+      }
+      console.log(`[LOG BILAN] Date sélectionnée : ${selectedDate} (jour de la semaine : ${selectedDateObj.getDay()})`);
+      console.log(`[LOG BILAN] Semaine du ${selectedWeekStart} au ${selectedWeekEnd}`);
+      console.log(`[LOG BILAN] Jours pris en compte pour la semaine :`, joursSemaine);
 
-      // 2. Récupérer tous les repas de la période (lundi-dimanche)
-      const { data, error } = await supabase
-        .from('repas_reels')
-        .select('*')
-        .gte('date', selectedWeekStart)
-        .lte('date', selectedWeekEnd);
-      if (error) throw new Error('Erreur chargement repas: ' + error.message);
-      const repasData = data;
+      // 2. Récupérer tous les repas de la période (lundi-dimanche) via fonction utilitaire fiabilisée
+      const repasData = await fetchRepasPeriode(selectedWeekStart, selectedWeekEnd);
+      // Log du nombre de repas récupérés et aperçu des repas
+      console.log(`[LOG BILAN] Nombre de repas récupérés : ${repasData.length}`);
+      if (repasData.length > 0) {
+        console.log('[LOG BILAN] Liste des repas (id, date, kcal) :', repasData.map(r => ({id: r.id, date: r.date, kcal: r.kcal})));
+      } else {
+        console.log('[LOG BILAN] Aucun repas trouvé pour cette période.');
+      }
+      // Log du total kcal calculé
+      const totalKcalLog = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
+      console.log(`[LOG BILAN] Total kcal calculé sur la période : ${totalKcalLog}`);
 
       // 3. Récupérer le profil utilisateur pour le calcul du budget extras (logique BudgetExtrasCard)
       let budgetExtras = 0;
@@ -1135,7 +1160,8 @@ export default function Suivi() {
       });
       setWeeklyHistory(historyWithValidation);
     } catch (e) {
-      console.error('Erreur JS validation semaine:', e);
+      // Log d'erreur si une exception est levée
+      console.error('[LOG BILAN] Erreur JS validation semaine:', e);
       setValidationError(e.message || "Erreur lors de la validation.");
       setSnackbar({ open: true, message: e.message || "Erreur lors de la validation.", type: "error" });
     }

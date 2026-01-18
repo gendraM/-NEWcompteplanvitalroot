@@ -163,7 +163,9 @@ export default function Repas() {
   
   // ═══ NOUVEAUX FILTRES ═══
   const [filtre, setFiltre] = useState('tout'); // 'tout' | 'extras' | 'fastfood'
-  const [periode, setPeriode] = useState('tout'); // 'tout' | 'jour' | 'semaine' | 'mois'
+  const [periode, setPeriode] = useState('tout'); // 'tout' | 'jour' | 'semaine' | 'mois' | 'personnalisee'
+  const [dateDebut, setDateDebut] = useState('');
+  const [dateFin, setDateFin] = useState('');
 
   useEffect(() => {
     setObjectifCalorique(1800);
@@ -298,7 +300,7 @@ export default function Repas() {
         {/* Ligne 1 : Type de repas */}
         <div style={{ marginBottom: '0.75rem' }}>
           <div style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Type de repas :</div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               onClick={() => setFiltre('tout')}
               style={{
@@ -404,6 +406,43 @@ export default function Repas() {
             >
               Ce mois
             </button>
+            <button
+              onClick={() => setPeriode('personnalisee')}
+              style={{
+                padding: '0.5rem 1rem',
+                border: periode === 'personnalisee' ? '2px solid #1976d2' : '1px solid #ddd',
+                background: periode === 'personnalisee' ? '#1976d2' : '#fff',
+                color: periode === 'personnalisee' ? '#fff' : '#333',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontWeight: periode === 'personnalisee' ? 'bold' : 'normal'
+              }}
+            >
+              Période personnalisée
+            </button>
+            {periode === 'personnalisee' && (
+              <>
+                <input
+                  type="date"
+                  value={dateDebut}
+                  onChange={e => setDateDebut(e.target.value)}
+                  style={{ marginLeft: 8, marginRight: 4, padding: '0.3rem', borderRadius: 4, border: '1px solid #bbb' }}
+                  placeholder="Début"
+                  min="2000-01-01"
+                  max={dateFin || undefined}
+                />
+                <span>→</span>
+                <input
+                  type="date"
+                  value={dateFin}
+                  onChange={e => setDateFin(e.target.value)}
+                  style={{ marginLeft: 4, padding: '0.3rem', borderRadius: 4, border: '1px solid #bbb' }}
+                  placeholder="Fin"
+                  min={dateDebut || undefined}
+                  max={new Date().toISOString().slice(0,10)}
+                />
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -451,6 +490,8 @@ export default function Repas() {
               repasFiltres = repasFiltres.filter(r => r.date >= debutSemaine);
             } else if (periode === 'mois') {
               repasFiltres = repasFiltres.filter(r => r.date && r.date.startsWith(debutMois));
+            } else if (periode === 'personnalisee' && dateDebut && dateFin) {
+              repasFiltres = repasFiltres.filter(r => r.date >= dateDebut && r.date <= dateFin);
             }
             
             // Compteur
@@ -640,6 +681,12 @@ export default function Repas() {
                       if (dates.length === 0) return null;
                       const debut = new Date(dates[0]);
                       return debut.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+                    })())}
+                    {periode === 'personnalisee' && renderSection('PÉRIODE PERSONNALISÉE', '📅', '#1976d2', repasFiltres, (() => {
+                      if (!dateDebut || !dateFin) return null;
+                      const debut = new Date(dateDebut);
+                      const fin = new Date(dateFin);
+                      return `${debut.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} → ${fin.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
                     })())}
                   </>
                 )}

@@ -1,3 +1,24 @@
+---
+
+## Section spéciale — Mise en conformité métier (janvier 2026)
+
+### Analyse comparative fiche métier vs rendu actuel
+
+**Conforme** :
+- Titre, sous-texte, structure visuelle, principaux indicateurs (kcal, extras, budget, pourcentage).
+- Labels explicites, couleurs différenciées, ton neutre, accessibilité de base.
+
+**Écarts à traiter pour conformité totale** :
+1. Ajouter l’écart hebdomadaire (kcal consommé – objectif).
+2. Afficher la phrase de lecture automatique selon l’écart (déficit/maintien/surplus).
+3. Afficher la répartition des extras par type (mini/normal/2x/majeur) si possible.
+4. Afficher la répartition planifié/impulsif (ou "non disponible").
+5. Ajouter la lecture automatique sur la répartition des plaisirs (bien répartis/concentrés).
+6. Afficher les moments forts et fragilités (si données disponibles).
+7. Ajouter la phrase de synthèse et le message motivationnel dynamique.
+8. (Optionnel) Ajouter le bouton "Comprendre en détail".
+
+Chaque point sera traité un par un, avec validation utilisateur à chaque étape.
 # Structure visuelle attendue pour la Section 1 (modale bilan hebdo)
 
 ## Structure de base à respecter (avant ajout des champs métier)
