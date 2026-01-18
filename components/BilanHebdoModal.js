@@ -3,6 +3,131 @@ import styles from './BilanHebdoModal.module.css';
 
 // Squelette minimal pour repartir étape par étape selon le plan métier
 export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, selectedDate }) {
+    // Helpers pour les blocs d'analyse textuelle métier
+    function isEcartSignificatif(apportsTotaux, objectifHebdo) {
+      if (typeof apportsTotaux !== 'number' || typeof objectifHebdo !== 'number') return false;
+      return Math.abs(apportsTotaux - objectifHebdo) > 200; // Seuil à ajuster selon métier
+    }
+    function isExtrasResponsables(apportsTotaux, kcalExtras, objectifHebdo) {
+      if (typeof apportsTotaux !== 'number' || typeof kcalExtras !== 'number' || typeof objectifHebdo !== 'number') return false;
+      // Si hors extras, on est proche de l'objectif, mais l'écart total est dû aux extras
+      const horsExtras = apportsTotaux - kcalExtras;
+      return Math.abs(horsExtras - objectifHebdo) < 150 && Math.abs(apportsTotaux - objectifHebdo) > 200;
+    }
+    function isExtrasHorsBudget(extras, kcalExtras, budgetExtras) {
+      if (typeof extras !== 'number' || typeof kcalExtras !== 'number' || typeof budgetExtras !== 'number') return false;
+      return extras > 0 && kcalExtras > budgetExtras * 1.2; // Dépassement net du budget
+    }
+    // Bloc "En savoir plus" (toujours après les blocs chiffrés)
+    function BlocEnSavoirPlus() {
+      if (typeof bilan?.apportsTotaux !== 'number' || typeof bilan?.kcalExtras !== 'number' || typeof bilan?.objectifHebdo !== 'number') return null;
+      const horsExtras = bilan.apportsTotaux - bilan.kcalExtras;
+      const ecart = bilan.apportsTotaux - bilan.objectifHebdo;
+      const ecartStr = ecart > 0 ? `+${ecart}` : ecart;
+      // Détection dynamique des alertes et encouragements
+      const ecartSignificatif = Math.abs(ecart) > 200;
+      const extrasHorsBudget = bilan.extras > 0 && bilan.kcalExtras > bilan.budgetExtras * 1.2;
+      const extrasConformes = bilan.extras > 0 && bilan.kcalExtras <= bilan.budgetExtras;
+      // Couleur de fond dynamique
+      let bgColor = '#f9fafb';
+      let borderColor = undefined;
+      let icon = null;
+      let messageAlerte = null;
+      if (ecartSignificatif && ecart > 0) {
+        bgColor = '#fff7f7';
+        borderColor = '#e53935';
+        icon = <span style={{fontSize:'1.2em', color:'#e53935', marginRight:6}}>⚠️</span>;
+        messageAlerte = <span style={{color:'#e53935', fontWeight:600}}>Point de vigilance : la semaine dépasse nettement l’objectif.</span>;
+      } else if (extrasHorsBudget) {
+        bgColor = '#fffbe6';
+        borderColor = '#eab308';
+        icon = <span style={{fontSize:'1.2em', color:'#eab308', marginRight:6}}>⚠️</span>;
+        messageAlerte = <span style={{color:'#eab308', fontWeight:600}}>Attention : les extras dépassent largement le budget prévu.</span>;
+      } else if (extrasConformes && !ecartSignificatif) {
+        bgColor = '#f0fdf4';
+        borderColor = '#22c55e';
+        icon = <span style={{fontSize:'1.2em', color:'#22c55e', marginRight:6}}>✅</span>;
+        messageAlerte = <span style={{color:'#22c55e', fontWeight:600}}>Bravo, extras maîtrisés et semaine dans le cadre !</span>;
+      }
+      return (
+        <section style={{marginBottom: '2rem', background: bgColor, borderRadius: 10, padding: '1.1rem 1.3rem', boxShadow: '0 1px 4px #e5e7eb', border: borderColor ? `2px solid ${borderColor}` : undefined}}>
+          <h4 style={{color: '#334155', marginBottom: '0.7rem', fontSize: '1.08rem'}}>En savoir plus</h4>
+          {icon && messageAlerte && (
+            <div style={{marginBottom:'0.7rem', display:'flex', alignItems:'center'}}>{icon}{messageAlerte}</div>
+          )}
+          <div style={{marginBottom: '0.6rem'}}>
+            <b>Lecture “repas vs extras”</b><br/>
+            Sans extras, ta semaine est à <b>{horsExtras}</b> kcal.<br/>
+            Avec extras, elle monte à <b>{bilan.apportsTotaux}</b> kcal.<br/>
+            <span style={{color:'#64748b'}}>→ Ça signifie que la différence se joue majoritairement sur les extras, pas sur les repas.</span>
+          </div>
+          <div style={{marginBottom: '0.6rem'}}>
+            <b>Lecture “écart expliqué”</b><br/>
+            Objectif : <b>{bilan.objectifHebdo}</b> kcal<br/>
+            Réalisé : <b>{bilan.apportsTotaux}</b> kcal<br/>
+            <span style={{color:'#64748b'}}>→ {ecartStr} kcal : c’est le signal principal de la semaine.</span>
+          </div>
+          <div style={{marginBottom: '0.6rem'}}>
+            <b>Lecture “fréquence vs intensité”</b><br/>
+            Extras : <b>{bilan.extras}</b><br/>
+            Poids calorique extras : <b>{bilan.kcalExtras}</b> kcal<br/>
+            Budget extras : <b>{bilan.budgetExtras}</b> kcal<br/>
+            <span style={{color:'#64748b'}}>→ Cette semaine, les extras sont à la fois présents (fréquence) et très lourds (intensité).</span>
+          </div>
+        </section>
+      );
+    }
+    // Bloc "Lecture de la semaine" (diagnostic global)
+    function BlocLectureSemaine() {
+      const { apportsTotaux, objectifHebdo, kcalExtras, extras, budgetExtras } = bilan || {};
+      if (!isEcartSignificatif(apportsTotaux, objectifHebdo)) return null;
+      return (
+        <section style={{marginBottom: '2rem', background: '#f1f5f9', borderRadius: 10, padding: '1.1rem 1.3rem', boxShadow: '0 1px 4px #cbd5e1'}}>
+          <h4 style={{color: '#0f172a', marginBottom: '0.7rem', fontSize: '1.08rem'}}>Lecture de la semaine</h4>
+          <div style={{marginBottom: '0.6rem'}}>Cette semaine, la trajectoire globale s’éloigne de l’objectif hebdomadaire.</div>
+          {isExtrasResponsables(apportsTotaux, kcalExtras, objectifHebdo) && (
+            <div style={{marginBottom: '0.6rem'}}>L’écart constaté ne s’explique pas par les repas hors extras, qui restent proches du cadre prévu, mais par le poids cumulé des extras sur la semaine.</div>
+          )}
+          {isExtrasHorsBudget(extras, kcalExtras, budgetExtras) && (
+            <div style={{marginBottom: '0.6rem'}}>Le nombre d’extras consommés, combiné à leur charge calorique totale, place cette semaine hors zone d’équilibre par rapport au budget fixé.</div>
+          )}
+          {isExtrasResponsables(apportsTotaux, kcalExtras, objectifHebdo) && isExtrasHorsBudget(extras, kcalExtras, budgetExtras) && (
+            <div style={{marginBottom: '0.6rem', fontWeight:600}}>👉 Le constat est clair : ce ne sont pas les repas qui déséquilibrent la semaine, mais la manière dont les extras se sont exprimés.</div>
+          )}
+        </section>
+      );
+    }
+    // Blocs approfondis (affichage conditionnel)
+    function BlocApprofondi() {
+      const { apportsTotaux, objectifHebdo, kcalExtras, extras, budgetExtras } = bilan || {};
+      const horsExtras = apportsTotaux - kcalExtras;
+      // Répartition de l’écart
+      const showRepartition = isExtrasResponsables(apportsTotaux, kcalExtras, objectifHebdo);
+      // Fréquence vs charge
+      const showFreqCharge = extras > 0 && kcalExtras > budgetExtras * 1.2;
+      // Lecture de trajectoire (toujours affiché)
+      return (
+        <section style={{marginBottom: '2rem', background: '#f8fafc', borderRadius: 10, padding: '1.1rem 1.3rem', boxShadow: '0 1px 4px #e0e7ef'}}>
+          {showRepartition && (
+            <div style={{marginBottom: '0.6rem'}}>
+              <b>🔍 Répartition de l’écart</b><br/>
+              Sans extras, la semaine reste proche de la trajectoire cible.<br/>
+              L’ajout des extras fait basculer l’équilibre hebdomadaire au-delà de l’objectif.
+            </div>
+          )}
+          {showFreqCharge && (
+            <div style={{marginBottom: '0.6rem'}}>
+              <b>🔍 Fréquence vs charge</b><br/>
+              Le nombre d’extras consommés et leur poids calorique total indiquent une concentration des écarts sur peu d’événements, mais à fort impact.
+            </div>
+          )}
+          <div style={{marginBottom: '0.6rem'}}>
+            <b>🔍 Lecture de trajectoire</b><br/>
+            Si ce type de semaine se répète, la trajectoire hebdomadaire ne pourra pas se rééquilibrer uniquement par les repas.
+          </div>
+        </section>
+      );
+    }
   const modalRef = useRef(null);
 
   useEffect(() => {
@@ -14,24 +139,36 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
   if (!open) return null;
 
   // ...existing code...
-  // Génération du verbatim automatique métier pour la lecture des extras
+  // Génération du verbatim automatique métier pour la lecture des extras (strictement conforme aux 4 cas métier)
   function getVerbatimLectureExtras(extras, kcalExtras, budgetExtras) {
     if (typeof extras !== 'number' || typeof kcalExtras !== 'number' || typeof budgetExtras !== 'number') return '';
-    // Cas 4 : Extras maîtrisés (dans le budget, charge modérée)
-    if (extras >= 1 && kcalExtras <= budgetExtras && extras <= 4) {
-      return 'Cette semaine, le nombre et la charge des extras sont restés dans le budget prévu.';
-    }
-    // Cas 1 : Peu d’extras, très caloriques
-    if (extras <= 2 && kcalExtras > budgetExtras) {
+    // Cas 1 : Peu d’extras, mais très caloriques (1–2 extras, kcal extras > budget)
+    if (extras >= 1 && extras <= 2 && kcalExtras > budgetExtras) {
       return 'Cette semaine, les extras ont été peu nombreux mais très chargés. Leur impact vient surtout de leur intensité.';
     }
-    // Cas 2 : Plusieurs extras, charge modérée
-    if (extras >= 3 && extras <= 6 && kcalExtras > 0 && kcalExtras <= budgetExtras) {
+    // Cas 2 : Plusieurs extras, charge modérée (3–6 extras, kcal extras <= budget)
+    if (extras >= 3 && extras <= 6 && kcalExtras <= budgetExtras) {
       return 'Cette semaine, les extras ont été fréquents mais répartis en petites quantités. Leur impact vient de l’accumulation.';
     }
-    // Cas 3 : Plusieurs extras, charge élevée
+    // Cas 3 : Plusieurs extras, charge élevée (5+ extras, kcal extras > budget)
     if (extras >= 5 && kcalExtras > budgetExtras) {
       return 'Cette semaine, les extras ont été à la fois fréquents et chargés. La répétition et l’intensité se sont additionnées.';
+    }
+    // Cas 4 : Extras maîtrisés (3 extras, kcal extras <= budget)
+    if (extras === 3 && kcalExtras <= budgetExtras) {
+      return 'Cette semaine, le nombre et la charge des extras sont restés dans le budget prévu.';
+    }
+    // Cas générique : si aucun cas strict ne correspond, phrase douce
+    if (extras === 0 || kcalExtras === 0) {
+      return 'Les extras ont été très limités cette semaine, leur impact est marginal.';
+    }
+    // Cas de dépassement modéré (autres situations)
+    if (kcalExtras > budgetExtras) {
+      return 'Cette semaine, les extras ont dépassé le budget prévu. À surveiller pour retrouver l’équilibre.';
+    }
+    // Cas de maintien modéré
+    if (kcalExtras <= budgetExtras) {
+      return 'Les extras sont restés dans une zone raisonnable cette semaine.';
     }
     return '';
   }
@@ -139,6 +276,12 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
             {getVerbatimLectureExtras(bilan?.extras, bilan?.kcalExtras, bilan?.budgetExtras)}
           </div>
         </section>
+        {/* Bloc En savoir plus (analyse croisée) */}
+        {BlocEnSavoirPlus()}
+        {/* Bloc Lecture de la semaine (diagnostic global) */}
+        {BlocLectureSemaine()}
+        {/* Blocs approfondis (si conditions réunies) */}
+        {BlocApprofondi()}
       </div>
     </div>
   );

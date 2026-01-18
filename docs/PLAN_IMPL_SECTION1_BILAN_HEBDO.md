@@ -19,6 +19,39 @@
 8. (Optionnel) Ajouter le bouton "Comprendre en détail".
 
 Chaque point sera traité un par un, avec validation utilisateur à chaque étape.
+# 🔔 Proposition d’alerte visuelle et dynamique “Lecture de la semaine” (mise en conformité métier)
+
+## 1. Alerte visuelle pour attirer le regard
+
+- Toute situation hors cadre (dépassement objectif, extras hors budget, écart significatif) doit déclencher une alerte visuelle claire :
+	- Couleur d’arrière-plan ou de bordure spécifique (ex : rouge/orange pour alerte, vert pour conformité)
+	- Icône d’alerte (ex : ⚠️, ✅)
+	- Texte mis en valeur (gras, couleur, encadré)
+- L’alerte doit être pédagogique, non culpabilisante, et toujours contextualisée par rapport à la donnée réelle de la semaine.
+- En cas de conformité (objectif respecté, extras dans le budget), une valorisation visuelle positive est affichée (ex : ✅, couleur verte, message de félicitations).
+
+## 2. Dynamique “Lecture de la semaine”
+
+- Le bloc “Lecture de la semaine” s’affiche toujours, mais son contenu s’adapte strictement à la situation réelle :
+	- Si l’écart hebdomadaire est significatif : 
+		> Cette semaine, la trajectoire globale s’éloigne de l’objectif hebdomadaire.
+	- Si l’écart est faible ou nul : 
+		> Cette semaine reste proche de l’objectif, la trajectoire est conforme.
+	- Si l’écart est expliqué principalement par les extras : 
+		> L’écart constaté ne s’explique pas par les repas hors extras, qui restent proches du cadre prévu, mais par le poids cumulé des extras sur la semaine.
+	- Si les repas hors extras sont eux-mêmes excessifs : 
+		> La responsabilité de l’écart est partagée entre les repas et les extras, nécessitant une vigilance globale.
+	- Si le nombre d’extras et leur charge calorique dépassent nettement le budget : 
+		> Le nombre d’extras consommés, combiné à leur charge calorique totale, place cette semaine hors zone d’équilibre par rapport au budget fixé.
+	- Si une cause unique est identifiée (ex : extras) : 
+		> 👉 Le constat est clair : ce ne sont pas les repas qui déséquilibrent la semaine, mais la manière dont les extras se sont exprimés.
+	- Si plusieurs causes coexistent : 
+		> 👉 Plusieurs facteurs expliquent l’écart cette semaine : repas et extras contribuent tous deux à la situation observée.
+- Chaque phrase est choisie dynamiquement selon les règles de gestion de la fiche métier, sans jamais afficher de contenu générique ou statique.
+- L’alerte visuelle accompagne le texte pour renforcer la lisibilité et l’attention.
+
+---
+
 # Structure visuelle attendue pour la Section 1 (modale bilan hebdo)
 
 ## Structure de base à respecter (avant ajout des champs métier)
@@ -148,15 +181,56 @@ Implémenter l’affichage progressif et testable de la section 1 du bilan hebdo
 ## 🟢 Plan d’action étape par étape (Section 1)
 
 1. Afficher les données principales (kcal, budget extras, extras) dans une carte dédiée
-2. Ajouter la nouvelle sous-section "Lecture des extras de la semaine" :
-	- Titre et sous-titre pédagogiques strictement conformes à la fiche métier
-	- Affichage croisé du nombre d’extras, total kcal extras, budget extras
-	- Générer et afficher le verbatim automatique selon les cas métier (cas 1 à 4)
+2. Ajouter la sous-section "Lecture des extras de la semaine" (titre, sous-titre, chiffres clés, verbatim croisé)
+
+---
+
+## 🔵 Enrichissement métier — Bloc "En savoir plus" (conformité dynamique et visuelle)
+
+### Règles générales
+- Tous les sous-blocs et messages sont strictement dynamiques : ils s’affichent ou non selon la réalité des données de la semaine.
+- Les valeurs (kcal, extras, budget, etc.) sont injectées dynamiquement.
+- Les verbatims sont ceux validés métier, sans ajout ni modification.
+- Chaque sous-bloc peut afficher une alerte visuelle (couleur, icône, encadré) si un point de vigilance est détecté.
+- Un message d’encouragement ou de vigilance est mis en avant selon la situation réelle.
+
+### Structure dynamique attendue
+
+#### Lecture “repas vs extras”
+- Sans extras, ta semaine est à **[X] kcal**.
+- Avec extras, elle monte à **[Y] kcal**.
+- → Ça signifie que la différence se joue majoritairement sur les extras, pas sur les repas.
+- **Alerte visuelle** : si l’écart entre les deux est significatif, encadré ou icône ⚠️ ; si faible, pas d’alerte.
+
+#### Lecture “écart expliqué”
+- Objectif : **[X] kcal**
+- Réalisé : **[Y] kcal**
+- → **+[Z] kcal** : c’est le signal principal de la semaine.
+- **Alerte visuelle** : si l’écart est un dépassement important, fond orange/rouge + icône ⚠️ ; si conforme ou déficit, fond vert/✅.
+- **Message dynamique** : si conforme, afficher un message d’encouragement (ex : "Bravo, tu es dans le cadre !").
+
+#### Lecture “fréquence vs intensité”
+- Extras : **[N]**
+- Poids calorique extras : **[X] kcal**
+- Budget extras : **[Y] kcal**
+- → Cette semaine, les extras sont à la fois présents (fréquence) et très lourds (intensité).
+- **Alerte visuelle** : si extras > budget ou très lourds, encadré orange/rouge + icône ⚠️ ; si extras modérés, fond neutre ou vert.
+
+### Points de vigilance et valorisation
+- Si un point de fragilité est détecté (ex : extras très élevés, écart majeur), un message de vigilance explicite est affiché, mis en avant visuellement.
+- Si la situation est conforme, un message positif et une valorisation visuelle sont affichés (fond vert, icône ✅, message d’encouragement).
+
+---
 3. Ajouter les calculs complémentaires (objectif hebdo, écart, tendance)
 4. Distinguer extras planifiés/impulsifs via repas conforme (ou "non disponible")
 5. Générer le message motivationnel et la mini-action pour la semaine suivante
-6. Tester chaque étape indépendamment
-7. Recueillir le feedback utilisateur et ajuster au fil de l’eau
+6. Ajouter les blocs d’analyse textuelle métier dynamiques, strictement conformes à la fiche métier :
+	- Bloc "En savoir plus" (lecture croisée repas vs extras, écart expliqué, fréquence vs intensité)
+	- Bloc "Lecture de la semaine" (diagnostic global, verbatims dynamiques)
+	- Blocs approfondis (répartition de l’écart, fréquence vs charge, lecture de trajectoire) si les règles métier sont remplies
+	- Tous ces blocs s’affichent ou non selon les règles de gestion et la réalité des données de la semaine de l’utilisateur (affichage dynamique, non figé)
+7. Tester chaque étape indépendamment
+8. Recueillir le feedback utilisateur et ajuster au fil de l’eau
 
 ---
 
