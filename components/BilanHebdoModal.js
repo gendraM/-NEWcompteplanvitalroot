@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import styles from './BilanHebdoModal.module.css';
 
 // Squelette minimal pour repartir étape par étape selon le plan métier
@@ -168,6 +168,32 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
         </section>
       );
     }
+    // Bloc rétractable/accordion pour la Section 2 — Tendance & Trajectoire
+  
+    function AccordionTendance() {
+      const [open, setOpen] = useState(false);
+      return (
+        <div style={{marginTop: '0.5rem'}}>
+          <button
+            aria-expanded={open}
+            aria-controls="tendance-details"
+            onClick={() => setOpen(o => !o)}
+            style={{
+              background: '#2a4d8f', color: '#fff', border: 'none', borderRadius: 8,
+              padding: '0.5rem 1.1rem', fontWeight: 600, fontSize: '1rem', cursor: 'pointer', marginBottom: open ? 10 : 0
+            }}
+          >
+            {open ? 'Masquer le détail ▲' : 'Voir le détail ▼'}
+          </button>
+          {open && (
+            <div id="tendance-details" style={{marginTop: '0.7rem', background: '#f0f6ff', borderRadius: 8, padding: '1rem 1.2rem', boxShadow: '0 1px 4px #b3d8f7'}}>
+              {/* Ici viendra le contenu dynamique de la tendance pondérale, comparaison N/N-1, moyenne 14j, etc. */}
+              <div style={{fontWeight:600, color:'#2a4d8f', marginBottom: 8}}>Bloc tendance pondérale (à compléter)</div>
+            </div>
+          )}
+        </div>
+      );
+    }
     // Blocs approfondis (affichage conditionnel)
     function BlocApprofondi() {
       const { apportsTotaux, objectifHebdo, kcalExtras, extras, budgetExtras } = bilan || {};
@@ -279,6 +305,11 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
         </div>
         {/* Bloc diagnostic dynamique métier (Lecture de la semaine) */}
         {BlocLectureSemaine()}
+          // Section 2 — Tendance & Trajectoire
+          <div className="section2-header" style={{marginTop: '2rem', padding: '1rem 0'}}>
+            <h2 style={{fontWeight: 'bold', fontSize: '1.3rem', color: '#2a4d8f'}}>Ta dynamique dans le temps — trajectoire sur 14J</h2>
+            <p style={{fontStyle: 'italic', color: '#555', marginTop: '0.5rem'}}>Ce qui se construit semaine après semaine</p>
+          </div>
         {/* Résumé des données principales */}
         <section style={{marginBottom: '2rem', background: '#f4f8ff', borderRadius: 12, padding: '1.2rem 1.5rem', boxShadow: '0 1px 6px #dbeafe'}}>
           <h3 style={{marginBottom: '1rem', color: '#1976d2', fontSize: '1.15rem'}}>Résumé des données principales</h3>
@@ -328,6 +359,13 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
             })()}
           </div>
         </section>
+          {/* Section 2 — Tendance & Trajectoire (bloc rétractable) */}
+          <div style={{marginBottom: '2rem', background: '#eaf6ff', borderRadius: 12, padding: '1.2rem 1.5rem', boxShadow: '0 1px 6px #b3d8f7'}}>
+            <h2 style={{fontWeight: 'bold', fontSize: '1.15rem', color: '#2a4d8f', marginBottom: 4}}>Ta dynamique dans le temps — trajectoire sur 14J</h2>
+            <p style={{fontStyle: 'italic', color: '#555', marginBottom: 12}}>Ce qui se construit semaine après semaine</p>
+            {/* Bloc rétractable/accordion */}
+            <AccordionTendance />
+          </div>
         {/* Lecture des extras de la semaine */}
         <section style={{marginBottom: '2rem', background: '#fffef6', borderRadius: 10, padding: '1.1rem 1.3rem', boxShadow: '0 1px 4px #fde68a'}}>
           <h3 style={{color: '#b45309', marginBottom: '0.7rem', fontSize: '1.13rem'}}>Lecture des extras de la semaine</h3>
