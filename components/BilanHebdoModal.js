@@ -305,11 +305,6 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
         </div>
         {/* Bloc diagnostic dynamique métier (Lecture de la semaine) */}
         {BlocLectureSemaine()}
-          // Section 2 — Tendance & Trajectoire
-          <div className="section2-header" style={{marginTop: '2rem', padding: '1rem 0'}}>
-            <h2 style={{fontWeight: 'bold', fontSize: '1.3rem', color: '#2a4d8f'}}>Ta dynamique dans le temps — trajectoire sur 14J</h2>
-            <p style={{fontStyle: 'italic', color: '#555', marginTop: '0.5rem'}}>Ce qui se construit semaine après semaine</p>
-          </div>
         {/* Résumé des données principales */}
         <section style={{marginBottom: '2rem', background: '#f4f8ff', borderRadius: 12, padding: '1.2rem 1.5rem', boxShadow: '0 1px 6px #dbeafe'}}>
           <h3 style={{marginBottom: '1rem', color: '#1976d2', fontSize: '1.15rem'}}>Résumé des données principales</h3>

@@ -35,7 +35,10 @@ import { calculerProfilComplet } from '../lib/routeurPoids';
 import { 
   calculerExtrasSemaine, 
   genererMessageFeedback, 
-  calculerVariation 
+  calculerVariation,
+  getMonday,
+  addDays,
+  formatDate
 } from '../lib/validationSemaine';
 import { calculerRepartitionTypes, calculerRepartitionMoments } from '../lib/repartitionExtras';
 import { calculerJoursRespectes } from '../lib/joursRespectes';
@@ -1006,30 +1009,18 @@ export default function Suivi() {
     console.log('[LOG BILAN] Début handleValiderSemaine');
     try {
       // 1. Calcul strict du lundi et dimanche de la semaine à partir de la date sélectionnée
-      // Correction universelle ISO 8601 : semaine du lundi au dimanche
-      // Correction stricte métier : lundi = jour 1, dimanche = jour 7, toujours inclus
-      const selectedDateObj = new Date(selectedDate);
-      // Trouver le lundi de la semaine courante (jour 1)
-      const day = selectedDateObj.getDay();
-      // En JS : 0=dimanche, 1=lundi, ..., 6=samedi
-      // Pour lundi : day=1, donc diff=0 ; pour dimanche : day=0, donc diff=-6
-      const diffToMonday = day === 0 ? -6 : 1 - day;
-      const monday = new Date(selectedDateObj);
-      monday.setDate(selectedDateObj.getDate() + diffToMonday);
-      monday.setHours(0,0,0,0);
-      // Dimanche = lundi + 6 jours
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
+      // Utilisation de getMonday() pour garantir la cohérence ISO 8601
+      const monday = getMonday(selectedDate);
+      const sunday = addDays(monday, 6);
       sunday.setHours(23,59,59,999);
-      const selectedWeekStart = monday.toISOString().slice(0,10);
-      const selectedWeekEnd = sunday.toISOString().slice(0,10);
+      const selectedWeekStart = formatDate(monday, 'yyyy-MM-dd');
+      const selectedWeekEnd = formatDate(sunday, 'yyyy-MM-dd');
       // Log des bornes de la semaine et des dates prises en compte
       const joursSemaine = [];
       for (let i = 0; i < 7; i++) {
-        const d = new Date(monday);
-        d.setDate(monday.getDate() + i);
-        joursSemaine.push(d.toISOString().slice(0,10));
+        joursSemaine.push(formatDate(addDays(monday, i), 'yyyy-MM-dd'));
       }
+      const selectedDateObj = new Date(selectedDate + 'T12:00:00'); // Midi pour éviter les problèmes de fuseau horaire
       console.log(`[LOG BILAN] Date sélectionnée : ${selectedDate} (jour de la semaine : ${selectedDateObj.getDay()})`);
       console.log(`[LOG BILAN] Semaine du ${selectedWeekStart} au ${selectedWeekEnd}`);
       console.log(`[LOG BILAN] Jours pris en compte pour la semaine :`, joursSemaine);
@@ -1082,83 +1073,85 @@ export default function Suivi() {
         }
       }
 
-      // 4. Calcul des extras et du total kcal sur cette période
+      // Calcul des extras juste avant la sauvegarde
       const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasData);
-      const totalKcal = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
-      const totalKcalExtras = Array.isArray(extrasInfo.details)
-        ? extrasInfo.details.reduce((sum, r) => sum + (typeof r.kcal === 'number' && !isNaN(r.kcal) ? r.kcal : 0), 0)
-        : 0;
-      const pourcentageBudget = (budgetExtras > 0)
-        ? Math.round((totalKcalExtras / budgetExtras) * 100)
-        : 0;
-
-      // 4. Log unique et clair pour audit
-      console.log('[DEBUG BILAN] --- AUDIT COMPLET POURCENTAGE BUDGET EXTRAS ---');
-      console.log('[DEBUG BILAN] selectedDate:', selectedDate);
-      console.log('[DEBUG BILAN] selectedWeekStart:', selectedWeekStart);
-      console.log('[DEBUG BILAN] selectedWeekEnd:', selectedWeekEnd);
-      console.log('[DEBUG BILAN] repasData:', repasData);
-      console.log('[DEBUG BILAN] extrasInfo:', extrasInfo);
-      console.log('[DEBUG BILAN] extrasInfo.details:', extrasInfo.details);
-      console.log('[DEBUG BILAN] totalKcalExtras:', totalKcalExtras);
-      console.log('[DEBUG BILAN] budgetExtras:', budgetExtras);
-      console.log('[DEBUG BILAN] pourcentageBudget:', pourcentageBudget);
-      // Calculs complémentaires et mise à jour du bilan
-      const history = getWeeklyExtrasHistory(repasData, selectedDate, 16);
-      const semaineDates = repasData;
-      const satieteMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.satiete || 0), 0) / semaineDates.length) : 0;
-      const humeurMoyenne = semaineDates.length > 0 ? Math.round(semaineDates.reduce((acc, r) => acc + (r.humeur || 0), 0) / semaineDates.length) : 0;
-      const pointsForts = 'À calculer selon la logique métier';
-      const axesAmelioration = 'À calculer selon la logique métier';
-      const tendanceMensuelle = 'À calculer selon la logique métier';
-      const feedbackDetaille = 'À calculer selon la logique métier';
-      const feedbackDetailleSynth = 'À calculer selon la logique métier';
-      const repartitionTypes = calculerRepartitionTypes(repasData);
-      const repartitionMoments = calculerRepartitionMoments(repasData);
-      const { joursRespectes, joursNonRespectes } = calculerJoursRespectes(repasData, selectedWeekStart);
-
-      // Centralisation stricte : transmettre la date sélectionnée (selectedDate) au bilan
-      console.log('[AUDIT] Date sélectionnée pour bilan :', selectedDate);
-      setBilanData({
-        periode: selectedDate, // On transmet la date sélectionnée, pas le lundi calculé
-        apportsTotaux: repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0),
-        objectifHebdo: calculsRouteur?.apport_calorique_cible ? calculsRouteur.apport_calorique_cible * 7 : undefined,
-        verbatim: 'Ton corps évolue dans le temps. Ce bilan te montre la trajectoire, pas un jugement.',
-        extras: extrasInfo.count,
-        budget: pourcentageBudget, // Pour compatibilité ancienne prop
-        budgetExtras: budgetExtras,
-        kcalExtras: totalKcalExtras,
-        pourcentageBudget: pourcentageBudget,
-        pointsForts: pointsForts,
-        axesAmelioration: axesAmelioration,
-        tendanceMensuelle: tendanceMensuelle,
-        feedbackDetaille: feedbackDetaille,
-        motDoux: 'Continuez sur cette belle lancée !',
-        repartitionTypes,
-        repartitionMoments,
-        joursRespectes,
-        joursNonRespectes,
-        satieMoyenne: satieteMoyenne,
-        humeurMoyenne: humeurMoyenne,
-        notesUtilisateur: '',
-        extrasPetitDej: repartitionMoments.matin,
-        extrasDejeuner: repartitionMoments.midi,
-        extrasDiner: repartitionMoments.soir,
-        extrasCollation: repartitionMoments.collation,
-        synthese: feedbackDetailleSynth,
-      });
-      setShowBilanModal(true);
-      // Recharger l’historique pour mettre à jour la timeline
-      const historyTimeline = getWeeklyExtrasHistory(repasData, selectedDate, 16);
-      // Rafraîchissement des semaines validées
-      const { data: semainesValideesRefresh } = await supabase
+      // Génération du message feedback réel (ou valeur neutre si non utilisé)
+      const messageFeedback = genererMessageFeedback ? genererMessageFeedback(extrasInfo.count, 1) : '';
+      
+      // Calcul de la variation (extras semaine N vs N-1)
+      // Récupérer la semaine précédente validée pour calculer la variation
+      const { data: semainesPrecedentes } = await supabase
         .from('semaines_validees')
-        .select('weekStart, validee');
-      const historyWithValidation = historyTimeline.map(week => {
-        const valid = semainesValideesRefresh?.find(s => s.weekStart === week.weekStart)?.validee === true;
-        return { ...week, validee: valid };
-      });
-      setWeeklyHistory(historyWithValidation);
+        .select('weekStart, extras_count')
+        .lt('weekStart', selectedWeekStart)
+        .order('weekStart', { ascending: false })
+        .limit(1);
+      const extrasN1 = semainesPrecedentes && semainesPrecedentes.length > 0 ? semainesPrecedentes[0].extras_count : null;
+      const variation = (extrasN1 !== null && typeof extrasN1 === 'number') ? extrasInfo.count - extrasN1 : 0;
+      
+      // Calcul des données Section 1 du bilan (apports totaux, objectif, etc.)
+      const apportsTotaux = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
+      const objectifJour = calculs?.tdee || 2000; // Objectif calorique journalier
+      const objectifHebdo = objectifJour * 7; // Objectif hebdomadaire
+      const kcalExtras = repasData.filter(r => r.est_extra).reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
+      
+      let insertOk = false;
+      const bilanToInsert = {
+        weekStart: selectedWeekStart,
+        // weekEnd supprimé : la colonne n'existe pas dans la table (on calcule weekEnd = weekStart + 6 jours si besoin)
+        validee: true,
+        date_validation: new Date().toISOString(),
+        extras_count: extrasInfo.count,
+        extras_details: JSON.stringify(extrasInfo.details),
+        message_feedback: messageFeedback,
+        variation
+      };
+      try {
+        console.log('[LOG BILAN] Données à insérer :', bilanToInsert);
+        const { data: insertResult, error: insertError } = await supabase
+          .from('semaines_validees')
+          .upsert([bilanToInsert], {
+            onConflict: 'weekStart', // Utilise weekStart comme clé unique pour gérer les doublons
+            ignoreDuplicates: false   // Met à jour si existe déjà
+          });
+        if (insertError) {
+          console.error('[LOG BILAN] Erreur lors de l’enregistrement du bilan dans Supabase :', insertError);
+        } else {
+          console.log('[LOG BILAN] Bilan enregistré avec succès dans Supabase :', insertResult);
+          insertOk = true;
+        }
+      } catch (err) {
+        console.error('[LOG BILAN] Exception JS lors de l’insert bilan Supabase :', err);
+      }
+      if (insertOk) {
+        // Ouverture de la modale BilanHebdoModal (Section 1 complète)
+        setBilanData({
+          weekStart: selectedWeekStart,
+          apportsTotaux,
+          objectifHebdo,
+          kcalExtras,
+          extras: extrasInfo.count,
+          budgetExtras,
+          variation,
+          // Pas de données Section 2 pour l'instant (à implémenter)
+        });
+        setShowBilanModal(true);
+      } else {
+        setSnackbar({ open: true, message: "Erreur lors de la validation de la semaine.", type: "error" });
+      }
+      try {
+        const historyTimeline = getWeeklyExtrasHistory(repasData, selectedDate, 16);
+        const { data: semainesValideesRefresh } = await supabase
+          .from('semaines_validees')
+          .select('weekStart, validee');
+        const historyWithValidation = historyTimeline.map(week => {
+          const valid = semainesValideesRefresh?.find(s => s.weekStart === week.weekStart)?.validee === true;
+          return { ...week, validee: valid };
+        });
+        setWeeklyHistory(historyWithValidation);
+      } catch (e) {
+        console.error('[LOG BILAN] Erreur lors du rechargement de la timeline :', e);
+      }
     } catch (e) {
       // Log d'erreur si une exception est levée
       console.error('[LOG BILAN] Erreur JS validation semaine:', e);
