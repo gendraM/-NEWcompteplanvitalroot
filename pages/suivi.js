@@ -1091,7 +1091,7 @@ export default function Suivi() {
       
       // Calcul des données Section 1 du bilan (apports totaux, objectif, etc.)
       const apportsTotaux = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
-      const objectifJour = calculs?.tdee || 2000; // Objectif calorique journalier
+      const objectifJour = calculs?.apport_calorique_cible || 1730; // Objectif calorique journalier (apport cible, pas TDEE !)
       const objectifHebdo = objectifJour * 7; // Objectif hebdomadaire
       const kcalExtras = repasData.filter(r => r.est_extra).reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
       

@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import styles from './BilanHebdoModal.module.css';
+import { calculerTendance7j } from '../lib/validationSemaine';
 
 // Squelette minimal pour repartir étape par étape selon le plan métier
 export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, selectedDate }) {
@@ -187,8 +188,43 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
           </button>
           {open && (
             <div id="tendance-details" style={{marginTop: '0.7rem', background: '#f0f6ff', borderRadius: 8, padding: '1rem 1.2rem', boxShadow: '0 1px 4px #b3d8f7'}}>
-              {/* Ici viendra le contenu dynamique de la tendance pondérale, comparaison N/N-1, moyenne 14j, etc. */}
-              <div style={{fontWeight:600, color:'#2a4d8f', marginBottom: 8}}>Bloc tendance pondérale (à compléter)</div>
+              {/* Section 2.1 - Tendance 7j (semaine courante) */}
+              {(() => {
+                const { apportsTotaux, objectifHebdo } = bilan || {};
+                if (!apportsTotaux || !objectifHebdo) {
+                  return <div style={{color: '#666', fontSize: '0.95rem'}}>Données insuffisantes pour calculer la tendance</div>;
+                }
+                
+                const tendance = calculerTendance7j(apportsTotaux, objectifHebdo);
+                
+                return (
+                  <div style={{marginBottom: '1.2rem'}}>
+                    <div style={{
+                      display: 'inline-block',
+                      background: tendance.couleur,
+                      color: '#fff',
+                      padding: '0.4rem 0.9rem',
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      marginBottom: '0.6rem'
+                    }}>
+                      {tendance.label}
+                    </div>
+                    <div style={{fontSize: '0.95rem', color: '#2a4d8f', lineHeight: 1.5}}>
+                      {tendance.verbatim}
+                    </div>
+                    <div style={{fontSize: '0.85rem', color: '#666', marginTop: '0.4rem', fontStyle: 'italic'}}>
+                      Écart hebdomadaire : {tendance.ecart >= 0 ? '+' : ''}{tendance.ecart} kcal
+                    </div>
+                  </div>
+                );
+              })()}
+              
+              {/* Placeholder pour les prochaines étapes */}
+              <div style={{fontSize: '0.85rem', color: '#999', marginTop: '1rem', borderTop: '1px dashed #ddd', paddingTop: '0.8rem'}}>
+                📊 Comparaison N/N-1, Moyenne 14j et Trajectoire : à venir
+              </div>
             </div>
           )}
         </div>
