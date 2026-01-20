@@ -68,63 +68,153 @@ export default function Moyenne14jBlock({ selectedDate, bilan }) {
   if (loading) return null;
   if (total14j === null || moyenne14j === null) return null;
 
-  // Visuel sobre et élégant
+  // Détection de la situation
+  // Seuils pour variantes (ajuster si besoin)
+  const seuilStabilite = 100;
+  const seuilMaîtrise = -100;
+  // Par défaut, on considère surplus
+  let situation = 'surplus';
+  if (total14j < seuilMaîtrise) situation = 'maitrise';
+  else if (Math.abs(total14j) <= seuilStabilite) situation = 'stabilite';
+  else if (ecartN !== null && ecartN1 !== null) {
+    if (ecartN < ecartN1 && total14j > 0) situation = 'amelioration';
+    if (ecartN > ecartN1 && total14j > 0) situation = 'eloignement';
+  }
+
+  // Variantes de verbatim (strictement dans l'esprit Plan Vital)
+  const verbatims = {
+    surplus: {
+      titre: "Lecture sur 14 jours — ce qui s’accumule",
+      intro: <>Sur les 14 derniers jours :<br/><span style={{fontWeight:700, color:'#e74c3c', fontSize:'1.18rem'}}>Ton corps a reçu +{total14j.toLocaleString()} kcal au-dessus de ton objectif.</span></>,
+      explication: <>Pris isolément, chaque jour peut sembler anodin.<br/>Mais sur 14 jours, ces écarts s’additionnent et commencent à orienter la trajectoire.</>,
+      rythme: <>Cela représente une moyenne de <b>+{moyenne14j.toLocaleString()} kcal par jour</b> au-dessus de l’objectif.</>,
+      rythmeExp: <>Le corps ne réagit pas aux journées isolées,<br/>il réagit à ce rythme répété jour après jour.</>,
+      semaines: <>Détail des deux semaines :<br/><span style={{display:'inline-block',marginTop:'0.2rem'}}>• Semaine N-1 : <b>+{ecartN1 !== null ? ecartN1.toLocaleString() : '—'} kcal</b><br/>• Semaine N : <b>+{ecartN !== null ? ecartN.toLocaleString() : '—'} kcal</b></span></>,
+      semainesExp: <>Les deux semaines sont au-dessus de l’objectif,<br/>avec un écart très proche d’une semaine à l’autre.</>,
+      conclusion: <>Cela signifie que, sur deux semaines consécutives,<br/>le corps reçoit un message de continuité plutôt que d’ajustement.</>,
+      ancrage: <>Une journée ne décide rien.<br/>Une semaine oriente.<br/>Deux semaines commencent à s’imprimer.</>
+    },
+    maitrise: {
+      titre: "Lecture sur 14 jours — ce qui s’accumule",
+      intro: <>Sur les 14 derniers jours :<br/><span style={{fontWeight:700, color:'#27ae60', fontSize:'1.18rem'}}>Ton corps a reçu {total14j.toLocaleString()} kcal en dessous de ton objectif.</span></>,
+      explication: <>Chaque jour pris isolément semble discret.<br/>Mais sur 14 jours, cette dynamique s’installe et oriente la trajectoire.</>,
+      rythme: <>Cela représente une moyenne de <b>{moyenne14j.toLocaleString()} kcal par jour</b> sous l’objectif.</>,
+      rythmeExp: <>Le corps ne réagit pas à une journée, mais à ce rythme répété jour après jour.</>,
+      semaines: <>Détail des deux semaines :<br/><span style={{display:'inline-block',marginTop:'0.2rem'}}>• Semaine N-1 : <b>{ecartN1 !== null ? ecartN1.toLocaleString() : '—'} kcal</b><br/>• Semaine N : <b>{ecartN !== null ? ecartN.toLocaleString() : '—'} kcal</b></span></>,
+      semainesExp: <>Les deux semaines sont sous l’objectif,<br/>avec une continuité encourageante.</>,
+      conclusion: <>Deux semaines consécutives sous l’objectif : la trajectoire s’ajuste dans la bonne direction.</>,
+      ancrage: <>Une journée ne décide rien.<br/>Une semaine oriente.<br/>Deux semaines commencent à s’imprimer.</>
+    },
+    stabilite: {
+      titre: "Lecture sur 14 jours — stabilité",
+      intro: <>Sur les 14 derniers jours :<br/><span style={{fontWeight:700, color:'#2563eb', fontSize:'1.18rem'}}>Les écarts restent très proches de l’objectif.</span></>,
+      explication: <>Jour après jour, la trajectoire reste stable.<br/>Aucune direction nette ne s’imprime sur la période.</>,
+      rythme: <>Cela représente une moyenne de <b>{moyenne14j > 0 ? '+' : ''}{moyenne14j.toLocaleString()} kcal par jour</b> par rapport à l’objectif.</>,
+      rythmeExp: <>Le corps perçoit cette stabilité comme un équilibre.<br/>C’est la répétition qui compte.</>,
+      semaines: <>Détail des deux semaines :<br/><span style={{display:'inline-block',marginTop:'0.2rem'}}>• Semaine N-1 : <b>{ecartN1 !== null ? (ecartN1 > 0 ? '+' : '') + ecartN1.toLocaleString() : '—'} kcal</b><br/>• Semaine N : <b>{ecartN !== null ? (ecartN > 0 ? '+' : '') + ecartN.toLocaleString() : '—'} kcal</b></span></>,
+      semainesExp: <>Les deux semaines sont très proches l’une de l’autre.<br/>La trajectoire ne s’éloigne ni ne se rapproche.</>,
+      conclusion: <>La stabilité s’installe sur la durée.<br/>Le corps s’ajuste à ce rythme régulier.</>,
+      ancrage: <>Une journée ne décide rien.<br/>Une semaine oriente.<br/>Deux semaines commencent à s’imprimer.</>
+    },
+    amelioration: {
+      titre: "Lecture sur 14 jours — évolution",
+      intro: <>Sur les 14 derniers jours :<br/><span style={{fontWeight:700, color:'#2563eb', fontSize:'1.18rem'}}>La trajectoire commence à s’ajuster.</span></>,
+      explication: <>La deuxième semaine montre un écart réduit par rapport à la première.<br/>Le corps perçoit ce changement dans la durée.</>,
+      rythme: <>Cela représente une moyenne de <b>{moyenne14j > 0 ? '+' : ''}{moyenne14j.toLocaleString()} kcal par jour</b> par rapport à l’objectif.</>,
+      rythmeExp: <>Le rythme s’améliore, jour après jour.<br/>C’est la continuité qui compte.</>,
+      semaines: <>Détail des deux semaines :<br/><span style={{display:'inline-block',marginTop:'0.2rem'}}>• Semaine N-1 : <b>{ecartN1 !== null ? (ecartN1 > 0 ? '+' : '') + ecartN1.toLocaleString() : '—'} kcal</b><br/>• Semaine N : <b>{ecartN !== null ? (ecartN > 0 ? '+' : '') + ecartN.toLocaleString() : '—'} kcal</b></span></>,
+      semainesExp: <>La deuxième semaine est plus proche de l’objectif.<br/>La trajectoire s’ajuste progressivement.</>,
+      conclusion: <>Le corps reçoit un message d’ajustement.<br/>La direction s’améliore sur la durée.</>,
+      ancrage: <>Une journée ne décide rien.<br/>Une semaine oriente.<br/>Deux semaines commencent à s’imprimer.</>
+    },
+    eloignement: {
+      titre: "Lecture sur 14 jours — évolution",
+      intro: <>Sur les 14 derniers jours :<br/><span style={{fontWeight:700, color:'#eab308', fontSize:'1.18rem'}}>La trajectoire s’éloigne de l’objectif.</span></>,
+      explication: <>La deuxième semaine montre un écart plus important que la première.<br/>Le corps perçoit cette évolution dans la durée.</>,
+      rythme: <>Cela représente une moyenne de <b>{moyenne14j > 0 ? '+' : ''}{moyenne14j.toLocaleString()} kcal par jour</b> par rapport à l’objectif.</>,
+      rythmeExp: <>Le rythme s’éloigne de l’objectif, jour après jour.<br/>C’est la continuité qui compte.</>,
+      semaines: <>Détail des deux semaines :<br/><span style={{display:'inline-block',marginTop:'0.2rem'}}>• Semaine N-1 : <b>{ecartN1 !== null ? (ecartN1 > 0 ? '+' : '') + ecartN1.toLocaleString() : '—'} kcal</b><br/>• Semaine N : <b>{ecartN !== null ? (ecartN > 0 ? '+' : '') + ecartN.toLocaleString() : '—'} kcal</b></span></>,
+      semainesExp: <>La deuxième semaine s’éloigne davantage de l’objectif.<br/>La trajectoire s’écarte progressivement.</>,
+      conclusion: <>Le corps reçoit un message de continuité dans l’éloignement.<br/>La direction s’imprime sur la durée.</>,
+      ancrage: <>Une journée ne décide rien.<br/>Une semaine oriente.<br/>Deux semaines commencent à s’imprimer.</>
+    }
+  };
+
+  const v = verbatims[situation];
+
+  // En-tête pédagogique (fusionné, palette cohérente)
+  const headerStyle = {
+    background: 'linear-gradient(90deg, #e0e7ff 0%, #f0f6ff 100%)',
+    borderRadius: '10px',
+    padding: '0.9rem 1.1rem',
+    marginBottom: '1.1rem',
+    display: 'flex',
+    alignItems: 'center',
+    boxShadow: '0 1px 4px #e0e7ef',
+    border: '1.5px solid #dbeafe',
+    gap: '1rem'
+  };
+  const iconStyle = {
+    fontSize: '1.7rem',
+    color: '#2563eb',
+    flexShrink: 0
+  };
+
+  // Rappel contextuel (toujours en bas)
+  const reminderStyle = {
+    fontSize: '0.93rem',
+    color: '#64748b',
+    marginTop: '1.1rem',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    background: '#f1f5f9',
+    borderRadius: '8px',
+    padding: '0.6rem 0.8rem',
+    border: '1px solid #e5e7eb'
+  };
+
   return (
     <section style={{
       background: '#f8fafc',
-      borderRadius: 12,
-      padding: '1.3rem 1.5rem',
+      borderRadius: 14,
+      padding: '1.5rem 1.7rem',
       marginTop: '1.3rem',
       boxShadow: '0 2px 8px #e0e7ef',
       border: '1.5px solid #dbeafe',
-      maxWidth: 540,
+      maxWidth: 560,
       marginLeft: 'auto',
       marginRight: 'auto'
     }}>
-      <div style={{fontWeight:700, color:'#2563eb', fontSize:'1.13rem', marginBottom:'0.7rem', letterSpacing:0.1}}>
-        Lecture sur 14 jours — ce qui s’accumule
-      </div>
-      <div style={{fontSize:'1.08rem', color:'#222', marginBottom:'0.3rem'}}>
-        Sur les 14 derniers jours :<br/>
-        <span style={{fontWeight:700, color: total14j > 0 ? '#e74c3c' : '#27ae60', fontSize:'1.18rem'}}>
-          Ton corps a reçu {total14j > 0 ? '+' : ''}{total14j.toLocaleString()} kcal au-dessus de ton objectif.
-        </span>
-      </div>
-      <div style={{color:'#64748b', fontSize:'0.97rem', marginBottom:'0.7rem'}}>
-        Pris isolément, chaque jour peut sembler anodin.<br/>
-        Mais sur 14 jours, ces écarts s’additionnent et commencent à orienter la trajectoire.
+      {/* En-tête pédagogique */}
+      <div style={headerStyle}>
+        <span style={iconStyle}>📊</span>
+        <div>
+          <div style={{fontWeight:700, color:'#2563eb', fontSize:'1.09rem', marginBottom:'0.15rem'}}>Schéma sur 14 jours : une tendance s’installe-t-elle ?</div>
+          <div style={{fontSize:'0.99rem', color:'#334155'}}>La moyenne 14j ne juge pas la semaine, elle révèle si un schéma commence à s’imprimer dans le temps.</div>
+        </div>
       </div>
 
-      <div style={{fontWeight:600, color:'#2563eb', fontSize:'1.07rem', marginBottom:'0.3rem'}}>Lecture du rythme réel</div>
-      <div style={{fontSize:'1.05rem', color:'#222', marginBottom:'0.2rem'}}>
-        Cela représente une moyenne de <b>{moyenne14j > 0 ? '+' : ''}{moyenne14j.toLocaleString()} kcal par jour</b> au-dessus de l’objectif.
-      </div>
-      <div style={{color:'#64748b', fontSize:'0.97rem', marginBottom:'0.7rem'}}>
-        Le corps ne réagit pas aux journées isolées,<br/>il réagit à ce rythme répété jour après jour.
-      </div>
-
-      <div style={{fontWeight:600, color:'#2563eb', fontSize:'1.07rem', marginBottom:'0.3rem'}}>Mise en perspective temporelle (semaines)</div>
-      <div style={{fontSize:'1.01rem', color:'#222', marginBottom:'0.2rem'}}>
-        Détail des deux semaines :<br/>
-        <span style={{display:'inline-block',marginTop:'0.2rem'}}>
-          • Semaine N-1 : <b>{ecartN1 !== null ? (ecartN1 > 0 ? '+' : '') + ecartN1.toLocaleString() : '—'} kcal</b><br/>
-          • Semaine N : <b>{ecartN !== null ? (ecartN > 0 ? '+' : '') + ecartN.toLocaleString() : '—'} kcal</b>
-        </span>
-      </div>
-      <div style={{color:'#64748b', fontSize:'0.97rem', marginBottom:'0.7rem'}}>
-        Les deux semaines sont au-dessus de l’objectif,<br/>avec un écart très proche d’une semaine à l’autre.
+      {/* Bloc dynamique métier */}
+      <div>
+        <div style={{fontWeight:700, color:'#2563eb', fontSize:'1.13rem', marginBottom:'0.7rem', letterSpacing:0.1}}>
+          {v.titre}
+        </div>
+        <div style={{fontSize:'1.08rem', color:'#222', marginBottom:'0.3rem'}}>{v.intro}</div>
+        <div style={{color:'#64748b', fontSize:'0.97rem', marginBottom:'0.7rem'}}>{v.explication}</div>
+        <div style={{fontWeight:600, color:'#2563eb', fontSize:'1.07rem', marginBottom:'0.3rem'}}>Lecture du rythme réel</div>
+        <div style={{fontSize:'1.05rem', color:'#222', marginBottom:'0.2rem'}}>{v.rythme}</div>
+        <div style={{color:'#64748b', fontSize:'0.97rem', marginBottom:'0.7rem'}}>{v.rythmeExp}</div>
+        <div style={{fontWeight:600, color:'#2563eb', fontSize:'1.07rem', marginBottom:'0.3rem'}}>Mise en perspective temporelle (semaines)</div>
+        <div style={{fontSize:'1.01rem', color:'#222', marginBottom:'0.2rem'}}>{v.semaines}</div>
+        <div style={{color:'#64748b', fontSize:'0.97rem', marginBottom:'0.7rem'}}>{v.semainesExp}</div>
+        <div style={{fontWeight:600, color:'#2563eb', fontSize:'1.07rem', marginBottom:'0.3rem'}}>Traduction consciente</div>
+        <div style={{fontSize:'1.01rem', color:'#222', marginBottom:'0.7rem'}}>{v.conclusion}</div>
+        <div style={{color:'#334155', fontSize:'1.01rem', fontStyle:'italic', borderTop:'1px solid #e5e7eb', paddingTop:'0.7rem', marginTop:'0.7rem', textAlign:'center'}}>{v.ancrage}</div>
       </div>
 
-      <div style={{fontWeight:600, color:'#2563eb', fontSize:'1.07rem', marginBottom:'0.3rem'}}>Traduction consciente</div>
-      <div style={{fontSize:'1.01rem', color:'#222', marginBottom:'0.7rem'}}>
-        Cela signifie que, sur deux semaines consécutives,<br/>
-        le corps reçoit un message de continuité plutôt que d’ajustement.
-      </div>
-
-      <div style={{color:'#334155', fontSize:'1.01rem', fontStyle:'italic', borderTop:'1px solid #e5e7eb', paddingTop:'0.7rem', marginTop:'0.7rem', textAlign:'center'}}>
-        Une journée ne décide rien.<br/>
-        Une semaine oriente.<br/>
-        Deux semaines commencent à s’imprimer.
+      {/* Rappel contextuel */}
+      <div style={reminderStyle}>
+        Ce signal est influencé par la semaine précédente : il ne doit pas masquer le signal fort de la semaine en cours.
       </div>
     </section>
   );
