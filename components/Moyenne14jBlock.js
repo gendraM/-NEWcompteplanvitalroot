@@ -140,7 +140,49 @@ export default function Moyenne14jBlock({ selectedDate, bilan }) {
     }
   };
 
+
+  // Variantes de positionnement de la semaine courante
+  const positionnements = {
+    surplus: [
+      "Cette semaine prolonge la dynamique de surplus amorcée précédemment.",
+      "La semaine en cours s’inscrit dans la continuité d’un apport supérieur à l’objectif.",
+      "Cette semaine confirme la tendance d’accumulation observée sur la période.",
+      "La trajectoire de surplus se poursuit avec la semaine actuelle."
+    ],
+    maitrise: [
+      "Cette semaine confirme la dynamique de maîtrise installée.",
+      "La semaine en cours s’inscrit dans la continuité d’un rythme maîtrisé.",
+      "Cette semaine prolonge la trajectoire de régulation engagée.",
+      "La dynamique de maîtrise se maintient sur la semaine actuelle."
+    ],
+    stabilite: [
+      "La semaine reste stable, sans changement notable de trajectoire.",
+      "Cette semaine s’inscrit dans la continuité d’un équilibre observé.",
+      "La trajectoire demeure stable avec la semaine en cours.",
+      "Aucun changement de direction n’est observé cette semaine."
+    ],
+    amelioration: [
+      "Cette semaine marque un ajustement positif dans la trajectoire.",
+      "La semaine en cours amorce une évolution vers l’objectif.",
+      "Un mouvement d’ajustement se dessine cette semaine.",
+      "La trajectoire commence à se rapprocher de l’objectif avec cette semaine."
+    ],
+    eloignement: [
+      "Cette semaine accentue l’éloignement par rapport à l’objectif.",
+      "La semaine en cours prolonge la dynamique d’écart observée.",
+      "Un éloignement supplémentaire s’observe cette semaine.",
+      "La trajectoire s’écarte davantage de l’objectif avec la semaine actuelle."
+    ]
+  };
+
+  // Choix aléatoire de la variante à chaque rendu
+  function pickVariante(arr) {
+    if (!arr || arr.length === 0) return '';
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
   const v = verbatims[situation];
+  const phrasePositionnement = pickVariante(positionnements[situation]);
 
   // En-tête pédagogique (fusionné, palette cohérente)
   const headerStyle = {
@@ -173,6 +215,32 @@ export default function Moyenne14jBlock({ selectedDate, bilan }) {
     border: '1px solid #e5e7eb'
   };
 
+  // Rappel contextuel dynamique
+  let rappelContextuel = '';
+  if (situation === 'stabilite') {
+    rappelContextuel = "La trajectoire observée sur 14 jours reflète une continuité entre les deux semaines.";
+  } else if (situation === 'amelioration') {
+    rappelContextuel = "La dynamique 14j intègre l’évolution positive de la semaine en cours.";
+  } else if (situation === 'eloignement') {
+    rappelContextuel = "La trajectoire 14j s’écarte davantage avec la semaine actuelle.";
+  } else if (situation === 'surplus' || situation === 'maitrise') {
+    // Si les deux semaines sont très proches
+    if (ecartN !== null && ecartN1 !== null && Math.abs(ecartN - ecartN1) < 100) {
+      rappelContextuel = "La dynamique observée sur 14 jours reflète une continuité entre les deux semaines.";
+    } else {
+      rappelContextuel = "Ce signal 14j est influencé par la semaine précédente : il ne doit pas masquer le changement observé cette semaine.";
+    }
+  }
+
+  // Affichage conditionnel de la phrase signature Plan Vital
+  let showSignature = false;
+  if (
+    situation === 'surplus' || situation === 'maitrise' ||
+    situation === 'amelioration' || situation === 'eloignement'
+  ) {
+    showSignature = true;
+  }
+
   return (
     <section style={{
       background: '#f8fafc',
@@ -199,6 +267,19 @@ export default function Moyenne14jBlock({ selectedDate, bilan }) {
         <div style={{fontWeight:700, color:'#2563eb', fontSize:'1.13rem', marginBottom:'0.7rem', letterSpacing:0.1}}>
           {v.titre}
         </div>
+        {/* Positionnement de la semaine courante (badge/encadré) */}
+        <div style={{
+          background:'#e0e7ff',
+          color:'#1e293b',
+          borderRadius: '7px',
+          padding: '0.45rem 0.9rem',
+          fontWeight: 600,
+          fontSize: '1.01rem',
+          marginBottom: '0.7rem',
+          display: 'inline-block',
+          boxShadow: '0 1px 3px #e0e7ef',
+          border: '1px solid #c7d2fe'
+        }}>{phrasePositionnement}</div>
         <div style={{fontSize:'1.08rem', color:'#222', marginBottom:'0.3rem'}}>{v.intro}</div>
         <div style={{color:'#64748b', fontSize:'0.97rem', marginBottom:'0.7rem'}}>{v.explication}</div>
         <div style={{fontWeight:600, color:'#2563eb', fontSize:'1.07rem', marginBottom:'0.3rem'}}>Lecture du rythme réel</div>
@@ -209,12 +290,14 @@ export default function Moyenne14jBlock({ selectedDate, bilan }) {
         <div style={{color:'#64748b', fontSize:'0.97rem', marginBottom:'0.7rem'}}>{v.semainesExp}</div>
         <div style={{fontWeight:600, color:'#2563eb', fontSize:'1.07rem', marginBottom:'0.3rem'}}>Traduction consciente</div>
         <div style={{fontSize:'1.01rem', color:'#222', marginBottom:'0.7rem'}}>{v.conclusion}</div>
-        <div style={{color:'#334155', fontSize:'1.01rem', fontStyle:'italic', borderTop:'1px solid #e5e7eb', paddingTop:'0.7rem', marginTop:'0.7rem', textAlign:'center'}}>{v.ancrage}</div>
+        {showSignature && (
+          <div style={{color:'#334155', fontSize:'1.01rem', fontStyle:'italic', borderTop:'1px solid #e5e7eb', paddingTop:'0.7rem', marginTop:'0.7rem', textAlign:'center'}}>{v.ancrage}</div>
+        )}
       </div>
 
-      {/* Rappel contextuel */}
+      {/* Rappel contextuel dynamique */}
       <div style={reminderStyle}>
-        Ce signal est influencé par la semaine précédente : il ne doit pas masquer le signal fort de la semaine en cours.
+        {rappelContextuel}
       </div>
     </section>
   );
