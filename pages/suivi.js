@@ -38,7 +38,8 @@ import {
   calculerVariation,
   getMonday,
   addDays,
-  formatDate
+  formatDate,
+  calculerTendance7j
 } from '../lib/validationSemaine';
 import { calculerRepartitionTypes, calculerRepartitionMoments } from '../lib/repartitionExtras';
 import { calculerJoursRespectes } from '../lib/joursRespectes';
@@ -1095,6 +1096,9 @@ export default function Suivi() {
       const objectifHebdo = objectifJour * 7; // Objectif hebdomadaire
       const kcalExtras = repasData.filter(r => r.est_extra).reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
       
+      // Calcul tendance 7j et projection poids
+      const tendance = calculerTendance7j(apportsTotaux, objectifHebdo);
+      
       let insertOk = false;
       const bilanToInsert = {
         weekStart: selectedWeekStart,
@@ -1104,10 +1108,26 @@ export default function Suivi() {
         extras_count: extrasInfo.count,
         extras_details: JSON.stringify(extrasInfo.details),
         message_feedback: messageFeedback,
-        variation
+        variation,
+        // Nouvelles colonnes Section 2
+        tendance_7j: tendance.type,
+        ecart_hebdo: tendance.ecart,
+        apports_totaux: Math.round(apportsTotaux),
+        objectif_hebdo: objectifHebdo,
+        projection_poids: tendance.projection_poids
       };
+      
+      // LOG DEBUG : Vérifier chaque valeur
+      console.log('[LOG BILAN] 🔍 VALEURS DÉTAILLÉES :');
+      console.log('  weekStart:', selectedWeekStart, typeof selectedWeekStart);
+      console.log('  tendance.type:', tendance.type, typeof tendance.type);
+      console.log('  tendance.ecart:', tendance.ecart, typeof tendance.ecart);
+      console.log('  apportsTotaux:', apportsTotaux, typeof apportsTotaux);
+      console.log('  objectifHebdo:', objectifHebdo, typeof objectifHebdo);
+      console.log('  tendance.projection_poids:', tendance.projection_poids, typeof tendance.projection_poids);
+      console.log('[LOG BILAN] Objet complet à insérer :', JSON.stringify(bilanToInsert, null, 2));
+      
       try {
-        console.log('[LOG BILAN] Données à insérer :', bilanToInsert);
         const { data: insertResult, error: insertError } = await supabase
           .from('semaines_validees')
           .upsert([bilanToInsert], {

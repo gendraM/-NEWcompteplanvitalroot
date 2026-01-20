@@ -100,3 +100,109 @@
 ---
 
 *Document à compléter au fil des évolutions métier et techniques.*
+
+
+données complementaire 
+section 2 new approche a prendre en compte:
+SECTION 2 — Comparaison avec la semaine précédente
+Objectif hebdomadaire (fixe) : 12 110 kcal
+
+Règle de lecture (à garder en tête)
+Chaque semaine est lue par rapport à l’objectif.
+La comparaison montre si tu te rapproches, si tu répètes, ou si tu t’éloignes.
+
+SEUIL “variation négligeable”
+Si l’évolution de l’écart est < 100 kcal → on considère que c’est une reproduction (pas un changement).
+
+🔴 CAS 1 — ÉLOIGNEMENT DE L’OBJECTIF (anciennement “détérioration”)
+
+Semaine dernière (N-1)
+Objectif : 12 110 kcal
+Consommé : 12 610 kcal
+Écart : +500 kcal
+
+Cette semaine (N)
+Objectif : 12 110 kcal
+Consommé : 13 088 kcal
+Écart : +978 kcal
+
+Évolution (distance à l’objectif)
++478 kcal → l’écart avec l’objectif augmente
+
+Verbatim — Option 1 (ultra-synthèse)
+L’écart avec l’objectif augmente.
+Le comportement s’éloigne de la cible.
+
+Verbatim — Option 2 (conscience / ADN Plan Vital)
+L’écart avec l’objectif augmente.
+Le corps perçoit un déséquilibre plus marqué.
+
+🟢 CAS 2 — RAPPROCHEMENT DE L’OBJECTIF (anciennement “amélioration”)
+
+Semaine dernière (N-1)
+Objectif : 12 110 kcal
+Consommé : 12 610 kcal
+Écart : +500 kcal
+
+Cette semaine (N)
+Objectif : 12 110 kcal
+Consommé : 12 310 kcal
+Écart : +200 kcal
+
+Évolution (distance à l’objectif)
+-300 kcal → l’écart avec l’objectif diminue
+
+Verbatim — Option 1 (ultra-synthèse)
+L’écart avec l’objectif diminue.
+Le comportement se rapproche de la cible.
+
+Verbatim — Option 2 (conscience / ADN Plan Vital)
+L’écart avec l’objectif diminue.
+Le corps perçoit un ajustement dans la bonne direction.
+
+🟡 CAS 3 — REPRODUCTION DU DÉSÉQUILIBRE (remplace “stabilité”)
+
+Semaine dernière (N-1)
+Objectif : 12 110 kcal
+Consommé : 12 610 kcal
+Écart : +500 kcal
+
+Cette semaine (N)
+Objectif : 12 110 kcal
+Consommé : 12 630 kcal
+Écart : +520 kcal
+
+Évolution (distance à l’objectif)
++20 kcal → variation négligeable (< 100 kcal)
+
+Explication (alignée avec ton besoin)
+Les deux semaines, tu es au-dessus de l’objectif.
+Et comme l’écart est quasiment identique, cela signifie que tu reproduis presque le même comportement.
+
+Verbatim — Option 1 (ultra-synthèse)
+L’écart avec l’objectif reste quasiment identique.
+Cela signifie que le même schéma se répète, sans ajustement notable.
+
+Verbatim — Option 2 (conscience / ADN Plan Vital)
+L’écart avec l’objectif reste quasiment identique.
+Le corps perçoit une continuité, pas un changement.
+
+Variantes courtes “rotation” (si tu veux éviter la répétition exacte tout en gardant le sens)
+
+Pour le cas 1 (éloignement)
+
+Version alternative A : L’écart augmente : tu t’éloignes de ton repère.
+
+Version alternative B : Le signal est plus lourd : la trajectoire s’écarte.
+
+Pour le cas 2 (rapprochement)
+
+Version alternative A : L’écart diminue : tu reviens vers ton repère.
+
+Version alternative B : Le signal s’allège : la direction est meilleure.
+
+Pour le cas 3 (reproduction du déséquilibre)
+
+Version alternative A : Même écart, même schéma : pas de changement notable.
+
+Version alternative B : Le signal se répète : le corps lit une continuité.

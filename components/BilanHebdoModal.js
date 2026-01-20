@@ -217,16 +217,191 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
                     <div style={{fontSize: '0.85rem', color: '#666', marginTop: '0.4rem', fontStyle: 'italic'}}>
                       Écart hebdomadaire : {tendance.ecart >= 0 ? '+' : ''}{tendance.ecart} kcal
                     </div>
+                    <div style={{fontSize: '0.9rem', color: tendance.type === 'perte' ? '#27ae60' : tendance.type === 'surplus' ? '#e74c3c' : '#666', marginTop: '0.5rem', fontWeight: 500}}>
+                      {tendance.projection}
+                    </div>
                   </div>
                 );
               })()}
               
+              {/* Step 2 - Comparaison N/N-1 */}
+              <ComparaisonN1Block />
+              
               {/* Placeholder pour les prochaines étapes */}
               <div style={{fontSize: '0.85rem', color: '#999', marginTop: '1rem', borderTop: '1px dashed #ddd', paddingTop: '0.8rem'}}>
-                📊 Comparaison N/N-1, Moyenne 14j et Trajectoire : à venir
+                📊 Moyenne 14j et Trajectoire : à venir
               </div>
             </div>
           )}
+        </div>
+      );
+    }
+    
+    // Composant Comparaison N/N-1
+    function ComparaisonN1Block() {
+      const { apportsTotaux, objectifHebdo } = bilan || {};
+      const [comparaison, setComparaison] = React.useState(null);
+      const [loading, setLoading] = React.useState(true);
+      
+      React.useEffect(() => {
+        async function fetchComparaison() {
+          if (!selectedDate || !apportsTotaux || !objectifHebdo) {
+            setLoading(false);
+            return;
+          }
+          
+          try {
+            const { calculerTendance7j, calculerComparaisonN1, getMonday, formatDate } = await import('../lib/validationSemaine');
+            const { supabase } = await import('../lib/supabaseClient');
+            
+            const selectedWeekStart = formatDate(getMonday(selectedDate), 'yyyy-MM-dd');
+            const tendanceN = calculerTendance7j(apportsTotaux, objectifHebdo);
+            const ecartN = tendanceN.ecart;
+            
+            // Fetch semaine N-1
+            const dateN1 = new Date(selectedWeekStart);
+            dateN1.setDate(dateN1.getDate() - 7);
+            const weekStartN1 = formatDate(dateN1, 'yyyy-MM-dd');
+            
+            const { data, error } = await supabase
+              .from('semaines_validees')
+              .select('ecart_hebdo, objectif_hebdo, apports_totaux')
+              .eq('weekStart', weekStartN1)
+              .single();
+            
+            if (error || !data || data.ecart_hebdo === null) {
+              console.log('[Comparaison N/N-1] Pas de semaine N-1 avec données complètes');
+              setLoading(false);
+              setComparaison(null); // Pas de semaine précédente
+              return;
+            }
+            
+            const ecartN1 = data.ecart_hebdo;
+            const apportsTotauxN1 = data.apports_totaux;
+            const objectifN1 = data.objectif_hebdo;
+            const comp = await calculerComparaisonN1(ecartN, ecartN1, tendanceN.type, selectedWeekStart, supabase);
+            // Ajouter les données N-1 pour affichage Option 2
+            comp.apportsTotauxN1 = apportsTotauxN1;
+            comp.objectifN1 = objectifN1;
+            comp.apportsTotauxN = apportsTotaux;
+            comp.objectifN = objectifHebdo;
+            
+            // Calculer dates formatées pour affichage
+            const dateDebN1 = new Date(weekStartN1);
+            const dateFinN1 = new Date(weekStartN1);
+            dateFinN1.setDate(dateFinN1.getDate() + 6);
+            const dateDebN = new Date(selectedWeekStart);
+            const dateFinN = new Date(selectedWeekStart);
+            dateFinN.setDate(dateFinN.getDate() + 6);
+            
+            comp.periodeN1 = `${dateDebN1.getDate().toString().padStart(2, '0')}→${dateFinN1.getDate().toString().padStart(2, '0')} ${dateFinN1.toLocaleDateString('fr-FR', {month: 'short'})}`;
+            comp.periodeN = `${dateDebN.getDate().toString().padStart(2, '0')}→${dateFinN.getDate().toString().padStart(2, '0')} ${dateFinN.toLocaleDateString('fr-FR', {month: 'short'})}`;
+            
+            setComparaison(comp);
+          } catch (err) {
+            console.error('[Comparaison N/N-1] Erreur:', err);
+          } finally {
+            setLoading(false);
+          }
+        }
+        
+        fetchComparaison();
+      }, [selectedDate, apportsTotaux, objectifHebdo]);
+      
+      if (loading) return null;
+      if (!comparaison) return null;
+      
+      return (
+        <div style={{marginTop: '1.2rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem'}}>
+          <div style={{fontSize: '0.9rem', fontWeight: 600, color: '#1f2937', marginBottom: '0.6rem'}}>
+            📊 Comparaison avec la semaine dernière
+          </div>
+          
+          {/* Badge */}
+          <div style={{
+            display: 'inline-block',
+            background: comparaison.couleur,
+            color: '#fff',
+            padding: '0.3rem 0.7rem',
+            borderRadius: 6,
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            marginBottom: '0.6rem'
+          }}>
+            {comparaison.badge}
+          </div>
+          
+          {/* Verbatim principal */}
+          <div style={{fontSize: '0.95rem', color: '#2a4d8f', lineHeight: 1.5, marginBottom: '0.6rem'}}
+               dangerouslySetInnerHTML={{__html: comparaison.verbatim.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}} />
+          
+          {/* Verbatim renforcé (3 semaines) */}
+          {comparaison.renforcementVerbatim && (
+            <div style={{
+              background: '#fff3cd',
+              border: '1px solid #ffc107',
+              borderRadius: 6,
+              padding: '0.7rem',
+              marginTop: '0.8rem',
+              fontSize: '0.9rem',
+              color: '#856404',
+              lineHeight: 1.5
+            }}
+                 dangerouslySetInnerHTML={{__html: comparaison.renforcementVerbatim.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}} />
+          )}
+          
+          {/* Analyse comparative détaillée (Option 2 - Format calcul visuel pédagogique) */}
+          <div style={{
+            fontSize: '0.85rem',
+            color: '#555',
+            marginTop: '0.8rem',
+            background: '#f8f9fa',
+            padding: '0.8rem',
+            borderRadius: 6,
+            borderLeft: '3px solid ' + comparaison.couleur
+          }}>
+            <div style={{fontWeight: 600, marginBottom: '0.7rem'}}>📊 Analyse comparative :</div>
+            
+            {/* Semaine N-1 */}
+            <div style={{marginBottom: '0.8rem'}}>
+              <div style={{fontWeight: 600, fontSize: '0.9rem', color: '#2c3e50', marginBottom: '0.3rem'}}>
+                Semaine N-1 ({comparaison.periodeN1})
+              </div>
+              <div style={{paddingLeft: '1rem', lineHeight: 1.6}}>
+                <div style={{color: '#333'}}>Total consommé : <strong>{comparaison.apportsTotauxN1?.toLocaleString()} kcal</strong></div>
+                <div style={{color: '#666'}}>- Objectif : {comparaison.objectifN1?.toLocaleString()} kcal</div>
+                <div style={{color: comparaison.ecartN1 > 0 ? '#e74c3c' : '#27ae60', fontWeight: 600, marginTop: '0.2rem'}}>
+                  = Écart : {comparaison.ecartN1 >= 0 ? '+' : ''}{comparaison.ecartN1} kcal {comparaison.ecartN1 > 0 ? '📈' : '📉'}
+                </div>
+              </div>
+            </div>
+            
+            {/* Semaine N */}
+            <div style={{marginBottom: '0.8rem'}}>
+              <div style={{fontWeight: 600, fontSize: '0.9rem', color: '#2c3e50', marginBottom: '0.3rem'}}>
+                Semaine N ({comparaison.periodeN})
+              </div>
+              <div style={{paddingLeft: '1rem', lineHeight: 1.6}}>
+                <div style={{color: '#333'}}>Total consommé : <strong>{comparaison.apportsTotauxN?.toLocaleString()} kcal</strong></div>
+                <div style={{color: '#666'}}>- Objectif : {comparaison.objectifN?.toLocaleString()} kcal</div>
+                <div style={{color: comparaison.ecartN > 0 ? '#e74c3c' : '#27ae60', fontWeight: 600, marginTop: '0.2rem'}}>
+                  = Écart : {comparaison.ecartN >= 0 ? '+' : ''}{comparaison.ecartN} kcal {comparaison.ecartN > 0 ? '📈' : '📉'}
+                </div>
+              </div>
+            </div>
+            
+            {/* Évolution texte adaptatif avec symbole → */}
+            <div style={{
+              marginTop: '0.7rem',
+              paddingTop: '0.7rem',
+              borderTop: '2px solid #ddd',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              color: comparaison.couleur
+            }}>
+              → {comparaison.evolutionTexte}
+            </div>
+          </div>
         </div>
       );
     }
