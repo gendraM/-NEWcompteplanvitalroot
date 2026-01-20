@@ -206,3 +206,279 @@ Pour le cas 3 (reproduction du déséquilibre)
 Version alternative A : Même écart, même schéma : pas de changement notable.
 
 Version alternative B : Le signal se répète : le corps lit une continuité.
+
+
+Step 3 du plan d implémentation section 2
+New approche
+👉 Changement de rôle de la moyenne 14j
+
+La moyenne 14j doit répondre à UNE seule question :
+
+“Est-ce qu’un schéma est en train de s’installer ou pasSur les 14 derniers jours, l’écart moyen est de +135 kcal/jour au-dessus de l’objectif.
+
+Puis IMMÉDIATEMENT :
+
+⚠️ Cette moyenne est influencée par la semaine précédente, plus proche de l’équilibre.
+La semaine en cours, elle, s’éloigne davantage.7️⃣ La bonne hiérarchie mentale (à respecter partout)
+
+1️⃣ Semaine en cours → ce que tu viens de faire
+2️⃣ Comparaison N / N-1 → est-ce que tu ajustes ou répètes
+3️⃣ Moyenne 14j → est-ce que ça commence à s’imprimer
+
+👉 La moyenne 14j confirme une direction, elle ne la décide pas ; surplus sur 2 semaines consécutives
+
+Un schéma commence à se fixer.
+La direction prise s’éloigne de l’équilibre que tu as choisi.
+
+⚪ Si stabilité (ton cas “confus”)
+
+L’écart avec l’objectif reste quasiment identique.
+Le corps perçoit une continuité, pas un ajustement.
+
+👉 Pas de progrès. Pas de dégradation. Répétition.
+
+🟢 Si amélioration
+
+L’écart avec l’objectif se réduit.
+Le corps perçoit un changement dans la direction prise.
+
+
+
+new comprehension tendance jours !
+🎯 Le vrai objectif de la partie chiffrée (à ne jamais perdre de vue)
+
+La partie chiffrée ne sert pas à dire “bien / pas bien”.
+Elle sert à faire passer 3 idées clés :
+
+Chaque action compte (chaque repas, chaque jour)
+
+Mais c’est la répétition dans le temps qui décide
+
+On ajuste une trajectoire, pas une journée
+
+👉 Les chiffres doivent raconter le temps, pas le condamner.
+
+🧠 Le problème actuel (et tu l’as très bien vu)
+
+Si tu balances juste :
+
+Total 14j : +1 890 kcal
+
+Moyenne : +135 kcal/jour
+
+👉 l’utilisateur :
+
+soit ne comprend pas ce que ça représente
+
+soit minimise (“c’est rien 135 kcal”)
+
+soit se perd (“mais cette semaine c’était +978 ?!”)
+
+Donc il faut mettre les chiffres en mouvement.
+
+✅ Structure recommandée – PARTIE CHIFFRÉE (claire + consciente)
+📊 Lecture sur 14 jours — ce qui s’accumule
+
+Bloc 1 — Le cumul (vision globale)
+
+Sur les 14 derniers jours :
+Ton corps a reçu +1 890 kcal au-dessus de ton objectif.
+
+Puis immédiatement une clé de lecture :
+
+Pris isolément, chaque jour peut sembler anodin.
+Mais sur 14 jours, ces écarts s’additionnent et commencent à orienter la trajectoire.
+
+👉 Tu introduis la notion de construction, pas de faute.
+
+📊 Bloc 2 — La moyenne (rythme réel du corps)
+
+Cela représente une moyenne de +135 kcal par jour au-dessus de l’objectif.
+
+Et surtout la phrase essentielle (ADN Plan Vital) :
+
+Le corps ne réagit pas aux journées isolées,
+il réagit à ce rythme répété jour après jour.
+
+👉 Là, la moyenne prend du sens.
+Ce n’est plus un chiffre, c’est un tempo.
+
+📊 Bloc 3 — Mise en perspective avec les semaines (ancrage temporel)
+
+Détail des deux semaines :
+• Semaine N-1 : +912 kcal
+• Semaine N : +978 kcal
+
+Puis la traduction consciente (très importante) :
+
+Les deux semaines sont au-dessus de l’objectif,
+avec un écart très proche d’une semaine à l’autre.
+
+👉 Tu montres la répétition, pas la gravité.
+
+🧭 Traduction Plan Vital (le lien entre chiffres et conscience)
+
+C’est ici que tu fais le pont entre maths et vécu :
+
+Cela signifie que, sur deux semaines consécutives,
+le corps reçoit un message de continuité plutôt que d’ajustement.
+
+Ou variante (selon ton ton préféré) :
+
+Sur la durée, le corps perçoit une direction stable,
+même si chaque journée te semble différente.
+
+🪜 Message clé à faire passer (et à répéter partout)
+
+Tu peux même le figer comme micro-verbatim récurrent :
+
+Une journée ne décide rien.
+Une semaine oriente.
+Deux semaines commencent à s’imprimer.
+
+Ça, c’est ultra puissant.
+Et 100 % aligné avec ce que tu veux transmettre.
+
+❌ Ce qu’il faut absolument éviter dans la partie chiffrée
+
+❌ Dire “proche de l’objectif” quand il y a surplus répété
+
+❌ Laisser penser que la moyenne “efface” une semaine chargée
+
+❌ Comparer les chiffres sans traduction humaine
+
+Les chiffres sans interprétation consciente = anxiogènes ou anesthésiants.0 
+
+NEW A PRENDRE EN compte la plus récente !
+📌 INSTRUCTIONS À DESTINATION DE COPILOT — MODULE BILAN & TRAJECTOIRE (PLAN VITAL)
+🎯 Objectif général
+
+Ce module a pour but de donner une lecture consciente de la trajectoire dans le temps, et non un jugement ponctuel.
+Les données chiffrées servent à raconter ce qui se construit sur la durée, pas à sanctionner une journée ou une semaine.
+
+Le verbatim ci-dessous constitue la référence sémantique et conceptuelle de l’application.
+Il ne doit pas être modifié, seulement adapté par déclinaisons cohérentes selon les situations prévues par les règles métier.
+
+🧭 PRINCIPES FONDAMENTAUX À RESPECTER (OBLIGATOIRES)
+
+Ne jamais juger (pas de “bien / mal”, pas de culpabilisation)
+
+Ne jamais donner d’ordres ou de conseils directs
+
+Toujours parler en trajectoire, direction, chemin, rythme
+
+Toujours rappeler que :
+
+une journée ne décide rien
+
+c’est la répétition dans le temps qui oriente
+
+Les chiffres doivent toujours être interprétés, jamais laissés seuls
+
+📊 VERBATIM DE RÉFÉRENCE — PARTIE CHIFFRÉE (À CONSERVER EN L’ÉTAT)
+Lecture sur 14 jours — ce qui s’accumule
+
+Sur les 14 derniers jours :
+Ton corps a reçu +1 890 kcal au-dessus de ton objectif.
+
+Pris isolément, chaque jour peut sembler anodin.
+Mais sur 14 jours, ces écarts s’additionnent et commencent à orienter la trajectoire.
+
+Lecture du rythme réel
+
+Cela représente une moyenne de +135 kcal par jour au-dessus de l’objectif.
+
+Le corps ne réagit pas aux journées isolées,
+il réagit à ce rythme répété jour après jour.
+
+Mise en perspective temporelle (semaines)
+
+Détail des deux semaines :
+• Semaine N-1 : +912 kcal
+• Semaine N : +978 kcal
+
+Les deux semaines sont au-dessus de l’objectif,
+avec un écart très proche d’une semaine à l’autre.
+
+Traduction consciente (indispensable)
+
+Cela signifie que, sur deux semaines consécutives,
+le corps reçoit un message de continuité plutôt que d’ajustement.
+
+Ancrage Plan Vital (phrase clé récurrente)
+
+Une journée ne décide rien.
+Une semaine oriente.
+Deux semaines commencent à s’imprimer.
+
+🔁 RÈGLE D’ADAPTATION DES VARIANTES (SANS SORTIR DU VERBATIM)
+
+Copilot peut :
+
+reformuler légèrement certaines phrases
+
+varier la syntaxe ou le rythme
+
+adapter le ton (plus doux / plus factuel / plus incarné)
+
+Copilot ne doit jamais :
+
+changer le sens
+
+introduire des termes externes (signal, alerte, faute, vigilance, danger…)
+
+transformer une observation en recommandation
+
+Chaque variante doit toujours :
+
+parler de trajectoire / direction / continuité
+
+relier le chiffre au temps
+
+rappeler implicitement que l’ajustement est possible
+
+🧠 RÈGLE D’INTERPRÉTATION DES DONNÉES
+
+Le cumul 14j sert à montrer ce qui s’accumule
+
+La moyenne journalière sert à montrer le rythme perçu par le corps
+
+Les comparaisons hebdomadaires servent à identifier :
+
+amélioration
+
+reproduction du même schéma
+
+éloignement progressif
+
+Aucune donnée chiffrée ne doit être affichée sans traduction humaine.
+
+❌ INTERDIT DANS CE MODULE
+
+“Tu devrais…”
+
+“Attention…”
+
+“Alerte…”
+
+“Déséquilibre…”
+
+“Risque…”
+
+Toute formulation morale ou prescriptive
+
+✅ FINALITÉ DU MODULE
+
+Aider l’utilisateur à :
+
+comprendre ce qui se joue dans le temps
+
+reprendre du pouvoir par la conscience
+
+ajuster sans pression
+
+sortir du “tout ou rien”
+
+👉 Ce texte est la base de référence.
+👉 Copilot doit s’y conformer strictement.
+👉 Les adaptations ne sont autorisées qu’à partir de ce socle, jamais en dehors.

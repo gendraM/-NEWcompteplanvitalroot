@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import Moyenne14jBlock from './Moyenne14jBlock';
 import styles from './BilanHebdoModal.module.css';
 import { calculerTendance7j } from '../lib/validationSemaine';
 
@@ -227,10 +228,8 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
               {/* Step 2 - Comparaison N/N-1 */}
               <ComparaisonN1Block />
               
-              {/* Placeholder pour les prochaines étapes */}
-              <div style={{fontSize: '0.85rem', color: '#999', marginTop: '1rem', borderTop: '1px dashed #ddd', paddingTop: '0.8rem'}}>
-                📊 Moyenne 14j et Trajectoire : à venir
-              </div>
+              {/* Step 3 - Moyenne 14j */}
+              <Moyenne14jBlock selectedDate={selectedDate} bilan={bilan} />
             </div>
           )}
         </div>
@@ -384,6 +383,8 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
               <div style={{paddingLeft: '1rem', lineHeight: 1.6}}>
                 <div style={{color: '#333'}}>Total consommé : <strong>{comparaison.apportsTotauxN?.toLocaleString()} kcal</strong></div>
                 <div style={{color: '#666'}}>- Objectif : {comparaison.objectifN?.toLocaleString()} kcal</div>
+                  {/* Step 3 - Moyenne 14j */}
+                  <Moyenne14jBlock />
                 <div style={{color: comparaison.ecartN > 0 ? '#e74c3c' : '#27ae60', fontWeight: 600, marginTop: '0.2rem'}}>
                   = Écart : {comparaison.ecartN >= 0 ? '+' : ''}{comparaison.ecartN} kcal {comparaison.ecartN > 0 ? '📈' : '📉'}
                 </div>
@@ -393,6 +394,9 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
             {/* Évolution texte adaptatif avec symbole → */}
             <div style={{
               marginTop: '0.7rem',
+
+        // Bloc Moyenne 14j
+
               paddingTop: '0.7rem',
               borderTop: '2px solid #ddd',
               fontSize: '0.9rem',
