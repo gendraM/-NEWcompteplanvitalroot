@@ -600,7 +600,67 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
         {/* Bloc En savoir plus (analyse croisée) */}
         {BlocEnSavoirPlus()}
         {/* Plus de bloc approfondi en bas : tout est fusionné dans la lecture principale */}
+
+        {/* Section 7 — Comment j’ai mangé (bloc rétractable) */}
+        <SectionCommentMange bilan={bilan} selectedDate={selectedDate} />
       </div>
+    </div>
+  );
+}
+
+// Bloc Section 7 — Comment j’ai mangé
+function SectionCommentMange({ bilan, selectedDate }) {
+  const [open, setOpen] = React.useState(false);
+  // TODO: remplacer par un fetch/agrégation réelle des repas_reels pour la semaine sélectionnée
+  // Ici, on simule des données agrégées pour l'exemple
+  const syntheseSemaine = bilan?.syntheseSemaine || {
+    satiete: 'Majorité des repas pris avec satiété',
+    humeur: 'Humeur globalement stable',
+    note: bilan?.note || '',
+    extrasHorsRepas: bilan?.extrasHorsRepas || {
+      matin: 0,
+      apresmidi: 0,
+      soir: 0,
+      nuit: 0
+    }
+  };
+
+  // Bloc visuel
+  return (
+    <div style={{marginBottom: '2rem'}}>
+      <button
+        aria-expanded={open}
+        aria-controls="comment-mange-details"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          background: '#1976d2', color: '#fff', border: 'none', borderRadius: 8,
+          padding: '0.5rem 1.1rem', fontWeight: 600, fontSize: '1rem', cursor: 'pointer', marginBottom: open ? 10 : 0
+        }}
+      >
+        {open ? 'Masquer le détail ▲' : 'Comment j’ai mangé cette semaine ▼'}
+      </button>
+      {open && (
+        <div id="comment-mange-details" style={{marginTop: '0.7rem', background: '#f7faff', borderRadius: 10, padding: '1.1rem 1.3rem', boxShadow: '0 1px 4px #b3d8f7'}}>
+          <h3 style={{color: '#1976d2', marginBottom: '0.7rem', fontSize: '1.13rem'}}>Ressenti global de la semaine</h3>
+          <ul style={{listStyle: 'none', padding: 0, margin: 0, fontSize: '1.07rem'}}>
+            <li style={{marginBottom: 7}}><span style={{fontWeight:600}}>Satiété&nbsp;:</span> <span>{syntheseSemaine.satiete}</span></li>
+            <li style={{marginBottom: 7}}><span style={{fontWeight:600}}>Humeur&nbsp;:</span> <span>{syntheseSemaine.humeur}</span></li>
+            {syntheseSemaine.note && (
+              <li style={{marginBottom: 7}}><span style={{fontWeight:600}}>Note&nbsp;:</span> <span>{syntheseSemaine.note}</span></li>
+            )}
+          </ul>
+          <h4 style={{color: '#1976d2', margin: '1.1rem 0 0.5rem 0', fontSize: '1.07rem'}}>Répartition des extras hors repas</h4>
+          <div style={{display: 'flex', gap: '1.2rem', marginBottom: '1rem'}}>
+            <span>Matin&nbsp;: <b>{syntheseSemaine.extrasHorsRepas.matin}</b></span>
+            <span>Après-midi&nbsp;: <b>{syntheseSemaine.extrasHorsRepas.apresmidi}</b></span>
+            <span>Soir&nbsp;: <b>{syntheseSemaine.extrasHorsRepas.soir}</b></span>
+            <span>Nuit&nbsp;: <b>{syntheseSemaine.extrasHorsRepas.nuit}</b></span>
+          </div>
+          <div style={{marginTop: '0.7rem', fontStyle: 'italic', color: '#1976d2', fontSize: '1.04rem'}}>
+            Ce que tu ressens aujourd’hui n’est qu’une étape : c’est la continuité qui façonne ton chemin.
+          </div>
+        </div>
+      )}
     </div>
   );
 }

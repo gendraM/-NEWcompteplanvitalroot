@@ -1,3 +1,53 @@
+## 🔎 Analyse de conformité Section 7 — « Comment j’ai mangé »
+
+### Points conformes à l’attendu métier
+
+- Bloc rétractable respecté (pas de surcharge, accès par bouton).
+- Titres et sous-titres alignés fiche métier (« Ressenti global de la semaine », « Répartition des extras hors repas »).
+- Données affichées : satiété, humeur, répartition extras (matin, après-midi, soir, nuit).
+- Message doux présent, non redondant, conforme à l’esprit Plan Vital.
+- Absence de surcharge et de phrase de remerciement inutile.
+- Accessibilité visuelle (contraste, hiérarchie, lisibilité) respectée.
+
+### Écarts ou points à enrichir
+
+1. **Données dynamiques** :
+	- Les valeurs affichées semblent par défaut/simulées. Il faut garantir l’agrégation dynamique à partir des données réelles (repas_reels, extras, etc.).
+2. **Note utilisateur** :
+	- La note n’apparaît pas. Afficher la note si présente, sinon « Non renseigné ».
+3. **Répartition extras hors repas** :
+	- Toutes les valeurs à 0. Vérifier la logique d’agrégation ; si aucun extra, afficher « Aucun extra hors repas cette semaine ».
+4. **Accessibilité ARIA** :
+	- Vérifier navigation clavier et focus (cf. checklist métier).
+5. **Personnalisation du verbatim** :
+	- Adapter le message doux selon la semaine (ex : beaucoup d’extras, humeur basse, etc.).
+6. **Robustesse cas limites** :
+	- Si aucune donnée n’est saisie, prévoir un affichage pédagogique (« Aucune donnée saisie cette semaine. Pense à compléter ton journal pour un suivi plus précis ! »).
+
+---
+
+## 🛠️ Plan d’action pour traiter les écarts Section 7
+
+1. **Rendre tous les champs dynamiques**
+	- Brancher l’agrégation sur les vraies données de la semaine (repas_reels, extras, etc.).
+	- Supprimer toute valeur par défaut statique.
+2. **Afficher la note utilisateur**
+	- Si présente, afficher la note ; sinon, indiquer « Non renseigné ».
+3. **Gestion pédagogique des extras hors repas**
+	- Si aucun extra hors repas, afficher une mention pédagogique.
+	- Vérifier la logique d’agrégation par moment de la journée.
+4. **Accessibilité**
+	- Vérifier et tester la navigation clavier, le focus, et les attributs ARIA du bloc rétractable.
+5. **Personnalisation du message doux**
+	- Adapter le verbatim selon les données de la semaine (ex : humeur basse, extras nombreux, etc.).
+6. **Gestion des cas sans saisie**
+	- Si aucune donnée n’est saisie, afficher un message pédagogique global.
+7. **Tests**
+	- Tester tous les cas d’usage et cas limites (aucune donnée, données partielles, etc.).
+
+---
+
+*Cette analyse et ce plan d’action doivent être validés et suivis avant toute évolution ou enrichissement de la Section 7.*
 # 🟢 PLAN D’IMPLÉMENTATION — Bilan Hebdomadaire Alimentaire (Section 2)
 
 ## Titre de la tâche
