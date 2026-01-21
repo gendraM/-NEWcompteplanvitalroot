@@ -44,6 +44,7 @@ import { supabase } from '../lib/supabaseClient';
 import { validerCritereAuto, getStatutCritereAuto } from '../lib/validerCriterePreparation';
 import { getCritereIdFromLabel } from '../lib/validerCriterePreparation';
 import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif, getFenetreValidation } from "../lib/validerCriterePreparation";
+import { savePreparationJeuneSupabase, getPreparationJeuneSync } from '../lib/preparationsJeune';
 import HeaderPreparation from '../components/HeaderPreparation';
 import TimelinePreparation from '../components/TimelinePreparation';
 import ProgressBar from '../components/ProgressBar';
@@ -183,51 +184,41 @@ export default function PreparationJeune() {
 
   // === INITIALISATION (ordre strict) ===
   useEffect(() => {
-    // Initialisation de l’état preparationActive depuis localStorage
-    if (typeof window !== 'undefined') {
-      const active = window.localStorage.getItem('preparationActive');
-      setPreparationActive(active === 'true');
-    }
-    // Lecture date du jeûne et durée depuis preparationData (source unique de vérité)
-    if (typeof window !== 'undefined') {
-      const prepData = window.localStorage.getItem('preparationData');
-      if (prepData) {
-        try {
-          const parsed = JSON.parse(prepData);
-          if (parsed.startDate) {
-            const dateJeuneObj = new Date(parsed.startDate);
-            setDateJeune(dateJeuneObj);
-            setDureeJeune(parsed.duration || 'X');
-            setAujourdhui(new Date());
-            // Calcul du J-XX courant
-            const diff = calculerJourRelatif(parsed.startDate, new Date());
-            setJCourant(diff);
-          }
-        } catch (e) {
-          console.error('Erreur parsing preparationData:', e);
-          setFeedbackMessage("⛔ Erreur de lecture des données de préparation.");
-          setPreparationActive(false);
+    // Synchronisation cloud/local à l’ouverture (si connecté)
+    async function syncPreparation() {
+      let localPrep = null;
+      if (typeof window !== 'undefined') {
+        const prepData = window.localStorage.getItem('preparationData');
+        if (prepData) {
+          try { localPrep = JSON.parse(prepData); } catch {}
+        }
+      }
+      let prep = localPrep;
+      if (userId) {
+        prep = await getPreparationJeuneSync(userId, localPrep);
+      }
+      if (prep && prep.startDate) {
+        const dateJeuneObj = new Date(prep.startDate);
+        setDateJeune(dateJeuneObj);
+        setDureeJeune(prep.duration || 'X');
+        setAujourdhui(new Date());
+        const diff = calculerJourRelatif(prep.startDate, new Date());
+        setJCourant(diff);
+        setPreparationActive(true);
+        if (prep.criteres) setCriteres(prep.criteres);
+        if (prep.messagePerso) setMessagePerso(prep.messagePerso);
+        // Mise à jour localStorage si cloud plus récent
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('preparationData', JSON.stringify(prep));
         }
       } else {
         setFeedbackMessage("⛔ Veuillez renseigner la date de début de jeûne pour activer le suivi et la progression.");
         setPreparationActive(false);
       }
     }
-    // Initialisation des critères (localStorage ou valeurs métier)
-    let criteresInit = criteresMetier.map(c => ({ ...c, valide: false, dateValidation: null }));
-    if (typeof window !== 'undefined') {
-      const saved = getCriteresPreparation();
-      if (saved && Object.keys(saved).length === criteresMetier.length) {
-        criteresInit = criteresMetier.map(c => {
-          const crit = saved[c.id];
-          return crit ? { ...c, valide: !!crit.validé, dateValidation: crit.dateValidation } : { ...c, valide: false, dateValidation: null };
-        });
-      }
-      const msg = window.localStorage.getItem('messagePersoPreparation');
-      if (msg) setMessagePerso(msg);
-    }
-    setCriteres(criteresInit);
-  }, []);
+    syncPreparation();
+    // eslint-disable-next-line
+  }, [userId]);
 
   // Auto-détection des critères via repas_reels (7 derniers jours)
   useEffect(() => {
@@ -317,37 +308,70 @@ export default function PreparationJeune() {
   useEffect(() => {
     const nbValid = criteres.filter(c => c.valide).length;
     setProgression(nbValid);
-    // Affichage synthèse si tous les critères sont validés
     setSyntheseVisible(nbValid === criteresMetier.length);
-    // Sauvegarde dans localStorage
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('criteresPreparation', JSON.stringify(criteres));
+    // Sauvegarde cloud + local à chaque modification
+    async function syncCriteres() {
+      if (typeof window !== 'undefined') {
+        const prepData = window.localStorage.getItem('preparationData');
+        let prep = prepData ? JSON.parse(prepData) : {};
+        prep.criteres = criteres;
+        prep.updatedAt = new Date().toISOString();
+        window.localStorage.setItem('preparationData', JSON.stringify(prep));
+        if (userId) {
+          await savePreparationJeuneSupabase(userId, prep);
+        }
+      }
     }
-  }, [criteres]);
+    syncCriteres();
+    // eslint-disable-next-line
+  }, [criteres, userId]);
 
   // Handler de validation d’un critère (manuel, à améliorer avec auto-validation plus tard)
   function validerCritere(id) {
+    console.log('[validerCritere] Appelée pour id:', id);
     const critere = criteresMetier.find(c => c.id === id);
     if (!critere) {
       setFeedbackMessage("❌ Critère introuvable.");
+      console.error('[validerCritere] Critère introuvable pour id:', id);
       return;
     }
+    console.log('[validerCritere] Critère trouvé:', critere);
     // Vérification de la période active
     if (!isPeriodeActive(critere.jalon, jCourant)) {
       setFeedbackMessage("⛔ Validation impossible : la période pour ce critère n'est pas encore active ou est verrouillée. Veuillez respecter le calendrier de préparation.");
+      console.warn('[validerCritere] Période non active pour critère:', critere, 'jCourant:', jCourant);
       return;
     }
     const dateValidation = new Date().toISOString();
-    validerCriterePreparation(id, dateValidation);
-    setCriteres(prev => prev.map(c => c.id === id ? { ...c, valide: true, dateValidation } : c));
+    try {
+      validerCriterePreparation(id, dateValidation);
+      console.log('[validerCritere] Appel validerCriterePreparation OK pour id:', id, 'date:', dateValidation);
+    } catch (e) {
+      setFeedbackMessage("❌ Erreur lors de la sauvegarde du critère.");
+      console.error('[validerCritere] Erreur validerCriterePreparation:', e);
+      return;
+    }
+    setCriteres(prev => {
+      const newCriteres = prev.map(c => c.id === id ? { ...c, valide: true, dateValidation } : c);
+      console.log('[validerCritere] setCriteres (nouvel état):', newCriteres);
+      return newCriteres;
+    });
     setFeedbackMessage("✅ Critère validé avec succès.");
+    console.log('[validerCritere] Succès: Critère validé pour id:', id);
   }
 
   // Handler de modification du message personnel
   function handleMessageChange(e) {
     setMessagePerso(e.target.value);
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('messagePersoPreparation', e.target.value);
+      const prepData = window.localStorage.getItem('preparationData');
+      let prep = prepData ? JSON.parse(prepData) : {};
+      prep.messagePerso = e.target.value;
+      prep.updatedAt = new Date().toISOString();
+      window.localStorage.setItem('preparationData', JSON.stringify(prep));
+      if (userId) {
+        savePreparationJeuneSupabase(userId, prep);
+      }
     }
   }
 
@@ -469,6 +493,34 @@ const DebugPanel = () => (
     <div style={{ background: '#F5F8FA', minHeight: '100vh', paddingBottom: 40 }}>
       <Navigation />
       <HeaderPreparation />
+      {/* Bouton d'accès à l'historique des préparations */}
+      <div style={{ display: 'flex', justifyContent: 'center', margin: '18px 0' }}>
+        <Link href="/historique-preparations-jeune" passHref legacyBehavior>
+          <a
+            style={{
+              background: 'linear-gradient(90deg, #4F8FFF 0%, #43D9A3 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '12px 32px',
+              fontWeight: 700,
+              fontSize: 16,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px 0 rgba(79,143,255,0.10)',
+              fontFamily: 'Inter, Roboto, Arial, sans-serif',
+              letterSpacing: 0.5,
+              outline: 'none',
+              textDecoration: 'none',
+              transition: 'background 0.2s',
+            }}
+            aria-label="Voir mon historique de préparations"
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.click(); }}
+          >
+            Voir mon historique de préparations
+          </a>
+        </Link>
+      </div>
       
       {/* Bannière date/heure actuelle - EN HAUT SOUS HEADER */}
       {dateJeune && (
@@ -707,31 +759,54 @@ const DebugPanel = () => (
                           return "Pense à valider ce critère la prochaine fois pour progresser !";
                         })
                       };
-                      // Si connecté, insertion en base + localStorage
-                      if (userId) {
-                        const { error: prepError } = await supabase.from('preparations_jeune').insert([bilan]);
-                        if (prepError) throw new Error('Erreur lors de l’enregistrement du bilan : ' + prepError.message);
-                        const debutJeune = {
-                          user_id: userId,
-                          date_debut: new Date().toISOString(),
-                          statut: 'en_cours'
+                      // --- Archivage automatique dans l'historique local ---
+                      try {
+                        const { ajouterPreparationHistorique, savePreparationJeuneSupabase } = await import('../lib/preparationsJeune');
+                        // Construction de la préparation archivée (historique)
+                        const preparationArchivee = {
+                          userId: userId || null,
+                          dateDebut: dateJeune,
+                          dateFin: new Date().toISOString(),
+                          tauxReussite: criteres.filter(c=>c.valide).length / criteresMetier.length * 100,
+                          nbCriteresValides: criteres.filter(c=>c.valide).length,
+                          nbCriteresTotal: criteresMetier.length,
+                          criteres,
+                          messagePerso,
+                          axesAmelioration: criteres.filter(c=>!c.valide).map(c=>c.label),
+                          conseils: criteres.filter(c=>!c.valide).map(c=>c.conseil),
+                          notesPerso: '',
+                          createdAt: new Date().toISOString(),
                         };
-                        const { error: jeuneError } = await supabase.from('jeune').insert([debutJeune]);
-                        if (jeuneError) throw new Error('Erreur lors du démarrage du jeûne : ' + jeuneError.message);
+                        // Archivage local systématique
+                        ajouterPreparationHistorique(preparationArchivee);
+                        // Synchronisation cloud uniquement à la fin (si connecté)
+                        if (userId) {
+                          const res = await savePreparationJeuneSupabase(userId, preparationArchivee);
+                          if (!res) throw new Error('Erreur lors de la sauvegarde Supabase de la préparation.');
+                        }
+                      } catch (err) {
+                        console.warn('Erreur lors de l’archivage de la préparation :', err);
+                        setFeedbackMessage('❌ Erreur lors de l’archivage de la préparation : ' + err.message);
+                      }
+                      // Démarrage du jeûne (Supabase ou localStorage)
+                      try {
+                        if (userId) {
+                          const debutJeune = {
+                            user_id: userId,
+                            date_debut: new Date().toISOString(),
+                            statut: 'en_cours'
+                          };
+                          const { error: jeuneError } = await supabase.from('jeune').insert([debutJeune]);
+                          if (jeuneError) throw new Error('Erreur lors du démarrage du jeûne : ' + jeuneError.message);
+                        }
                         if (typeof window !== 'undefined') {
                           localStorage.setItem('phaseJeuneCommencee', 'true');
                           localStorage.setItem('dateDebutJeune', new Date().toISOString());
-                          localStorage.setItem('bilanPreparationJeune', JSON.stringify(bilan));
+                          localStorage.setItem('bilanPreparationJeune', JSON.stringify(preparationArchivee));
                         }
                         setFeedbackMessage('✅ Bilan enregistré et jeûne démarré ! Redirection...');
-                      } else {
-                        // Non connecté : fallback localStorage uniquement
-                        if (typeof window !== 'undefined') {
-                          localStorage.setItem('phaseJeuneCommencee', 'true');
-                          localStorage.setItem('dateDebutJeune', new Date().toISOString());
-                          localStorage.setItem('bilanPreparationJeune', JSON.stringify(bilan));
-                        }
-                        setFeedbackMessage('⚠️ Bilan enregistré localement (non connecté). Tu pourras le synchroniser plus tard. Redirection...');
+                      } catch (err) {
+                        setFeedbackMessage('❌ ' + err.message);
                       }
                       setTimeout(() => {
                         window.location.href = '/jeune';
@@ -780,6 +855,62 @@ const DebugPanel = () => (
                   </div>
                 </div>
               )}
+              <button
+                onClick={async () => {
+                  setFeedbackMessage('⏳ Archivage de la préparation en cours...');
+                  try {
+                    const { ajouterPreparationHistorique, savePreparationJeuneSupabase } = await import('../lib/preparationsJeune');
+                    // Construction du bilan complet
+                    const preparationArchivee = {
+                      userId: userId || null,
+                      dateDebut: dateJeune,
+                      dateFin: new Date().toISOString(),
+                      tauxReussite: criteres.filter(c=>c.valide).length / criteresMetier.length * 100,
+                      nbCriteresValides: criteres.filter(c=>c.valide).length,
+                      nbCriteresTotal: criteresMetier.length,
+                      criteres,
+                      messagePerso,
+                      axesAmelioration: criteres.filter(c=>!c.valide).map(c=>c.label),
+                      conseils: criteres.filter(c=>!c.valide).map(c=>c.conseil),
+                      notesPerso: '',
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString(),
+                    };
+                    // Archivage local systématique
+                    ajouterPreparationHistorique(preparationArchivee);
+                    // Synchronisation cloud (si connecté)
+                    if (userId) {
+                      const res = await savePreparationJeuneSupabase(userId, preparationArchivee);
+                      if (!res) throw new Error('Erreur lors de la sauvegarde Supabase de la préparation.');
+                    }
+                    // Réinitialisation du workflow
+                    setPreparationData(null);
+                    setPreparationActive(false);
+                    setCriteres([]);
+                    setProgression(0);
+                    setMessagePerso("");
+                    setSyntheseVisible(false);
+                    setDateJeune(null);
+                    setDureeJeune(null);
+                    setJCourant(null);
+                    setFeedbackMessage('✅ Préparation archivée avec succès. Tu peux recommencer un nouveau cycle !');
+                    if (typeof window !== 'undefined') {
+                      localStorage.removeItem('preparationData');
+                      localStorage.removeItem('preparationActive');
+                      localStorage.removeItem('criteresPreparation');
+                      localStorage.removeItem('dateJeune');
+                      localStorage.removeItem('dureeJeune');
+                      localStorage.removeItem('messagePersoPreparation');
+                      localStorage.setItem('bilanPreparationJeune', JSON.stringify(preparationArchivee));
+                    }
+                  } catch (err) {
+                    setFeedbackMessage('❌ Erreur lors de l’archivage : ' + err.message);
+                  }
+                }}
+                style={{ marginTop: '14px', backgroundColor: '#43D9A3', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: 16, fontFamily: 'Inter, Roboto, Arial, sans-serif' }}
+              >
+                Finaliser ma préparation jeune
+              </button>
               <button onClick={handleResetPreparation} style={{ marginTop: '14px', backgroundColor: '#FF6B6B', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: 16, fontFamily: 'Inter, Roboto, Arial, sans-serif' }}>
                 Réinitialiser ma préparation
               </button>
