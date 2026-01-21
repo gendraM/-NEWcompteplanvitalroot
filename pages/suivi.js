@@ -1099,6 +1099,87 @@ export default function Suivi() {
       // Calcul tendance 7j et projection poids
       const tendance = calculerTendance7j(apportsTotaux, objectifHebdo);
       
+      // ═══════════════════════════════════════════════════════════
+      // SECTION 7 - Calcul satiété, humeur et note utilisateur
+      // ═══════════════════════════════════════════════════════════
+      
+      // Mapping satiété texte → score numérique (1-5)
+      const mapSatieteScore = (satieteTexte) => {
+        if (!satieteTexte) return null;
+        const map = {
+          'oui': 5,                // Respecté satiété = excellent
+          'non': 2,                // Dépassé = faible
+          'pas de faim': 3         // Mangé sans faim = moyen
+        };
+        return map[satieteTexte] || null;
+      };
+      
+      // Mapping ressenti → score émotionnel (1-5)
+      const mapRessentiScore = (ressentiTexte) => {
+        if (!ressentiTexte) return null;
+        const map = {
+          'léger': 5,              // Excellent
+          'satisfait': 5,          // Excellent
+          "j'assume": 4,           // Bon
+          'neutre': 3,             // Moyen
+          'lourd': 2,              // Faible
+          'ballonné': 1,           // Très faible
+          'je regrette': 1,        // Très faible
+          'je culpabilise': 1      // Très faible
+        };
+        return map[ressentiTexte] || null;
+      };
+      
+      // Calcul satiété moyenne (converti en score 1-5)
+      const repasAvecSatiete = repasData.filter(r => r.satiete);
+      console.log('[DEBUG] Repas avec satiété:', repasAvecSatiete.length, '/', repasData.length);
+      console.log('[DEBUG] Exemple repas:', repasData.slice(0, 2).map(r => ({ date: r.date, satiete: r.satiete, ressenti: r.ressenti })));
+      const satieteMoyenne = repasAvecSatiete.length > 0
+        ? (repasAvecSatiete.reduce((sum, r) => sum + mapSatieteScore(r.satiete), 0) / repasAvecSatiete.length).toFixed(1)
+        : null;
+      
+      // Calcul ressenti dominant (mode statistique) - utilise "ressenti" pas "humeur_associee"
+      const repasAvecRessenti = repasData.filter(r => r.ressenti);
+      console.log('[DEBUG] Repas avec ressenti:', repasAvecRessenti.length, '/', repasData.length);
+      const ressentiCounts = {};
+      repasAvecRessenti.forEach(r => {
+        ressentiCounts[r.ressenti] = (ressentiCounts[r.ressenti] || 0) + 1;
+      });
+      const ressentiDominant = Object.keys(ressentiCounts).length > 0
+        ? Object.entries(ressentiCounts).sort((a, b) => b[1] - a[1])[0][0]
+        : null;
+      
+      // Mapping ressenti → humeur lisible
+      const mapRessentiHumeur = (ressenti) => {
+        if (!ressenti) return 'Non renseigné';
+        const map = {
+          'léger': '🌱 Léger et bien',
+          'satisfait': '😊 Satisfait',
+          "j'assume": "💪 J'assume",
+          'neutre': '😐 Neutre',
+          'lourd': '😑 Lourd',
+          'ballonné': '🤢 Ballonné',
+          'je regrette': '😔 Je regrette',
+          'je culpabilise': '😟 Je culpabilise'
+        };
+        return map[ressenti] || ressenti;
+      };
+      
+      const humeurDominante = mapRessentiHumeur(ressentiDominant);
+      
+      // Note utilisateur (chercher dans commentaire ou note)
+      const repasAvecNote = repasData.find(r => (r.commentaire && r.commentaire.trim() !== '') || (r.note && r.note.trim() !== ''));
+      const noteUtilisateur = repasAvecNote?.commentaire || repasAvecNote?.note || null;
+      
+      console.log('[LOG BILAN] Section 7 - Données calculées:');
+      console.log('  Satiété moyenne:', satieteMoyenne, '(sur', repasAvecSatiete.length, 'repas)');
+      console.log('  Ressenti dominant:', ressentiDominant, '→', humeurDominante, '(sur', repasAvecRessenti.length, 'repas)');
+      console.log('  Note utilisateur:', noteUtilisateur ? noteUtilisateur.substring(0, 50) + '...' : 'Aucune');
+      
+      // Contexte pour affichage
+      const nbRepasSatiete = repasAvecSatiete.length;
+      const nbRepasRessenti = repasAvecRessenti.length;
+      
       let insertOk = false;
       const bilanToInsert = {
         weekStart: selectedWeekStart,
@@ -1145,6 +1226,7 @@ export default function Suivi() {
       }
       if (insertOk) {
         // Ouverture de la modale BilanHebdoModal (Section 1 complète)
+        console.log('[DEBUG setBilanData] nbRepasSatiete:', nbRepasSatiete, 'nbRepasRessenti:', nbRepasRessenti);
         setBilanData({
           weekStart: selectedWeekStart,
           apportsTotaux,
@@ -1153,7 +1235,13 @@ export default function Suivi() {
           extras: extrasInfo.count,
           budgetExtras,
           variation,
-          // Pas de données Section 2 pour l'instant (à implémenter)
+          // Section 7 - Données ressenti
+          satieteMoyenne,
+          humeurDominante,
+          noteUtilisateur,
+          nbRepasSatiete,
+          nbRepasRessenti,
+          extrasHorsRepas: { matin: 0, apresmidi: 0, soir: 0, nuit: 0 }, // TODO 3: sera calculé dynamiquement
         });
         setShowBilanModal(true);
       } else {

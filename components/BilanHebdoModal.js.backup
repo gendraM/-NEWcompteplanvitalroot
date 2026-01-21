@@ -615,8 +615,8 @@ function SectionCommentMange({ bilan, selectedDate }) {
   // Données dynamiques depuis bilan
   const satieteMoyenne = bilan?.satieteMoyenne;
   const humeurDominante = bilan?.humeurDominante;
-  const noteUtilisateur = bilan?.noteUtilisateur;  const nbRepasSatiete = bilan?.nbRepasSatiete || 0;
-  const nbRepasRessenti = bilan?.nbRepasRessenti || 0;  const extrasHorsRepas = bilan?.extrasHorsRepas || { matin: 0, apresmidi: 0, soir: 0, nuit: 0 };
+  const noteUtilisateur = bilan?.noteUtilisateur;
+  const extrasHorsRepas = bilan?.extrasHorsRepas || { matin: 0, apresmidi: 0, soir: 0, nuit: 0 };
   
   // Cas aucune donnée de ressenti
   const aucuneDonnee = !satieteMoyenne && !humeurDominante && !noteUtilisateur;
@@ -637,74 +637,24 @@ function SectionCommentMange({ bilan, selectedDate }) {
       </button>
       {open && (
         <div id="comment-mange-details" style={{marginTop: '0.7rem', background: '#f7faff', borderRadius: 10, padding: '1.1rem 1.3rem', boxShadow: '0 1px 4px #b3d8f7'}}>
-          {aucuneDonnee ? (
-            <div style={{fontStyle: 'italic', color: '#64748b', padding: '1rem', textAlign: 'center'}}>
-              Aucune donnée de ressenti saisie cette semaine.<br/>
-              Pense à compléter ton journal pour un suivi plus précis ! 📝
-            </div>
-          ) : (
-            <>
-              <h3 style={{color: '#1976d2', marginBottom: '0.7rem', fontSize: '1.13rem'}}>Ressenti global de la semaine</h3>
-              <ul style={{listStyle: 'none', padding: 0, margin: 0, fontSize: '1.07rem'}}>
-                <li style={{marginBottom: 7}}>
-                  <span style={{fontWeight:600}}>Satiété&nbsp;:</span> 
-                  <span>
-                    {satieteMoyenne ? (
-                      <>
-                        {satieteMoyenne} / 5 
-                        <span style={{color: '#64748b', fontSize: '0.9rem', marginLeft: '0.3rem'}}>
-                          (moyenne sur {nbRepasSatiete} repas)
-                        </span>
-                      </>
-                    ) : 'Non renseigné'}
-                  </span>
-                </li>
-                <li style={{marginBottom: 7}}>
-                  <span style={{fontWeight:600}}>Humeur&nbsp;:</span> 
-                  <span>
-                    {humeurDominante ? (
-                      <>
-                        {humeurDominante}
-                        <span style={{color: '#64748b', fontSize: '0.9rem', marginLeft: '0.3rem'}}>
-                          ({nbRepasRessenti} repas)
-                        </span>
-                      </>
-                    ) : 'Non renseigné'}
-                  </span>
-                </li>
-                {noteUtilisateur && (
-                  <li style={{marginBottom: 7}}>
-                    <span style={{fontWeight:600}}>Note&nbsp;:</span> 
-                    <span style={{fontStyle: 'italic', color: '#1976d2'}}>"{noteUtilisateur}"</span>
-                  </li>
-                )}
-              </ul>
-              
-              <h4 style={{color: '#1976d2', margin: '1.1rem 0 0.5rem 0', fontSize: '1.07rem'}}>Répartition des extras hors repas</h4>
-              {(() => {
-                const totalExtras = (extrasHorsRepas.matin || 0) + (extrasHorsRepas.apresmidi || 0) + (extrasHorsRepas.soir || 0) + (extrasHorsRepas.nuit || 0);
-                if (totalExtras === 0) {
-                  return (
-                    <div style={{fontStyle: 'italic', color: '#64748b', marginBottom: '1rem'}}>
-                      Aucun extra hors repas cette semaine. Bravo pour ta régularité ! ✨
-                    </div>
-                  );
-                }
-                return (
-                  <div style={{display: 'flex', gap: '1.2rem', marginBottom: '1rem', flexWrap: 'wrap'}}>
-                    <span>Matin&nbsp;: <b>{extrasHorsRepas.matin || 0}</b></span>
-                    <span>Après-midi&nbsp;: <b>{extrasHorsRepas.apresmidi || 0}</b></span>
-                    <span>Soir&nbsp;: <b>{extrasHorsRepas.soir || 0}</b></span>
-                    <span>Nuit&nbsp;: <b>{extrasHorsRepas.nuit || 0}</b></span>
-                  </div>
-                );
-              })()}
-              
-              <div style={{marginTop: '0.7rem', fontStyle: 'italic', color: '#1976d2', fontSize: '1.04rem'}}>
-                Ce que tu ressens aujourd'hui n'est qu'une étape : c'est la continuité qui façonne ton chemin.
-              </div>
-            </>
-          )}
+          <h3 style={{color: '#1976d2', marginBottom: '0.7rem', fontSize: '1.13rem'}}>Ressenti global de la semaine</h3>
+          <ul style={{listStyle: 'none', padding: 0, margin: 0, fontSize: '1.07rem'}}>
+            <li style={{marginBottom: 7}}><span style={{fontWeight:600}}>Satiété&nbsp;:</span> <span>{satieteMoyenne ? `${satieteMoyenne} / 5` : 'Non renseigné'}</span></li>
+            <li style={{marginBottom: 7}}><span style={{fontWeight:600}}>Humeur&nbsp;:</span> <span>{humeurDominante || 'Non renseigné'}</span></li>
+            {noteUtilisateur && (
+              <li style={{marginBottom: 7}}><span style={{fontWeight:600}}>Note&nbsp;:</span> <span>{noteUtilisateur}</span></li>
+            )}
+          </ul>
+          <h4 style={{color: '#1976d2', margin: '1.1rem 0 0.5rem 0', fontSize: '1.07rem'}}>Répartition des extras hors repas</h4>
+          <div style={{display: 'flex', gap: '1.2rem', marginBottom: '1rem'}}>
+            <span>Matin&nbsp;: <b>{extrasHorsRepas.matin}</b></span>
+            <span>Après-midi&nbsp;: <b>{extrasHorsRepas.apresmidi}</b></span>
+            <span>Soir&nbsp;: <b>{extrasHorsRepas.soir}</b></span>
+            <span>Nuit&nbsp;: <b>{extrasHorsRepas.nuit}</b></span>
+          </div>
+          <div style={{marginTop: '0.7rem', fontStyle: 'italic', color: '#1976d2', fontSize: '1.04rem'}}>
+            Ce que tu ressens aujourd’hui n’est qu’une étape : c’est la continuité qui façonne ton chemin.
+          </div>
         </div>
       )}
     </div>
