@@ -39,7 +39,8 @@ import {
   getMonday,
   addDays,
   formatDate,
-  calculerTendance7j
+  calculerTendance7j,
+  calculerRepartitionExtrasTemporelle
 } from '../lib/validationSemaine';
 import { calculerRepartitionTypes, calculerRepartitionMoments } from '../lib/repartitionExtras';
 import { calculerJoursRespectes } from '../lib/joursRespectes';
@@ -1176,6 +1177,11 @@ export default function Suivi() {
       console.log('  Ressenti dominant:', ressentiDominant, '→', humeurDominante, '(sur', repasAvecRessenti.length, 'repas)');
       console.log('  Note utilisateur:', noteUtilisateur ? noteUtilisateur.substring(0, 50) + '...' : 'Aucune');
       
+      // Calcul répartition temporelle extras (basé sur type de repas)
+      const extrasAvecType = repasData.filter(r => r.est_extra && r.type);
+      const repartitionTemporelle = calculerRepartitionExtrasTemporelle(extrasAvecType);
+      console.log('[LOG BILAN] Répartition extras temporelle:', repartitionTemporelle, '(sur', extrasAvecType.length, 'extras avec type)');
+      
       // Contexte pour affichage
       const nbRepasSatiete = repasAvecSatiete.length;
       const nbRepasRessenti = repasAvecRessenti.length;
@@ -1241,7 +1247,7 @@ export default function Suivi() {
           noteUtilisateur,
           nbRepasSatiete,
           nbRepasRessenti,
-          extrasHorsRepas: { matin: 0, apresmidi: 0, soir: 0, nuit: 0 }, // TODO 3: sera calculé dynamiquement
+          extrasHorsRepas: repartitionTemporelle,
         });
         setShowBilanModal(true);
       } else {
