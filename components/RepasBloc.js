@@ -69,8 +69,7 @@ export default function RepasBloc({
   repasPrevu,
   categoriePrevu,
   quantitePrevu,
-  kcalPrevu,
-  onChangeChampsRepas
+  kcalPrevu
 }) {
   // Déclaration des hooks d’état PRINCIPAUX tout en haut du composant (checklist React)
   // Ajout d'un état pour afficher l'erreur Supabase (doit être tout en haut)
@@ -101,15 +100,6 @@ export default function RepasBloc({
       if ((typeof kcalPrevu === 'string' || typeof kcalPrevu === 'number') && String(kcalPrevu).length > 0) setKcal(String(kcalPrevu));
     }
   }, [repasConforme, repasPrevu, categoriePrevu, quantitePrevu, kcalPrevu, aliment, categorie, quantite, kcal, repasSemaine, date, type]);
-
-  // Remonter les valeurs au parent pour coloration contextuelle pastilles
-  // onChangeChampsRepas retiré du dependency array (stabilisé par useMemo côté parent)
-  useEffect(() => {
-    if (onChangeChampsRepas) {
-      onChangeChampsRepas({ aliment, quantite, heureRepas, categorie });
-    }
-  }, [aliment, quantite, heureRepas, categorie]);
-
   // Ajout Fast food (déclaration unique, checklist respectée)
   const [isFastFood, setIsFastFood] = useState(false);
   const [fastFoodType, setFastFoodType] = useState('');
@@ -142,7 +132,11 @@ export default function RepasBloc({
     setFastFoodAliments([...fastFoodAliments, { nom: '', quantite: '', kcal: '' }]);
   };
 
-  // ... (suppression du doublon handleChangeFastFoodAliment, version complète plus bas)
+  // Handler pour modifier un aliment fast food
+  const handleChangeFastFoodAliment = (idx, field, value) => {
+    const newAliments = fastFoodAliments.map((a, i) => i === idx ? { ...a, [field]: value } : a);
+    setFastFoodAliments(newAliments);
+  };
 
   // Auto-remplissage uniquement lors de la création d’un nouveau repas (jamais en édition)
   useEffect(() => {
@@ -155,22 +149,16 @@ export default function RepasBloc({
     }
   }, [repasConforme, repasPrevu, categoriePrevu, quantitePrevu, kcalPrevu, aliment, categorie, quantite, kcal]);
 
-  // Calcul automatique des kcal pour fast food (référentiel) déplacé dans le handler
-  const handleChangeFastFoodAliment = (idx, field, value) => {
-    const newAliments = fastFoodAliments.map((a, i) => {
-      if (i !== idx) return a;
-      let updated = { ...a, [field]: value };
-      // Calcul automatique des kcal si nom ou quantite modifié
-      if ((field === 'nom' || field === 'quantite') && updated.nom && updated.quantite) {
-        const found = referentielAliments.find(r => r.nom.toLowerCase() === updated.nom.toLowerCase());
-        if (found) {
-          updated.kcal = (parseFloat(updated.quantite) * found.kcal).toFixed(0);
-        }
+  // Calcul automatique des kcal pour fast food (référentiel)
+  useEffect(() => {
+    setFastFoodAliments(fastFoodAliments.map(a => {
+      const found = referentielAliments.find(r => r.nom.toLowerCase() === a.nom.toLowerCase());
+      if (found && a.quantite) {
+        return { ...a, kcal: (parseFloat(a.quantite) * found.kcal).toFixed(0) };
       }
-      return updated;
-    });
-    setFastFoodAliments(newAliments);
-  };
+      return a;
+    }));
+  }, [fastFoodAliments]);
   // Validation stricte des props
   extrasRestants = typeof extrasRestants === 'number' && !isNaN(extrasRestants) ? extrasRestants : 0;
   const [estExtra, setEstExtra] = useState(false);
