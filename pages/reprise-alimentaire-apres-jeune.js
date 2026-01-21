@@ -3,13 +3,20 @@ import { supabase } from '../lib/supabaseClient';
 import Link from 'next/link';
 import NotificationsPhase1 from '../components/NotificationsPhase1';
 import NotificationsPhase2 from '../components/NotificationsPhase2';
+import NotificationsPhase3 from '../components/NotificationsPhase3';
+import NotificationsPhase5 from '../components/NotificationsPhase5';
 import RecettesPhase1Modal from '../components/RecettesPhase1Modal';
 import RecettesPhase2Modal from '../components/RecettesPhase2Modal';
+import RecettesPhase3Modal from '../components/RecettesPhase3Modal';
+import RecettesPhase4Modal from '../components/RecettesPhase4Modal';
+import RecettesPhase5Modal from '../components/RecettesPhase5Modal';
+import HistoriqueReprisesModal from '../components/HistoriqueReprisesModal';
 
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
   const [showAll, setShowAll] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
   
   // Regrouper les jours par phase
   const phasesArray = Object.entries(phases).map(([key, phase], idx) => {
@@ -50,17 +57,48 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
     phasesToShow = phasesArray.slice(0, maxIdx + 1);
   }
 
+  // Fonctions utilitaires pour reset
+  const resetJourReprise = () => {
+    if (window && window.localStorage) {
+      const progStr = localStorage.getItem('programmeRepriseValide');
+      if (progStr) {
+        const prog = JSON.parse(progStr);
+        prog.date_debut_reprise = new Date().toISOString();
+        localStorage.setItem('programmeRepriseValide', JSON.stringify(prog));
+        window.location.reload();
+      }
+    }
+  };
+  const effacerNotes = () => {
+    if (window && window.localStorage) {
+      localStorage.removeItem('difficultesReprise');
+      window.location.reload();
+    }
+  };
+
   return (
     <>
+      {/* OUTILS DE RÉINITIALISATION */}
+      <div style={{display:'flex',gap:12,marginBottom:16}}>
+        <button onClick={resetJourReprise} style={{background:'#e3f2fd',color:'#1976d2',border:'1.5px solid #1976d2',borderRadius:8,padding:'0.5rem 1.2rem',fontWeight:700,cursor:'pointer'}}>Réinitialiser jour de reprise</button>
+        <button onClick={effacerNotes} style={{background:'#fffbe6',color:'#b28704',border:'1.5px solid #fbc02d',borderRadius:8,padding:'0.5rem 1.2rem',fontWeight:700,cursor:'pointer'}}>Effacer mes notes</button>
+      </div>
       {/* 🔘 Bouton toggle mobile */}
       <button
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
+        onClick={() => {
+          if (!sidebarVisible) {
+            setSidebarVisible(true);
+            setIsMobileOpen(true);
+          } else {
+            setIsMobileOpen(!isMobileOpen);
+          }
+        }}
         style={{
           position: 'fixed',
           top: '1rem',
           left: '1rem',
           zIndex: 100,
-          background: isMobileOpen ? 'linear-gradient(135deg, #e53935 0%, #c62828 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: (isMobileOpen && sidebarVisible) ? 'linear-gradient(135deg, #e53935 0%, #c62828 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           border: 'none',
           borderRadius: 8,
@@ -73,10 +111,12 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
           transition: 'all 0.3s ease'
         }}
         className="mobile-toggle-btn"
+        title={sidebarVisible ? 'Afficher/Masquer les phases' : 'Ouvrir les phases'}
       >
-        {isMobileOpen ? '✕ Fermer' : '☰ Phases'}
+        {!sidebarVisible ? '☰ Phases' : (isMobileOpen ? '✕ Fermer' : '☰ Phases')}
       </button>
 
+      {sidebarVisible && (
       <aside 
         className={isMobileOpen ? 'phases-sidebar mobile-open' : 'phases-sidebar'}
         style={{
@@ -165,7 +205,7 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
       )}
       {showAll && phasesToShow.length === phasesArray.length && (
         <button
-          onClick={() => setShowAll(false)}
+          onClick={() => setSidebarVisible(false)}
           style={{
             marginTop: 10,
             background: 'linear-gradient(135deg, #185a9d 0%, #43cea2 100%)',
@@ -183,13 +223,21 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
         </button>
       )}
       </aside>
+      )}
     </>
   );
 }
+
+
+import ModalDifficultesIdentifiees from '../components/ModalDifficultesIdentifiees';
 import { useRouter } from 'next/router';
 
 export default function RepriseAlimentaireApresJeune() {
   const router = useRouter();
+
+  // 🆕 Modal difficultés identifiées
+  const [showModalDifficultes, setShowModalDifficultes] = useState(false);
+  const [difficultesReprise, setDifficultesReprise] = useState(null);
   const [programme, setProgramme] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -207,9 +255,25 @@ export default function RepriseAlimentaireApresJeune() {
   // 🆕 États pour fonctionnalités Phase 2
   const [modalRecettesPhase2, setModalRecettesPhase2] = useState({ isOpen: false, type: 'compote' });
 
+  // 🆕 États pour fonctionnalités Phase 3
+  const [modalRecettesPhase3, setModalRecettesPhase3] = useState({ isOpen: false, type: 'oeufs' });
+
+  // 🆕 États pour fonctionnalités Phase 4
+  const [modalRecettesPhase4, setModalRecettesPhase4] = useState({ isOpen: false, type: 'patatedouce' });
+
+  // 🆕 États pour fonctionnalités Phase 5
+  const [modalRecettesPhase5, setModalRecettesPhase5] = useState({ isOpen: false, type: 'poulet' });
+
+  // 🆕 États pour historique reprises
+  const [historiqueReprises, setHistoriqueReprises] = useState([]);
+  const [isHistoriqueLoaded, setIsHistoriqueLoaded] = useState(false);
+  const [showHistoriqueModal, setShowHistoriqueModal] = useState(false);
+  const [repriseConsultee, setRepriseConsultee] = useState(null);
+
   // Permettre un mode test/forçage via ?test=1 dans l'URL
   const [forceSuivi, setForceSuivi] = useState(false);
   const [repriseMode, setRepriseMode] = useState('normal'); // 'test' ou 'normal'
+
 
   useEffect(() => {
     if (router && router.query && router.query.test === '1') {
@@ -221,6 +285,25 @@ export default function RepriseAlimentaireApresJeune() {
   useEffect(() => {
     const modeActuel = localStorage.getItem('repriseMode') || 'normal';
     setRepriseMode(modeActuel);
+  }, []);
+
+  // 🆕 CHARGER HISTORIQUE REPRISES AU MONTAGE
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const historiqueLS = JSON.parse(localStorage.getItem('historiqueReprises') || '[]');
+        if (Array.isArray(historiqueLS)) {
+          setHistoriqueReprises(historiqueLS);
+          setIsHistoriqueLoaded(true);
+          console.log('[HISTORIQUE REPRISES] Chargé:', historiqueLS.length, 'reprises archivées');
+        } else {
+          setIsHistoriqueLoaded(true);
+        }
+      }
+    } catch (error) {
+      setIsHistoriqueLoaded(true);
+      console.error('Erreur chargement historique reprises:', error);
+    }
   }, []);
 
   useEffect(() => {
@@ -413,6 +496,23 @@ export default function RepriseAlimentaireApresJeune() {
     alert('✅ Poids final enregistré avec succès !');
   };
 
+  // 🆕 Callback pour soumission des difficultés (doit être défini au niveau du composant)
+  const handleSubmitDifficultes = (difficultes) => {
+    setDifficultesReprise(difficultes);
+    // Sauvegarde locale (pattern simple, à adapter pour Supabase si besoin)
+    localStorage.setItem('difficultesReprise', JSON.stringify({
+      date: new Date().toISOString(),
+      tauxConformite: programme?.bilan_reprise?.taux_conformite,
+      tauxValidation: programme?.bilan_reprise?.taux_validation,
+      ...difficultes
+    }));
+    setShowModalDifficultes(false);
+    alert('Merci pour ton retour, il sera pris en compte pour la suite !');
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  };
+
   // 🆕 Fonction de validation d'un jour
   const validerJour = async (jourData) => {
     if (!programme || !jourData) return;
@@ -445,16 +545,6 @@ export default function RepriseAlimentaireApresJeune() {
         r.date === jourData.date
       );
 
-      // Vérifier qu'il y a au moins 2 repas enregistrés
-      if (repasJour.length < 2) {
-        setMessageValidation({ 
-          type: 'error', 
-          text: `⚠️ Tu dois enregistrer au moins 2 repas conformes avant de valider ce jour. Actuellement : ${repasJour.length}/2 repas.` 
-        });
-        setValidationEnCours(false);
-        return;
-      }
-
       // 3️⃣ Marquer le jour comme validé dans localStorage
       const joursValides = JSON.parse(localStorage.getItem('joursReprisesValides') || '[]');
       const jourExistant = joursValides.find(j => j.jour_numero === jourData.jour_numero);
@@ -472,18 +562,24 @@ export default function RepriseAlimentaireApresJeune() {
       }
 
       // 4️⃣ Vérifier si c'est le dernier jour de la reprise
+      let tauxConformite = 0;
+      let tauxValidation = 0;
       if (jourData.jour_numero === programme.duree_reprise_jours) {
         // 🆕 CALCULER LE BILAN COMPLET DE LA REPRISE
         const cleRepas = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
         const tousRepasReprise = JSON.parse(localStorage.getItem(cleRepas) || '[]');
         const joursValidesReprise = JSON.parse(localStorage.getItem('joursReprisesValides') || '[]');
-        
         // Statistiques de conformité
         const totalRepas = tousRepasReprise.length;
         const repasConformes = tousRepasReprise.filter(r => r.conforme === true).length;
-        const tauxConformite = totalRepas > 0 ? Math.round((repasConformes / totalRepas) * 100) : 0;
+        tauxConformite = totalRepas > 0 ? Math.round((repasConformes / totalRepas) * 100) : 0;
         const nbJoursValides = joursValidesReprise.length;
-        const tauxValidation = Math.round((nbJoursValides / programme.duree_reprise_jours) * 100);
+        tauxValidation = Math.round((nbJoursValides / programme.duree_reprise_jours) * 100);
+
+        // 🆕 Détection fin de reprise non optimale
+        if (tauxConformite < 70 || tauxValidation < 80) {
+          setShowModalDifficultes(true);
+        }
         
         // Poids de fin (à demander ou récupérer)
         const poidsActuel = localStorage.getItem('poidsActuel') 
@@ -522,6 +618,85 @@ export default function RepriseAlimentaireApresJeune() {
         localStorage.setItem('bilanRepriseAlimentaire', JSON.stringify(bilanReprise));
         console.log('[BILAN REPRISE] Bilan calculé et sauvegardé:', bilanReprise);
         
+        // 🆕 ARCHIVER LA REPRISE (pattern jeûne.js, lignes 1163-1230)
+        try {
+          // Lire données depuis localStorage (comme jeûne.js le fait)
+          const dateDebutLS = JSON.parse(localStorage.getItem('programmeRepriseValide') || '{}').date_debut_reprise || programme.date_debut_reprise;
+          const dureeLS = programme.duree_reprise_jours;
+          // On récupère tous les jours validés (objets complets)
+          const joursValidesObjLS = JSON.parse(localStorage.getItem('joursReprisesValides') || '[]');
+          const joursValidesLS = joursValidesObjLS.map(j => j.jour_numero);
+          const cleRepasLS = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
+          const repasConsommesLS = JSON.parse(localStorage.getItem(cleRepasLS) || '[]');
+          const bilanLS = JSON.parse(localStorage.getItem('bilanRepriseAlimentaire') || 'null');
+          const programmeRepriseLS = JSON.parse(localStorage.getItem('programmeRepriseValide') || 'null');
+
+          // Calcul de la phase max atteinte
+          let phaseMaxAtteinte = null;
+          if (joursValidesObjLS.length > 0) {
+            // On prend le max des phases validées (en nombre)
+            phaseMaxAtteinte = Math.max(...joursValidesObjLS.map(j => Number(j.phase) || 0));
+          }
+
+          // 🆕 Regrouper les aliments consommés par phase (initialise toutes les phases 1 à 5)
+          const alimentsConsommesParPhase = {};
+          for (let p = 1; p <= 5; p++) {
+            alimentsConsommesParPhase[p] = [];
+          }
+          repasConsommesLS.forEach(repas => {
+            const phase = repas.phase || 1;
+            let aliments = [];
+            if (Array.isArray(repas.aliments)) {
+              aliments = repas.aliments;
+            } else if (repas.nom_aliment) {
+              aliments = [repas.nom_aliment];
+            }
+            aliments.forEach(aliment => {
+              if (aliment && !alimentsConsommesParPhase[phase].includes(aliment)) {
+                alimentsConsommesParPhase[phase].push(aliment);
+              }
+            });
+          });
+
+          if (joursValidesLS.length === 0 || !dateDebutLS) {
+            console.log('⚠️ Aucune reprise à archiver (0 jours validés ou pas de date)');
+          } else {
+            const idReprise = `${dateDebutLS}_${dureeLS}j`;
+            const dateFinArchivage = new Date().toISOString().split('T')[0];
+
+            // Objet archive (adapté du pattern jeuneArchive)
+            const repriseArchive = {
+              id: idReprise,
+              dateDebut: dateDebutLS,
+              dateFin: dateFinArchivage,
+              duree: dureeLS,
+              joursValides: [...joursValidesLS],
+              repasConsommes: repasConsommesLS,
+              bilan: bilanLS,
+              programmeReprise: programmeRepriseLS,
+              statut: 'termine',
+              dateArchivage: new Date().toISOString(),
+              phaseMaxAtteinte: phaseMaxAtteinte, // 🆕 Ajout du champ ici
+              poidsFinReprise: poidsActuel || null, // 🆕 Poids final saisi à la fin de la reprise (optionnel)
+              alimentsConsommesParPhase: alimentsConsommesParPhase // 🆕 Aliments consommés regroupés par phase
+            };
+
+            // Archiver comme jeûne.js
+            const historiqueActuel = JSON.parse(localStorage.getItem('historiqueReprises') || '[]');
+            const dejaArchive = historiqueActuel.some(r => r.id === repriseArchive.id);
+
+            if (!dejaArchive) {
+              historiqueActuel.unshift(repriseArchive); // Plus récente en premier
+              localStorage.setItem('historiqueReprises', JSON.stringify(historiqueActuel));
+              console.log('✅ Reprise archivée avec succès:', repriseArchive.id);
+            } else {
+              console.log('ℹ️ Reprise déjà archivée:', repriseArchive.id);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Erreur archivage reprise:', error);
+        }
+        
         // Mettre à jour le programme
         const programmeMAJ = { 
           ...programme, 
@@ -542,10 +717,12 @@ export default function RepriseAlimentaireApresJeune() {
         });
       }
 
-      // 5️⃣ Recharger les données
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      // 5️⃣ Recharger les données UNIQUEMENT si le modal de difficultés n'est pas affiché
+      if (!(tauxConformite < 70 || tauxValidation < 80)) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }
 
     } catch (e) {
       console.error('[ERROR] Exception validation:', e);
@@ -557,7 +734,16 @@ export default function RepriseAlimentaireApresJeune() {
 
   // ...existing code...
   return (
-    <div style={{
+    <>
+      {/* Modal Difficultés identifiées (fin de reprise non optimale) */}
+      <ModalDifficultesIdentifiees
+        isOpen={showModalDifficultes}
+        onClose={() => setShowModalDifficultes(false)}
+        onSubmit={handleSubmitDifficultes}
+        tauxConformite={programme?.bilan_reprise?.taux_conformite || 0}
+        tauxValidation={programme?.bilan_reprise?.taux_validation || 0}
+      />
+      <div style={{
       padding: '2rem',
       maxWidth: '1200px',
       margin: '0 auto',
@@ -600,6 +786,27 @@ export default function RepriseAlimentaireApresJeune() {
             >
               <span style={{fontSize:'1.2em'}}>✏️</span> Saisir un repas
             </Link>
+            {historiqueReprises.length > 0 && (
+              <button
+                onClick={() => setShowHistoriqueModal(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '0.6rem 1.2rem',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(102,126,234,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <span style={{fontSize:'1.2em'}}>📊</span> Mes reprises ({historiqueReprises.length})
+              </button>
+            )}
             <button
               onClick={() => window.location.reload()}
               style={{
@@ -621,23 +828,45 @@ export default function RepriseAlimentaireApresJeune() {
             </button>
             <button
               onClick={() => {
-                // MODE TEST : Utiliser clés TEST_ pour isoler des données réelles
-                const programmeCristallisation = {
-                  dateDebut: new Date().toISOString(),
-                  bilanReprise: {
+                  // MODE TEST : Utiliser clés TEST_ pour isoler des données réelles
+                  let bilanReprise = {
                     scoreGlobal: 85,
                     hydratation: { score: 90 },
                     timing: { score: 80 },
                     quantites: { score: 85 },
                     qualite: { score: 88 }
-                  }
-                };
-                localStorage.setItem('TEST_programmeCristallisation', JSON.stringify(programmeCristallisation));
-                localStorage.setItem('TEST_joursValidesCristallisation', JSON.stringify([]));
-                localStorage.setItem('TEST_context', 'cristallisation');
-                console.log('[MODE TEST] Cristallisation test créée - données isolées');
-                window.location.href = '/cristallisation';
-              }}
+                  };
+                  try {
+                    const diffStr = localStorage.getItem('difficultesReprise');
+                    if (diffStr) {
+                      const diffObj = JSON.parse(diffStr);
+                      const difficultes = [];
+                      Object.entries(diffObj).forEach(([k, v]) => {
+                        if (typeof v === 'boolean' && v) difficultes.push(k);
+                        if (typeof v === 'string' && v.trim()) {
+                          // Analyse automatique du texte libre pour extraire toutes les difficultés
+                          const { difficultes: autoDiffs } = require('../lib/analyseContexteReprise').analyseContexteReprise(v.trim());
+                          if (autoDiffs && autoDiffs.length > 0) {
+                            autoDiffs.forEach(d => difficultes.push(d));
+                          } else {
+                            difficultes.push(v.trim());
+                          }
+                        }
+                      });
+                      // Toujours inclure le champ 'difficultes' dans le bilan, même vide
+                      bilanReprise.difficultes = Array.from(new Set(difficultes));
+                    }
+                  } catch(e) { console.warn('Erreur lecture difficultés (TEST):', e); }
+                  const programmeCristallisation = {
+                    dateDebut: new Date().toISOString(),
+                    bilanReprise
+                  };
+                  localStorage.setItem('TEST_programmeCristallisation', JSON.stringify(programmeCristallisation));
+                  localStorage.setItem('TEST_joursValidesCristallisation', JSON.stringify([]));
+                  localStorage.setItem('TEST_context', 'cristallisation');
+                  console.log('[MODE TEST] Cristallisation test créée - données isolées');
+                  window.location.href = '/cristallisation';
+                }}
               style={{
                 background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                 color: 'white',
@@ -1084,80 +1313,6 @@ export default function RepriseAlimentaireApresJeune() {
                   {joursAAfficher[selectedJourIdx]?.message_contextuel}
                 </div>
                 
-                {/* 🆕 MES SCORES */}
-                {!isPreview && joursAAfficher[selectedJourIdx] && (() => {
-                  const cleRepas = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
-                  const repasStockes = JSON.parse(localStorage.getItem(cleRepas) || '[]');
-                  const todayStr = new Date().toISOString().split('T')[0];
-                  
-                  // Calcul scores (identique à /suivi.js)
-                  const repasTypes = ["Petit-déjeuner", "Déjeuner", "Collation", "Dîner"];
-                  const repasJourCourant = repasStockes.filter(r => r.date === todayStr);
-                  const nbRepasSaisis = repasTypes.reduce((acc, type) => acc + (repasJourCourant.some(r => r.moment === type) ? 1 : 0), 0);
-                  const scoreRegularite = Math.round((nbRepasSaisis / repasTypes.length) * 100);
-                  
-                  // Score calories du jour
-                  const caloriesDuJour = repasJourCourant.reduce((sum, r) => sum + (parseFloat(r.kcal) || 0), 0);
-                  const objectifCalorique = 1800; // Valeur par défaut (à adapter selon profil)
-                  const scoreCalorique = objectifCalorique > 0 ? Math.round((caloriesDuJour / objectifCalorique) * 100) : 0;
-                  
-                  // Score discipline (repas conformes)
-                  const repasConformes = repasJourCourant.filter(r => r.conforme === true || r.validation?.phase_ok).length;
-                  const scoreDiscipline = repasJourCourant.length > 0 ? Math.round((repasConformes / repasJourCourant.length) * 100) : 0;
-                  
-                  return (
-                    <>
-                      {/* Bloc Mes scores */}
-                      <div style={{
-                        marginTop: 18,
-                        marginBottom: 18,
-                        background: "#fafafa",
-                        borderRadius: 12,
-                        padding: "20px 16px",
-                        boxShadow: "0 1px 5px rgba(0,0,0,0.03)"
-                      }}>
-                        <h2 style={{ margin: "0 0 16px 0" }}>Mes scores</h2>
-                        
-                        <div style={{ marginBottom: 12 }}>
-                          <span style={{ fontWeight: 500 }}>Score de régularité de saisie : </span>
-                          <span style={{ fontWeight: 700, color: "#8e24aa", fontSize: 18 }}>{scoreRegularite}%</span>
-                          <div style={{ background: "#e0e0e0", borderRadius: 8, height: 16, width: "100%", marginTop: 6 }}>
-                            <div style={{ width: `${Math.min(scoreRegularite, 100)}%`, height: "100%", background: "#8e24aa", borderRadius: 8, transition: "width 0.5s" }}></div>
-                          </div>
-                          <div style={{ fontSize: 13, color: scoreRegularite === 100 ? '#43a047' : '#888', marginTop: 4 }}>
-                            {scoreRegularite === 100
-                              ? "Bravo, tu as saisi tous tes repas principaux aujourd'hui !"
-                              : `Repas saisis aujourd'hui : ${nbRepasSaisis} / ${repasTypes.length}`}
-                          </div>
-                        </div>
-                        
-                        <div style={{ marginBottom: 12 }}>
-                          <span style={{ fontWeight: 500 }}>Score calorique du jour : </span>
-                          <span style={{ fontWeight: 700, color: "#ff9800", fontSize: 18 }}>{scoreCalorique}%</span>
-                          <div style={{ background: "#e0e0e0", borderRadius: 8, height: 16, width: "100%", marginTop: 6 }}>
-                            <div style={{ width: `${Math.min(scoreCalorique, 100)}%`, height: "100%", background: "#ff9800", borderRadius: 8, transition: "width 0.5s" }}></div>
-                          </div>
-                          <div style={{ fontSize: 14, color: "#888", marginTop: 4 }}>
-                            Objectif : {objectifCalorique} kcal — Consommé : {Math.round(caloriesDuJour)} kcal
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <span style={{ fontWeight: 500 }}>Score discipline (repas alignés) : </span>
-                          <span style={{ fontWeight: 700, color: "#1976d2", fontSize: 18 }}>{scoreDiscipline}%</span>
-                          <div style={{ background: "#e0e0e0", borderRadius: 8, height: 16, width: "100%", marginTop: 6 }}>
-                            <div style={{ width: `${Math.min(scoreDiscipline, 100)}%`, height: "100%", background: "#1976d2", borderRadius: 8, transition: "width 0.5s" }}></div>
-                          </div>
-                          <div style={{ fontSize: 13, color: scoreDiscipline >= 75 ? '#43a047' : '#888', marginTop: 4 }}>
-                            {repasJourCourant.length === 0 
-                              ? "Aucun repas saisi aujourd'hui"
-                              : `${repasConformes} / ${repasJourCourant.length} repas conformes`}
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
 
                 {/* 🆕 CRITÈRES DU JOUR - SUIVI EN TEMPS RÉEL */}
                 {!isPreview && joursAAfficher[selectedJourIdx] && (() => {
@@ -1645,16 +1800,50 @@ export default function RepriseAlimentaireApresJeune() {
               </div>
 
               <div style={{display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16, flexWrap: 'wrap'}}>
+                {/* DEBUG : Affichage brut de la clé localStorage 'difficultesReprise' */}
+                {typeof window !== 'undefined' && (
+                  <div style={{background:'#fffbe6',border:'1.5px dashed #fbc02d',borderRadius:8,padding:10,marginBottom:10}}>
+                    <b>localStorage.difficultesReprise :</b><br/>
+                    <pre style={{fontSize:12,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0}}>{localStorage.getItem('difficultesReprise') || 'null'}</pre>
+                  </div>
+                )}
                 <button
                   onClick={() => {
-                    // Créer le programme cristallisation
+                    // Centralisation FIABLE de la création du programme de cristallisation
+                    let bilanReprise = { ...(programme.bilan_reprise || {}) };
+                    let difficultes = [];
+                    try {
+                      const diffStr = localStorage.getItem('difficultesReprise');
+                      if (diffStr) {
+                        const diffObj = JSON.parse(diffStr);
+                        Object.entries(diffObj).forEach(([k, v]) => {
+                          if (typeof v === 'boolean' && v) difficultes.push(k);
+                          if (typeof v === 'string' && v.trim()) {
+                            // Analyse automatique du texte libre pour extraire toutes les difficultés
+                            const { difficultes: autoDiffs } = require('../lib/analyseContexteReprise').analyseContexteReprise(v.trim());
+                            if (autoDiffs && autoDiffs.length > 0) {
+                              autoDiffs.forEach(d => difficultes.push(d));
+                            } else {
+                              difficultes.push(v.trim());
+                            }
+                          }
+                        });
+                      }
+                    } catch(e) { console.warn('Erreur lecture difficultés:', e); }
+                    // Si aucune difficulté détectée, tenter d'analyser le texte libre du bilan (fallback ultime)
+                    if ((!difficultes || difficultes.length === 0) && bilanReprise.texteLibre) {
+                      const { difficultes: autoDiffs } = require('../lib/analyseContexteReprise').analyseContexteReprise(bilanReprise.texteLibre);
+                      if (autoDiffs && autoDiffs.length > 0) {
+                        autoDiffs.forEach(d => difficultes.push(d));
+                      }
+                    }
+                    bilanReprise.difficultes = Array.from(new Set(difficultes));
                     const programmeCristallisation = {
                       dateDebut: new Date().toISOString(),
-                      bilanReprise: programme.bilan_reprise || {}
+                      bilanReprise
                     };
                     localStorage.setItem('programmeCristallisation', JSON.stringify(programmeCristallisation));
                     localStorage.setItem('joursValidesCristallisation', JSON.stringify([]));
-                    // Redirection
                     window.location.href = '/cristallisation';
                   }}
                   style={{
@@ -1675,39 +1864,35 @@ export default function RepriseAlimentaireApresJeune() {
                   🏔️ Démarrer la Cristallisation
                 </button>
 
-                <Link
-                  href={{
-                    pathname: '/consolidation-45-jours',
-                    query: {
-                      // Transmettre TOUTES les données à la cristallisation
-                      bilan_reprise: JSON.stringify(programme.bilan_reprise || {}),
-                      duree_jeune: programme.duree_jeune_jours,
-                      duree_reprise: programme.duree_reprise_jours,
-                      poids_actuel: programme.bilan_reprise?.poids_fin_reprise || programme.poids_fin_jeune || programme.poids_depart,
-                      date_fin_reprise: programme.date_fin_reprise || new Date().toISOString().split('T')[0],
-                    reprise_id: programme.id,
-                    taux_conformite: programme.bilan_reprise?.taux_conformite || 0
-                  }
-                }}
-                style={{
-                  display: 'inline-block',
-                  background: 'linear-gradient(135deg, #d84315 0%, #bf360c 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 10,
-                  padding: '1rem 2.5rem',
-                  fontWeight: 800,
-                  fontSize: '1.2rem',
-                  textDecoration: 'none',
-                  boxShadow: '0 4px 16px rgba(216,67,21,0.3)',
-                  transition: 'transform 0.2s',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-              >
-                🏆 Ancienne page consolidation
-              </Link>
+                <button
+                  style={{
+                    display: 'inline-block',
+                    background: 'linear-gradient(135deg, #d84315 0%, #bf360c 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '1rem 2.5rem',
+                    fontWeight: 800,
+                    fontSize: '1.2rem',
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 16px rgba(216,67,21,0.3)',
+                    transition: 'transform 0.2s',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                  onClick={() => {
+                    // Remettre l'état à avant la validation du jour pour permettre le questionnaire
+                    // On force l'affichage du modal si critères non atteints
+                    if (programme?.bilan_reprise?.taux_conformite < 70 || programme?.bilan_reprise?.taux_validation < 80) {
+                      setShowModalDifficultes(true);
+                    } else {
+                      window.location.href = '/consolidation-45-jours';
+                    }
+                  }}
+                >
+                  🏆 Ancienne page consolidation
+                </button>
               </div>
               
               <div style={{
@@ -1799,6 +1984,98 @@ export default function RepriseAlimentaireApresJeune() {
                               🥘 Recette Phase 2
                             </button>
                           )}
+                          {/* Bouton recettes pour aliments Phase 3 spécifiques — UNIQUEMENT 4 recettes officielles */}
+                          {modalAliments === 3 && (a.nom.includes('Lentilles corail') || a.nom.includes('Carotte') || a.nom.includes('Courgette') || a.nom.includes('Haricots') || a.nom.includes('Riz basmati') || a.nom.includes('Bouillon de poulet')) && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setModalAliments(null);
+                                let recetteType = 'lentilles'; // Défaut valide
+                                if (a.nom.includes('Carotte') || a.nom.includes('Courgette') || a.nom.includes('Haricots')) recetteType = 'legumes';
+                                else if (a.nom.includes('Riz basmati')) recetteType = 'riz';
+                                else if (a.nom.includes('Bouillon de poulet')) recetteType = 'bouillon';
+                                setModalRecettesPhase3({ 
+                                  isOpen: true, 
+                                  type: recetteType
+                                });
+                              }}
+                              style={{
+                                background: 'linear-gradient(135deg, #4CAF50, #66BB6A)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '4px 8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                marginLeft: '8px'
+                              }}
+                            >
+                              🥘 Recette Phase 3
+                            </button>
+                          )}
+                          {/* Bouton recettes pour aliments Phase 4 spécifiques */}
+                          {modalAliments === 4 && (a.nom.includes('Patate douce') || a.nom.includes('Riz complet') || a.nom.includes('Quinoa') || a.nom.includes('Flocons') || a.nom.includes('Lentilles corail') || a.nom.includes('Pois chiches')) && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setModalAliments(null);
+                                let recetteType = 'patatedouce';
+                                if (a.nom.includes('Riz complet')) recetteType = 'rizcomplet';
+                                else if (a.nom.includes('Quinoa')) recetteType = 'quinoa';
+                                else if (a.nom.includes('Flocons')) recetteType = 'flocons';
+                                else if (a.nom.includes('Lentilles corail')) recetteType = 'lentillescorail';
+                                else if (a.nom.includes('Pois chiches')) recetteType = 'poischiche';
+                                setModalRecettesPhase4({ 
+                                  isOpen: true, 
+                                  type: recetteType
+                                });
+                              }}
+                              style={{
+                                background: 'linear-gradient(135deg, #FF9800, #FFB74D)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '4px 8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                marginLeft: '8px'
+                              }}
+                            >
+                              🥘 Recette Phase 4
+                            </button>
+                          )}
+                          {/* 🆕 Bouton recettes pour aliments Phase 5 — UNIQUEMENT 4 essentiels */}
+                          {modalAliments === 5 && (a.nom.includes('Poulet blanc') || a.nom.includes('Poisson blanc') || a.nom.includes('Riz complet') || a.nom.includes('Patate douce')) && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setModalAliments(null);
+                                let recetteType = 'poulet'; // Défaut valide
+                                if (a.nom.includes('Poisson blanc')) recetteType = 'poisson';
+                                else if (a.nom.includes('Riz complet')) recetteType = 'rizcomplet';
+                                else if (a.nom.includes('Patate douce')) recetteType = 'patatadouce';
+                                setModalRecettesPhase5({ 
+                                  isOpen: true, 
+                                  type: recetteType
+                                });
+                              }}
+                              style={{
+                                background: 'linear-gradient(135deg, #10B981, #34D399)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '4px 8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                marginLeft: '8px'
+                              }}
+                            >
+                              🥘 Recette Phase 5
+                            </button>
+                          )}
                         </li>
                       ))}
                       {/* Bouton notifications Phase 1 */}
@@ -1855,6 +2132,60 @@ export default function RepriseAlimentaireApresJeune() {
                           </div>
                         </li>
                       )}
+                      {/* Bouton notifications Phase 3 */}
+                      {modalAliments === 3 && (
+                        <li style={{ marginTop: '16px', padding: '12px', background: '#e8f5e8', borderRadius: 8 }}>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setNotificationsActives(!notificationsActives);
+                            }}
+                            style={{
+                              background: notificationsActives ? 'linear-gradient(135deg, #4CAF50, #66BB6A)' : 'linear-gradient(135deg, #66BB6A, #4CAF50)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: '8px 16px',
+                              fontSize: '0.9rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              width: '100%'
+                            }}
+                          >
+                            {notificationsActives ? '🔕 Désactiver' : '🔔 Activer'} notifications Phase 3
+                          </button>
+                          <div style={{ fontSize: '0.8rem', color: '#4CAF50', marginTop: '4px', textAlign: 'center' }}>
+                            Horaires protéines & lipides : 8h (protéine), 11h (lipide), 13h (protéine), 16h (lipide), 19h (protéine)
+                          </div>
+                        </li>
+                      )}
+                      {/* Bouton notifications Phase 4 */}
+                      {modalAliments === 4 && (
+                        <li style={{ marginTop: '16px', padding: '12px', background: '#fff3e0', borderRadius: 8 }}>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setNotificationsActives(!notificationsActives);
+                            }}
+                            style={{
+                              background: notificationsActives ? 'linear-gradient(135deg, #FF9800, #FFB74D)' : 'linear-gradient(135deg, #FFB74D, #FF9800)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: '8px 16px',
+                              fontSize: '0.9rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              width: '100%'
+                            }}
+                          >
+                            {notificationsActives ? '🔕 Désactiver' : '🔔 Activer'} notifications Phase 4
+                          </button>
+                          <div style={{ fontSize: '0.8rem', color: '#FF9800', marginTop: '4px', textAlign: 'center' }}>
+                            Horaires féculents : 8h (flocons), 11h (fruit), 13h MIDI (FÉCULENT), 16h (lentilles), 19h (protéines)
+                          </div>
+                        </li>
+                      )}
                     </>
                   );
                 })()}
@@ -1877,7 +2208,23 @@ export default function RepriseAlimentaireApresJeune() {
           isActive={notificationsActives}
         />
 
-        {/* 🥘 Modal recettes détaillées Phase 1 */}
+        {/* 🔔 Notifications Phase 3 */}
+        <NotificationsPhase3 
+          phase={jours.length > 0 && selectedJourIdx >= 0 ? jours[selectedJourIdx]?.phase : null}
+          jourNum={selectedJourIdx + 1}
+          isActive={notificationsActives}
+          onRecettesClick={(type) => setModalRecettesPhase3({ isOpen: true, type })}
+        />
+
+        {/* 🆕 🔔 Notifications Phase 5 — Alimentation contrôlée */}
+        {modalAliments === 5 && (
+          <NotificationsPhase5 
+            jourNum={selectedJourIdx + 1}
+            onRecettesClick={(type) => setModalRecettesPhase5({ isOpen: true, type })}
+          />
+        )}
+
+
         <RecettesPhase1Modal 
           isOpen={modalRecettes.isOpen}
           recetteType={modalRecettes.type}
@@ -1889,6 +2236,27 @@ export default function RepriseAlimentaireApresJeune() {
           isOpen={modalRecettesPhase2.isOpen}
           recetteType={modalRecettesPhase2.type}
           onClose={() => setModalRecettesPhase2({ isOpen: false, type: 'compote' })}
+        />
+
+        {/* 🥘 Modal recettes détaillées Phase 3 */}
+        <RecettesPhase3Modal 
+          isOpen={modalRecettesPhase3.isOpen}
+          recetteType={modalRecettesPhase3.type}
+          onClose={() => setModalRecettesPhase3({ isOpen: false, type: 'lentilles' })}
+        />
+
+        {/* 🥘 Modal recettes détaillées Phase 4 */}
+        <RecettesPhase4Modal 
+          isOpen={modalRecettesPhase4.isOpen}
+          recetteType={modalRecettesPhase4.type}
+          onClose={() => setModalRecettesPhase4({ isOpen: false, type: 'patatedouce' })}
+        />
+
+        {/* 🆕 🥘 Modal recettes détaillées Phase 5 */}
+        <RecettesPhase5Modal 
+          isOpen={modalRecettesPhase5.isOpen}
+          recetteType={modalRecettesPhase5.type}
+          onClose={() => setModalRecettesPhase5({ isOpen: false, type: 'poulet' })}
         />
       </main>
       
@@ -1992,6 +2360,15 @@ export default function RepriseAlimentaireApresJeune() {
           }
         }
       `}</style>
+
+      {/* Modal Historique Reprises */}
+      {showHistoriqueModal && (
+        <HistoriqueReprisesModal
+          historiqueReprises={historiqueReprises}
+          onFermer={() => setShowHistoriqueModal(false)}
+        />
+      )}
     </div>
+    </>
   );
 }

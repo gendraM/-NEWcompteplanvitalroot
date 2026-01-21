@@ -1,3 +1,32 @@
+---
+
+## 🟢 COMPLÉMENTS POUR CONFORMITÉ TOTALE
+
+### 1. Feedback utilisateur après cristallisation
+- [ ] Prévoir un mécanisme pour recueillir le feedback de l’utilisateur sur l’efficacité des adaptations appliquées pendant la cristallisation (ex : modal ou questionnaire en fin de phase, ou après chaque défi terminé).
+- [ ] Utiliser ces retours pour améliorer les suggestions futures et enrichir la base de profils/adaptations.
+
+### 2. Gestion des cas multi-contexte
+- [ ] Définir la logique de combinaison/priorisation si plusieurs contextes spécifiques sont détectés (ex : règles + stress).
+- [ ] Documenter les règles de fusion ou d’arbitrage des adaptations (ex : additionner les tolérances, prioriser certains conseils, etc.).
+
+### 3. Interface utilisateur pour la transmission des adaptations
+- [ ] Ajouter dans la cristallisation une UI claire pour informer l’utilisateur que son programme a été adapté suite à son vécu de reprise (ex : bannière, pop-up, ou section dédiée).
+- [ ] Permettre à l’utilisateur de consulter le détail des adaptations appliquées.
+
+### 4. Tests automatisés et validation
+- [ ] Prévoir la création de tests automatisés pour valider la détection des difficultés/contextes, la transmission des adaptations, et leur application correcte dans la cristallisation.
+- [ ] Ajouter une checklist de validation fonctionnelle et technique.
+
+### 5. Gestion des profils personnalisés (modification/suppression)
+- [ ] Permettre à l’utilisateur de modifier ou supprimer un profil personnalisé enregistré (UI de gestion des profils, confirmation avant suppression).
+- [ ] Documenter la logique de gestion des conflits ou de l’historique lors de la modification.
+
+### 6. Synchronisation multi-device (Supabase)
+- [ ] Détailler la logique de synchronisation des profils/adaptations entre localStorage et Supabase (priorité, résolution de conflit, offline/online).
+- [ ] Prévoir des tests pour garantir la cohérence des données sur plusieurs appareils.
+
+---
 # 🔄 PLAN IMPLÉMENTATION : ADAPTATIONS REPRISE & CRISTALLISATION
 
 **Date** : 27 décembre 2025  
@@ -6,12 +35,25 @@
 
 ---
 
+
 ## 🎯 OBJECTIF GLOBAL
 
 Rendre l'app **INTELLIGENTE** et **ADAPTIVE** face à :
 1. **Données incomplètes** : L'utilisateur n'a pas tout saisi pendant la reprise
 2. **Contextes spécifiques** : Situations particulières (règles, stress, voyage, maladie, etc.)
 3. **Réutilisation patterns** : Enregistrer les adaptations pour les PROCHAINS jeûnes
+
+---
+
+## 🚦 SÉPARATION STRICTE DES PHASES : REPRISE VS CRISTALLISATION
+
+**Important :**
+- Pendant la reprise, l’application ne propose ni défis, ni coaching, ni accompagnement dynamique.
+- Toute la logique d’aide, de défis, de conseils personnalisés, etc. est déclenchée uniquement lors de la phase de cristallisation, en fonction de ce qui a été vécu et détecté pendant la reprise.
+- La reprise sert uniquement à collecter le vécu, détecter les difficultés ou contextes particuliers, et générer les adaptations/profils qui seront transmis à la cristallisation.
+- C’est la cristallisation qui applique ces adaptations pour personnaliser l’accompagnement, les défis, les conseils, etc.
+
+---
 
 ---
 
@@ -526,13 +568,15 @@ const afficherModalAdaptationAutomatique = (profil) => {
 
 ## 📋 CHECKLIST IMPLÉMENTATION (À FAIRE PLUS TARD)
 
+
 ### **Phase 1 : CAS 1 - Données incomplètes**
 - [ ] Créer fonction `calculerTauxCompletion()`
 - [ ] Créer composant `ModalDifficultesIdentifiees.js`
 - [ ] Implémenter difficultés prédéfinies (6 types)
 - [ ] Implémenter système fallback "Autre" (NLP mots-clés)
-- [ ] Générer défis adaptés selon difficulté
+- [ ] Générer adaptations à transmettre à la cristallisation selon difficulté (pas de défi pendant la reprise)
 - [ ] Ajouter table Supabase `situations_non_prevues` (amélioration continue)
+
 
 ### **Phase 2 : CAS 2 - Contexte spécifique**
 - [ ] Créer page `/importer-reprise-externe.js`
@@ -540,7 +584,8 @@ const afficherModalAdaptationAutomatique = (profil) => {
 - [ ] Implémenter mode texte libre
 - [ ] Créer `/lib/analyseContexteReprise.js` (NLP + extraction patterns)
 - [ ] Détecter 4 contextes principaux (règles, stress, voyage, maladie)
-- [ ] Générer critères adaptés selon contexte
+- [ ] Générer critères/adaptations à transmettre à la cristallisation selon contexte (pas de défi pendant la reprise)
+
 
 ### **Phase 3 : Enregistrement profil**
 - [ ] Créer `/lib/profilsReprisePersonnalises.js` (module transverse)
@@ -549,6 +594,22 @@ const afficherModalAdaptationAutomatique = (profil) => {
 - [ ] Implémenter détection automatique (prochain jeûne)
 - [ ] Créer composant `ModalAdaptationAutomatique.js`
 - [ ] Ajouter historique utilisations + feedback efficacité
+
+---
+
+## 🔄 NOUVELLE FONCTION : TRANSMISSION DES ADAPTATIONS À LA CRISTALLISATION
+
+**But :**
+- À la fin de la reprise, toutes les adaptations, critères, conseils, tolérances, etc. générés (en fonction des difficultés ou contextes détectés) sont stockés et transmis à la phase de cristallisation.
+- C’est uniquement lors de la cristallisation que l’accompagnement personnalisé (défis, coaching, conseils, feedbacks) est activé, en fonction de ces adaptations.
+- Aucun défi, coaching ou accompagnement dynamique n’est proposé pendant la reprise.
+
+**À faire :**
+- [ ] Définir le format de transmission des adaptations (objet, localStorage, Supabase…)
+- [ ] Intégrer la récupération de ces adaptations dans la page cristallisation.js
+- [ ] S’assurer que la cristallisation applique bien ces adaptations pour personnaliser l’accompagnement
+
+---
 
 ### **Phase 4 : Décision architecture**
 - [ ] **DÉCIDER** : Gestion dans /reprise OU modal dédiée OU module transverse ?

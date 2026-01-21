@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import DefiCard from '../components/DefiCard';
 import { genererDefisCristallisation } from '../lib/defisCristallisationGenerator';
+import { analyseContexteReprise } from '../lib/analyseContexteReprise';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
 import { CRITERES_CRISTALLISATION } from '../data/referentiel';
@@ -178,20 +179,45 @@ export default function Cristallisation() {
 
   // === GÉNÉRATION DES DÉFIS COMPORTEMENTAUX (uniquement phase cristallisation) ===
   let defisCristallisation = [];
+  let debugDifficultes = [];
+  let debugContextes = [];
+  // DEBUG : Affichage du programme brut (toujours visible tout en haut)
+  const cleDebug = (typeof window !== 'undefined' && localStorage.getItem('TEST_context') === 'cristallisation') ? 'TEST_programmeCristallisation' : 'programmeCristallisation';
+  let debugProgramme = null;
+  if (typeof window !== 'undefined') {
+    try {
+      debugProgramme = JSON.parse(localStorage.getItem(cleDebug) || 'null');
+    } catch(e) { debugProgramme = null; }
+  }
+
+
   if (programmeCristallisation && programmeCristallisation.bilanReprise) {
-    // Difficultés et contextes extraits du bilan de reprise (adapter selon structure réelle)
-    const difficultes = programmeCristallisation.bilanReprise.difficultes || [];
-    const contextes = programmeCristallisation.bilanReprise.contextes || [];
+    // Analyse contextuelle du texte libre si présent
+    let difficultes = programmeCristallisation.bilanReprise.difficultes || [];
+    let contextes = programmeCristallisation.bilanReprise.contextes || [];
+    // Correction experte : si aucune difficulté n'est présente, on analyse dynamiquement le texte libre ou le champ "autre"
+    if ((!difficultes || difficultes.length === 0)) {
+      const texteLibre = programmeCristallisation.bilanReprise.texteLibre || programmeCristallisation.bilanReprise.autre || '';
+      if (texteLibre && typeof texteLibre === 'string') {
+        const analyse = analyseContexteReprise(texteLibre);
+        difficultes = Array.from(new Set([...(difficultes || []), ...(analyse.difficultes || [])]));
+        contextes = Array.from(new Set([...(contextes || []), ...(analyse.contexte ? [analyse.contexte] : [])]));
+      }
+    }
+    debugDifficultes = difficultes;
+    debugContextes = contextes;
     defisCristallisation = genererDefisCristallisation({ difficultes, contextes });
   }
 
   return (
-    <div style={{ 
-      padding: '20px',
-      maxWidth: '1200px',
-      margin: '0 auto',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
+    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      {/* DEBUG : Affichage brut du programme de cristallisation (toujours visible) */}
+      {debugProgramme && (
+        <div style={{background:'#e3f2fd',border:'2px solid #1976d2',borderRadius:10,padding:14,marginBottom:18,overflowX:'auto'}}>
+          <b>Programme cristallisation (JSON brut) :</b><br/>
+          <pre style={{fontSize:13,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0}}>{JSON.stringify(debugProgramme, null, 2)}</pre>
+        </div>
+      )}
       {/* HEADER BANDEAU */}
       <div style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -399,6 +425,20 @@ export default function Cristallisation() {
         </div>
       </div>
 
+      {/* DEBUG : Affichage brut du programme de cristallisation */}
+      {debugProgramme && (
+        <div style={{background:'#e3f2fd',border:'1.5px dashed #1976d2',borderRadius:8,padding:12,marginBottom:16}}>
+          <b>Programme cristallisation (JSON brut) :</b><br/>
+          <pre style={{fontSize:12,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0}}>{JSON.stringify(debugProgramme, null, 2)}</pre>
+        </div>
+      )}
+      {/* DEBUG : Affichage brut des difficultés/contextes */}
+      {debugDifficultes.length > 0 && (
+        <div style={{background:'#fffbe6',border:'1.5px dashed #fbc02d',borderRadius:8,padding:12,marginBottom:16}}>
+          <b>Difficultés transmises :</b> <span style={{fontFamily:'monospace',fontSize:13}}>{JSON.stringify(debugDifficultes)}</span><br/>
+          <b>Contextes transmis :</b> <span style={{fontFamily:'monospace',fontSize:13}}>{JSON.stringify(debugContextes)}</span>
+        </div>
+      )}
       {/* DÉFIS COMPORTEMENTAUX CRISTALLISATION */}
       {programmeCristallisation && defisCristallisation.length > 0 && (
         <div style={{

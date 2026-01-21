@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import FormulaireProfil from '../components/FormulaireProfil'
+import { calculerProfilComplet, estProfilComplet } from '../lib/routeurPoids'
 import Link from "next/link";
 
 function formatDateTime(dateString) {
@@ -16,6 +17,8 @@ export default function ProfilPage() {
   const [poidsDepart, setPoidsDepart] = useState('')
   const [taille, setTaille] = useState('')
   const [age, setAge] = useState('')
+  const [sexe, setSexe] = useState('')
+  const [niveauActivite, setNiveauActivite] = useState('')
   const [objectif, setObjectif] = useState('')
   const [pourquoi, setPourquoi] = useState('')
   const [delai, setDelai] = useState('')
@@ -28,6 +31,7 @@ export default function ProfilPage() {
   const [besoinObjectif, setBesoinObjectif] = useState(null)
   const [dernierProfil, setDernierProfil] = useState(null)
   const [editMode, setEditMode] = useState(false)
+  const [calculsRouteur, setCalculsRouteur] = useState(null)
 
   // Fonction pour récupérer le dernier profil (utilisable partout)
   const fetchDernierProfil = async () => {
@@ -42,6 +46,8 @@ export default function ProfilPage() {
         setPoidsDepart(data[0].poids_de_depart?.toString() || '')
         setTaille(data[0].taille?.toString() || '')
         setAge(data[0].age?.toString() || '')
+        setSexe(data[0].sexe || '')
+        setNiveauActivite(data[0].niveau_activite || '')
         setObjectif(data[0].objectif?.toString() || '')
         setPourquoi(data[0].pourquoi || '')
         setDelai(data[0].delai?.toString() || '')
@@ -90,7 +96,23 @@ export default function ProfilPage() {
       setBesoinCaloriqueEntretien(null)
       setBesoinObjectif(null)
     }
-  }, [poidsDepart, taille, age, objectif, delai])
+
+    // Calcul routeur poids (nouveau)
+    if (sexe && niveauActivite && !isNaN(poids) && !isNaN(t) && !isNaN(a) && obj) {
+      const profil = {
+        sexe,
+        age: a,
+        taille: t,
+        poids_de_depart: poids,
+        niveau_activite: niveauActivite,
+        objectif: poids > obj ? 'perte' : (poids < obj ? 'prise' : 'maintien')
+      }
+      const calculs = calculerProfilComplet(profil)
+      setCalculsRouteur(calculs)
+    } else {
+      setCalculsRouteur(null)
+    }
+  }, [poidsDepart, taille, age, sexe, niveauActivite, objectif, delai])
 
   // Logique d’affichage dynamique
   useEffect(() => {
@@ -125,7 +147,7 @@ export default function ProfilPage() {
     const obj = parseFloat(objectif)
     const d = delai
 
-    if (isNaN(poids) || isNaN(t) || isNaN(a) || isNaN(obj) || !pourquoi || !delai) {
+    if (isNaN(poids) || isNaN(t) || isNaN(a) || isNaN(obj) || !pourquoi || !delai || !sexe || !niveauActivite) {
       setMessage("Merci de remplir tous les champs correctement.")
       return
     }
@@ -153,9 +175,11 @@ export default function ProfilPage() {
           poids_de_depart: poids,
           taille: t,
           age: a,
+          sexe: sexe,
+          niveau_activite: niveauActivite,
           objectif: obj,
           besoin_calorique: besoinCalorique,
-          besoin_objectif: besoinObjectif, // <-- AJOUT ICI !
+          besoin_objectif: besoinObjectif,
           pourquoi,
           delai: d
         })
@@ -167,9 +191,11 @@ export default function ProfilPage() {
         poids_de_depart: poids,
         taille: t,
         age: a,
+        sexe: sexe,
+        niveau_activite: niveauActivite,
         objectif: obj,
         besoin_calorique: besoinCalorique,
-        besoin_objectif: besoinObjectif, // <-- AJOUT ICI !
+        besoin_objectif: besoinObjectif,
         pourquoi,
         delai: d
       })
@@ -321,6 +347,10 @@ export default function ProfilPage() {
             setTaille={setTaille}
             age={age}
             setAge={setAge}
+            sexe={sexe}
+            setSexe={setSexe}
+            niveauActivite={niveauActivite}
+            setNiveauActivite={setNiveauActivite}
             objectif={objectif}
             setObjectif={setObjectif}
             pourquoi={pourquoi}
@@ -348,6 +378,23 @@ export default function ProfilPage() {
         </div>
       )}
 
+      {calculsRouteur && (
+        <div style={{...styles.formBlock, background: '#e8f5e9', border: '2px solid #4CAF50'}}>
+          <div style={{fontSize: '1.2rem', fontWeight: 'bold', color: '#2e7d32', marginBottom: '1rem'}}>
+            📊 Routeur Poids - Calculs personnalisés
+          </div>
+          <ul style={styles.recapList}>
+            <li><span style={styles.recapLabel}>BMR (Métabolisme de base) :</span> {calculsRouteur.bmr} kcal/jour</li>
+            <li><span style={styles.recapLabel}>TDEE (Dépense totale) :</span> {calculsRouteur.tdee} kcal/jour</li>
+            <li><span style={styles.recapLabel}>Budget extras hebdo :</span> {calculsRouteur.budgetExtras} kcal/semaine</li>
+            <li><span style={styles.recapLabel}>Apport calorique cible :</span> {calculsRouteur.apport_calorique_cible} kcal/jour</li>
+          </ul>
+          <div style={{fontSize: '0.85rem', color: '#666', marginTop: '0.5rem', fontStyle: 'italic'}}>
+            {calculsRouteur.disclaimer}
+          </div>
+        </div>
+      )}
+
       {dernierProfil && !editMode && (
         <div style={styles.recapBlock}>
           <div style={styles.recapTitle}>Dernier profil enregistré</div>
@@ -358,6 +405,8 @@ export default function ProfilPage() {
             <li><span style={styles.recapLabel}>Poids de départ :</span> {masquerInfos ? '••••' : `${dernierProfil.poids_de_depart} kg`}</li>
             <li><span style={styles.recapLabel}>Taille :</span> {masquerInfos ? '••••' : `${dernierProfil.taille} cm`}</li>
             <li><span style={styles.recapLabel}>Âge :</span> {masquerInfos ? '••••' : `${dernierProfil.age} ans`}</li>
+            <li><span style={styles.recapLabel}>Sexe :</span> {masquerInfos ? '••••' : (dernierProfil.sexe === 'F' ? 'Femme' : 'Homme')}</li>
+            <li><span style={styles.recapLabel}>Niveau d'activité :</span> {masquerInfos ? '••••' : dernierProfil.niveau_activite}</li>
             <li><span style={styles.recapLabel}>Objectif :</span> {masquerInfos ? '••••' : `${dernierProfil.objectif} kg`}</li>
             <li><span style={styles.recapLabel}>Délai :</span> {masquerInfos ? '••••' : `${dernierProfil.delai} mois`}</li>
             <li><span style={styles.recapLabel}>Pourquoi :</span> {dernierProfil.pourquoi}</li>

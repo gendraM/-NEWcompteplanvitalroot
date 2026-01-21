@@ -1,3 +1,25 @@
+SELECT
+  c.table_schema,
+  c.table_name,
+  c.ordinal_position,
+  c.column_name,
+  c.data_type,
+  c.is_nullable,
+  c.column_default,
+  c.character_maximum_length,
+  c.numeric_precision,
+  c.numeric_scale,
+  pgd.description AS column_comment
+FROM information_schema.columns c
+LEFT JOIN pg_catalog.pg_statio_all_tables st
+  ON st.schemaname = c.table_schema
+  AND st.relname = c.table_name
+LEFT JOIN pg_catalog.pg_description pgd
+  ON pgd.objoid = st.relid
+  AND pgd.objsubid = c.ordinal_position
+WHERE c.table_schema NOT IN ('pg_catalog', 'information_schema')
+ORDER BY c.table_schema, c.table_name, c.ordinal_position;
+
 “Copilot, pour toute nouvelle tâche, commence IMPÉRATIVEMENT par compléter le template (voir fichier TEMPLATE) en suivant chaque section.
 Attends ma validation du plan explicitement (je dois cocher ‘Plan validé par l’utilisateur’) avant toute génération de code.
 Si je ne valide pas, propose-moi une version corrigée du plan. AUCUNE modification de code n’est autorisée tant que ce plan n’est pas validé.”

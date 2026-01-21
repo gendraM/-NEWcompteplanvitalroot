@@ -1,7 +1,9 @@
 import { getFastFoodRewards } from '../lib/fastFoodRewards';
-import { useState, useEffect } from 'react'
+import { useSupabase } from '../lib/supabaseClient';
+import { useState, useEffect, useCallback } from 'react'
 import FlipNumbers from 'react-flip-numbers'
 import referentielAliments from '../data/referentiel';
+import { TYPES_EXTRAS, detecterTypeExtra, getOptionsExtras } from '../lib/extras';
 // import FlipNumbers from 'react-flip-numbers'
 
 // 🐛 DEBUG: Vérifier le référentiel chargé
@@ -69,9 +71,11 @@ export default function RepasBloc({
   repasPrevu,
   categoriePrevu,
   quantitePrevu,
-  kcalPrevu
-}) {
-  // Déclaration des hooks d’état PRINCIPAUX tout en haut du composant (checklist React)
+  kcalPrevu,
+  onChangeChampsRepas
+}) {  // Hook Supabase avec contexte (doit être en premier)
+  const supabase = useSupabase();
+    // Déclaration des hooks d’état PRINCIPAUX tout en haut du composant (checklist React)
   // Ajout d'un état pour afficher l'erreur Supabase (doit être tout en haut)
   const [supabaseError, setSupabaseError] = useState(null);
   const [repasConforme, setRepasConforme] = useState(false);
@@ -100,6 +104,15 @@ export default function RepasBloc({
       if ((typeof kcalPrevu === 'string' || typeof kcalPrevu === 'number') && String(kcalPrevu).length > 0) setKcal(String(kcalPrevu));
     }
   }, [repasConforme, repasPrevu, categoriePrevu, quantitePrevu, kcalPrevu, aliment, categorie, quantite, kcal, repasSemaine, date, type]);
+
+  // Remonter les valeurs au parent pour coloration contextuelle pastilles
+  // onChangeChampsRepas retiré du dependency array (stabilisé par useMemo côté parent)
+  useEffect(() => {
+    if (onChangeChampsRepas) {
+      onChangeChampsRepas({ aliment, quantite, heureRepas, categorie });
+    }
+  }, [aliment, quantite, heureRepas, categorie]);
+
   // Ajout Fast food (déclaration unique, checklist respectée)
   const [isFastFood, setIsFastFood] = useState(false);
   const [fastFoodType, setFastFoodType] = useState('');
@@ -107,36 +120,19 @@ export default function RepasBloc({
   const [fastFoodHistory, setFastFoodHistory] = useState([]);
   const [fastFoodReward, setFastFoodReward] = useState(false);
   const [fastFoodAliments, setFastFoodAliments] = useState([{ nom: '', quantite: '', kcal: '' }]);
-
-  // Vérification de la règle fast food
-  useEffect(() => {
-    if (!isFastFood) return;
-    // Filtrer l’historique pour ne garder que les fast food
-    const fastFoodRepas = repasSemaine.filter(r => r.isFastFood || r.fastFoodType);
-    setFastFoodHistory(fastFoodRepas);
-    if (fastFoodRepas.length > 0) {
-      // Dernier fast food
-      const lastFastFood = fastFoodRepas[fastFoodRepas.length - 1];
-      const lastDate = new Date(lastFastFood.date);
-      const currentDate = new Date(date);
-      const diffDays = Math.floor((currentDate - lastDate) / (1000 * 60 * 60 * 24));
-      // Récompense si délai respecté
-      setFastFoodReward(diffDays >= 45);
-    } else {
-      setFastFoodReward(true); // Premier fast food, récompense
-    }
-  }, [isFastFood, repasSemaine, date]);
+  
+  // États pour auto-détection fast food Option B
+  const [dernierFastFood, setDernierFastFood] = useState(null);
+  const [prochainCreneau, setProchainCreneau] = useState(null);
+  const [joursRestants, setJoursRestants] = useState(null);
+  const [delaiRespected, setDelaiRespected] = useState(false);
 
   // Handler pour ajouter un aliment fast food
   const handleAddFastFoodAliment = () => {
     setFastFoodAliments([...fastFoodAliments, { nom: '', quantite: '', kcal: '' }]);
   };
 
-  // Handler pour modifier un aliment fast food
-  const handleChangeFastFoodAliment = (idx, field, value) => {
-    const newAliments = fastFoodAliments.map((a, i) => i === idx ? { ...a, [field]: value } : a);
-    setFastFoodAliments(newAliments);
-  };
+  // ... (suppression du doublon handleChangeFastFoodAliment, version complète plus bas)
 
   // Auto-remplissage uniquement lors de la création d’un nouveau repas (jamais en édition)
   useEffect(() => {
@@ -149,19 +145,26 @@ export default function RepasBloc({
     }
   }, [repasConforme, repasPrevu, categoriePrevu, quantitePrevu, kcalPrevu, aliment, categorie, quantite, kcal]);
 
-  // Calcul automatique des kcal pour fast food (référentiel)
-  useEffect(() => {
-    setFastFoodAliments(fastFoodAliments.map(a => {
-      const found = referentielAliments.find(r => r.nom.toLowerCase() === a.nom.toLowerCase());
-      if (found && a.quantite) {
-        return { ...a, kcal: (parseFloat(a.quantite) * found.kcal).toFixed(0) };
+  // Calcul automatique des kcal pour fast food (référentiel) déplacé dans le handler
+  const handleChangeFastFoodAliment = (idx, field, value) => {
+    const newAliments = fastFoodAliments.map((a, i) => {
+      if (i !== idx) return a;
+      let updated = { ...a, [field]: value };
+      // Calcul automatique des kcal si nom ou quantite modifié
+      if ((field === 'nom' || field === 'quantite') && updated.nom && updated.quantite) {
+        const found = referentielAliments.find(r => r.nom.toLowerCase() === updated.nom.toLowerCase());
+        if (found) {
+          updated.kcal = (parseFloat(updated.quantite) * found.kcal).toFixed(0);
+        }
       }
-      return a;
-    }));
-  }, [fastFoodAliments]);
+      return updated;
+    });
+    setFastFoodAliments(newAliments);
+  };
   // Validation stricte des props
   extrasRestants = typeof extrasRestants === 'number' && !isNaN(extrasRestants) ? extrasRestants : 0;
   const [estExtra, setEstExtra] = useState(false);
+  const [typeExtra, setTypeExtra] = useState(''); // Sera calculé automatiquement
   const [satiete, setSatiete] = useState('');
   const [pourquoi, setPourquoi] = useState('');
   const [ressenti, setRessenti] = useState('');
@@ -169,6 +172,16 @@ export default function RepasBloc({
   const [reactBloc, setReactBloc] = useState([]);
   const [showDefi, setShowDefi] = useState(false);
   const [loadingKcal, setLoadingKcal] = useState(false);
+  
+  // Auto-détection du type d'extra selon les kcal
+  useEffect(() => {
+    if (estExtra && kcal) {
+      const type = detecterTypeExtra(kcal);
+      setTypeExtra(type);
+    } else {
+      setTypeExtra('');
+    }
+  }, [estExtra, kcal]);
   // Ajout Fast food
   // Ajout pour gestion validation semaine
   const [semaineValidee, setSemaineValidee] = useState(false);
@@ -184,6 +197,99 @@ export default function RepasBloc({
     }
     fetchValidation();
   }, [semaineCouranteDate]);
+
+  // Fonction chargement dernier fast food (Option B auto-détection)
+  const fetchDernierFastFood = useCallback(async () => {
+    console.log('🔍 DEBUG fetchDernierFastFood - Début', { date });
+    try {
+      // App SANS authentification → Requête BDD sans user_id (RLS disabled)
+      console.log('🔍 DEBUG fetchDernierFastFood - Chargement BDD sans user_id');
+      
+      const { data, error } = await supabase
+        .from('repas_reels')
+        .select('*')
+        .or('categorie.eq.fast-food,tag.not.is.null')
+        .order('date', { ascending: false });
+      
+      console.log('🔍 DEBUG fetchDernierFastFood - Requête terminée:', { 
+        error, 
+        nbResultats: data?.length || 0, 
+        premiersResultats: data?.slice(0, 3).map(d => ({ date: d.date, aliment: d.aliment, categorie: d.categorie, tag: d.tag })) 
+      });
+      
+      if (error) {
+        console.error('Erreur chargement dernier fast food:', error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        console.log('\u2705 DEBUG fetchDernierFastFood - Historique trouvé:', data.length, 'fast foods');
+        setFastFoodHistory(data);
+        
+        const dernier = data[0];
+        setDernierFastFood(dernier);
+        
+        // Calculer prochain créneau
+        const dernierDate = new Date(dernier.date);
+        const prochainDate = new Date(dernierDate);
+        prochainDate.setDate(dernierDate.getDate() + 45);
+        setProchainCreneau(prochainDate.toLocaleDateString('fr-FR'));
+        
+        // Calculer jours restants
+        const today = new Date();
+        const diffMs = prochainDate - today;
+        const jours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+        setJoursRestants(jours);
+        setDelaiRespected(jours === 0);
+        
+        // Calculer récompense : délai respecté si ≥45 jours depuis dernier
+        const currentDate = new Date(date);
+        const diffDays = Math.floor((currentDate - dernierDate) / (1000 * 60 * 60 * 24));
+        console.log('\ud83d\udd0d DEBUG fetchDernierFastFood - Calcul récompense:', { 
+          dernierDate: dernierDate.toISOString(), 
+          currentDate: currentDate.toISOString(), 
+          diffDays, 
+          recompense: diffDays >= 45 
+        });
+        setFastFoodReward(diffDays >= 45);
+      } else {
+        console.log('\ud83c\udf89 DEBUG fetchDernierFastFood - AUCUN historique, premier fast food !');
+        // Aucun historique BDD → premier fast food → récompense automatique
+        setFastFoodReward(true);
+      }
+    } catch (err) {
+      console.error('Erreur fetchDernierFastFood:', err);
+    }
+  }, [date]);
+
+  // Auto-détection fast food Option B (basée sur categorie référentiel)
+  useEffect(() => {
+    console.log('\ud83d\udd0d DEBUG Auto-détection - aliment:', aliment);
+    
+    if (aliment && aliment.trim() !== '') {
+      const found = referentielAliments.find(
+        r => r.nom.toLowerCase() === aliment.toLowerCase()
+      );
+      
+      console.log('\ud83d\udd0d DEBUG Auto-détection - found:', found ? { nom: found.nom, categorie: found.categorie, marque: found.marque } : null);
+      
+      if (found && found.categorie === 'fast-food') {
+        console.log('\u2705 DEBUG Auto-détection - FAST FOOD détecté ! Appel fetchDernierFastFood()');
+        // Auto-activer tracking (silencieux)
+        setIsFastFood(true);
+        setFastFoodType(found.marque || 'Non identifié');
+        
+        // Charger dernier fast food pour infos UX
+        fetchDernierFastFood();
+      } else {
+        console.log('\u274c DEBUG Auto-détection - Pas fast food');
+        setIsFastFood(false);
+        setFastFoodType('');
+        setDernierFastFood(null);
+      }
+    }
+  }, [aliment, fetchDernierFastFood]);
+
   // Handler pour dévalider
   async function handleDevalider() {
     // Remplacer par l'appel réel à Supabase
@@ -198,7 +304,6 @@ export default function RepasBloc({
     setSemaineValidee(true);
     // Rafraîchir la liste ou l’état local si besoin
   }
-  // ...existing code...
   // État pour afficher ou masquer l'historique des repas avec note
   const [showNotesHistory, setShowNotesHistory] = useState(false);
 // --- Structure IA symbolique pour suggestions/statistiques à partir des notes ---
@@ -310,7 +415,7 @@ function getSuggestionsFromNotes(repasList) {
               date,
               type,
               aliment: isJeune ? '' : alimentFinal,
-              categorie: isJeune ? 'Jeûne' : categorieFinal,
+              categorie: isJeune ? 'Jeûne' : (isFastFood ? 'fast-food' : categorieFinal),
               quantite: isJeune ? null : (quantiteFinal === '' ? null : isNaN(Number(quantiteFinal)) ? quantiteFinal : Number(quantiteFinal)),
               kcal: isJeune ? null : (kcalFinal === '' ? null : isNaN(Number(kcalFinal)) ? kcalFinal : Number(kcalFinal)),
               est_extra: false,
@@ -319,7 +424,8 @@ function getSuggestionsFromNotes(repasList) {
               ressenti,
               details_signaux: detailsSignaux,
               repas_planifie_respecte: true,
-              note
+              note,
+              tag: isFastFood ? fastFoodType : null
             }
           ]).then(({ error }) => {
             if (error) {
@@ -336,6 +442,7 @@ function getSuggestionsFromNotes(repasList) {
       setQuantite('');
       setKcal('');
       setEstExtra(false);
+      setTypeExtra('');
       setSatiete('');
       setPourquoi('');
       setRessenti('');
@@ -349,7 +456,7 @@ function getSuggestionsFromNotes(repasList) {
       type,
       date,
       aliment: categorie === 'Jeûne' ? '' : aliment,
-      categorie: categorie === 'Jeûne' ? 'Jeûne' : categorie,
+      categorie: categorie === 'Jeûne' ? 'Jeûne' : (isFastFood ? 'fast-food' : categorie),
       quantite: categorie === 'Jeûne' ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite)),
       kcal: categorie === 'Jeûne' ? null : (kcal === '' ? null : isNaN(Number(kcal)) ? kcal : Number(kcal)),
       est_extra: estExtra,
@@ -357,36 +464,22 @@ function getSuggestionsFromNotes(repasList) {
       pourquoi,
       ressenti,
       details_signaux: detailsSignaux,
-      note
+      note,
+      tag: isFastFood ? fastFoodType : null
     });
-    // Enregistrement du fast food dans Supabase si sélectionné
+    
+    // Rechargement de l'historique fast food après enregistrement
     if (isFastFood) {
-      import('../lib/supabaseClient').then(({ supabase }) => {
-        supabase.auth.getUser().then(({ data: userData }) => {
-          const user_id = userData?.user?.id || null;
-          supabase.from('fast_food_history').insert([
-            {
-              user_id,
-              date,
-              restaurant: fastFoodType,
-              aliments: fastFoodAliments,
-              kcal: fastFoodAliments.reduce((sum, a) => sum + (parseInt(a.kcal) || 0), 0),
-              badge: fastFoodReward ? 'ok' : null
-            }
-          ]).then(({ error }) => {
-            if (error) {
-              alert('Erreur Supabase (fast food): ' + error.message);
-            }
-          });
-        });
-      });
+      fetchDernierFastFood();
     }
+    
     // Reset des hooks pour garder la fonctionnalité existante
     setAliment('');
     setCategorie('');
     setQuantite('');
     setKcal('');
     setEstExtra(false);
+    setTypeExtra('');
     setSatiete('');
     setPourquoi('');
     setRessenti('');
@@ -453,7 +546,7 @@ function getSuggestionsFromNotes(repasList) {
         {/* Message d’avertissement et suggestion si règle non respectée */}
         {isFastFood && fastFoodHistory.length > 0 && (
           (() => {
-            const lastFastFood = fastFoodHistory[fastFoodHistory.length - 1];
+            const lastFastFood = fastFoodHistory[0]; // Plus récent (ORDER DESC)
             const lastDate = new Date(lastFastFood.date);
             const currentDate = new Date(date);
             const diffDays = Math.floor((currentDate - lastDate) / (1000 * 60 * 60 * 24));
@@ -470,21 +563,28 @@ function getSuggestionsFromNotes(repasList) {
           })()
         )}
         {/* Récompense si délai respecté */}
-        {isFastFood && fastFoodReward && (
-          <div style={{ background: '#e8f5e9', color: '#388e3c', padding: 12, borderRadius: 8, marginBottom: 12 }}>
-            🎉 Bravo ! Tu as respecté le délai entre deux fast food.<br />
-            Tu débloques une récompense et tu progresses vers une meilleure alimentation !
-          </div>
-        )}
+        {(() => {
+          console.log('🔍 DEBUG Récompense - Conditions:', { isFastFood, fastFoodReward });
+          return isFastFood && fastFoodReward && (
+            <div style={{ background: '#e8f5e9', color: '#388e3c', padding: 12, borderRadius: 8, marginBottom: 12 }}>
+              🎉 Bravo ! Tu as respecté le délai entre deux fast food.<br />
+              Tu débloques une récompense et tu progresses vers une meilleure alimentation !
+            </div>
+          );
+        })()}
           {/* Message de félicitations et suggestion de planification (fusion dynamique + astuce) */}
-          {isFastFood && (
+          {(() => {
+            console.log('🔍 DEBUG Message fusion - isFastFood:', isFastFood, 'fastFoodHistory.length:', fastFoodHistory.length);
+            return isFastFood && (
             (() => {
-              const rewards = getFastFoodRewards(fastFoodHistory);
+              // getFastFoodRewards attend ORDER ASC, on inverse l'array DESC de la BDD
+              const rewards = getFastFoodRewards([...fastFoodHistory].reverse());
+              console.log('🔍 DEBUG getFastFoodRewards - Résultat:', rewards);
               let astuce = null;
               if (fastFoodReward) {
                 astuce = <><br /><span style={{ fontWeight: 500 }}>Astuce : note la date du prochain créneau dans ton agenda pour maximiser ta récompense !</span></>;
               } else if (fastFoodHistory.length > 0) {
-                const lastFastFood = fastFoodHistory[fastFoodHistory.length - 1];
+                const lastFastFood = fastFoodHistory[0]; // Plus récent (ORDER DESC)
                 const lastDate = new Date(lastFastFood.date);
                 const currentDate = new Date(date);
                 const diffDays = Math.floor((currentDate - lastDate) / (1000 * 60 * 60 * 24));
@@ -498,66 +598,10 @@ function getSuggestionsFromNotes(repasList) {
                 </div>
               );
             })()
-          )}
-        {/* Saisie des aliments fast food si mode activé */}
-        {isFastFood && (
-          <div style={{ marginBottom: 16 }}>
-            <label>Aliments consommés (Fast food)</label>
-            {fastFoodAliments.map((a, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <input
-                  type="text"
-                  placeholder="Aliment"
-                  value={a.nom}
-                  onChange={e => handleChangeFastFoodAliment(idx, 'nom', e.target.value)}
-                  required
-                />
-                <input
-                  type="number"
-                  placeholder="Quantité"
-                  value={a.quantite}
-                  onChange={e => handleChangeFastFoodAliment(idx, 'quantite', e.target.value)}
-                  required
-                />
-                <input
-                  type="number"
-                  placeholder="Kcal"
-                  value={a.kcal}
-                  onChange={e => handleChangeFastFoodAliment(idx, 'kcal', e.target.value)}
-                  required
-                />
-              </div>
-            ))}
-            <button type="button" onClick={handleAddFastFoodAliment} style={{ marginTop: 4 }}>Ajouter un aliment</button>
-          </div>
-        )}
-        {/* Case à cocher Fast food */}
-        <label>
-          <input type="checkbox" checked={isFastFood} onChange={e => setIsFastFood(e.target.checked)} />
-          Fast food ?
-        </label>
-        {/* Liste déroulante des restaurants si Fast food coché */}
-        {isFastFood && (
-          <div style={{ marginBottom: 12 }}>
-            <label>Choix du restaurant</label>
-            <select value={fastFoodType} onChange={e => setFastFoodType(e.target.value)} required>
-              <option value="">Sélectionner…</option>
-              {fastFoodList.map(r => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-            {/* Saisie manuelle si "Autre" */}
-            {fastFoodType === "Autre" && (
-              <input
-                type="text"
-                placeholder="Nom du restaurant"
-                value={fastFoodType}
-                onChange={e => setFastFoodType(e.target.value)}
-                style={{ marginTop: 8 }}
-              />
-            )}
-          </div>
-        )}
+            );
+          })()}
+        {/* Section Fast Food détaillée masquée - Auto-détection via saisie normale suffit */}
+        
         <h3>{type} du {date}</h3>
         <label>Aliment mangé</label>
         <div style={{ position: 'relative' }}>
@@ -744,6 +788,114 @@ function getSuggestionsFromNotes(repasList) {
             <input type="checkbox" checked={estExtra} onChange={e => setEstExtra(e.target.checked)} />
             Cet aliment est-il un extra ?
           </label>
+        )}
+
+        {/* Encadré pédagogique + Type d'extra (auto-détecté) */}
+        {estExtra && categorie !== 'Jeûne' && (
+          <div style={{
+            marginTop: '1rem',
+            marginBottom: '1rem',
+            padding: '1.5rem',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: 12,
+            color: '#fff',
+            fontSize: '0.9rem',
+            lineHeight: '1.6'
+          }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+              🎁 C'est quoi un EXTRA ?
+            </div>
+            
+            <div style={{ marginBottom: '1rem', opacity: 0.95 }}>
+              Un extra = <strong>moment de plaisir planifié et conscient</strong>, consommé <strong>HORS des repas équilibrés</strong> (dessert ajouté, viennoiserie, chocolat, apéritif, pop-corn, confiserie…).
+            </div>
+            
+            <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(255,255,255,0.15)', borderRadius: 8 }}>
+              ⚠️ <strong>Un extra ne remplace jamais un repas.</strong><br/>
+              S'il remplace un repas, ce n'est plus un extra.
+            </div>
+            
+            <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(255,200,100,0.2)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)' }}>
+              <strong>📌 Rappel important</strong><br/>
+              <div style={{ fontSize: '0.85rem', marginTop: '0.5rem', opacity: 0.95 }}>
+                Assurez-vous que la consommation saisie est bien un extra (cf. règle extra).<br/>
+                ⚠️ Les <strong>fast-foods ne sont pas des extras</strong>.<br/>
+                → Utilisez la catégorie appropriée (Fast-food, Déjeuner, Dîner, etc.) et <strong>décochez la case extra</strong>.
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: '1rem', borderTop: '1px solid rgba(255,255,255,0.3)', paddingTop: '1rem' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>🎯 L'art de l'équilibre alimentaire</div>
+              <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                La gestion des extras repose sur la <strong>régularité</strong>, pas sur la privation.<br/>
+                ✓ Constance et ancrage d'habitudes durables<br/>
+                ✓ Conscience du plaisir (sans automatisme)<br/>
+                ✓ Liberté mentale (sans peur de manquer)<br/>
+                ✓ Zéro culpabilité, zéro compensation<br/><br/>
+                <em>Dire non maintenant, ce n'est pas dire non pour toujours.</em><br/>
+                C'est choisir le meilleur moment pour consommer ce qui vous fait envie,<br/>
+                en vous permettant de vous rapprocher plus rapidement de votre objectif.
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: '1rem', borderTop: '1px solid rgba(255,255,255,0.3)', paddingTop: '1rem' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>✨ Pourquoi ce système fonctionne</div>
+              <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                Le type d'extra vous aide à :<br/>
+                ✓ <strong>Distinguer clairement</strong> repas et plaisirs hors repas<br/>
+                ✓ <strong>Organiser</strong> vos extras sans les subir<br/>
+                ✓ <strong>Visualiser</strong> vos habitudes (petits plaisirs et moments festifs)<br/>
+                ✓ <strong>Rester alignée</strong> avec votre objectif de perte de poids<br/><br/>
+                <em style={{ opacity: 0.95 }}>Un extra bien géré ne freine pas la perte.<br/>
+                Ce sont les accumulations non conscientes qui la bloquent.</em>
+              </div>
+            </div>
+            
+            {kcal && (
+              <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.2)', borderRadius: 8 }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                  📊 Type d'extra (calculé automatiquement)
+                </div>
+                
+                {typeExtra && (
+                  <>
+                    <div style={{ 
+                      fontSize: '1.1rem', 
+                      padding: '0.75rem', 
+                      background: typeExtra === 'majeur' ? 'rgba(255,107,107,0.3)' : 'rgba(255,255,255,0.25)', 
+                      borderRadius: 6, 
+                      marginBottom: '0.5rem',
+                      border: typeExtra === 'majeur' ? '2px solid #ff6b6b' : 'none'
+                    }}>
+                      {TYPES_EXTRAS[typeExtra].emoji} <strong>{TYPES_EXTRAS[typeExtra].label}</strong> ({TYPES_EXTRAS[typeExtra].seuil_min}-{TYPES_EXTRAS[typeExtra].seuil_max === 99999 ? '∞' : TYPES_EXTRAS[typeExtra].seuil_max} kcal)
+                    </div>
+                    
+                    <div style={{ fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+                      <strong>→</strong> {TYPES_EXTRAS[typeExtra].description}<br/>
+                      <em>Exemples : {TYPES_EXTRAS[typeExtra].exemples}</em>
+                    </div>
+                    
+                    {typeExtra === 'majeur' && (
+                      <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.2)', borderRadius: 6, marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                        <strong>⚠️ Impact très élevé sur le budget</strong><br/>
+                        <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', opacity: 0.95 }}>
+                          Un extra reste un extra quelle que soit sa valeur calorique.<br/>
+                          Les calories servent uniquement à mesurer l'impact sur votre budget hebdomadaire.<br/><br/>
+                          💡 <strong>Rappel</strong> : Si cela <strong>remplace</strong> un repas (restaurant, fast-food, brunch), utilisez la catégorie repas appropriée, pas "extra".
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            
+            {!kcal && (
+              <div style={{ fontSize: '0.85rem', opacity: 0.8, fontStyle: 'italic', marginTop: '1rem' }}>
+                💡 Saisissez les kcal pour voir le type d'extra auto-détecté
+              </div>
+            )}
+          </div>
         )}
 
         {categorie !== 'Jeûne' && <label>Satiété respectée ?</label>}

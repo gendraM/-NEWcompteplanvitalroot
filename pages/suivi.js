@@ -24,8 +24,25 @@ function RetourAccueil() {
 // ----------- HANDLER POUR LA SAUVEGARDE D'UN REPAS -----------
 // La fonction handleSaveRepas est définie plus bas dans le composant principal, après l’import unique de Supabase.
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import BandeauDefiActif from '../components/BandeauDefiActif';
+import ModalFeedbackValidation from '../components/ModalFeedbackValidation';
+import BilanHebdoModal from '../components/BilanHebdoModal';
+import { fetchRepasPeriode } from '../lib/repasUtils';
+import BudgetExtrasCard from '../components/BudgetExtrasCard';
 import { supabase } from '../lib/supabaseClient';
+import { calculerProfilComplet } from '../lib/routeurPoids';
+import { 
+  calculerExtrasSemaine, 
+  genererMessageFeedback, 
+  calculerVariation,
+  getMonday,
+  addDays,
+  formatDate,
+  calculerTendance7j
+} from '../lib/validationSemaine';
+import { calculerRepartitionTypes, calculerRepartitionMoments } from '../lib/repartitionExtras';
+import { calculerJoursRespectes } from '../lib/joursRespectes';
 import { 
   calculerJourRelatif, 
   isPeriodeActive, 
@@ -356,13 +373,86 @@ function ZoneBadgesProgression({ progression, history, palier }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════
+// FONCTION POUR CALCULER L'ÉTAT DES PASTILLES DE CRITÈRES
+// ═══════════════════════════════════════════════════════════
+function calculerEtatPastille(criteriaId, typeRepas, champsRepasEnCours) {
+  if (!champsRepasEnCours || typeof champsRepasEnCours !== 'object') return 'neutral';
+  
+  const { aliment = '', quantite = '', heureRepas = '', categorie = '' } = champsRepasEnCours;
+  
+  // Récupérer les validations basées sur les critères
+  switch(criteriaId) {
+    case 1: // Portions: repères visuels
+      // Vérifier si quantité est renseignée
+      if (quantite && String(quantite).trim().length > 0) return 'ok';
+      if (aliment && String(aliment).trim().length > 0) return 'warn'; // Aliment renseigné mais pas de quantité
+      return 'neutral';
+    
+    case 2: // Dîner: sans féculents
+      if (typeRepas === 'Dîner') {
+        const feculents = ['pâtes', 'riz', 'pain', 'patate', 'pomme de terre', 'féculents', 'féculent'];
+        const alimentLower = String(aliment).toLowerCase();
+        const hasFeculents = feculents.some(f => alimentLower.includes(f));
+        
+        if (aliment && !hasFeculents) return 'ok'; // Aliment non-féculents OK
+        if (hasFeculents) return 'warn'; // Féculents détectés
+      }
+      return 'neutral';
+    
+    case 7: // Eau: ≥ 2L/jour
+      // Impossible à tracker par repas sans données externes
+      return 'neutral';
+    
+    case 8: // Dernier repas < 19h
+      if (typeRepas === 'Dîner' && heureRepas) {
+        const heure = parseInt(String(heureRepas).split(':')[0]);
+        if (heure < 19) return 'ok';
+        if (heure >= 19) return 'warn';
+      }
+      return 'neutral';
+    
+    case 9: // Repas ≤ 45 min
+      // Impossible à tracker sans données temporelles supplémentaires
+      return 'neutral';
+    
+    default:
+      return 'neutral';
+  }
+}
+
 // MAIN COMPONENT
 export default function Suivi() {
+    // State pour gestion d'erreur validation semaine (conforme template, point de vigilance)
+    const [validationError, setValidationError] = useState('');
+  // ═══════════════════════════════════════════════════════════
+  // RÉCUPÉRER LES PARAMÈTRES DE FILTRAGE DEPUIS L'URL
+  // ═══════════════════════════════════════════════════════════
+  const router = useRouter();
+  const filtreFromTo = {
+    from: router.query.from || null,
+    to: router.query.to || null
+  };
+  
   // ----------- HOOKS PRINCIPAUX (ordre strict selon la checklist) -----------
   // Initialiser selectedDate AVANT tout usage dans un useEffect ou une variable calculée
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0,10));
   // Hook pour l'affichage de l'alerte calorique (DOIT ÊTRE DÉCLARÉ AVANT SON UTILISATION dans useEffect)
   const [repasSemaine, setRepasSemaine] = useState([]);
+  // Hook pour userId (nécessaire pour BudgetExtrasCard)
+  const [userId, setUserId] = useState(null);
+  
+  // ═══════════════════════════════════════════════════════════
+  // NOUVEAUX HOOKS VALIDATION SEMAINE (9 janvier 2026)
+  // ═══════════════════════════════════════════════════════════
+  const [feedbackData, setFeedbackData] = useState(null);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [derniereSemaineValidee, setDerniereSemaineValidee] = useState(null);
+  // Bilan hebdo : état modal et données
+  const [showBilanModal, setShowBilanModal] = useState(false);
+  const [bilanData, setBilanData] = useState(null);
+  // Hook pour tracker les champs du repas en cours (portions, féculents, hydratation, etc.)
+  const [champsRepasEnCours, setChampsRepasEnCours] = useState({});
   // Récupérer la date du jeûne programmé (stockée en localStorage ou BDD)
   const [dateJeune, setDateJeune] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -611,65 +701,64 @@ export default function Suivi() {
   const [selectedType, setSelectedType] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'info' });
   // Objectif calorique et calories du jour
-  const [objectifCalorique, setObjectifCalorique] = useState(1800); // Valeur par défaut, à personnaliser
+  const [objectifCalorique, setObjectifCalorique] = useState(1800); // Valeur par défaut, sera remplacée par routeur poids
   const [caloriesDuJour, setCaloriesDuJour] = useState(0);
+  const [calculsRouteur, setCalculsRouteur] = useState(null); // BMR, TDEE, budget extras
   const [showInfo, setShowInfo] = useState(false);
   const [loading, setLoading] = useState(false);
   // Hook pour afficher/masquer l’historique des repas avec note
   const [showNotesHistory, setShowNotesHistory] = useState(false);
   // Plan de repas du jour (repas planifiés)
   const [repasPlan, setRepasPlan] = useState({});
-  // Filtre semaine via deep-link from/to
-  const [filtreFromTo, setFiltreFromTo] = useState(null);
-  // Tracker valeurs champs pour coloration contextuelle pastilles
-  const [champsRepasEnCours, setChampsRepasEnCours] = useState({ aliment: '', quantite: '', heureRepas: '', categorie: '' });
 
-  // Lire from/to depuis l'URL pour préfiltrer la semaine
+  // Chargement profil et calcul objectif calorique personnalisé (routeur poids)
   useEffect(() => {
-    try {
-      if (typeof window === 'undefined') return;
-      const params = new URLSearchParams(window.location.search);
-      const from = params.get('from');
-      const to = params.get('to');
-      if (from && to) {
-        setFiltreFromTo({ from, to });
-        // Centrer la vue sur le début de la période
-        setSelectedDate(from);
+    async function fetchProfilEtCalculs() {
+      // Récupérer userId
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
       }
-    } catch(e) {
-      console.warn('[Suivi] Lecture params from/to échouée:', e);
-    }
-  }, []);
 
-  // Fonction calcul état pastille contextuelle
-  function calculerEtatPastille(id, type, champs) {
-    const { aliment, quantite, heureRepas, categorie } = champs;
-    const feculents = ['pain','pâtes','pâte','riz','pomme de terre','quinoa','boulgour','semoule','couscous'];
-    switch(id) {
-      case 1: // Portions repères visuels
-        if (!quantite) return 'neutral';
-        const reperes = ['poing','paume','verre','c.à.s','fourchette','main'];
-        return reperes.some(r => quantite.toLowerCase().includes(r)) ? 'ok' : 'neutral';
-      case 2: // Dîner sans féculents
-        if (type !== 'Dîner') return 'neutral';
-        if (!aliment && !categorie) return 'neutral';
-        const txt = `${aliment} ${categorie}`.toLowerCase();
-        return feculents.some(f => txt.includes(f)) ? 'warn' : 'ok';
-      case 7: // Eau ≥ 2L
-        if (!quantite) return 'neutral';
-        const q = quantite.toLowerCase();
-        if (q.includes('2l') || q.includes('2 l') || q.includes('bouteille')) return 'ok';
-        return 'neutral';
-      case 8: // Dernier repas < 19h
-        if (type !== 'Dîner') return 'neutral';
-        if (!heureRepas) return 'neutral';
-        return heureRepas < '19:00' ? 'ok' : 'warn';
-      case 9: // Repas ≤ 45 min (simplification: OK par défaut si heure renseignée)
-        return heureRepas ? 'ok' : 'neutral';
-      default:
-        return 'neutral';
+      const { data: profil, error } = await supabase
+        .from('profil')
+        .select('sexe, age, taille, poids_de_depart, niveau_activite, objectif')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!error && profil) {
+        // Si profil complet (sexe + niveau_activite renseignés) → utiliser routeur poids
+        if (profil.sexe && profil.niveau_activite) {
+          const objetPoids = profil.poids_de_depart > profil.objectif ? 'perte' : 
+                            (profil.poids_de_depart < profil.objectif ? 'prise' : 'maintien');
+          
+          const profilComplet = {
+            ...profil,
+            objectif: objetPoids
+          };
+
+          const calculs = calculerProfilComplet(profilComplet);
+          
+          if (calculs) {
+            setCalculsRouteur(calculs);
+            setObjectifCalorique(calculs.apport_calorique_cible); // Utiliser calcul personnalisé
+            console.log('[Routeur Poids] Objectif calorique personnalisé:', calculs.apport_calorique_cible, 'kcal');
+          }
+        } else {
+          // Profil incomplet → fallback sur valeur par défaut (1800 kcal)
+          console.log('[Routeur Poids] Profil incomplet (sexe ou activité manquants), utilisation valeur par défaut');
+          setObjectifCalorique(1800);
+        }
+      } else {
+        // Aucun profil → valeur par défaut
+        console.log('[Routeur Poids] Aucun profil trouvé, utilisation valeur par défaut');
+        setObjectifCalorique(1800);
+      }
     }
-  }
+
+    fetchProfilEtCalculs();
+  }, []); // Exécuté une seule fois au chargement
 
   // Chargement automatique des repas et du plan depuis Supabase
   useEffect(() => {
@@ -783,10 +872,11 @@ export default function Suivi() {
   .from('semaines_validees')
         .select('weekStart, validee');
       // Fusionner le flag de validation
-      const historyWithValidation = history.map(week => {
-        const valid = semainesValidees?.find(s => s.weekStart === week.weekStart)?.validee === true;
-        return { ...week, validee: valid };
-      });
+        const historyWithValidation = history.map(week => {
+          const validRaw = semainesValidees?.find(s => s.weekStart === week.weekStart)?.validee;
+          const valid = validRaw === true || validRaw === 'true' || validRaw === 1;
+          return { ...week, validee: valid };
+        });
       setWeeklyHistory(historyWithValidation);
     }
     fetchHistory();
@@ -875,7 +965,9 @@ export default function Suivi() {
 
   // ----------- LOGIQUE D'AFFICHAGE DYNAMIQUE MOTIVATION -----------
   const today = new Date();
-  const selected = new Date(selectedDate);
+  // FIX: Parser la date en local au lieu d'UTC pour éviter les décalages de timezone
+  const [year, month, day] = selectedDate.split('-').map(Number);
+  const selected = new Date(year, month - 1, day);
   const dayOfWeek = today.getDay();
   const selectedDayOfWeek = selected.getDay();
   const extrasEnCours = extrasThisWeek;
@@ -914,35 +1006,177 @@ export default function Suivi() {
   };
   // ----------- HANDLER DE VALIDATION DE LA SEMAINE -----------
   const handleValiderSemaine = async () => {
+    // Log début de la fonction de validation de la semaine
+    console.log('[LOG BILAN] Début handleValiderSemaine');
     try {
-      // Calculer la date de début de la semaine sélectionnée
-      const selectedWeekStart = (() => {
-        const selectedDateObj = new Date(selectedDate);
-        const day = selectedDateObj.getDay();
-        const monday = new Date(selectedDateObj);
-        monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
-        monday.setHours(0,0,0,0);
-        return monday.toISOString().slice(0,10);
-      })();
-      // Persister la validation dans Supabase
-      const { error } = await supabase.from('semaines_validees').upsert([{ weekStart: selectedWeekStart, validee: true }]);
-      if (error) {
-        setSnackbar({ open: true, message: error.message || "Erreur lors de la validation.", type: "error" });
-        return;
+      // 1. Calcul strict du lundi et dimanche de la semaine à partir de la date sélectionnée
+      // Utilisation de getMonday() pour garantir la cohérence ISO 8601
+      const monday = getMonday(selectedDate);
+      const sunday = addDays(monday, 6);
+      sunday.setHours(23,59,59,999);
+      const selectedWeekStart = formatDate(monday, 'yyyy-MM-dd');
+      const selectedWeekEnd = formatDate(sunday, 'yyyy-MM-dd');
+      // Log des bornes de la semaine et des dates prises en compte
+      const joursSemaine = [];
+      for (let i = 0; i < 7; i++) {
+        joursSemaine.push(formatDate(addDays(monday, i), 'yyyy-MM-dd'));
       }
-      setSnackbar({ open: true, message: "Semaine validée avec succès !", type: "info" });
-      // Recharger l’historique pour mettre à jour la timeline
-      const history = getWeeklyExtrasHistory(repasSemaine, selectedDate, 16);
-      const { data: semainesValidees } = await supabase
-  .from('semaines_validees')
-        .select('weekStart, validee');
-      const historyWithValidation = history.map(week => {
-        const valid = semainesValidees?.find(s => s.weekStart === week.weekStart)?.validee === true;
-        return { ...week, validee: valid };
-      });
-      setWeeklyHistory(historyWithValidation);
+      const selectedDateObj = new Date(selectedDate + 'T12:00:00'); // Midi pour éviter les problèmes de fuseau horaire
+      console.log(`[LOG BILAN] Date sélectionnée : ${selectedDate} (jour de la semaine : ${selectedDateObj.getDay()})`);
+      console.log(`[LOG BILAN] Semaine du ${selectedWeekStart} au ${selectedWeekEnd}`);
+      console.log(`[LOG BILAN] Jours pris en compte pour la semaine :`, joursSemaine);
+
+      // 2. Récupérer tous les repas de la période (lundi-dimanche) via fonction utilitaire fiabilisée
+      const repasData = await fetchRepasPeriode(selectedWeekStart, selectedWeekEnd);
+      // Log du nombre de repas récupérés et aperçu des repas
+      console.log(`[LOG BILAN] Nombre de repas récupérés : ${repasData.length}`);
+      if (repasData.length > 0) {
+        console.log('[LOG BILAN] Liste des repas (id, date, kcal) :', repasData.map(r => ({id: r.id, date: r.date, kcal: r.kcal})));
+      } else {
+        console.log('[LOG BILAN] Aucun repas trouvé pour cette période.');
+      }
+      // Log du total kcal calculé
+      const totalKcalLog = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
+      console.log(`[LOG BILAN] Total kcal calculé sur la période : ${totalKcalLog}`);
+
+      // 3. Récupérer le profil utilisateur pour le calcul du budget extras (logique BudgetExtrasCard)
+      let budgetExtras = 0;
+      let objectifType = 'perte';
+      let profilComplet = null;
+      let calculs = null;
+      const { data: profil, error: profilError } = await supabase
+        .from('profil')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (!profilError && profil && profil.sexe && profil.niveau_activite) {
+        if (profil.poids_de_depart && profil.objectif) {
+          if (profil.poids_de_depart > profil.objectif) {
+            objectifType = 'perte';
+          } else if (profil.poids_de_depart < profil.objectif) {
+            objectifType = 'prise';
+          } else {
+            objectifType = 'maintien';
+          }
+        }
+        profilComplet = {
+          sexe: profil.sexe,
+          age: profil.age,
+          taille: profil.taille,
+          poids_de_depart: profil.poids_de_depart,
+          niveau_activite: profil.niveau_activite,
+          objectif: objectifType
+        };
+        calculs = calculerProfilComplet(profilComplet);
+        if (calculs && typeof calculs.budgetExtras === 'number' && !isNaN(calculs.budgetExtras)) {
+          budgetExtras = calculs.budgetExtras;
+        }
+      }
+
+      // Calcul des extras juste avant la sauvegarde
+      const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasData);
+      // Génération du message feedback réel (ou valeur neutre si non utilisé)
+      const messageFeedback = genererMessageFeedback ? genererMessageFeedback(extrasInfo.count, 1) : '';
+      
+      // Calcul de la variation (extras semaine N vs N-1)
+      // Récupérer la semaine précédente validée pour calculer la variation
+      const { data: semainesPrecedentes } = await supabase
+        .from('semaines_validees')
+        .select('weekStart, extras_count')
+        .lt('weekStart', selectedWeekStart)
+        .order('weekStart', { ascending: false })
+        .limit(1);
+      const extrasN1 = semainesPrecedentes && semainesPrecedentes.length > 0 ? semainesPrecedentes[0].extras_count : null;
+      const variation = (extrasN1 !== null && typeof extrasN1 === 'number') ? extrasInfo.count - extrasN1 : 0;
+      
+      // Calcul des données Section 1 du bilan (apports totaux, objectif, etc.)
+      const apportsTotaux = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
+      const objectifJour = calculs?.apport_calorique_cible || 1730; // Objectif calorique journalier (apport cible, pas TDEE !)
+      const objectifHebdo = objectifJour * 7; // Objectif hebdomadaire
+      const kcalExtras = repasData.filter(r => r.est_extra).reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
+      
+      // Calcul tendance 7j et projection poids
+      const tendance = calculerTendance7j(apportsTotaux, objectifHebdo);
+      
+      let insertOk = false;
+      const bilanToInsert = {
+        weekStart: selectedWeekStart,
+        // weekEnd supprimé : la colonne n'existe pas dans la table (on calcule weekEnd = weekStart + 6 jours si besoin)
+        validee: true,
+        date_validation: new Date().toISOString(),
+        extras_count: extrasInfo.count,
+        extras_details: JSON.stringify(extrasInfo.details),
+        message_feedback: messageFeedback,
+        variation,
+        // Nouvelles colonnes Section 2
+        tendance_7j: tendance.type,
+        ecart_hebdo: tendance.ecart,
+        apports_totaux: Math.round(apportsTotaux),
+        objectif_hebdo: objectifHebdo,
+        projection_poids: tendance.projection_poids
+      };
+      
+      // LOG DEBUG : Vérifier chaque valeur
+      console.log('[LOG BILAN] 🔍 VALEURS DÉTAILLÉES :');
+      console.log('  weekStart:', selectedWeekStart, typeof selectedWeekStart);
+      console.log('  tendance.type:', tendance.type, typeof tendance.type);
+      console.log('  tendance.ecart:', tendance.ecart, typeof tendance.ecart);
+      console.log('  apportsTotaux:', apportsTotaux, typeof apportsTotaux);
+      console.log('  objectifHebdo:', objectifHebdo, typeof objectifHebdo);
+      console.log('  tendance.projection_poids:', tendance.projection_poids, typeof tendance.projection_poids);
+      console.log('[LOG BILAN] Objet complet à insérer :', JSON.stringify(bilanToInsert, null, 2));
+      
+      try {
+        const { data: insertResult, error: insertError } = await supabase
+          .from('semaines_validees')
+          .upsert([bilanToInsert], {
+            onConflict: 'weekStart', // Utilise weekStart comme clé unique pour gérer les doublons
+            ignoreDuplicates: false   // Met à jour si existe déjà
+          });
+        if (insertError) {
+          console.error('[LOG BILAN] Erreur lors de l’enregistrement du bilan dans Supabase :', insertError);
+        } else {
+          console.log('[LOG BILAN] Bilan enregistré avec succès dans Supabase :', insertResult);
+          insertOk = true;
+        }
+      } catch (err) {
+        console.error('[LOG BILAN] Exception JS lors de l’insert bilan Supabase :', err);
+      }
+      if (insertOk) {
+        // Ouverture de la modale BilanHebdoModal (Section 1 complète)
+        setBilanData({
+          weekStart: selectedWeekStart,
+          apportsTotaux,
+          objectifHebdo,
+          kcalExtras,
+          extras: extrasInfo.count,
+          budgetExtras,
+          variation,
+          // Pas de données Section 2 pour l'instant (à implémenter)
+        });
+        setShowBilanModal(true);
+      } else {
+        setSnackbar({ open: true, message: "Erreur lors de la validation de la semaine.", type: "error" });
+      }
+      try {
+        const historyTimeline = getWeeklyExtrasHistory(repasData, selectedDate, 16);
+        const { data: semainesValideesRefresh } = await supabase
+          .from('semaines_validees')
+          .select('weekStart, validee');
+        const historyWithValidation = historyTimeline.map(week => {
+          const valid = semainesValideesRefresh?.find(s => s.weekStart === week.weekStart)?.validee === true;
+          return { ...week, validee: valid };
+        });
+        setWeeklyHistory(historyWithValidation);
+      } catch (e) {
+        console.error('[LOG BILAN] Erreur lors du rechargement de la timeline :', e);
+      }
     } catch (e) {
-      setSnackbar({ open: true, message: "Erreur lors de la validation.", type: "error" });
+      // Log d'erreur si une exception est levée
+      console.error('[LOG BILAN] Erreur JS validation semaine:', e);
+      setValidationError(e.message || "Erreur lors de la validation.");
+      setSnackbar({ open: true, message: e.message || "Erreur lors de la validation.", type: "error" });
     }
   };
   // ----------- AFFICHAGE -----------
@@ -980,6 +1214,33 @@ export default function Suivi() {
         <button onClick={handleRefresh} style={{
           background:'#1976d2', color:'#fff', border:'none', borderRadius:8, padding:'8px 22px', fontWeight:600, fontSize:16, cursor:'pointer'
         }}>🔄 Rafraîchir les statistiques</button>
+        
+        {/* ═══════════════════════════════════════════════════════════
+            BADGE "VOIR FEEDBACK DÉTAILLÉ" (9 janvier 2026)
+            Visible uniquement si semaine précédente validée ET pas dimanche
+            ═══════════════════════════════════════════════════════════ */}
+        {derniereSemaineValidee && new Date(selectedDate).getDay() !== 0 && (
+          <button 
+            onClick={() => {
+              setFeedbackData(derniereSemaineValidee);
+              setShowFeedbackModal(true);
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '8px 22px',
+              fontWeight: 600,
+              fontSize: 15,
+              cursor: 'pointer',
+              marginLeft: 12,
+              boxShadow: '0 2px 8px rgba(16,185,129,0.3)'
+            }}
+          >
+            ✅ Voir feedback semaine validée
+          </button>
+        )}
       </div>
 
       {/* Mini-bandeau Préparation en cours (synthétique avec coloration contextuelle) */}
@@ -1076,6 +1337,52 @@ export default function Suivi() {
         </div>
       </div>
 
+      {/* ═══════════════════════════════════════════════════════════
+          BUDGET EXTRAS HEBDOMADAIRE (PHASE 3)
+          Affichage du budget calorique extras personnalisé
+          ═══════════════════════════════════════════════════════════ */}
+      <div style={{padding: '1rem', background: 'rgba(100,150,255,0.1)', borderRadius: 8, margin: '1rem 0', border: '2px dashed #6496ff'}}>
+        <div style={{
+          fontSize: '1.05rem',
+          fontWeight: 700,
+          color: '#fff',
+          background: 'linear-gradient(90deg, #6496ff 0%, #1976d2 100%)',
+          borderRadius: '8px',
+          padding: '6px 0',
+          marginBottom: '0.7rem',
+          textAlign: 'center',
+          letterSpacing: '0.5px',
+          boxShadow: '0 1px 4px rgba(100,150,255,0.10)'
+        }}>
+          📅 Semaine du {(() => {
+            const selectedDateObj = new Date(selectedDate);
+            const day = selectedDateObj.getDay();
+            const monday = new Date(selectedDateObj);
+            monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            function fmt(d) {
+              return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+            return `${fmt(monday)} au ${fmt(sunday)}`;
+          })()}
+        </div>
+        <div style={{fontSize: '0.9rem', marginBottom: '0.5rem'}}>
+          🔍 <strong>DEBUG Budget Extras Card:</strong>
+        </div>
+        <div style={{fontSize: '0.85rem', fontFamily: 'monospace'}}>
+          • userId from Supabase: <strong>{userId || 'NULL (pas connecté)'}</strong><br/>
+          • Mode: <strong>{userId ? 'Authentifié' : 'localStorage (sans authentification)'}</strong><br/>
+          • Composant: <strong>{userId ? '✅ Mode authentifié' : '⚠️ Mode TEST (localStorage)'}</strong><br/>
+          <span style={{color:'#1976d2',fontWeight:600}}>
+            {calculsRouteur && calculsRouteur.budget_extras_kcal
+              ? `Budget extras personnalisé : ${calculsRouteur.budget_extras_kcal} kcal/semaine`
+              : 'Budget extras non disponible'}
+          </span>
+        </div>
+      </div>
+      {/* Afficher en mode localStorage (userId=null) ou authentifié */}
+      <BudgetExtrasCard userId={userId} selectedDate={selectedDate} />
 
       {/* --------- ZONE 1 : Feedback immédiat --------- */}
       <ZoneFeedbackHebdo
@@ -1654,9 +1961,42 @@ export default function Suivi() {
             📅 Planifier mes repas
           </button>
         </Link>
-          <Link href="/tableau-de-bord">
+        <Link href="/historique-extras">
+          <button style={{
+            background: "#1976d2",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 24px",
+            fontWeight: 600,
+            fontSize: 16,
+            cursor: "pointer",
+            marginTop: 16
+          }}>
+            📊 Historique des bilans hebdo
+          </button>
+        </Link>
+        <Link href="/tableau-de-bord">
+          <button style={{
+            background: "#43a047",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 24px",
+            fontWeight: 600,
+            fontSize: 16,
+            cursor: "pointer",
+            marginTop: 16
+          }}>
+            🏠 Retour au tableau de bord
+          </button>
+        </Link>
+
+        {/* NOUVEAU : BOUTON CRISTALLISATION (visible uniquement si phase active) */}
+        {cristallisationActive && (
+          <Link href="/cristallisation-quotidien">
             <button style={{
-              background: "#43a047",
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
               color: "#fff",
               border: "none",
               borderRadius: 8,
@@ -1664,32 +2004,41 @@ export default function Suivi() {
               fontWeight: 600,
               fontSize: 16,
               cursor: "pointer",
-              marginTop: 16
+              marginTop: 16,
+              boxShadow: "0 4px 12px rgba(102,126,234,0.3)"
             }}>
-              🏠 Retour au tableau de bord
+              🏔️ Suivi Cristallisation
             </button>
           </Link>
-
-          {/* NOUVEAU : BOUTON CRISTALLISATION (visible uniquement si phase active) */}
-          {cristallisationActive && (
-            <Link href="/cristallisation-quotidien">
-              <button style={{
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "10px 24px",
-                fontWeight: 600,
-                fontSize: 16,
-                cursor: "pointer",
-                marginTop: 16,
-                boxShadow: "0 4px 12px rgba(102,126,234,0.3)"
-              }}>
-                🏔️ Suivi Cristallisation
-              </button>
-            </Link>
-          )}
+        )}
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          MODAL FEEDBACK VALIDATION (9 janvier 2026)
+          Affiche feedback détaillé après validation de semaine
+          ═══════════════════════════════════════════════════════════ */}
+      <ModalFeedbackValidation
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        weekStart={feedbackData?.weekStart}
+        extrasCount={feedbackData?.extrasCount}
+        extrasDetails={feedbackData?.extrasDetails}
+        message={feedbackData?.message}
+        variation={feedbackData?.variation}
+        dateValidation={feedbackData?.dateValidation}
+        quota={2}
+      />
+      {/* MODALE BILAN HEBDO ALIMENTAIRE */}
+      <BilanHebdoModal
+        open={showBilanModal}
+        onClose={() => setShowBilanModal(false)}
+        bilan={bilanData}
+        selectedDate={selectedDate} // On transmet explicitement la date sélectionnée
+        onLearnMore={() => {
+          setShowBilanModal(false);
+          // TODO: ouvrir la section "en savoir plus" ou naviguer vers l’historique détaillé
+        }}
+      />
     </div>
   );
 }

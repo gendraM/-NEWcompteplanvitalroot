@@ -5,6 +5,10 @@ export default function FormulaireProfil({
   setTaille,
   age,
   setAge,
+  sexe,
+  setSexe,
+  niveauActivite,
+  setNiveauActivite,
   objectif,
   setObjectif,
   delai,
@@ -45,6 +49,34 @@ export default function FormulaireProfil({
           onChange={(e) => setAge(e.target.value)}
           required
         />
+      </div>
+
+      <div>
+        <label>Sexe</label>
+        <select
+          value={sexe}
+          onChange={(e) => setSexe(e.target.value)}
+          required
+        >
+          <option value="">-- Sélectionner --</option>
+          <option value="F">Femme</option>
+          <option value="M">Homme</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Niveau d'activité physique</label>
+        <select
+          value={niveauActivite}
+          onChange={(e) => setNiveauActivite(e.target.value)}
+          required
+        >
+          <option value="">-- Sélectionner --</option>
+          <option value="sedentaire">Sédentaire (peu ou pas d'exercice)</option>
+          <option value="modere">Modérément actif (exercice 3-5 jours/semaine)</option>
+          <option value="actif">Actif (exercice intense 6-7 jours/semaine)</option>
+          <option value="intense">Très actif (exercice quotidien intense)</option>
+        </select>
       </div>
 
       <div>
