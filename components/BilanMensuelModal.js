@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { calculerSection1TendancePoids } from '../lib/calculsBilanMensuel';
+import { calculerSection1TendancePoids, calculerSection2BudgetCalorique } from '../lib/calculsBilanMensuel';
 
 /**
  * Composant Section1TendancePoids
@@ -481,6 +481,244 @@ function Section1TendancePoids({ data }) {
 }
 
 /**
+ * Section2BudgetCalorique - Budget calorique et répartition
+ * Affiche le budget total consommé vs objectif, la répartition par type de repas
+ * et la répartition des extras par moment de la journée
+ */
+function Section2BudgetCalorique({ data }) {
+  // Log au début du composant
+  console.log('[SECTION2 COMPOSANT] Rendu Section2BudgetCalorique');
+  console.log('[SECTION2 COMPOSANT] Données reçues:', data);
+  console.log('[SECTION2 COMPOSANT] Type de data:', typeof data);
+  
+  if (!data || data.erreur === 'aucun_repas') {
+    console.log('[SECTION2 COMPOSANT] Affichage du fallback: aucun repas');
+    return (
+      <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+        <div style={{ fontSize: 48 }}>🍽️</div>
+        <div style={{ marginTop: '0.5rem', fontSize: 16, color: '#6b7280' }}>
+          Aucun repas enregistré ce mois-ci
+        </div>
+      </div>
+    );
+  }
+
+  // Log de confirmation: on a des données valides
+  console.log('[SECTION2 COMPOSANT] Données valides, rendu complet');
+
+  const {
+    total_consomme,
+    budget_mensuel,
+    ecart_budget,
+    ecart_pourcent,
+    moyenne_jour,
+    repartition_repas,
+    repartition_extras,
+    nb_jours_saisis,
+    nb_jours_total,
+    nb_extras,
+    extras_moyens_jour,
+    nb_repas_total
+  } = data;
+
+  console.log('[SECTION2 COMPOSANT] Données destructurées:', {
+    total_consomme,
+    budget_mensuel,
+    nb_repas: repartition_repas?.length,
+    nb_extras
+  });
+
+  // Fonction pour déterminer la couleur selon l'écart
+  const getEcartColor = (pourcent) => {
+    if (Math.abs(pourcent) <= 5) return '#10b981'; // Vert (dans l'objectif ±5%)
+    if (pourcent > 0) return '#f59e0b'; // Orange (dépassement)
+    return '#0ea5e9'; // Bleu (sous-consommation)
+  };
+
+  const ecartColor = getEcartColor(ecart_pourcent);
+  const pourcentageGauge = Math.min((total_consomme / budget_mensuel) * 100, 100);
+
+  // Log des valeurs calculées pour l'affichage
+  console.log('[SECTION2 COMPOSANT] Valeurs affichage:', {
+    total_consomme,
+    budget_mensuel,
+    ecart_pourcent,
+    pourcentageGauge,
+    ecartColor,
+    nb_repas: repartition_repas?.length,
+    nb_extras
+  });
+
+  // Labels et couleurs pour les types de repas
+  const repasLabels = {
+    'Petit-déjeuner': '🌅 Petit-déjeuner',
+    'Déjeuner': '☀️ Déjeuner',
+    'Dîner': '🌙 Dîner',
+    'Collation': '🍎 Collation'
+  };
+
+  const repasColors = {
+    'Petit-déjeuner': '#fbbf24',
+    'Déjeuner': '#60a5fa',
+    'Dîner': '#a78bfa',
+    'Collation': '#34d399'
+  };
+
+  // Labels pour les moments d'extras
+  const momentLabels = {
+    matin: '🌅 Matin',
+    apres_midi: '☀️ Après-midi',
+    soir: '🌙 Soir'
+  };
+
+  return (
+    <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      {/* 1. Jauge du budget calorique */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>
+            Budget calorique mensuel
+          </span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: ecartColor }}>
+            {ecart_budget >= 0 ? '+' : ''}{Math.round(ecart_budget)} kcal ({ecart_pourcent >= 0 ? '+' : ''}{ecart_pourcent.toFixed(1)}%)
+          </span>
+        </div>
+
+        {/* Barre de progression */}
+        <div style={{ 
+          width: '100%', 
+          height: 24, 
+          background: '#e5e7eb', 
+          borderRadius: 12, 
+          overflow: 'hidden',
+          position: 'relative'
+        }}>
+          <div style={{ 
+            width: `${pourcentageGauge}%`, 
+            height: '100%', 
+            background: ecartColor,
+            transition: 'width 0.3s ease'
+          }} />
+        </div>
+
+        {/* Légende */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: 13, color: '#6b7280' }}>
+          <span>{Math.round(total_consomme).toLocaleString()} kcal consommées</span>
+          <span>Objectif: {Math.round(budget_mensuel).toLocaleString()} kcal</span>
+        </div>
+      </div>
+
+      {/* 2. Moyenne journalière */}
+      <div style={{ 
+        background: '#f9fafb', 
+        border: '1px solid #e5e7eb', 
+        borderRadius: 12, 
+        padding: '1rem',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: 13, color: '#6b7280', marginBottom: '0.25rem' }}>
+          Moyenne journalière
+        </div>
+        <div style={{ fontSize: 28, fontWeight: 'bold', color: '#111827' }}>
+          {Math.round(moyenne_jour).toLocaleString()} kcal/jour
+        </div>
+        <div style={{ fontSize: 12, color: '#9ca3af', marginTop: '0.25rem' }}>
+          Sur {nb_jours_saisis} jours saisis / {nb_jours_total} jours au total
+        </div>
+      </div>
+
+      {/* 3. Répartition par type de repas */}
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '1rem' }}>
+          Répartition par type de repas
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {repartition_repas.map(({ type, total, pourcent, nb_repas }) => (
+            <div key={type}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: 13, color: '#4b5563' }}>
+                  {repasLabels[type]} ({nb_repas})
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>
+                  {Math.round(total).toLocaleString()} kcal ({pourcent.toFixed(0)}%)
+                </span>
+              </div>
+
+              {/* Barre horizontale */}
+              <div style={{ 
+                width: '100%', 
+                height: 8, 
+                background: '#e5e7eb', 
+                borderRadius: 4, 
+                overflow: 'hidden'
+              }}>
+                <div style={{ 
+                  width: `${pourcent}%`, 
+                  height: '100%', 
+                  background: repasColors[type],
+                  transition: 'width 0.3s ease'
+                }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. Répartition des extras par moment */}
+      {nb_extras > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '1rem' }}>
+            Répartition des extras ({nb_extras} extras • {extras_moyens_jour.toFixed(1)} par jour)
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            {repartition_extras.map(({ moment, count, pourcent }) => (
+              <div 
+                key={moment}
+                style={{ 
+                  flex: 1,
+                  background: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  borderRadius: 8,
+                  padding: '0.75rem',
+                  textAlign: 'center'
+                }}
+              >
+                <div style={{ fontSize: 13, color: '#92400e', fontWeight: 600 }}>
+                  {momentLabels[moment]}
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 'bold', color: '#78350f', marginTop: '0.25rem' }}>
+                  {count}
+                </div>
+                <div style={{ fontSize: 12, color: '#92400e' }}>
+                  {pourcent.toFixed(0)}%
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Alerte si plus de 50% des extras sont l'après-midi */}
+          {repartition_extras[1]?.pourcent > 50 && (
+            <div style={{ 
+              marginTop: '1rem',
+              background: '#fef2f2',
+              border: '1px solid #fca5a5',
+              borderRadius: 8,
+              padding: '0.75rem',
+              fontSize: 13,
+              color: '#991b1b'
+            }}>
+              ⚠️ Plus de la moitié de tes extras sont pris l'après-midi. Essaie de les répartir ou de les limiter !
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * BilanMensuelModal - Modale d'affichage du bilan mensuel
  * 
  * Phase 2 : Structure vide avec 6 sections accordéons
@@ -552,19 +790,43 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
         const section1 = await calculerSection1TendancePoids(mois, annee);
         console.log('[BILAN MENSUEL MODAL] Section 1 reçue:', section1);
         
+        // Phase 4: Charger Section 2
+      console.log('[BILAN MENSUEL MODAL] === DÉBUT CHARGEMENT SECTION 2 ===');
+      console.log('[BILAN MENSUEL MODAL] Appel calculerSection2BudgetCalorique...');
+      
+      try {
+        const section2 = await calculerSection2BudgetCalorique(mois, annee, 1900);
+        console.log('[BILAN MENSUEL MODAL] Section 2 reçue avec succès:', section2);
+        
+        // Log détaillé du contenu
+        if (section2) {
+          console.log('[BILAN MENSUEL MODAL] Type de section2:', typeof section2);
+          console.log('[BILAN MENSUEL MODAL] Clés de section2:', Object.keys(section2));
+          console.log('[BILAN MENSUEL MODAL] section2.erreur?', section2.erreur);
+          console.log('[BILAN MENSUEL MODAL] section2.total_consomme:', section2.total_consomme);
+        } else {
+          console.log('[BILAN MENSUEL MODAL] ⚠️ section2 est null ou undefined!');
+        }
+        console.log('[BILAN MENSUEL MODAL] === FIN CHARGEMENT SECTION 2 ===');
         const nouveauBilan = {
           mois,
           annee,
           section1,
-          section2: null, // TODO Phase 4
+          section2,
           section3: null, // TODO Phase 5
           section4: null, // TODO Phase 6
           section5: null, // TODO Phase 7
           section6: null, // TODO Phase 8
         };
         
-        console.log('[BILAN MENSUEL MODAL] Mise à jour bilanData:', nouveauBilan);
+        console.log('[BILAN MENSUEL MODAL] Bilan créé:', nouveauBilan);
+        console.log('[BILAN MENSUEL MODAL] Vérification section2:', nouveauBilan.section2);
         setBilanData(nouveauBilan);
+        console.log('[BILAN MENSUEL MODAL] setBilanData appelé avec succès');
+      } catch (erreurSection2) {
+        console.error('[BILAN MENSUEL MODAL] ❌ Erreur Section 2:', erreurSection2);
+        console.error('[BILAN MENSUEL MODAL] Stack:', erreurSection2.stack);
+      }
       } catch (err) {
         console.error('[BILAN MENSUEL MODAL] ❌ Erreur chargement:', err);
         console.error('[BILAN MENSUEL MODAL] Stack:', err.stack);
@@ -910,12 +1172,14 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                   </div>
                   {sectionsOuvertes.section2 && (
                     <div className="sectionContent">
-                      <div className="placeholder">
-                        <div className="placeholderIcon">⏳</div>
-                        <p className="placeholderText">
-                          Calculs en cours... (Phase 4)
-                        </p>
-                      </div>
+                      {bilanData?.section2 ? (
+                        <Section2BudgetCalorique data={bilanData.section2} />
+                      ) : (
+                        <div className="placeholder">
+                          <div className="placeholderIcon">⏳</div>
+                          <p className="placeholderText">Calculs en cours...</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
