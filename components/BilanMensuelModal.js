@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { calculerSection1TendancePoids, calculerSection2BudgetCalorique } from '../lib/calculsBilanMensuel';
+import { calculerSection1TendancePoids, calculerSection2BudgetCalorique, calculerSection3Patterns } from '../lib/calculsBilanMensuel';
 
 /**
  * Composant Section1TendancePoids
@@ -719,6 +719,231 @@ function Section2BudgetCalorique({ data }) {
 }
 
 /**
+ * Section3PatternsComportementaux - Analyse des patterns
+ * Affiche la conformité, les points forts/faibles, et les insights temporels
+ */
+function Section3PatternsComportementaux({ data }) {
+  console.log('[SECTION3 COMPOSANT] Rendu Section3PatternsComportementaux');
+  console.log('[SECTION3 COMPOSANT] Data reçue:', data);
+  
+  if (!data || data.erreur === 'aucun_repas') {
+    console.log('[SECTION3 COMPOSANT] Affichage fallback: aucun repas');
+    return (
+      <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+        <div style={{ fontSize: 48 }}>📊</div>
+        <div style={{ marginTop: '0.5rem', fontSize: 16, color: '#6b7280' }}>
+          Pas assez de données pour analyser les patterns
+        </div>
+      </div>
+    );
+  }
+
+  const {
+    jours_conformes,
+    jours_depasses,
+    jours_sous_objectif,
+    taux_conformite,
+    points_forts,
+    points_amelioration,
+    insights_temporels,
+    nb_jours_analyses
+  } = data;
+
+  // Couleur selon le taux de conformité
+  const getConformiteColor = (taux) => {
+    if (taux >= 80) return '#10b981'; // Vert
+    if (taux >= 60) return '#f59e0b'; // Orange
+    return '#ef4444'; // Rouge
+  };
+
+  const conformiteColor = getConformiteColor(taux_conformite);
+
+  return (
+    <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      {/* 1. Bilan de conformité */}
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '1rem' }}>
+          Conformité mensuelle
+        </div>
+
+        {/* Jauge de conformité */}
+        <div style={{ 
+          background: '#f9fafb', 
+          border: '1px solid #e5e7eb', 
+          borderRadius: 12, 
+          padding: '1.5rem',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: 48, fontWeight: 'bold', color: conformiteColor }}>
+            {Math.round(taux_conformite)}%
+          </div>
+          <div style={{ fontSize: 14, color: '#6b7280', marginTop: '0.5rem' }}>
+            des jours dans l'objectif
+          </div>
+
+          {/* Détail jours */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            gap: '2rem', 
+            marginTop: '1.5rem',
+            fontSize: 13
+          }}>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#10b981' }}>
+                {jours_conformes}
+              </div>
+              <div style={{ color: '#6b7280' }}>✅ Conformes</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#ef4444' }}>
+                {jours_depasses}
+              </div>
+              <div style={{ color: '#6b7280' }}>⚠️ Dépassés</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#0ea5e9' }}>
+                {jours_sous_objectif}
+              </div>
+              <div style={{ color: '#6b7280' }}>📉 Sous-objectif</div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: '1rem' }}>
+            Sur {nb_jours_analyses} jours analysés
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Points forts */}
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+          💪 Points forts
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {points_forts.map((point, idx) => (
+            <div 
+              key={idx}
+              style={{ 
+                background: '#f0fdf4',
+                border: '1px solid #86efac',
+                borderRadius: 8,
+                padding: '0.75rem',
+                fontSize: 14,
+                color: '#166534',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.5rem'
+              }}
+            >
+              <span style={{ fontSize: 16 }}>✅</span>
+              <span style={{ flex: 1 }}>{point}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. Points d'amélioration */}
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+          🎯 Points d'amélioration
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {points_amelioration.map((point, idx) => (
+            <div 
+              key={idx}
+              style={{ 
+                background: '#fef3c7',
+                border: '1px solid #fde68a',
+                borderRadius: 8,
+                padding: '0.75rem',
+                fontSize: 14,
+                color: '#92400e',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.5rem'
+              }}
+            >
+              <span style={{ fontSize: 16 }}>💡</span>
+              <span style={{ flex: 1 }}>{point}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. Insights temporels (weekend vs semaine) */}
+      {insights_temporels && insights_temporels.jours_weekend > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '1rem' }}>
+            📅 Weekend vs Semaine
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            {/* Carte semaine */}
+            <div style={{ 
+              flex: 1,
+              background: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: 8,
+              padding: '1rem',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: 13, color: '#0c4a6e', fontWeight: 600 }}>
+                📆 Semaine
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#0284c7', marginTop: '0.5rem' }}>
+                {insights_temporels.moyenne_semaine} kcal
+              </div>
+              <div style={{ fontSize: 12, color: '#0369a1', marginTop: '0.25rem' }}>
+                Moyenne sur {insights_temporels.jours_semaine} jours
+              </div>
+            </div>
+
+            {/* Carte weekend */}
+            <div style={{ 
+              flex: 1,
+              background: '#fefce8',
+              border: '1px solid #fde047',
+              borderRadius: 8,
+              padding: '1rem',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: 13, color: '#713f12', fontWeight: 600 }}>
+                🎉 Weekend
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#ca8a04', marginTop: '0.5rem' }}>
+                {insights_temporels.moyenne_weekend} kcal
+              </div>
+              <div style={{ fontSize: 12, color: '#a16207', marginTop: '0.25rem' }}>
+                Moyenne sur {insights_temporels.jours_weekend} jours
+              </div>
+            </div>
+          </div>
+
+          {/* Écart weekend/semaine */}
+          {Math.abs(insights_temporels.ecart_weekend_semaine) > 100 && (
+            <div style={{ 
+              marginTop: '1rem',
+              background: insights_temporels.ecart_weekend_semaine > 0 ? '#fef2f2' : '#f0fdf4',
+              border: `1px solid ${insights_temporels.ecart_weekend_semaine > 0 ? '#fca5a5' : '#86efac'}`,
+              borderRadius: 8,
+              padding: '0.75rem',
+              fontSize: 13,
+              color: insights_temporels.ecart_weekend_semaine > 0 ? '#991b1b' : '#166534',
+              textAlign: 'center'
+            }}>
+              {insights_temporels.ecart_weekend_semaine > 0 ? '⚠️' : '✅'} 
+              {' '}Écart weekend/semaine : {insights_temporels.ecart_weekend_semaine > 0 ? '+' : ''}
+              {insights_temporels.ecart_weekend_semaine} kcal/jour
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * BilanMensuelModal - Modale d'affichage du bilan mensuel
  * 
  * Phase 2 : Structure vide avec 6 sections accordéons
@@ -791,10 +1016,9 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
         console.log('[BILAN MENSUEL MODAL] Section 1 reçue:', section1);
         
         // Phase 4: Charger Section 2
-      console.log('[BILAN MENSUEL MODAL] === DÉBUT CHARGEMENT SECTION 2 ===');
-      console.log('[BILAN MENSUEL MODAL] Appel calculerSection2BudgetCalorique...');
-      
-      try {
+        console.log('[BILAN MENSUEL MODAL] === DÉBUT CHARGEMENT SECTION 2 ===');
+        console.log('[BILAN MENSUEL MODAL] Appel calculerSection2BudgetCalorique...');
+        
         const section2 = await calculerSection2BudgetCalorique(mois, annee, 1900);
         console.log('[BILAN MENSUEL MODAL] Section 2 reçue avec succès:', section2);
         
@@ -808,12 +1032,19 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
           console.log('[BILAN MENSUEL MODAL] ⚠️ section2 est null ou undefined!');
         }
         console.log('[BILAN MENSUEL MODAL] === FIN CHARGEMENT SECTION 2 ===');
+        
+        // Phase 5: Charger Section 3
+        console.log('[BILAN MENSUEL MODAL] === DÉBUT CHARGEMENT SECTION 3 ===');
+        const section3 = await calculerSection3Patterns(mois, annee, 1900);
+        console.log('[BILAN MENSUEL MODAL] Section 3 reçue:', section3);
+        console.log('[BILAN MENSUEL MODAL] === FIN CHARGEMENT SECTION 3 ===');
+        
         const nouveauBilan = {
           mois,
           annee,
           section1,
           section2,
-          section3: null, // TODO Phase 5
+          section3,
           section4: null, // TODO Phase 6
           section5: null, // TODO Phase 7
           section6: null, // TODO Phase 8
@@ -1199,12 +1430,14 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                   </div>
                   {sectionsOuvertes.section3 && (
                     <div className="sectionContent">
-                      <div className="placeholder">
-                        <div className="placeholderIcon">⏳</div>
-                        <p className="placeholderText">
-                          Calculs en cours... (Phase 5)
-                        </p>
-                      </div>
+                      {bilanData?.section3 ? (
+                        <Section3PatternsComportementaux data={bilanData.section3} />
+                      ) : (
+                        <div className="placeholder">
+                          <div className="placeholderIcon">⏳</div>
+                          <p className="placeholderText">Calculs en cours...</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
