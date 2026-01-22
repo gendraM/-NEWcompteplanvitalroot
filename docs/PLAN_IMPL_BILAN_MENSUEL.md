@@ -76,44 +76,309 @@ Implémenter un bilan mensuel automatique qui s'affiche après validation de la 
 
 ## Etape 1 — **Audit des risques préalable**
 
-### Risques techniques
+**Date audit :** 21/01/2026  
+**Auditeur :** Copilot + Utilisateur  
+**Nombre total risques identifiés :** 24
 
-**1. Performance base de données**
-- **Risque :** Requête agrégation 30 jours (93 repas) peut être lente
-- **Impact :** Chargement bilan mensuel > 3 secondes
-- **Mitigation :** Indexation colonne `date` table `repas_reels`, pagination résultats
+---
 
-**2. Calculs statistiques complexes**
-- **Risque :** Calcul mode statistique (humeur dominante), patterns temporels peuvent bugger avec données manquantes
-- **Impact :** Affichage données incohérentes ou erreurs runtime
-- **Mitigation :** Gestion cas null/undefined, valeurs par défaut, validation données avant calcul
+### 🔴 Risques techniques (10 risques)
 
-**3. Chevauchement semaine/mois**
-- **Risque :** Semaine 4 (27 janv - 2 fév) : 5 jours en janvier, 2 en février
-- **Impact :** Double comptage repas ou exclusion incorrecte
-- **Mitigation :** Filtrage strict par date calendaire (WHERE date BETWEEN '2026-01-01' AND '2026-01-31')
+**1. Performance base de données - Requêtes agrégation**
+- **Gravité :** 🔴 CRITIQUE
+- **Probabilité :** 🟠 MOYENNE (60%)
+- **Risque :** Requête agrégation 30 jours (93 repas) peut être lente, surtout si utilisateur a 4-5 repas/jour (120-150 repas/mois)
+- **Impact :** Chargement bilan mensuel > 3 secondes → Utilisateur pense que app freeze
+- **Détection :** Tests performance avec dataset 150 repas
+- **Mitigation préventive :** 
+  - Indexation colonne `date` table `repas_reels` (CREATE INDEX)
+  - Indexation composite `(user_id, date)` pour filtrage optimisé
+  - Pagination requêtes (charger par semaine)
+  - Mise en cache résultats (1h validity)
+- **Mitigation curative :** Affichage progressif sections (skeleton loader)
+- **Coût mitigation :** 2h (création index + tests)
 
-**4. Synchronisation états React**
-- **Risque :** Pop-up s'affiche avant fermeture modale hebdo → conflits visuels
-- **Impact :** UX dégradée, modales superposées
-- **Mitigation :** setTimeout 500ms après fermeture modale hebdo
+**2. Calculs statistiques complexes - Données manquantes**
+- **Gravité :** 🟠 HAUTE
+- **Probabilité :** 🟠 MOYENNE (50%)
+- **Risque :** Calcul mode statistique (humeur dominante), médiane, patterns temporels peuvent crasher avec données nulles/incomplètes
+- **Impact :** Affichage données incohérentes, erreurs runtime (Cannot read property of undefined)
+- **Scénarios critiques :**
+  - Aucun repas avec humeur saisie → `humeurDominante = null`
+  - 1 seul repas ce mois → Pas de patterns détectables
+  - Tous extras au même moment → Division par zéro calcul répartition
+- **Détection :** Tests unitaires avec datasets incomplets (0, 1, 5, 10, 30 repas)
+- **Mitigation préventive :**
+  - Validation données avant calcul (`if (!array || array.length === 0) return null`)
+  - Valeurs par défaut systématiques
+  - Try/catch autour calculs statistiques
+  - Messages explicites "Données insuffisantes pour ce mois"
+- **Mitigation curative :** Fallback sur message pédagogique au lieu de section vide
+- **Coût mitigation :** 3h (gestion cas limites + tests)
 
-### Risques UX
+**3. Chevauchement semaine/mois - Double comptage**
+- **Gravité :** 🔴 CRITIQUE
+- **Probabilité :** 🔴 ÉLEVÉE (80%)
+- **Risque :** Semaine 4 (27 janv - 2 fév) : 5 jours en janvier, 2 en février → Double comptage repas dans stats janvier ET février
+- **Impact :** Stats mensuelles faussées (budget consommé incorrect, QN moyen erroné)
+- **Exemple concret :**
+  - Repas 1er février compté dans S4 janvier (bilan hebdo)
+  - Même repas compté dans février (bilan mensuel)
+  - Résultat : Utilisateur voit 2× même repas dans budgets
+- **Détection :** Tests avec semaines chevauchantes (fin janvier, fin février)
+- **Mitigation préventive :**
+  - Filtrage strict par date calendaire (WHERE date BETWEEN '2026-01-01' AND '2026-01-31')
+  - Tests unitaires vérification aucun doublon
+  - Logs détaillés comptage repas
+- **Mitigation curative :** Script détection doublons + correction rétroactive
+- **Coût mitigation :** 2h (filtrage strict + tests)
 
-**1. Confusion utilisateur**
-- **Risque :** Utilisateur ne comprend pas différence bilan hebdo vs mensuel
-- **Impact :** Consultation répétée, incompréhension données
-- **Mitigation :** Message explicatif dans pop-up, section aide "Quelle différence ?"
+**4. Synchronisation états React - Conflits modales**
+- **Gravité :** 🟠 HAUTE
+- **Probabilité :** 🟡 FAIBLE (30%)
+- **Risque :** Pop-up s'affiche avant fermeture complète modale hebdo → Modales superposées, scroll bloqué
+- **Impact :** UX dégradée, utilisateur ne peut pas fermer ni l'une ni l'autre
+- **Détection :** Tests manuels enchaînement validation hebdo → pop-up
+- **Mitigation préventive :**
+  - setTimeout 500ms après fermeture modale hebdo
+  - État global `isModalOpen` pour bloquer ouverture simultanée
+  - Z-index cohérents (hebdo: 1000, mensuel: 1001, pop-up: 1002)
+- **Mitigation curative :** Bouton "Forcer fermeture" si détection conflit
+- **Coût mitigation :** 1h (gestion états + tests)
 
-**2. Perte accès bilan hebdo**
-- **Risque :** Utilisateur veut consulter S4 mais trouve que bilan mensuel
-- **Impact :** Frustration, données détaillées inaccessibles
-- **Mitigation :** Lien clair "Consulter bilan semaine 4" dans bilan mensuel
+**5. Détection fin mois - Faux positifs**
+- **Gravité :** 🟠 HAUTE
+- **Probabilité :** 🟠 MOYENNE (40%)
+- **Risque :** Fonction `estDerniereValidationDuMois` retourne `true` pour mauvaises semaines (bug logique mois/année)
+- **Impact :** Pop-up bilan mensuel affiché en milieu de mois (S2, S3) → Confusion utilisateur
+- **Scénarios critiques :**
+  - Validation S4 décembre → Détection janvier (changement année non géré)
+  - Validation semaine partielle (3 jours au lieu de 7)
+  - Validation en retard (10 février, mais semaine janvier)
+- **Détection :** Tests unitaires 15 cas (tous mois année, semaines courtes, retards)
+- **Mitigation préventive :**
+  - Vérification mois ET année dans comparaison
+  - Logs détaillés (console.log date détectée)
+  - Tests automatisés couvrant 12 mois
+- **Mitigation curative :** Désactivation pop-up si incohérence détectée
+- **Coût mitigation :** 2h (logique robuste + tests)
 
-**3. Surcharge informations**
-- **Risque :** 6 sections + verbatims longs = trop d'infos d'un coup
-- **Impact :** Abandon lecture, non-appropriation insights
-- **Mitigation :** Sections collapsibles (accordéon), résumé 3 lignes par section
+**6. Volumétrie données - Gros utilisateurs**
+- **Gravité :** 🟡 MOYENNE
+- **Probabilité :** 🟡 FAIBLE (20%)
+- **Risque :** Utilisateur avec 6 mois+ historique (500+ repas) → Chargement historique très lent
+- **Impact :** Section "Historique bilans mensuels" freeze ou timeout
+- **Détection :** Tests avec dataset 1000 repas
+- **Mitigation préventive :**
+  - Pagination historique (3 mois affichés par défaut)
+  - Bouton "Charger mois précédents"
+  - Limite max requête (6 derniers mois)
+- **Mitigation curative :** Message "Chargement historique en cours..."
+- **Coût mitigation :** 1h30 (pagination)
+
+**7. Fuseaux horaires - Incohérence dates**
+- **Gravité :** 🟡 MOYENNE
+- **Probabilité :** 🟡 FAIBLE (10%)
+- **Risque :** Utilisateur voyage (changement fuseau horaire) → Dates repas incohérentes (repas 31 janvier devient 1er février)
+- **Impact :** Stats mensuelles faussées, repas "perdus"
+- **Détection :** Tests avec dates UTC vs locales
+- **Mitigation préventive :**
+  - Stockage dates en UTC systématiquement
+  - Conversion locale uniquement affichage
+  - Validation cohérence dates avant calculs
+- **Mitigation curative :** Script détection anomalies temporelles
+- **Coût mitigation :** 2h (gestion fuseaux)
+
+**8. Migration données anciennes - Incompatibilité format**
+- **Gravité :** 🟠 HAUTE
+- **Probabilité :** 🟠 MOYENNE (50%)
+- **Risque :** Bilans hebdo anciens (format avant migration) non compatibles avec agrégation mensuelle
+- **Impact :** Bilan mensuel vide pour mois passés (décembre 2025, novembre 2025)
+- **Détection :** Tests avec données anciennes format V1
+- **Mitigation préventive :**
+  - Script migration format V1 → V2
+  - Génération rétroactive bilans mensuels si données disponibles
+  - Vérification schéma avant agrégation
+- **Mitigation curative :** Message "Bilans mensuels disponibles à partir de janvier 2026"
+- **Coût mitigation :** 3h (script migration)
+
+**9. Requêtes Supabase - Rate limiting**
+- **Gravité :** 🟡 MOYENNE
+- **Probabilité :** 🟡 FAIBLE (15%)
+- **Risque :** 6 sections = 6 requêtes agrégation → Dépassement quota Supabase (50 req/min)
+- **Impact :** Erreur 429 Too Many Requests, sections vides
+- **Détection :** Tests charge (10 utilisateurs simultanés)
+- **Mitigation préventive :**
+  - Regrouper requêtes (1 seule requête pour toutes sections)
+  - Mise en cache résultats côté serveur
+  - Retry exponential backoff si 429
+- **Mitigation curative :** Message "Trop de connexions, réessaie dans 1 minute"
+- **Coût mitigation :** 2h (optimisation requêtes)
+
+**10. Memory leaks React - Composant non démonté**
+- **Gravité :** 🟡 MOYENNE
+- **Probabilité :** 🟠 MOYENNE (40%)
+- **Risque :** Modale ouverte → Requêtes en cours → Fermeture modale → setState sur composant démonté
+- **Impact :** Warning console, potentiel memory leak, crash après 10+ ouvertures
+- **Détection :** Tests 20 ouvertures/fermetures modale
+- **Mitigation préventive :**
+  - Cleanup useEffect systématique (`return () => { isMounted = false }`)
+  - AbortController pour annuler requêtes
+  - Vérification `isMounted` avant setState
+- **Mitigation curative :** Logs détection leaks + correction
+- **Coût mitigation :** 1h30 (cleanup hooks)
+
+### 🟠 Risques UX (6 risques)
+
+**1. Confusion utilisateur - Différence hebdo/mensuel**
+- **Gravité :** 🟠 HAUTE
+- **Probabilité :** 🔴 ÉLEVÉE (70%)
+- **Risque :** Utilisateur ne comprend pas différence bilan hebdo (micro) vs mensuel (macro)
+- **Impact :** Consultation répétée même bilan, incompréhension données, perte de confiance app
+- **Scénarios critiques :**
+  - Utilisateur cherche détails repas dans bilan mensuel (données agrégées)
+  - Utilisateur compare chiffres hebdo vs mensuel sans comprendre périmètre
+  - Utilisateur pense que bilan mensuel remplace hebdo
+- **Détection :** Tests utilisateurs (5 personnes), feedback session
+- **Mitigation préventive :**
+  - Message explicatif dans pop-up : "Le bilan mensuel complète les bilans hebdo avec une vision long terme"
+  - Section aide "Quelle différence ?" accessible depuis modale
+  - Tooltip/icône info sur titre modale
+  - Comparaison visuelle (tableau hebdo vs mensuel)
+- **🟡 Risques robustesse (5 risques)
+
+**1. Données incomplètes - Mois partiel**
+- **Gravité :** 🟠 HAUTE
+- **Probabilité :** 🔴 ÉLEVÉE (80%)
+- **Risque :** Mois avec seulement 10 jours de données (utilisateur commence app en cours de mois)
+- **Impact :** Stats faussées (moyennes non représentatives), insights erronés
+- **Exemple :** Utilisateur crée compte 22 janvier → Bilan janvier = 10 jours → Budget mensuel divisé par 3
+- **Détection :** Tests avec datasets partiels (5, 10, 15, 20 jours)
+- **Mitigation préventive :**
+  - Affichage "Données partielles : 10/31 jours" en haut modale
+  - Message avertissement : "Ce bilan est basé sur une période incomplète"
+  - Calculs proratisés (budget mensuel × 10/31)
+  - Sections désactivées si < 15 jours (patterns, comparaison N-1)
+- **Mitigation curative :** Génération bilan complet mois suivant
+- **Coût mitigation :** 1h30 (gestion cas partiels)
+
+**2. Migration anciens bilans - Format incompatible**
+- **Gravité :** 🟡 MOYENNE
+- **Probabilité :** 🟠 MOYENNE (50%)
+- **Risque :** Bilans hebdo existants (format avant migration) non migrables vers format agrégeable
+- **Impact :** Bilan mensuel vide pour mois passés (décembre 2025, novembre 2025)
+- **Détection :** Tests migration données réelles production
+- **Mitigation préventive :**
+  - Script migration format V1 → V2 avec validation
+  - Génération rétroactive bilans mensuels si > 15 jours données
+  - Vérification schéma avant agrégation (try/catch)
+  - Logs détaillés migrations réussies/échouées
+- **Mitigation curative :** Message "Bilans mensuels disponibles à partir de [Date]"
+- **Coût mitigation :** 3h (script migration robuste)
+
+**3. Premier mois utilisateur - Comparaison impossible**
+- **Gravité :** 🟡 MOYENNE
+- **Probabilité :** 🔴 ÉLEVÉE (90%)
+- **Risque :** Utilisateur crée compte 20 janvier → bilan mensuel 20-31 = 11 jours → Comparaison N vs N-1 impossible
+- **Impact :** Section 4 (QN progression) vide, utilisateur déçu
+- **Détection :** Tests nouveau compte
+- **Mitigation préventive :**
+  - Message "Premier mois incomplet, comparaison disponible dès février"
+  - Affichage QN actuel sans comparaison
+  - Encouragement : "Continue ainsi, tu pourras comparer dès le mois prochain !"
+  - Badge "Nouveau" sur profil
+- **Mitigation curative :** Génération insights alternatifs (sans comparaison)
+- **Coût mitigation :** 1h (gestion premier mois)
+
+**4. Cohérence inter-bilans - Divergence chiffres**
+- **Gravité :** 🔴 CRITIQUE
+- **Probabilité :** 🟠 MOYENNE (40%)
+- **Risque :** Somme bilans hebdo ≠ bilan mensuel (double comptage ou exclusion)
+- **Impact :** Perte confiance utilisateur, données perçues comme fausses
+- **Exemple :** Bilan S1+S2+S3+S4 = 8200 kcal, Bilan mensuel = 8450 kcal → Écart inexpliqué
+- **Détection :** Tests vérification cohérence automatiques
+- **Mitigation préventive :**
+  - Calculs identiques hebdo/mensuel (même fonctions)
+  - Validation cohérence automatique après génération
+  - Logs détaillés écarts détectés
+  - Tests unitaires vérification sommes
+- **Mitigation curative :** Script détection + correction divergences
+- **Coût mitigation :** 2h30 (validation cohérence)
+
+**5. Gestion erreurs réseau - Offline**
+- **Gravité :** 🟡 MOYENNE
+- **Probabilité :** 🟡 FAIBLE (20%)
+- **Risque :** Utilisateur ouvre bilan mensuel sans connexion → Données vides ou anciennes
+- **Impact :** Frustration, sentiment app cassée
+- **Détection :** Tests mode avion / throttling réseau
+- **Mitigation préventive :**
+  - Détection offline avant chargement
+  - Message "Connexion requise pour bilan mensuel"
+  - Mise en cache dernière version (consultation offline possible)
+  - Retry automatique quand connexion rétablie
+- **Mitigation curative :** Sync automatique en arrière-plan
+- **Coût mitigation :** 2h (gestion offline)
+
+**3. Surcharge informations - Abandon lecture**
+- **Gravité :** 🟠 HAUTE
+- **Probabilité :** 🟠 MOYENNE (60%)
+- **Risque :** 6 sections + verbatims longs = trop d'infos d'un coup → Utilisateur ferme sans lire
+- **Impact :** Abandon lecture, non-appropriation insights, bilan inutile
+- **Détection :** Analytics temps lecture modale (< 30s = abandon)
+- **Mitigation préventive :**
+  - Sections collapsibles (accordéon), 1 seule ouverte par défaut (Section 1)
+  - Résumé 3 lignes par section avant "Voir détails"
+  - Progression lecture (1/6, 2/6... sections lues)
+  - Mise en avant insight principal (encadré coloré)
+  - Verbatims courts (< 200 caractères)
+- **Mitigation curative :** A/B testing longueur verbatims
+- **Coût mitigation :** 2h (accordéon + résumés)
+
+**4. Pop-up intrusif - Moment inadapté**
+- **Gravité :** 🟡 MOYENNE
+- **Probabilité :** 🟠 MOYENNE (40%)
+- **Risque :** Pop-up s'affiche alors que utilisateur pressé ou veut juste valider rapidement
+- **Impact :** Agacement, clic "Plus tard" systématique, bilan jamais consulté
+- **Détection :** Tracking taux clic "Plus tard" (> 70% = problème)
+- **Mitigation préventive :**
+  - Bouton "Plus tard" bien visible
+  - Notification badge persistant "Bilan mensuel disponible" si refusé
+  - Possibilité désactiver pop-up (paramètres)
+  - Envoi email alternatif lendemain si non consulté
+- **Mitigation curative :** Ajustement timing pop-up (pas le dimanche soir 23h)
+- **Coût mitigation :** 1h (bouton + notification)
+
+**5. Verbatims inadaptés - Ton décalé**
+- **Gravité :** 🟡 MOYENNE
+- **Probabilité :** 🟡 FAIBLE (30%)
+- **Risque :** Messages motivationnels génériques ou ton moralisateur → Utilisateur se sent jugé
+- **Impact :** Démotivation, sentiment culpabilité, abandon app
+- **Scénarios critiques :**
+  - Mois difficile (objectif non atteint) → Message perçu comme reproche
+  - Surplus extras → "Tu as dépassé ton budget" = ton accusateur
+  - Comparaison N/N-1 négative → Sentiment échec
+- **Détection :** Tests utilisateurs avec verbatims (5 personnes)
+- **Mitigation préventive :**
+  - Validation verbatims par utilisateur AVANT implémentation
+  - Ton bienveillant systématique ("Cette semaine a été plus riche" vs "Tu as trop mangé")
+  - Contextualisation ("C'est normal après période fêtes" vs jugement brut)
+  - Valorisation petits progrès
+- **Mitigation curative :** Ajustement verbatims suite feedback
+- **Coût mitigation :** 2h (rédaction verbatims)
+
+**6. Temps chargement perçu - Impatience**
+- **Gravité :** 🟡 MOYENNE
+- **Probabilité :** 🟠 MOYENNE (50%)
+- **Risque :** Chargement 2-3 secondes sans feedback → Utilisateur pense que rien ne se passe
+- **Impact :** Clics répétés, frustration, fermeture modale prématurée
+- **Détection :** Tests avec throttling réseau (3G)
+- **Mitigation préventive :**
+  - Skeleton loader pendant chargement
+  - Pourcentage progression (Chargement 40%...)
+  - Animation sections (apparition progressive)
+  - Message "Analyse de tes 30 derniers jours en cours..."
+- **Mitigation curative :** Optimisation requêtes si chargement > 3s
+- **Coût mitigation :** 1h30 (loaders)
 
 ### Risques robustesse
 
@@ -132,29 +397,121 @@ Implémenter un bilan mensuel automatique qui s'affiche après validation de la 
 - **Impact :** Comparaison N vs N-1 impossible, moyennes biaisées
 - **Mitigation :** Message "Premier mois incomplet, comparaison disponible dès février"
 
-### Risques sécurité
+### 🔒 Risques sécurité (3 risques)
 
-**1. Injection SQL agrégation**
-- **Risque :** Filtres date vulnérables si non paramétrés
-- **Impact :** Faille sécurité potentielle
-- **Mitigation :** Utilisation requêtes préparées Supabase (paramètres liés)
+**1. Injection SQL agrégation - Filtres vulnérables**
+- **Gravité :** 🔴 CRITIQUE
+- **Probabilité :** 🟡 FAIBLE (10%)
+- **Risque :** Filtres date/mois vulnérables si non paramétrés → Injection SQL possible
+- **Impact :** Faille sécurité critique, accès données autres utilisateurs, corruption base
+- **Scénarios d'attaque :**
+  - URL manipulée : `/bilan-mensuel?mois=1' OR '1'='1`
+  - Payload dans localStorage
+  - Manipulation requête via DevTools
+- **Détection :** Tests injection (OWASP Top 10)
+- **Mitigation préventive :**
+  - Utilisation requêtes préparées Supabase systématiquement
+  - Validation côté serveur (RLS Supabase)
+  - Paramètres liés (pas de concaténation SQL)
+  - Sanitization inputs (mois, annee, user_id)
+  - Logs tentatives injection détectées
+- **Mitigation curative :** WAF (Web Application Firewall) si attaques détectées
+- **Coût mitigation :** 2h (sécurisation requêtes)
 
-**2. Exposition données autres utilisateurs**
-- **Risque :** Requête agrégation sans filtre user_id
-- **Impact :** Fuite données confidentielles
-- **Mitigation :** Clause WHERE user_id systématique, vérification RLS Supabase
+**2. Exposition données autres utilisateurs - Fuite confidentialité**
+- **Gravité :** 🔴 CRITIQUE
+- **Probabilité :** 🟡 FAIBLE (15%)
+- **Risque :** Requête agrégation sans filtre user_id → Données tous utilisateurs exposées
+- **Impact :** Fuite données confidentielles (poids, repas, extras), violation RGPD
+- **Scénarios critiques :**
+  - Oubli clause WHERE user_id dans requête
+  - Bug RLS Supabase (règles mal configurées)
+  - Session utilisateur corrompue (user_id null)
+- **Détection :** Tests avec comptes multiples, vérification RLS
+- **Mitigation préventive :**
+  - Clause WHERE user_id systématique dans TOUTES requêtes
+  - Vérification RLS Supabase activé (CREATE POLICY)
+  - Tests automatisés isolation données
+  - Logs accès données sensibles
+  - Session validation côté serveur
+- **Mitigation curative :** Audit logs si fuite détectée + notification CNIL
+- **Coût mitigation :** 2h30 (RLS + tests)
 
-### Risques accessibilité
+**3. XSS dans verbatims dynamiques - Injection code**
+- **Gravité :** 🟠 HAUTE
+- **Probabilité :** 🟡 FAIBLE (5%)
+- **Risque :** Verbatims générés contiennent données utilisateur non échappées → Injection JavaScript
+- **Impact :** Exécution code malveillant, vol session, phishing
+- **Exemple :** Nom utilisateur = `<script>alert('XSS')</script>` affiché dans verbatim
+- **Détection :** Tests injection XSS (payload OWASP)
+- **Mitigation préventive :**
+  - Échappement systématique HTML (React fait déjà mais vérifier)
+  - Sanitization inputs utilisateur
+  - CSP (Content Security Policy) strict
+  - Pas de dangerouslySetInnerHTML
+- **Mitigation curative :** Audit code + correction failles
+- **Coût mitigation :** 1h30 (sanitization)
 
-**1. Navigation clavier pop-up**
-- **Risque :** Pop-up non accessible Tab/Enter/Escape
-- **Impact :** Utilisateurs clavier/screen reader bloqués
-- **Mitigation :** Attributs ARIA, focus trap, gestion Escape
+### ♿ Risques accessibilité (3 risques)
 
-**2. Contraste couleurs sections**
-- **Risque :** Graphiques/badges faible contraste
-- **Impact :** Non-conformité WCAG AA
-- **Mitigation :** Tests contraste systématiques (ratio ≥ 4.5:1)
+**1. Navigation clavier pop-up/modale - Utilisateurs non-voyants bloqués**
+- **Gravité :** 🟠 HAUTE
+- **Probabilité :** 🔴 ÉLEVÉE (60%)
+- **Risque :** Pop-up/modale non accessible Tab/Enter/Escape → Utilisateurs clavier/screen reader bloqués
+- **Impact :** Non-conformité WCAG AA, utilisateurs handicapés exclus
+- **Tests conformité :**
+  - Tab : Focus suit ordre logique (titre → boutons → sections)
+  - Enter : Ouvre sections accordéon
+  - Escape : Ferme modale immédiatement
+  - Shift+Tab : Focus inverse fonctionne
+  - Focus trap : Focus reste dans modale ouverte
+- **Détection :** Tests manuels clavier uniquement (sans souris)
+- **Mitigation préventive :**
+  - Attributs ARIA complets (aria-label, aria-expanded, aria-controls, role)
+  - Focus trap implémenté (focus-trap-react)
+  - Gestion Escape key
+  - Ordre DOM logique (pas de CSS absolute désordonné)
+  - Focus visible (outline 2px bleu)
+- **Mitigation curative :** Audit accessibilité + corrections
+- **Coût mitigation :** 2h (ARIA + tests)
+
+**2. Contraste couleurs sections - Non-conformité WCAG**
+- **Gravité :** 🟠 HAUTE
+- **Probabilité :** 🟠 MOYENNE (50%)
+- **Risque :** Graphiques/badges/verbatims faible contraste → Non-lisible malvoyants
+- **Impact :** Non-conformité WCAG AA (ratio < 4.5:1), exclusion utilisateurs
+- **Éléments à vérifier :**
+  - Titres sections (bleu sur fond gris clair)
+  - Badges QN (couleurs vives)
+  - Graphiques (barres, camembert)
+  - Verbatims (texte gris sur fond blanc)
+- **Détection :** Tests contraste automatiques (WebAIM Contrast Checker)
+- **Mitigation préventive :**
+  - Tests contraste systématiques (ratio ≥ 4.5:1)
+  - Palette couleurs accessible validée
+  - Mode sombre alternatif
+  - Pas uniquement couleur (icônes + texte)
+- **Mitigation curative :** Ajustement couleurs si non-conforme
+- **Coût mitigation :** 1h30 (tests contraste)
+
+**3. Screen reader annonces - Navigation confuse**
+- **Gravité :** 🟡 MOYENNE
+- **Probabilité :** 🟠 MOYENNE (40%)
+- **Risque :** Screen reader (NVDA/JAWS/VoiceOver) annonce mal sections ou saute contenu
+- **Impact :** Utilisateurs aveugles ne comprennent pas structure, abandonnent
+- **Tests requis :**
+  - NVDA (Windows) : Navigation sections, lecture verbatims
+  - JAWS (Windows) : Idem
+  - VoiceOver (macOS/iOS) : Navigation tactile
+  - TalkBack (Android) : Si app mobile future
+- **Détection :** Tests avec utilisateurs aveugles ou simulation
+- **Mitigation préventive :**
+  - Structure sémantique HTML (h1, h2, section, article)
+  - Aria-live pour mises à jour dynamiques
+  - Aria-label descriptifs (pas juste "Voir plus")
+  - Landmarks ARIA (navigation, main, complementary)
+- **Mitigation curative :** Corrections suite tests utilisateurs
+- **Coût mitigation :** 2h (tests screen readers)
 
 ### Ordre hooks React
 
@@ -1015,53 +1372,363 @@ CREATE INDEX idx_repas_reels_user_date ON repas_reels(user_id, date);
 
 ---
 
-## 📊 ESTIMATION EFFORT
+## � PLAN D'ACTION ÉTAPE PAR ÉTAPE (Approche Incrémentale)
 
-### Phase 1 : Détection fin mois (4h)
-- Création fonction `estDerniereValidationDuMois` : 1h
-- Intégration dans `pages/suivi.js` : 1h
-- Tests détection (10 cas) : 1h30
-- Documentation : 30min
+### Méthodologie inspirée Section 1 Bilan Hebdo
+- **Validation utilisateur à chaque étape AVANT passage suivante**
+- **Tests indépendants après chaque sous-étape**
+- **Affichage progressif et testable au fil de l'eau**
+- **Rollback immédiat si anomalie détectée**
 
-### Phase 2 : Pop-up notification (2h)
-- Création composant `PopupBilanMensuel.js` : 1h
-- Intégration états React suivi.js : 30min
-- Styles CSS responsive : 30min
+---
 
-### Phase 3 : Calculs agrégation (8h)
-- Création `lib/calculsBilanMensuel.js` : 3h
-- Section 1 (Tendance poids) : 1h
-- Section 2 (Budget calorique) : 1h
-- Section 3 (Patterns comportementaux) : 1h30
-- Section 4 (Qualité nutritionnelle) : 1h
-- Section 5 (Ressenti) : 30min
-- Section 6 (Projection) : 1h
+### 📅 PHASE 1 : Détection & Pop-up (Jour 1 - 6h)
 
-### Phase 4 : Modale bilan mensuel (10h)
-- Création composant `BilanMensuelModal.js` : 2h
-- Intégration 6 sections accordéon : 4h
-- Styles CSS responsive + accessibilité : 2h
-- Lien consultation bilan hebdo : 1h
-- Gestion états loading/error : 1h
+**Objectif :** Détecter dernière semaine mois et afficher pop-up notification
 
-### Phase 5 : Base de données (3h)
-- Migration création table `bilans_mensuels` : 1h
-- Ajout index performance : 30min
-- Tests requêtes agrégation : 1h
-- Sauvegarde/restauration bilans : 30min
+#### Étape 1.1 : Créer fonction détection (1h30)
+- [ ] Créer fichier `/lib/detectionFinMois.js`
+- [ ] Implémenter `estDerniereValidationDuMois(dateSemaine)`
+- [ ] Gérer cas particuliers (décembre/janvier, février 28/29 jours)
+- [ ] Tests unitaires fonction (10 cas)
+- [ ] **VALIDATION UTILISATEUR** : Tests passent ✅
 
-### Phase 6 : Tests & validation (8h)
-- Tests 15 cas limite : 3h
-- Tests non-régression : 2h
-- Tests accessibilité : 1h30
-- Tests performance : 1h
-- Documentation utilisateur : 30min
+#### Étape 1.2 : Intégrer détection dans suivi.js (1h30)
+- [ ] Importer fonction dans `pages/suivi.js`
+- [ ] Ajouter `useState` pour états pop-up/modale (ligne ~135)
+- [ ] Appeler détection après `setBilanData` (ligne ~1240)
+- [ ] Extraire mois/année de `selectedWeekStart`
+- [ ] Déclencher setTimeout 500ms si dernière semaine
+- [ ] **VALIDATION UTILISATEUR** : Console.log affiche mois détecté ✅
 
-### Phase 7 : Corrections & rollback (2h)
-- Corrections bugs identifiés : 1h30
-- Documentation anomalies : 30min
+#### Étape 1.3 : Créer composant pop-up (2h)
+- [ ] Créer fichier `/components/PopupBilanMensuel.js`
+- [ ] Implémenter structure (overlay + carte centrée)
+- [ ] Ajouter titre, message, 2 boutons (Voir/Plus tard)
+- [ ] Styles CSS responsive mobile/desktop
+- [ ] Accessibilité (Tab, Enter, Escape, ARIA)
+- [ ] **VALIDATION UTILISATEUR** : Pop-up s'affiche après validation S4 ✅
 
-**TOTAL ESTIMÉ : 37 heures** (~5 jours ouvrés)
+#### Étape 1.4 : Tests intégration Phase 1 (1h)
+- [ ] Test : Validation S1-S3 → Pas de pop-up
+- [ ] Test : Validation S4 janvier → Pop-up affiché
+- [ ] Test : Clic "Plus tard" → Pop-up ferme
+- [ ] Test : Clic "Voir" → Prépare Phase 2
+- [ ] Test : Navigation clavier pop-up
+- [ ] **VALIDATION UTILISATEUR** : Phase 1 complète ✅
+
+---
+
+### 📊 PHASE 2 : Structure Modale Vide (Jour 1 - 3h)
+
+**Objectif :** Afficher modale bilan mensuel vide avec structure 6 sections
+
+#### Étape 2.1 : Créer composant modale (1h30)
+- [ ] Créer fichier `/components/BilanMensuelModal.js`
+- [ ] Implémenter structure hooks (useState loading, donnees, error)
+- [ ] Ajouter header modale (titre "Bilan Mensuel - Janvier 2026")
+- [ ] Créer structure 6 sections accordéon (titres uniquement)
+- [ ] Bouton fermeture (X) et "Consulter bilan S4"
+- [ ] **VALIDATION UTILISATEUR** : Modale vide s'affiche ✅
+
+#### Étape 2.2 : Intégrer modale dans suivi.js (1h)
+- [ ] Importer `BilanMensuelModal` dans suivi.js
+- [ ] Ajouter rendu conditionnel (ligne ~2100)
+- [ ] Connecter états `showBilanMensuel`, `moisBilan`
+- [ ] Handler fermeture modale
+- [ ] Handler "Consulter bilan S4" (TODO Phase 6)
+- [ ] **VALIDATION UTILISATEUR** : Clic "Voir" pop-up → Modale ouvre ✅
+
+#### Étape 2.3 : Tests navigation (30min)
+- [ ] Test : Fermeture modale (bouton X)
+- [ ] Test : Fermeture modale (clic overlay)
+- [ ] Test : Escape ferme modale
+- [ ] Test : Sections accordéon (open/close)
+- [ ] **VALIDATION UTILISATEUR** : Navigation fluide ✅
+
+---
+
+### 🧮 PHASE 3 : Section 1 - Tendance Poids (Jour 2 - 4h)
+
+**Objectif :** Afficher évolution poids, objectif, trajectoire
+
+#### Étape 3.1 : Créer fonctions calcul (1h30)
+- [ ] Créer fichier `/lib/calculsBilanMensuel.js`
+- [ ] Fonction `calculerTendancePoids(repas, profil)`
+- [ ] Extraire poids début/fin mois depuis profil
+- [ ] Calculer évolution kg, pourcentage atteint
+- [ ] Calculer rythme moyen kg/semaine
+- [ ] Tests unitaires (5 cas)
+- [ ] **VALIDATION UTILISATEUR** : Console.log valeurs correctes ✅
+
+#### Étape 3.2 : Requête données poids (1h)
+- [ ] useEffect chargement données dans BilanMensuelModal
+- [ ] Requête Supabase : profil + historique poids mois
+- [ ] Gestion loading/error états
+- [ ] Appel `calculerTendancePoids` avec données
+- [ ] **VALIDATION UTILISATEUR** : Logs montrent données chargées ✅
+
+#### Étape 3.3 : Affichage Section 1 (1h)
+- [ ] Créer composant `<SectionTendancePoids />`
+- [ ] Afficher évolution (-2.8 kg, de 78.5 → 75.7 kg)
+- [ ] Afficher objectif (Réalisé à 93%)
+- [ ] Afficher rythme moyen (-0.7 kg/semaine)
+- [ ] Verbatim dynamique trajectoire (sur la bonne voie / à ajuster)
+- [ ] **VALIDATION UTILISATEUR** : Section 1 complète et cohérente ✅
+
+#### Étape 3.4 : Tests cas limites (30min)
+- [ ] Test : Perte poids > objectif → Message adaptation
+- [ ] Test : Prise poids (objectif surplus) → Message cohérent
+- [ ] Test : Pas de pesées ce mois → Message "Données manquantes"
+- [ ] **VALIDATION UTILISATEUR** : Tous cas gérés ✅
+
+---
+
+### 💰 PHASE 4 : Section 2 - Budget Calorique (Jour 2 - 3h)
+
+**Objectif :** Afficher budget vs consommé, répartition repas/extras
+
+#### Étape 4.1 : Créer fonctions calcul (1h)
+- [ ] Fonction `calculerBudgetMensuel(repas, budgetJournalier)`
+- [ ] Calculer budget total mois (budgetJournalier × nb jours)
+- [ ] Calculer consommé total (sum kcal tous repas)
+- [ ] Calculer solde (consommé - budget)
+- [ ] Calculer répartition repas/extras (pourcentages)
+- [ ] **VALIDATION UTILISATEUR** : Console.log calculs OK ✅
+
+#### Étape 4.2 : Requête données repas (1h)
+- [ ] Requête Supabase : tous repas du mois (filtrage date exact)
+- [ ] Filtrage par date calendaire (1er-31 janvier)
+- [ ] Gestion chevauchement semaine/mois
+- [ ] Appel `calculerBudgetMensuel`
+- [ ] **VALIDATION UTILISATEUR** : Logs montrent repas filtrés ✅
+
+#### Étape 4.3 : Affichage Section 2 (1h)
+- [ ] Créer composant `<SectionBudgetCalorique />`
+- [ ] Afficher budget total, consommé, solde
+- [ ] Afficher répartition repas/extras (91% / 9%)
+- [ ] Verbatim dynamique dépassement extras
+- [ ] Code couleur solde (vert/orange/rouge)
+- [ ] **VALIDATION UTILISATEUR** : Section 2 claire ✅
+
+---
+
+### 🔍 PHASE 5 : Section 3 - Patterns Comportementaux (Jour 3 - 4h)
+
+**Objectif :** Identifier forces, points amélioration, insights temporels
+
+#### Étape 5.1 : Créer fonctions analyse patterns (2h)
+- [ ] Fonction `calculerPatterns(repas)`
+- [ ] Détecter jours avec repas structurés (%)
+- [ ] Analyser répartition temporelle extras (matin/midi/soir/nuit)
+- [ ] Identifier jours récurrents difficiles (ex: jeudis)
+- [ ] Corréler humeur/extras par semaine
+- [ ] Calculer satiété moyenne mensuelle
+- [ ] **VALIDATION UTILISATEUR** : Logs patterns détectés ✅
+
+#### Étape 5.2 : Affichage Section 3 (1h30)
+- [ ] Créer composant `<SectionPatterns />`
+- [ ] Bloc "Forces" (liste points positifs)
+- [ ] Bloc "Points amélioration" (liste vigilances)
+- [ ] Bloc "Insight" (message clé personnalisé)
+- [ ] Verbatims dynamiques selon patterns détectés
+- [ ] **VALIDATION UTILISATEUR** : Insights pertinents ✅
+
+#### Étape 5.3 : Tests patterns (30min)
+- [ ] Test : Mois parfait → Uniquement forces affichées
+- [ ] Test : Extras concentrés soir → Insight ciblé
+- [ ] Test : Corrélation humeur/extras → Message adapté
+- [ ] **VALIDATION UTILISATEUR** : Tous scénarios OK ✅
+
+---
+
+### 🥗 PHASE 6 : Section 4 - Qualité Nutritionnelle (Jour 3 - 3h)
+
+**Objectif :** Afficher répartition QN, progression vs N-1
+
+#### Étape 6.1 : Créer fonctions calcul QN (1h30)
+- [ ] Fonction `calculerQualiteMoyenne(repas, referentiel)`
+- [ ] Mapper QN aliments (join avec referentiel.js)
+- [ ] Calculer QN moyen mensuel (moyenne pondérée)
+- [ ] Calculer distribution QN (% QN1 à QN5)
+- [ ] Comparer vs mois précédent (progression)
+- [ ] **VALIDATION UTILISATEUR** : Console.log QN OK ✅
+
+#### Étape 6.2 : Affichage Section 4 (1h)
+- [ ] Créer composant `<SectionQualiteNutritionnelle />`
+- [ ] Afficher QN moyen (3.8/5)
+- [ ] Graphique distribution QN (barres ou camembert)
+- [ ] Afficher progression vs N-1 (+5% QN5)
+- [ ] Verbatim encouragement progression
+- [ ] **VALIDATION UTILISATEUR** : Section 4 lisible ✅
+
+#### Étape 6.3 : Tests QN (30min)
+- [ ] Test : Mois sans QN → Message "Données manquantes"
+- [ ] Test : Premier mois → Pas de comparaison N-1
+- [ ] Test : Progression négative → Message adapté
+- [ ] **VALIDATION UTILISATEUR** : Gestion cas limites ✅
+
+---
+
+### 😊 PHASE 7 : Section 5 - Ressenti & Bien-être (Jour 4 - 2h30)
+
+**Objectif :** Agréger humeur/satiété, identifier semaines critiques
+
+#### Étape 7.1 : Créer fonctions agrégation (1h)
+- [ ] Fonction `calculerRessentiGlobal(repas)`
+- [ ] Calculer humeur dominante mensuelle (mode)
+- [ ] Calculer satiété moyenne mensuelle
+- [ ] Agréger ressentis par semaine
+- [ ] Identifier semaines critiques (humeur basse, satiété faible)
+- [ ] **VALIDATION UTILISATEUR** : Console.log ressentis ✅
+
+#### Étape 7.2 : Affichage Section 5 (1h)
+- [ ] Créer composant `<SectionRessenti />`
+- [ ] Afficher humeur dominante (Satisfait 45%)
+- [ ] Afficher satiété moyenne (4.2/5)
+- [ ] Timeline 4 semaines (mini-graphique évolution)
+- [ ] Verbatim capacité rebond après semaine difficile
+- [ ] **VALIDATION UTILISATEUR** : Section 5 cohérente ✅
+
+#### Étape 7.3 : Tests ressenti (30min)
+- [ ] Test : Mois sans ressenti → Message adapté
+- [ ] Test : Semaine critique identifiée → Mise en avant
+- [ ] **VALIDATION UTILISATEUR** : Gestion OK ✅
+
+---
+
+### 🎯 PHASE 8 : Section 6 - Projection Mois Prochain (Jour 4 - 4h)
+
+**Objectif :** Objectifs, ajustements stratégiques, points contrôle
+
+#### Étape 8.1 : Créer fonctions projection (2h)
+- [ ] Fonction `genererProjection(statsMois, objectif, profil)`
+- [ ] Définir objectif poids mois suivant (routeurPoids.js)
+- [ ] Calculer budget extras mensuel recommandé
+- [ ] Générer défi personnalisé (ex: "Jeudis protégés")
+- [ ] Proposer 3 ajustements stratégiques
+- [ ] Planifier 4 points contrôle hebdomadaires
+- [ ] **VALIDATION UTILISATEUR** : Console.log projection ✅
+
+#### Étape 8.2 : Affichage Section 6 (1h30)
+- [ ] Créer composant `<SectionProjection />`
+- [ ] Bloc objectifs (perte, budget extras, défi)
+- [ ] Bloc ajustements recommandés (3 actions)
+- [ ] Bloc points contrôle (timeline 4 semaines)
+- [ ] Verbatim motivation final
+- [ ] **VALIDATION UTILISATEUR** : Section 6 inspirante ✅
+
+#### Étape 8.3 : Tests projection (30min)
+- [ ] Test : Objectif maintien → Ajustements adaptés
+- [ ] Test : Objectif surplus → Projection cohérente
+- [ ] **VALIDATION UTILISATEUR** : Tous objectifs OK ✅
+
+---
+
+### 🔗 PHASE 9 : Lien Bilan Hebdo & Historique (Jour 5 - 3h)
+
+**Objectif :** Navigation bilan mensuel ↔ hebdo, archivage
+
+#### Étape 9.1 : Lien consultation bilan hebdo (1h)
+- [ ] Ajouter bouton "Consulter bilan semaine X" en bas modale
+- [ ] Handler fermeture bilan mensuel + ouverture bilan hebdo
+- [ ] Passer `selectedWeekStart` correspondant à S4
+- [ ] Test navigation modale → modale
+- [ ] **VALIDATION UTILISATEUR** : Navigation fluide ✅
+
+#### Étape 9.2 : Sauvegarde base données (1h)
+- [ ] Migration table `bilans_mensuels` (SQL)
+- [ ] Ajout index performance
+- [ ] Fonction sauvegarde après calculs
+- [ ] Test insertion/lecture BDD
+- [ ] **VALIDATION UTILISATEUR** : Données persistées ✅
+
+#### Étape 9.3 : Historique bilans mensuels (1h)
+- [ ] Ajouter section "Historique" dans modale ou page dédiée
+- [ ] Requête bilans mois antérieurs (user_id)
+- [ ] Affichage liste cliquable (Janvier, Décembre, Novembre...)
+- [ ] Test consultation ancien bilan
+- [ ] **VALIDATION UTILISATEUR** : Historique accessible ✅
+
+---
+
+### ✅ PHASE 10 : Tests Finaux & Validation (Jour 5 - 4h)
+
+**Objectif :** Tests complets, non-régression, accessibilité, performance
+
+#### Étape 10.1 : Tests 15 cas limite (2h)
+- [ ] Cas 1 : Mois complet 30j → OK
+- [ ] Cas 2 : Mois incomplet 10j → Message "Données partielles"
+- [ ] Cas 3 : Aucun repas → Message explicite
+- [ ] Cas 4 : Validation retard (10 fév, bilan janv) → OK
+- [ ] Cas 5 : Premier mois utilisateur → Pas comparaison N-1
+- [ ] Cas 6 : Validation 31 décembre → Détection année OK
+- [ ] Cas 7 : Février 28j → Pas d'erreur
+- [ ] Cas 8 : Utilisateur compte dernier jour mois → OK
+- [ ] Cas 9 : Extras > budget → Alerte visuelle
+- [ ] Cas 10 : Objectif surplus → Projection cohérente
+- [ ] Cas 11 : QN manquant → Section 4 adaptée
+- [ ] Cas 12 : Ressenti vide → Section 5 adaptée
+- [ ] Cas 13 : Performance 150 repas → < 2s
+- [ ] Cas 14 : Mobile responsive → OK
+- [ ] Cas 15 : Navigation clavier → Accessible
+- [ ] **VALIDATION UTILISATEUR** : 15/15 cas passent ✅
+
+#### Étape 10.2 : Tests non-régression (1h)
+- [ ] Bilan hebdo S1-S4 fonctionne toujours
+- [ ] Validation semaine S2 → Pas de pop-up mensuel
+- [ ] Calculs apportsTotaux, extras inchangés
+- [ ] Performance page suivi.js normale
+- [ ] **VALIDATION UTILISATEUR** : Aucune régression ✅
+
+#### Étape 10.3 : Tests accessibilité (1h)
+- [ ] Navigation Tab/Enter/Escape (pop-up + modale)
+- [ ] Attributs ARIA complets
+- [ ] Contraste couleurs WCAG AA (≥ 4.5:1)
+- [ ] Test screen reader (NVDA/VoiceOver)
+- [ ] **VALIDATION UTILISATEUR** : Accessible ✅
+
+---
+
+## 📊 RÉCAPITULATIF ESTIMATION
+
+| Phase | Objectif | Durée | Jour |
+|-------|----------|-------|------|
+| Phase 1 | Détection & Pop-up | 6h | Jour 1 |
+| Phase 2 | Structure Modale Vide | 3h | Jour 1 |
+| Phase 3 | Section 1 - Tendance Poids | 4h | Jour 2 |
+| Phase 4 | Section 2 - Budget Calorique | 3h | Jour 2 |
+| Phase 5 | Section 3 - Patterns | 4h | Jour 3 |
+| Phase 6 | Section 4 - Qualité Nutritionnelle | 3h | Jour 3 |
+| Phase 7 | Section 5 - Ressenti | 2h30 | Jour 4 |
+| Phase 8 | Section 6 - Projection | 4h | Jour 4 |
+| Phase 9 | Liens & Historique | 3h | Jour 5 |
+| Phase 10 | Tests Finaux | 4h | Jour 5 |
+| **TOTAL** | **10 Phases** | **36h30** | **~5 jours** |
+
+---
+
+## ✅ CHECKLIST VALIDATION PROGRESSIVE
+
+**Chaque phase nécessite validation utilisateur AVANT passage suivante :**
+
+- [ ] Phase 1 validée : Détection + Pop-up ✅
+- [ ] Phase 2 validée : Modale structure vide ✅
+- [ ] Phase 3 validée : Section 1 Tendance Poids ✅
+- [ ] Phase 4 validée : Section 2 Budget ✅
+- [ ] Phase 5 validée : Section 3 Patterns ✅
+- [ ] Phase 6 validée : Section 4 QN ✅
+- [ ] Phase 7 validée : Section 5 Ressenti ✅
+- [ ] Phase 8 validée : Section 6 Projection ✅
+- [ ] Phase 9 validée : Liens & Historique ✅
+- [ ] Phase 10 validée : Tests finaux ✅
+
+**Validation finale utilisateur :**
+- [ ] Toutes phases complètes et fonctionnelles
+- [ ] Aucune régression détectée
+- [ ] Performance acceptable (< 2s)
+- [ ] Accessibilité conforme WCAG AA
+- [ ] **Merge branche main autorisé** ✅
 
 ---
 

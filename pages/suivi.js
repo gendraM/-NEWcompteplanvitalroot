@@ -29,6 +29,7 @@ import BandeauDefiActif from '../components/BandeauDefiActif';
 import ModalFeedbackValidation from '../components/ModalFeedbackValidation';
 import BilanHebdoModal from '../components/BilanHebdoModal';
 import PopupBilanMensuel from '../components/PopupBilanMensuel';
+import BilanMensuelModal from '../components/BilanMensuelModal';
 import { fetchRepasPeriode } from '../lib/repasUtils';
 import BudgetExtrasCard from '../components/BudgetExtrasCard';
 import { supabase } from '../lib/supabaseClient';
@@ -2190,9 +2191,20 @@ export default function Suivi() {
         onClose={() => setShowPopupBilanMensuel(false)}
         onVoirBilan={() => {
           setShowPopupBilanMensuel(false);
-          // TODO Phase 2: Ouvrir BilanMensuelModal
-          console.log('[BILAN MENSUEL] Ouverture modale bilan mensuel (TODO Phase 2)');
+          setShowBilanMensuelModal(true);
+          console.log('[BILAN MENSUEL] Ouverture modale bilan mensuel');
         }}
+      />
+      
+      {/* ═══════════════════════════════════════════════════════════
+          MODALE BILAN MENSUEL
+          Affiche le bilan mensuel détaillé avec 6 sections
+          ═══════════════════════════════════════════════════════════ */}
+      <BilanMensuelModal
+        isOpen={showBilanMensuelModal}
+        mois={bilanMensuelData?.mois}
+        annee={bilanMensuelData?.annee}
+        onClose={() => setShowBilanMensuelModal(false)}
       />
       
       {/* MODALE BILAN HEBDO ALIMENTAIRE */}
