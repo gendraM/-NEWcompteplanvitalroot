@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { calculerSection1TendancePoids, calculerSection2BudgetCalorique, calculerSection3Patterns, calculerSection4QualiteNutritionnelle } from '../lib/calculsBilanMensuel';
+import { calculerSection1TendancePoids, calculerSection2BudgetCalorique, calculerSection3Patterns, calculerSection4QualiteNutritionnelle, calculerSection5BienEtre } from '../lib/calculsBilanMensuel';
 
 /**
  * Composant Section1TendancePoids
@@ -1255,6 +1255,584 @@ function Section4QualiteNutritionnelle({ data }) {
 }
 
 /**
+ * Section5BienEtre - Analyse du bien-être et des ressentis
+ * Affiche moyennes satiété/humeur, distributions, semaines critiques
+ */
+function Section5BienEtre({ data }) {
+  console.log('[SECTION5 COMPOSANT] Rendu Section5BienEtre');
+  console.log('[SECTION5 COMPOSANT] Data reçue:', data);
+  
+  if (!data || data.erreur === 'aucun_repas') {
+    return (
+      <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+        <div style={{ fontSize: 48 }}>😊</div>
+        <div style={{ marginTop: '0.5rem', fontSize: 16, color: '#6b7280' }}>
+          Pas de données de ressenti ce mois-ci
+        </div>
+      </div>
+    );
+  }
+
+  const {
+    moyenne_satiete,
+    moyenne_humeur,
+    distribution_satiete,
+    distribution_humeur,
+    nb_repas_satiete,
+    nb_repas_ressenti,
+    jours_excellents,
+    semaines_critiques,
+    points_positifs,
+    points_amelioration,
+    analyse_depassements,
+    insights_depassements,
+    analyse_humeur_negative,
+    insights_humeur_negative,
+    matrice_croisee,
+    insights_matrice
+  } = data;
+
+  // Couleurs des scores
+  const getScoreColor = (score) => {
+    if (score >= 4) return '#10b981';
+    if (score >= 3) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  const satColor = getScoreColor(moyenne_satiete);
+  const humColor = getScoreColor(moyenne_humeur);
+
+  return (
+    <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      {/* Scores moyens */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        {/* Satiété */}
+        <div style={{ 
+          background: '#f9fafb', 
+          border: `2px solid ${satColor}`, 
+          borderRadius: 12, 
+          padding: '1.25rem',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: '0.75rem' }}>
+            🍽️ Satiété
+          </div>
+          <div style={{ fontSize: 42, fontWeight: 'bold', color: satColor }}>
+            {moyenne_satiete}
+          </div>
+          <div style={{ fontSize: 18, color: '#9ca3af' }}>/5</div>
+          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: '0.5rem' }}>
+            {nb_repas_satiete} repas
+          </div>
+        </div>
+
+        {/* Humeur */}
+        <div style={{ 
+          background: '#f9fafb', 
+          border: `2px solid ${humColor}`, 
+          borderRadius: 12, 
+          padding: '1.25rem',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: '0.75rem' }}>
+            😊 Humeur
+          </div>
+          <div style={{ fontSize: 42, fontWeight: 'bold', color: humColor }}>
+            {moyenne_humeur}
+          </div>
+          <div style={{ fontSize: 18, color: '#9ca3af' }}>/5</div>
+          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: '0.5rem' }}>
+            {nb_repas_ressenti} repas
+          </div>
+        </div>
+      </div>
+
+      {/* Jours excellents */}
+      {jours_excellents > 0 && (
+        <div style={{ 
+          background: '#f0fdf4',
+          border: '2px solid #86efac',
+          borderRadius: 12,
+          padding: '1rem',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: 32 }}>🌟</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: '#166534', marginTop: '0.5rem' }}>
+            {jours_excellents} jour(s) excellent(s) !
+          </div>
+          <div style={{ fontSize: 13, color: '#15803d' }}>
+            Satiété respectée ET humeur positive
+          </div>
+        </div>
+      )}
+
+      {/* Distributions */}
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.5rem' }}>
+          Répartition des ressentis
+        </div>
+        <div style={{ 
+          fontSize: 12, 
+          color: '#6b7280', 
+          background: '#f9fafb', 
+          padding: '0.5rem', 
+          borderRadius: 6,
+          marginBottom: '1rem'
+        }}>
+          <strong>Légende scores :</strong> 1 = Très négatif • 2 = Faible • 3 = Moyen • 4 = Bon • 5 = Excellent
+        </div>
+        
+        {/* Distribution satiété - NOUVEAU VISUEL CARTES */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: '0.75rem' }}>
+            🍽️ <strong>Satiété</strong> (1=ballonné/regret, 2=dépassé, 3=sans faim, 5=rassasié)
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem' }}>
+            {[
+              { score: '1', emoji: '🤢', label: 'Ballonné', color: '#fee2e2', border: '#fecaca', text: '#991b1b' },
+              { score: '2', emoji: '😣', label: 'Dépassé', color: '#ffedd5', border: '#fed7aa', text: '#92400e' },
+              { score: '3', emoji: '😐', label: 'Sans faim', color: '#fef3c7', border: '#fde68a', text: '#92400e' },
+              { score: '4', emoji: '🙂', label: 'Bien', color: '#d1fae5', border: '#a7f3d0', text: '#065f46' },
+              { score: '5', emoji: '😊', label: 'Rassasié', color: '#d1fae5', border: '#6ee7b7', text: '#065f46' }
+            ].map(({ score, emoji, label, color, border, text }) => {
+              const count = distribution_satiete[score] || 0;
+              const total = Object.values(distribution_satiete).reduce((s, v) => s + v, 0);
+              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+              
+              return (
+                <div 
+                  key={score}
+                  style={{ 
+                    background: count > 0 ? color : '#f9fafb',
+                    border: `2px solid ${count > 0 ? border : '#e5e7eb'}`,
+                    borderRadius: 8,
+                    padding: '0.75rem 0.5rem',
+                    textAlign: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ fontSize: 24, marginBottom: '0.25rem' }}>{emoji}</div>
+                  <div style={{ fontSize: 18, fontWeight: 'bold', color: count > 0 ? text : '#9ca3af' }}>
+                    {count}
+                  </div>
+                  <div style={{ fontSize: 10, color: count > 0 ? text : '#9ca3af', marginTop: '0.25rem' }}>
+                    {label}
+                  </div>
+                  {count > 0 && (
+                    <div style={{ fontSize: 11, fontWeight: 600, color: text, marginTop: '0.25rem' }}>
+                      {pct}%
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Distribution humeur - NOUVEAU VISUEL CARTES */}
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: '0.75rem' }}>
+            😊 <strong>Humeur</strong> (1=ballonné/culpabilité, 2=lourd, 3=neutre, 4=j'assume, 5=léger/satisfait)
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem' }}>
+            {[
+              { score: '1', emoji: '😰', label: 'Culpabilité', color: '#fee2e2', border: '#fecaca', text: '#991b1b' },
+              { score: '2', emoji: '😑', label: 'Lourd', color: '#ffedd5', border: '#fed7aa', text: '#92400e' },
+              { score: '3', emoji: '😐', label: 'Neutre', color: '#fef3c7', border: '#fde68a', text: '#92400e' },
+              { score: '4', emoji: '💪', label: 'J\'assume', color: '#d1fae5', border: '#a7f3d0', text: '#065f46' },
+              { score: '5', emoji: '🌱', label: 'Léger', color: '#d1fae5', border: '#6ee7b7', text: '#065f46' }
+            ].map(({ score, emoji, label, color, border, text }) => {
+              const count = distribution_humeur[score] || 0;
+              const total = Object.values(distribution_humeur).reduce((s, v) => s + v, 0);
+              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+              
+              return (
+                <div 
+                  key={score}
+                  style={{ 
+                    background: count > 0 ? color : '#f9fafb',
+                    border: `2px solid ${count > 0 ? border : '#e5e7eb'}`,
+                    borderRadius: 8,
+                    padding: '0.75rem 0.5rem',
+                    textAlign: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ fontSize: 24, marginBottom: '0.25rem' }}>{emoji}</div>
+                  <div style={{ fontSize: 18, fontWeight: 'bold', color: count > 0 ? text : '#9ca3af' }}>
+                    {count}
+                  </div>
+                  <div style={{ fontSize: 10, color: count > 0 ? text : '#9ca3af', marginTop: '0.25rem' }}>
+                    {label}
+                  </div>
+                  {count > 0 && (
+                    <div style={{ fontSize: 11, fontWeight: 600, color: text, marginTop: '0.25rem' }}>
+                      {pct}%
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Semaines critiques */}
+      {semaines_critiques.length > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+            ⚠️ Semaines à surveiller
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {semaines_critiques.map((sem, idx) => (
+              <div 
+                key={idx}
+                style={{ 
+                  background: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  borderRadius: 8,
+                  padding: '0.75rem',
+                  fontSize: 13
+                }}
+              >
+                <div style={{ fontWeight: 600, color: '#92400e', marginBottom: '0.25rem' }}>
+                  Semaine {sem.semaine}
+                </div>
+                <div style={{ color: '#92400e' }}>
+                  {sem.raison} (Sat: {sem.moyenne_satiete}/5, Hum: {sem.moyenne_humeur}/5)
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Analyse des dépassements de satiété */}
+      {analyse_depassements && analyse_depassements.total > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+            🔍 Pourquoi dépassé(e) ? ({analyse_depassements.total} repas)
+          </div>
+          
+          <div style={{ 
+            background: '#fff7ed',
+            border: '1px solid #fed7aa',
+            borderRadius: 8,
+            padding: '1rem',
+            marginBottom: '1rem'
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', fontSize: 13 }}>
+              {/* Par type de repas */}
+              {Object.keys(analyse_depassements.par_type).length > 0 && (
+                <div>
+                  <div style={{ fontWeight: 600, color: '#92400e', marginBottom: '0.25rem' }}>
+                    Par moment :
+                  </div>
+                  {Object.entries(analyse_depassements.par_type)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([type, count]) => (
+                      <div key={type} style={{ color: '#92400e' }}>
+                        • {type} : {count} fois
+                      </div>
+                    ))}
+                </div>
+              )}
+              
+              {/* Par cause */}
+              <div>
+                <div style={{ fontWeight: 600, color: '#92400e', marginBottom: '0.25rem' }}>
+                  Causes :
+                </div>
+                {analyse_depassements.avec_extras > 0 && (
+                  <div style={{ color: '#92400e' }}>
+                    • Extras : {analyse_depassements.avec_extras} ({((analyse_depassements.avec_extras / analyse_depassements.total) * 100).toFixed(0)}%)
+                  </div>
+                )}
+                {analyse_depassements.avec_fast_food > 0 && (
+                  <div style={{ color: '#92400e' }}>
+                    • Fast-food : {analyse_depassements.avec_fast_food}
+                  </div>
+                )}
+                {Object.keys(analyse_depassements.categories_frequentes).length > 0 && (
+                  <div style={{ color: '#92400e' }}>
+                    • Catégorie : {Object.entries(analyse_depassements.categories_frequentes).sort((a, b) => b[1] - a[1])[0][0]}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Insights dépassements */}
+          {insights_depassements && insights_depassements.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+              {insights_depassements.map((insight, idx) => (
+                <div 
+                  key={idx}
+                  style={{ 
+                    background: '#fef3c7',
+                    border: '1px solid #fde68a',
+                    borderRadius: 8,
+                    padding: '0.75rem',
+                    fontSize: 13,
+                    color: '#92400e'
+                  }}
+                >
+                  💡 {insight}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Corrélations humeur négative */}
+      {analyse_humeur_negative && analyse_humeur_negative.total > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+            😔 Quand l'humeur était négative ? ({analyse_humeur_negative.total} repas)
+          </div>
+          
+          <div style={{ 
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: 8,
+            padding: '1rem',
+            marginBottom: '1rem'
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', fontSize: 13 }}>
+              {/* Par moment */}
+              {Object.keys(analyse_humeur_negative.par_type).length > 0 && (
+                <div>
+                  <div style={{ fontWeight: 600, color: '#991b1b', marginBottom: '0.25rem' }}>
+                    Moments critiques :
+                  </div>
+                  {Object.entries(analyse_humeur_negative.par_type)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([type, count]) => (
+                      <div key={type} style={{ color: '#991b1b' }}>
+                        • {type} : {count} fois
+                      </div>
+                    ))}
+                </div>
+              )}
+              
+              {/* Facteurs */}
+              <div>
+                <div style={{ fontWeight: 600, color: '#991b1b', marginBottom: '0.25rem' }}>
+                  Facteurs associés :
+                </div>
+                {analyse_humeur_negative.avec_extras > 0 && (
+                  <div style={{ color: '#991b1b' }}>
+                    • Extras : {((analyse_humeur_negative.avec_extras / analyse_humeur_negative.total) * 100).toFixed(0)}%
+                  </div>
+                )}
+                {analyse_humeur_negative.avec_fast_food > 0 && (
+                  <div style={{ color: '#991b1b' }}>
+                    • Fast-food : {analyse_humeur_negative.avec_fast_food} fois
+                  </div>
+                )}
+                {analyse_humeur_negative.kcal_moyen > 0 && (
+                  <div style={{ color: '#991b1b' }}>
+                    • Kcal moyen : {analyse_humeur_negative.kcal_moyen}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Insights humeur */}
+          {insights_humeur_negative && insights_humeur_negative.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+              {insights_humeur_negative.map((insight, idx) => (
+                <div 
+                  key={idx}
+                  style={{ 
+                    background: '#fee2e2',
+                    border: '1px solid #fecaca',
+                    borderRadius: 8,
+                    padding: '0.75rem',
+                    fontSize: 13,
+                    color: '#991b1b'
+                  }}
+                >
+                  ⚠️ {insight}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Matrice croisée Satiété x Humeur */}
+      {matrice_croisee && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+            🔗 Analyse croisée : Satiété × Humeur
+          </div>
+          
+          <div style={{ 
+            background: '#f9fafb',
+            border: '1px solid #e5e7eb',
+            borderRadius: 8,
+            padding: '1rem'
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+              {/* Cercle vertueux */}
+              <div style={{ 
+                background: matrice_croisee.satiete_ok_humeur_ok > 0 ? '#f0fdf4' : '#fff',
+                border: '1px solid #86efac',
+                borderRadius: 8,
+                padding: '0.75rem',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: 28, color: '#10b981' }}>✓</div>
+                <div style={{ fontSize: 24, fontWeight: 'bold', color: '#10b981' }}>
+                  {matrice_croisee.satiete_ok_humeur_ok}
+                </div>
+                <div style={{ fontSize: 12, color: '#15803d' }}>
+                  Satiété OK + Humeur positive
+                </div>
+              </div>
+              
+              {/* Critique */}
+              <div style={{ 
+                background: matrice_croisee.satiete_ko_humeur_ko > 0 ? '#fee2e2' : '#fff',
+                border: '1px solid #fecaca',
+                borderRadius: 8,
+                padding: '0.75rem',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: 28, color: '#ef4444' }}>⚠️</div>
+                <div style={{ fontSize: 24, fontWeight: 'bold', color: '#ef4444' }}>
+                  {matrice_croisee.satiete_ko_humeur_ko}
+                </div>
+                <div style={{ fontSize: 12, color: '#991b1b' }}>
+                  Satiété dépassée + Humeur négative
+                </div>
+              </div>
+              
+              {/* Mixtes */}
+              <div style={{ 
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                borderRadius: 8,
+                padding: '0.75rem',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: 20, fontWeight: 'bold', color: '#f59e0b' }}>
+                  {matrice_croisee.satiete_ok_humeur_ko}
+                </div>
+                <div style={{ fontSize: 11, color: '#92400e' }}>
+                  Satiété OK mais humeur négative
+                </div>
+              </div>
+              
+              <div style={{ 
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                borderRadius: 8,
+                padding: '0.75rem',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: 20, fontWeight: 'bold', color: '#f59e0b' }}>
+                  {matrice_croisee.satiete_ko_humeur_ok}
+                </div>
+                <div style={{ fontSize: 11, color: '#92400e' }}>
+                  Satiété dépassée mais humeur OK
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Insights matrice */}
+          {insights_matrice && insights_matrice.length > 0 && (
+            <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {insights_matrice.map((insight, idx) => (
+                <div 
+                  key={idx}
+                  style={{ 
+                    background: '#f0f9ff',
+                    border: '1px solid #bae6fd',
+                    borderRadius: 8,
+                    padding: '0.75rem',
+                    fontSize: 13,
+                    color: '#075985'
+                  }}
+                >
+                  🔗 {insight}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Points positifs */}
+      {points_positifs.length > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+            🌟 Points forts
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {points_positifs.map((point, idx) => (
+              <div 
+                key={idx}
+                style={{ 
+                  background: '#f0fdf4',
+                  border: '1px solid #86efac',
+                  borderRadius: 8,
+                  padding: '0.75rem',
+                  fontSize: 13,
+                  color: '#166534',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <span style={{ fontSize: 16 }}>✅</span>
+                <span>{point}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Points d'amélioration */}
+      {points_amelioration.length > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+            💡 Points d'amélioration
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {points_amelioration.map((point, idx) => (
+              <div 
+                key={idx}
+                style={{ 
+                  background: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  borderRadius: 8,
+                  padding: '0.75rem',
+                  fontSize: 13,
+                  color: '#92400e',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.5rem'
+                }}
+              >
+                <span style={{ fontSize: 16, flexShrink: 0 }}>📌</span>
+                <span>{point}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * BilanMensuelModal - Modale d'affichage du bilan mensuel
  * 
  * Phase 2 : Structure vide avec 6 sections accordéons
@@ -1356,6 +1934,12 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
         console.log('[BILAN MENSUEL MODAL] Section 4 reçue:', section4);
         console.log('[BILAN MENSUEL MODAL] === FIN CHARGEMENT SECTION 4 ===');
         
+        // Phase 7: Charger Section 5
+        console.log('[BILAN MENSUEL MODAL] === DÉBUT CHARGEMENT SECTION 5 ===');
+        const section5 = await calculerSection5BienEtre(mois, annee);
+        console.log('[BILAN MENSUEL MODAL] Section 5 reçue:', section5);
+        console.log('[BILAN MENSUEL MODAL] === FIN CHARGEMENT SECTION 5 ===');
+        
         const nouveauBilan = {
           mois,
           annee,
@@ -1363,7 +1947,7 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
           section2,
           section3,
           section4,
-          section5: null, // TODO Phase 7
+          section5,
           section6: null, // TODO Phase 8
         };
         
@@ -1811,12 +2395,16 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                   </div>
                   {sectionsOuvertes.section5 && (
                     <div className="sectionContent">
-                      <div className="placeholder">
-                        <div className="placeholderIcon">⏳</div>
-                        <p className="placeholderText">
-                          Calculs en cours... (Phase 7)
-                        </p>
-                      </div>
+                      {bilanData?.section5 ? (
+                        <Section5BienEtre data={bilanData.section5} />
+                      ) : (
+                        <div className="placeholder">
+                          <div className="placeholderIcon">⏳</div>
+                          <p className="placeholderText">
+                            Chargement de l'analyse bien-être...
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
