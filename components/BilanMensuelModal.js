@@ -8,14 +8,155 @@ import { calculerSection1TendancePoids } from '../lib/calculsBilanMensuel';
 function Section1TendancePoids({ data }) {
   if (data?.erreur === 'donnees_insuffisantes') {
     return (
-      <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
-        <div style={{ fontSize: '48px', marginBottom: '15px' }}>📊</div>
-        <p style={{ fontSize: '16px', marginBottom: '8px' }}>
-          <strong>Données insuffisantes</strong>
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <div style={{ fontSize: 60, marginBottom: '1rem' }}>⚖️</div>
+        <h3 style={{ color: '#1e293b', marginBottom: '0.5rem' }}>Pas encore assez de données</h3>
+        <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: 15 }}>
+          {data.nb_pesees === 0 
+            ? "Aucune pesée enregistrée ce mois-ci"
+            : `Une pesée supplémentaire est nécessaire pour calculer ta tendance`}
         </p>
-        <p style={{ fontSize: '14px', margin: 0 }}>
-          {data.message} (actuellement: {data.nb_pesees} pesée{data.nb_pesees > 1 ? 's' : ''})
-        </p>
+        
+        {/* Cas 1 pesée avec projection : Analyse comparative */}
+        {data.pesee_unique && data.projection_precedente ? (
+          <>
+            {/* Cartes comparatives côte à côte */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+              <div style={{ flex: 1, background: '#f0f9ff', padding: '1rem', borderRadius: 8, border: '1px solid #bae6fd' }}>
+                <div style={{ fontSize: 12, color: '#0369a1', marginBottom: 4 }}>📈 Projection</div>
+                <div style={{ fontSize: 24, fontWeight: 'bold', color: '#0284c7' }}>
+                  {data.projection_precedente} kg
+                </div>
+                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Mois dernier</div>
+              </div>
+              <div style={{ flex: 1, background: '#f1f5f9', padding: '1rem', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>⚖️ Poids actuel</div>
+                <div style={{ fontSize: 24, fontWeight: 'bold', color: '#1e293b' }}>
+                  {data.pesee_unique} kg
+                </div>
+                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Ce mois</div>
+              </div>
+            </div>
+            
+            {/* Mini-analyse de l'écart */}
+            {(() => {
+              const ecart = data.pesee_unique - data.projection_precedente;
+              const ecartAbs = Math.abs(ecart);
+              let emoji, message, bgColor, borderColor, textColor;
+              
+              if (ecart <= -0.5) {
+                emoji = '💪';
+                message = `Excellent ! Tu es en avance de ${ecartAbs.toFixed(1)} kg sur la projection !`;
+                bgColor = '#f0fdf4';
+                borderColor = '#86efac';
+                textColor = '#166534';
+              } else if (ecart <= 0) {
+                emoji = '🎯';
+                message = `Super ! Tu es pile sur la projection (${ecartAbs.toFixed(1)} kg d'avance) !`;
+                bgColor = '#f0fdf4';
+                borderColor = '#86efac';
+                textColor = '#166534';
+              } else if (ecart <= 0.5) {
+                emoji = '👍';
+                message = `Bon suivi ! Tu es proche de la projection (+${ecart.toFixed(1)} kg)`;
+                bgColor = '#fffbeb';
+                borderColor = '#fde047';
+                textColor = '#92400e';
+              } else {
+                emoji = '⚠️';
+                message = `Attention : léger écart avec la projection (+${ecart.toFixed(1)} kg)`;
+                bgColor = '#fef2f2';
+                borderColor = '#fca5a5';
+                textColor = '#991b1b';
+              }
+              
+              return (
+                <div style={{ background: bgColor, padding: '1rem', borderRadius: 8, marginBottom: '1rem', border: `1px solid ${borderColor}` }}>
+                  <div style={{ fontSize: 14, color: textColor, fontWeight: 600, lineHeight: 1.5 }}>
+                    {emoji} {message}
+                  </div>
+                </div>
+              );
+            })()}
+            
+            {/* Encouragement pour 2e pesée */}
+            <div style={{ background: '#fef3c7', padding: '0.75rem', borderRadius: 8, marginBottom: '1.5rem', border: '1px solid #fde047' }}>
+              <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.4 }}>
+                📊 <strong>Pèse-toi une 2e fois</strong> ce mois pour confirmer la tendance et obtenir une analyse complète avec graphique !
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Cas 1 pesée SANS projection */}
+            {data.pesee_unique && (
+              <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: 8, marginBottom: '1rem' }}>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Poids actuel</div>
+                <div style={{ fontSize: 28, fontWeight: 'bold', color: '#1e293b' }}>
+                  {data.pesee_unique} kg
+                </div>
+              </div>
+            )}
+            
+            {/* Projection seule (0 pesée) */}
+            {!data.pesee_unique && data.projection_precedente && (
+              <div style={{ background: '#f0f9ff', padding: '1rem', borderRadius: 8, marginBottom: '1rem', border: '1px solid #bae6fd' }}>
+                <div style={{ fontSize: 12, color: '#0369a1', marginBottom: 4 }}>📈 Projection du mois précédent</div>
+                <div style={{ fontSize: 28, fontWeight: 'bold', color: '#0284c7' }}>
+                  {data.projection_precedente} kg
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                  Basé sur ta tendance du mois dernier
+                </div>
+              </div>
+            )}
+            
+            {/* Dernier poids connu (ancien) - Si 0 pesée ce mois */}
+            {data.nb_pesees === 0 && data.dernier_poids_connu && (
+              <div style={{ background: '#fef2f2', padding: '1rem', borderRadius: 8, marginBottom: '1rem', border: '1px solid #fca5a5' }}>
+                <div style={{ fontSize: 12, color: '#991b1b', marginBottom: 4 }}>📅 Dernier poids connu</div>
+                <div style={{ fontSize: 24, fontWeight: 'bold', color: '#dc2626' }}>
+                  {data.dernier_poids_connu.poids} kg
+                </div>
+                <div style={{ fontSize: 11, color: '#991b1b', marginTop: 6, lineHeight: 1.4 }}>
+                  ⚠️ Donnée de {new Date(data.dernier_poids_connu.date).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                  {data.dernier_poids_connu.anciennete_mois > 0 && ` (${data.dernier_poids_connu.anciennete_mois} mois)`}
+                  <div style={{ marginTop: 4, fontWeight: 600 }}>Ces données ne sont plus fiables</div>
+                </div>
+              </div>
+            )}
+            
+            {/* Message encourageant (0 pesée) */}
+            {data.nb_pesees === 0 && (
+              <div style={{ background: '#fefce8', padding: '1rem', borderRadius: 8, marginBottom: '1.5rem', border: '1px solid #fde047' }}>
+                <div style={{ fontSize: 14, color: '#854d0e', lineHeight: 1.5 }}>
+                  💡 <strong>Conseil :</strong> Pèse-toi au moins 2 fois par mois pour suivre ta progression
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        
+        {/* Bouton CTA */}
+        <button 
+          onClick={() => window.location.href = '/suivi-poids'}
+          style={{ 
+            background: '#10b981', 
+            color: 'white',
+            padding: '12px 24px',
+            borderRadius: 8,
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 16,
+            fontWeight: 600,
+            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+            transition: 'all 0.2s'
+          }}
+          onMouseOver={(e) => e.target.style.background = '#059669'}
+          onMouseOut={(e) => e.target.style.background = '#10b981'}
+        >
+          📊 {data.nb_pesees === 0 ? 'Saisir ma première pesée' : 'Ajouter une pesée'}
+        </button>
       </div>
     );
   }
