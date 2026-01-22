@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { calculerSection1TendancePoids, calculerSection2BudgetCalorique, calculerSection3Patterns } from '../lib/calculsBilanMensuel';
+import { calculerSection1TendancePoids, calculerSection2BudgetCalorique, calculerSection3Patterns, calculerSection4QualiteNutritionnelle } from '../lib/calculsBilanMensuel';
 
 /**
  * Composant Section1TendancePoids
@@ -1033,6 +1033,228 @@ function Section3PatternsComportementaux({ data }) {
 }
 
 /**
+ * Section4QualiteNutritionnelle - Analyse de la qualité alimentaire
+ * Affiche la répartition des catégories, le score qualité, et les recommandations
+ */
+function Section4QualiteNutritionnelle({ data }) {
+  console.log('[SECTION4 COMPOSANT] Rendu Section4QualiteNutritionnelle');
+  console.log('[SECTION4 COMPOSANT] Data reçue:', data);
+  
+  if (!data || data.erreur === 'aucun_repas') {
+    return (
+      <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+        <div style={{ fontSize: 48 }}>🥗</div>
+        <div style={{ marginTop: '0.5rem', fontSize: 16, color: '#6b7280' }}>
+          Pas assez de données pour analyser la qualité nutritionnelle
+        </div>
+      </div>
+    );
+  }
+
+  const {
+    repartition_categories,
+    nb_fast_food,
+    fast_food_par_semaine,
+    score_qualite,
+    points_attention,
+    points_positifs,
+    nb_repas_total
+  } = data;
+
+  // Couleur du score
+  const getScoreColor = (score) => {
+    if (score >= 80) return '#10b981';
+    if (score >= 60) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  const scoreColor = getScoreColor(score_qualite);
+
+  // Couleurs des catégories
+  const categorieColors = {
+    'protéine': '#f472b6',
+    'féculent': '#fbbf24',
+    'légume': '#34d399',
+    'fruit': '#fb923c',
+    'extra': '#ef4444',
+    'autre': '#9ca3af'
+  };
+
+  const categorieEmojis = {
+    'protéine': '🍗',
+    'féculent': '🍞',
+    'légume': '🥦',
+    'fruit': '🍎',
+    'extra': '🍰',
+    'autre': '🍽️'
+  };
+
+  return (
+    <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      {/* Score de qualité globale */}
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '1rem' }}>
+          Score de qualité nutritionnelle
+        </div>
+
+        <div style={{ 
+          background: '#f9fafb', 
+          border: '1px solid #e5e7eb', 
+          borderRadius: 12, 
+          padding: '1.5rem',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: 52, fontWeight: 'bold', color: scoreColor }}>
+            {score_qualite}/100
+          </div>
+          <div style={{ 
+            display: 'inline-block',
+            marginTop: '0.5rem',
+            padding: '0.5rem 1rem',
+            background: score_qualite >= 80 ? '#dcfce7' : score_qualite >= 60 ? '#fef3c7' : '#fee2e2',
+            color: score_qualite >= 80 ? '#166534' : score_qualite >= 60 ? '#92400e' : '#991b1b',
+            borderRadius: 20,
+            fontSize: 13,
+            fontWeight: 600
+          }}>
+            {score_qualite >= 80 ? '🌟 Excellent' : score_qualite >= 60 ? '👍 Correct' : '💪 À améliorer'}
+          </div>
+
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: '0.75rem' }}>
+            Basé sur {nb_repas_total} repas analysés
+          </div>
+        </div>
+      </div>
+
+      {/* Répartition des catégories */}
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '1rem' }}>
+          Répartition des catégories alimentaires
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+          {repartition_categories.map(({ categorie, nombre, pourcent }) => (
+            <div 
+              key={categorie}
+              style={{ 
+                flex: '1 1 calc(33% - 0.5rem)',
+                minWidth: '140px',
+                background: '#fff',
+                border: `2px solid ${categorieColors[categorie] || '#e5e7eb'}`,
+                borderRadius: 8,
+                padding: '0.75rem',
+                textAlign: 'center'
+              }}
+            >
+              <div style={{ fontSize: 24, marginBottom: '0.25rem' }}>
+                {categorieEmojis[categorie] || '🍽️'}
+              </div>
+              <div style={{ fontSize: 12, color: '#6b7280', textTransform: 'capitalize', fontWeight: 600 }}>
+                {categorie}
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 'bold', color: '#111827', marginTop: '0.25rem' }}>
+                {pourcent}%
+              </div>
+              <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                ({nombre} repas)
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Fast-food */}
+      {nb_fast_food > 0 && (
+        <div style={{ 
+          background: fast_food_par_semaine > 1 ? '#fef2f2' : '#f0f9ff',
+          border: `1px solid ${fast_food_par_semaine > 1 ? '#fca5a5' : '#bae6fd'}`,
+          borderRadius: 8,
+          padding: '1rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ fontSize: 32 }}>🍔</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>
+                Fast-food ce mois-ci
+              </div>
+              <div style={{ fontSize: 13, color: '#6b7280', marginTop: '0.25rem' }}>
+                {nb_fast_food} repas • {fast_food_par_semaine.toFixed(1)} par semaine
+              </div>
+            </div>
+            <div style={{ 
+              fontSize: 24, 
+              color: fast_food_par_semaine > 1 ? '#ef4444' : '#10b981'
+            }}>
+              {fast_food_par_semaine > 1 ? '⚠️' : '✅'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Points positifs */}
+      {points_positifs.length > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+            🌟 Points forts
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {points_positifs.map((point, idx) => (
+              <div 
+                key={idx}
+                style={{ 
+                  background: '#f0fdf4',
+                  border: '1px solid #86efac',
+                  borderRadius: 8,
+                  padding: '0.75rem',
+                  fontSize: 13,
+                  color: '#166534',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <span style={{ fontSize: 16 }}>✅</span>
+                <span>{point}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Points d'attention */}
+      {points_attention.length > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+            💡 Recommandations
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {points_attention.map((point, idx) => (
+              <div 
+                key={idx}
+                style={{ 
+                  background: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  borderRadius: 8,
+                  padding: '0.75rem',
+                  fontSize: 13,
+                  color: '#92400e',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.5rem'
+                }}
+              >
+                <span style={{ fontSize: 16, flexShrink: 0 }}>📌</span>
+                <span>{point}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * BilanMensuelModal - Modale d'affichage du bilan mensuel
  * 
  * Phase 2 : Structure vide avec 6 sections accordéons
@@ -1128,13 +1350,19 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
         console.log('[BILAN MENSUEL MODAL] Section 3 reçue:', section3);
         console.log('[BILAN MENSUEL MODAL] === FIN CHARGEMENT SECTION 3 ===');
         
+        // Phase 6: Charger Section 4
+        console.log('[BILAN MENSUEL MODAL] === DÉBUT CHARGEMENT SECTION 4 ===');
+        const section4 = await calculerSection4QualiteNutritionnelle(mois, annee);
+        console.log('[BILAN MENSUEL MODAL] Section 4 reçue:', section4);
+        console.log('[BILAN MENSUEL MODAL] === FIN CHARGEMENT SECTION 4 ===');
+        
         const nouveauBilan = {
           mois,
           annee,
           section1,
           section2,
           section3,
-          section4: null, // TODO Phase 6
+          section4,
           section5: null, // TODO Phase 7
           section6: null, // TODO Phase 8
         };
@@ -1550,12 +1778,16 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                   </div>
                   {sectionsOuvertes.section4 && (
                     <div className="sectionContent">
-                      <div className="placeholder">
-                        <div className="placeholderIcon">⏳</div>
-                        <p className="placeholderText">
-                          Calculs en cours... (Phase 6)
-                        </p>
-                      </div>
+                      {bilanData?.section4 ? (
+                        <Section4QualiteNutritionnelle data={bilanData.section4} />
+                      ) : (
+                        <div className="placeholder">
+                          <div className="placeholderIcon">⏳</div>
+                          <p className="placeholderText">
+                            Chargement de l'analyse nutritionnelle...
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
