@@ -760,6 +760,22 @@ function Section3PatternsComportementaux({ data }) {
 
   return (
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      {/* Encadré d'explication */}
+      <div style={{ 
+        background: '#f0f9ff', 
+        border: '1px solid #bae6fd', 
+        borderRadius: 8, 
+        padding: '1rem',
+        fontSize: 13,
+        color: '#0c4a6e'
+      }}>
+        <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>📘 Comment lire cette section ?</div>
+        <div style={{ lineHeight: 1.6 }}>
+          Un jour est <strong>conforme</strong> quand tu consommes entre 1710 et 2090 kcal (±10% de ton objectif).
+          <br/>Cette marge permet une flexibilité naturelle tout en respectant ton budget global.
+        </div>
+      </div>
+
       {/* 1. Bilan de conformité */}
       <div>
         <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '1rem' }}>
@@ -780,6 +796,20 @@ function Section3PatternsComportementaux({ data }) {
           <div style={{ fontSize: 14, color: '#6b7280', marginTop: '0.5rem' }}>
             des jours dans l'objectif
           </div>
+          
+          {/* Badge de performance */}
+          <div style={{ 
+            display: 'inline-block',
+            marginTop: '0.75rem',
+            padding: '0.5rem 1rem',
+            background: taux_conformite >= 80 ? '#dcfce7' : taux_conformite >= 60 ? '#fef3c7' : '#fee2e2',
+            color: taux_conformite >= 80 ? '#166534' : taux_conformite >= 60 ? '#92400e' : '#991b1b',
+            borderRadius: 20,
+            fontSize: 12,
+            fontWeight: 600
+          }}>
+            {taux_conformite >= 80 ? '🎉 Excellent' : taux_conformite >= 60 ? '👍 Bien' : '💪 À améliorer'}
+          </div>
 
           {/* Détail jours */}
           <div style={{ 
@@ -794,18 +824,27 @@ function Section3PatternsComportementaux({ data }) {
                 {jours_conformes}
               </div>
               <div style={{ color: '#6b7280' }}>✅ Conformes</div>
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: '0.25rem' }}>
+                (1710-2090 kcal)
+              </div>
             </div>
             <div>
               <div style={{ fontSize: 24, fontWeight: 'bold', color: '#ef4444' }}>
                 {jours_depasses}
               </div>
               <div style={{ color: '#6b7280' }}>⚠️ Dépassés</div>
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: '0.25rem' }}>
+                (&gt;2090 kcal)
+              </div>
             </div>
             <div>
               <div style={{ fontSize: 24, fontWeight: 'bold', color: '#0ea5e9' }}>
                 {jours_sous_objectif}
               </div>
               <div style={{ color: '#6b7280' }}>📉 Sous-objectif</div>
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: '0.25rem' }}>
+                (&lt;1710 kcal)
+              </div>
             </div>
           </div>
 
@@ -874,8 +913,13 @@ function Section3PatternsComportementaux({ data }) {
       {/* 4. Insights temporels (weekend vs semaine) */}
       {insights_temporels && insights_temporels.jours_weekend > 0 && (
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '1rem' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.5rem' }}>
             📅 Weekend vs Semaine
+          </div>
+          
+          {/* Sous-titre explicatif */}
+          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: '1rem' }}>
+            Comparaison de tes moyennes caloriques entre jours de semaine et weekend
           </div>
 
           <div style={{ display: 'flex', gap: '1rem' }}>
@@ -897,6 +941,17 @@ function Section3PatternsComportementaux({ data }) {
               <div style={{ fontSize: 12, color: '#0369a1', marginTop: '0.25rem' }}>
                 Moyenne sur {insights_temporels.jours_semaine} jours
               </div>
+              
+              {/* Indicateur écart vs objectif */}
+              <div style={{ 
+                fontSize: 11, 
+                color: '#0369a1', 
+                marginTop: '0.5rem',
+                fontStyle: 'italic'
+              }}>
+                {insights_temporels.moyenne_semaine < 1900 ? '⬇️' : '⬆️'} 
+                {' '}{Math.abs(insights_temporels.moyenne_semaine - 1900)} kcal vs objectif
+              </div>
             </div>
 
             {/* Carte weekend */}
@@ -917,10 +972,21 @@ function Section3PatternsComportementaux({ data }) {
               <div style={{ fontSize: 12, color: '#a16207', marginTop: '0.25rem' }}>
                 Moyenne sur {insights_temporels.jours_weekend} jours
               </div>
+              
+              {/* Indicateur écart vs objectif */}
+              <div style={{ 
+                fontSize: 11, 
+                color: '#a16207', 
+                marginTop: '0.5rem',
+                fontStyle: 'italic'
+              }}>
+                {insights_temporels.moyenne_weekend < 1900 ? '⬇️' : '⬆️'} 
+                {' '}{Math.abs(insights_temporels.moyenne_weekend - 1900)} kcal vs objectif
+              </div>
             </div>
           </div>
 
-          {/* Écart weekend/semaine */}
+          {/* Écart weekend/semaine avec contexte */}
           {Math.abs(insights_temporels.ecart_weekend_semaine) > 100 && (
             <div style={{ 
               marginTop: '1rem',
@@ -929,12 +995,35 @@ function Section3PatternsComportementaux({ data }) {
               borderRadius: 8,
               padding: '0.75rem',
               fontSize: 13,
-              color: insights_temporels.ecart_weekend_semaine > 0 ? '#991b1b' : '#166534',
+              color: insights_temporels.ecart_weekend_semaine > 0 ? '#991b1b' : '#166534'
+            }}>
+              <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                {insights_temporels.ecart_weekend_semaine > 0 ? '⚠️ Écart significatif détecté' : '✅ Bonne cohérence'}
+              </div>
+              <div>
+                Le weekend, tu consommes en moyenne {insights_temporels.ecart_weekend_semaine > 0 ? '+' : ''}
+                {insights_temporels.ecart_weekend_semaine} kcal/jour 
+                {' '}({Math.abs(Math.round((insights_temporels.ecart_weekend_semaine / 1900) * 100))}% de ton objectif).
+                {insights_temporels.ecart_weekend_semaine > 200 && 
+                  ' Essaie de réduire cet écart pour plus de régularité.'
+                }
+              </div>
+            </div>
+          )}
+          
+          {/* Conseil si écart faible */}
+          {Math.abs(insights_temporels.ecart_weekend_semaine) <= 100 && (
+            <div style={{ 
+              marginTop: '1rem',
+              background: '#f0fdf4',
+              border: '1px solid #86efac',
+              borderRadius: 8,
+              padding: '0.75rem',
+              fontSize: 13,
+              color: '#166534',
               textAlign: 'center'
             }}>
-              {insights_temporels.ecart_weekend_semaine > 0 ? '⚠️' : '✅'} 
-              {' '}Écart weekend/semaine : {insights_temporels.ecart_weekend_semaine > 0 ? '+' : ''}
-              {insights_temporels.ecart_weekend_semaine} kcal/jour
+              ✅ Excellente régularité ! Ton alimentation est cohérente en semaine comme le weekend.
             </div>
           )}
         </div>
