@@ -28,6 +28,7 @@ import { useRouter } from 'next/router';
 import BandeauDefiActif from '../components/BandeauDefiActif';
 import ModalFeedbackValidation from '../components/ModalFeedbackValidation';
 import BilanHebdoModal from '../components/BilanHebdoModal';
+import PopupBilanMensuel from '../components/PopupBilanMensuel';
 import { fetchRepasPeriode } from '../lib/repasUtils';
 import BudgetExtrasCard from '../components/BudgetExtrasCard';
 import { supabase } from '../lib/supabaseClient';
@@ -42,6 +43,7 @@ import {
   calculerTendance7j,
   calculerRepartitionExtrasTemporelle
 } from '../lib/validationSemaine';
+import { estDerniereValidationDuMois, getMoisAnneeValidation } from '../lib/detectionFinMois';
 import { calculerRepartitionTypes, calculerRepartitionMoments } from '../lib/repartitionExtras';
 import { calculerJoursRespectes } from '../lib/joursRespectes';
 import { 
@@ -452,6 +454,10 @@ export default function Suivi() {
   // Bilan hebdo : état modal et données
   const [showBilanModal, setShowBilanModal] = useState(false);
   const [bilanData, setBilanData] = useState(null);
+  // Bilan mensuel : pop-up + modal
+  const [showPopupBilanMensuel, setShowPopupBilanMensuel] = useState(false);
+  const [showBilanMensuelModal, setShowBilanMensuelModal] = useState(false);
+  const [bilanMensuelData, setBilanMensuelData] = useState(null);
   // Hook pour tracker les champs du repas en cours (portions, féculents, hydratation, etc.)
   const [champsRepasEnCours, setChampsRepasEnCours] = useState({});
   // Récupérer la date du jeûne programmé (stockée en localStorage ou BDD)
@@ -1250,6 +1256,22 @@ export default function Suivi() {
           extrasHorsRepas: repartitionTemporelle,
         });
         setShowBilanModal(true);
+        
+        // ═══════════════════════════════════════════════════════════
+        // DÉTECTION FIN DE MOIS - DÉCLENCHEMENT BILAN MENSUEL
+        // ═══════════════════════════════════════════════════════════
+        console.log('[BILAN MENSUEL] Vérification si dernière validation du mois...');
+        const estDerniere = estDerniereValidationDuMois(selectedWeekStart);
+        console.log('[BILAN MENSUEL] Résultat détection:', estDerniere);
+        
+        if (estDerniere) {
+          const periode = getMoisAnneeValidation(selectedWeekStart);
+          console.log('[BILAN MENSUEL] 🎉 Dernière validation du mois détectée !', periode);
+          
+          // Afficher pop-up notification
+          setBilanMensuelData({ mois: periode.mois, annee: periode.annee });
+          setShowPopupBilanMensuel(true);
+        }
       } else {
         setSnackbar({ open: true, message: "Erreur lors de la validation de la semaine.", type: "error" });
       }
@@ -1894,6 +1916,40 @@ export default function Suivi() {
                   >
                     ✅ Valider ma semaine
                   </button>
+                  
+                  {/* 🧪 BOUTON TEST DÉTECTION FIN DE MOIS (mode dev) */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <button
+                      style={{
+                        background: '#ff9800',
+                        color: '#fff',
+                        border: '2px dashed #f57c00',
+                        borderRadius: 18,
+                        padding: '8px 20px',
+                        fontWeight: 600,
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        marginTop: 12,
+                        display: 'block',
+                        width: '100%'
+                      }}
+                      onClick={() => {
+                        console.log('🧪 TEST DÉTECTION FIN DE MOIS');
+                        console.log('Date sélectionnée:', selectedDate);
+                        const estDerniere = estDerniereValidationDuMois(selectedDate);
+                        console.log('Résultat détection:', estDerniere);
+                        if (estDerniere) {
+                          const periode = getMoisAnneeValidation(selectedDate);
+                          console.log('Période détectée:', periode);
+                          alert(`✅ DERNIÈRE VALIDATION DU MOIS\nMois: ${periode.mois}\nAnnée: ${periode.annee}`);
+                        } else {
+                          alert('❌ PAS la dernière validation du mois');
+                        }
+                      }}
+                    >
+                      🧪 Tester détection fin de mois
+                    </button>
+                  )}
                 </div>
               )
             )}
@@ -2122,6 +2178,23 @@ export default function Suivi() {
         dateValidation={feedbackData?.dateValidation}
         quota={2}
       />
+      
+      {/* ═══════════════════════════════════════════════════════════
+          POP-UP BILAN MENSUEL (22 janvier 2026)
+          Notifie utilisateur qu'un bilan mensuel est disponible
+          ═══════════════════════════════════════════════════════════ */}
+      <PopupBilanMensuel
+        isOpen={showPopupBilanMensuel}
+        mois={bilanMensuelData?.mois}
+        annee={bilanMensuelData?.annee}
+        onClose={() => setShowPopupBilanMensuel(false)}
+        onVoirBilan={() => {
+          setShowPopupBilanMensuel(false);
+          // TODO Phase 2: Ouvrir BilanMensuelModal
+          console.log('[BILAN MENSUEL] Ouverture modale bilan mensuel (TODO Phase 2)');
+        }}
+      />
+      
       {/* MODALE BILAN HEBDO ALIMENTAIRE */}
       <BilanHebdoModal
         open={showBilanModal}
