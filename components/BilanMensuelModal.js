@@ -823,10 +823,6 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
         console.log('[BILAN MENSUEL MODAL] Vérification section2:', nouveauBilan.section2);
         setBilanData(nouveauBilan);
         console.log('[BILAN MENSUEL MODAL] setBilanData appelé avec succès');
-      } catch (erreurSection2) {
-        console.error('[BILAN MENSUEL MODAL] ❌ Erreur Section 2:', erreurSection2);
-        console.error('[BILAN MENSUEL MODAL] Stack:', erreurSection2.stack);
-      }
       } catch (err) {
         console.error('[BILAN MENSUEL MODAL] ❌ Erreur chargement:', err);
         console.error('[BILAN MENSUEL MODAL] Stack:', err.stack);
