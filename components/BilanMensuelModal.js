@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { calculerSection1TendancePoids, calculerSection2BudgetCalorique, calculerSection3Patterns, calculerSection4QualiteNutritionnelle, calculerSection5BienEtre } from '../lib/calculsBilanMensuel';
+import { calculerSection1TendancePoids, calculerSection2BudgetCalorique, calculerSection3Patterns, calculerSection4QualiteNutritionnelle, calculerSection5BienEtre, calculerSection6Projection } from '../lib/calculsBilanMensuel';
+import { supabase } from '../lib/supabaseClient';
+import { calculerProfilComplet } from '../lib/routeurPoids';
 
 /**
  * Composant Section1TendancePoids
@@ -1833,6 +1835,271 @@ function Section5BienEtre({ data }) {
 }
 
 /**
+ * Section6Projection - Projection et recommandations mois suivant
+ * Affiche objectifs, ajustements stratégiques, checkpoints hebdo
+ */
+function Section6Projection({ data }) {
+  console.log('[SECTION6 COMPOSANT] Rendu Section6Projection');
+  console.log('[SECTION6 COMPOSANT] Data reçue:', data);
+  
+  if (!data || data.erreur === 'donnees_insuffisantes') {
+    return (
+      <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+        <div style={{ fontSize: 48 }}>🎯</div>
+        <div style={{ marginTop: '0.5rem', fontSize: 16, color: '#6b7280' }}>
+          Données insuffisantes pour générer une projection
+        </div>
+      </div>
+    );
+  }
+
+  const {
+    objectif_poids,
+    objectif_poids_message,
+    objectif_budget,
+    ajustement_budget_message,
+    ajustements_strategiques,
+    points_vigilance,
+    checkpoints_hebdo,
+    points_forts_a_maintenir
+  } = data;
+
+  return (
+    <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      {/* En-tête avec période */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: 12,
+        padding: '1.5rem',
+        color: 'white',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: 32, marginBottom: '0.5rem' }}>🎯</div>
+        <div style={{ fontSize: 20, fontWeight: 'bold' }}>Plan d'action mois prochain</div>
+        <div style={{ fontSize: 13, opacity: 0.9, marginTop: '0.25rem' }}>
+          Recommandations personnalisées basées sur ce mois
+        </div>
+      </div>
+
+      {/* Objectifs principaux */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        {/* Objectif poids */}
+        {objectif_poids && (
+          <div style={{ 
+            background: '#f0f9ff',
+            border: '2px solid #0ea5e9',
+            borderRadius: 12,
+            padding: '1.25rem',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#075985', marginBottom: '0.5rem' }}>
+              ⚖️ Objectif poids
+            </div>
+            <div style={{ fontSize: 36, fontWeight: 'bold', color: '#0284c7' }}>
+              {objectif_poids} kg
+            </div>
+            <div style={{ fontSize: 12, color: '#0369a1', marginTop: '0.5rem' }}>
+              {objectif_poids_message}
+            </div>
+          </div>
+        )}
+
+        {/* Objectif budget */}
+        <div style={{ 
+          background: '#fef3c7',
+          border: '2px solid #f59e0b',
+          borderRadius: 12,
+          padding: '1.25rem',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#92400e', marginBottom: '0.5rem' }}>
+            🔥 Budget calorique
+          </div>
+          <div style={{ fontSize: 36, fontWeight: 'bold', color: '#d97706' }}>
+            {objectif_budget}
+          </div>
+          <div style={{ fontSize: 11, color: '#78350f' }}>kcal/jour</div>
+          <div style={{ fontSize: 12, color: '#92400e', marginTop: '0.5rem' }}>
+            {ajustement_budget_message}
+          </div>
+        </div>
+      </div>
+
+      {/* Points forts à maintenir */}
+      {points_forts_a_maintenir && points_forts_a_maintenir.length > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+            💪 Tes forces à conserver
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
+            {points_forts_a_maintenir.map((point, idx) => (
+              <div 
+                key={idx}
+                style={{ 
+                  background: '#f0fdf4',
+                  border: '1px solid #86efac',
+                  borderRadius: 8,
+                  padding: '0.75rem',
+                  fontSize: 13,
+                  color: '#166534',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <span style={{ fontSize: 16 }}>✅</span>
+                <span>{point}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ajustements stratégiques */}
+      {ajustements_strategiques && ajustements_strategiques.length > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+            🎯 Ajustements prioritaires
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {ajustements_strategiques.map((ajustement, idx) => (
+              <div 
+                key={idx}
+                style={{ 
+                  background: '#eff6ff',
+                  border: '2px solid #60a5fa',
+                  borderRadius: 8,
+                  padding: '1rem',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.75rem'
+                }}
+              >
+                <div style={{ 
+                  background: '#3b82f6',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: 28,
+                  height: 28,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 14,
+                  fontWeight: 'bold',
+                  flexShrink: 0
+                }}>
+                  {idx + 1}
+                </div>
+                <div style={{ flex: 1, fontSize: 13, color: '#1e40af', paddingTop: '0.25rem' }}>
+                  {ajustement}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Points de vigilance */}
+      {points_vigilance && points_vigilance.length > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+            ⚠️ Points de vigilance
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {points_vigilance.map((point, idx) => (
+              <div 
+                key={idx}
+                style={{ 
+                  background: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  borderRadius: 8,
+                  padding: '0.75rem',
+                  fontSize: 13,
+                  color: '#92400e',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <span style={{ fontSize: 16 }}>⚠️</span>
+                <span>{point}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Checkpoints hebdomadaires */}
+      {checkpoints_hebdo && checkpoints_hebdo.length > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+            📅 Checkpoints hebdomadaires
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {checkpoints_hebdo.map((checkpoint, idx) => (
+              <div 
+                key={idx}
+                style={{ 
+                  background: '#fff',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: 12,
+                  padding: '1rem',
+                  display: 'flex',
+                  gap: '1rem',
+                  alignItems: 'flex-start'
+                }}
+              >
+                <div style={{ 
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  borderRadius: 10,
+                  width: 50,
+                  height: 50,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <div style={{ fontSize: 11, opacity: 0.8 }}>S{checkpoint.semaine}</div>
+                  <div style={{ fontSize: 16, fontWeight: 'bold' }}>📌</div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#111827', marginBottom: '0.25rem' }}>
+                    {checkpoint.objectif}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>
+                    Indicateur : {checkpoint.indicateur}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Message de motivation */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        borderRadius: 12,
+        padding: '1.5rem',
+        textAlign: 'center',
+        color: 'white'
+      }}>
+        <div style={{ fontSize: 24, marginBottom: '0.5rem' }}>💪</div>
+        <div style={{ fontSize: 16, fontWeight: 600 }}>
+          Tu as toutes les clés en main !
+        </div>
+        <div style={{ fontSize: 13, opacity: 0.9, marginTop: '0.5rem' }}>
+          Ces recommandations sont basées sur TES données réelles. 
+          Un pas après l'autre, tu progresses. 🌟
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * BilanMensuelModal - Modale d'affichage du bilan mensuel
  * 
  * Phase 2 : Structure vide avec 6 sections accordéons
@@ -1899,6 +2166,46 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
       console.log('[BILAN MENSUEL MODAL] 🔄 Chargement données pour', moisNoms[mois - 1], annee);
       
       try {
+        // Récupérer profil utilisateur pour calculer objectif calorique
+        let objectifCaloriqueJour = 1900; // Valeur par défaut
+        const { data: profil, error: profilError } = await supabase
+          .from('profil')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (!profilError && profil && profil.sexe && profil.niveau_activite) {
+          // Déterminer objectif type (perte/maintien/prise)
+          let objectifType = 'perte';
+          if (profil.poids_de_depart && profil.objectif) {
+            if (profil.poids_de_depart > profil.objectif) {
+              objectifType = 'perte';
+            } else if (profil.poids_de_depart < profil.objectif) {
+              objectifType = 'prise';
+            } else {
+              objectifType = 'maintien';
+            }
+          }
+          
+          const profilComplet = {
+            sexe: profil.sexe,
+            age: profil.age,
+            taille: profil.taille,
+            poids_de_depart: profil.poids_de_depart,
+            niveau_activite: profil.niveau_activite,
+            objectif: objectifType
+          };
+          
+          const calculs = calculerProfilComplet(profilComplet);
+          if (calculs && calculs.apport_calorique_cible) {
+            objectifCaloriqueJour = calculs.apport_calorique_cible;
+            console.log('[BILAN MENSUEL MODAL] Objectif calorique personnalisé:', objectifCaloriqueJour, 'kcal/jour');
+          }
+        } else {
+          console.log('[BILAN MENSUEL MODAL] Profil incomplet, utilisation valeur par défaut:', objectifCaloriqueJour, 'kcal/jour');
+        }
+        
         // Phase 3: Charger Section 1
         console.log('[BILAN MENSUEL MODAL] Appel calculerSection1TendancePoids...');
         const section1 = await calculerSection1TendancePoids(mois, annee);
@@ -1908,7 +2215,7 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
         console.log('[BILAN MENSUEL MODAL] === DÉBUT CHARGEMENT SECTION 2 ===');
         console.log('[BILAN MENSUEL MODAL] Appel calculerSection2BudgetCalorique...');
         
-        const section2 = await calculerSection2BudgetCalorique(mois, annee, 1900);
+        const section2 = await calculerSection2BudgetCalorique(mois, annee, objectifCaloriqueJour);
         console.log('[BILAN MENSUEL MODAL] Section 2 reçue avec succès:', section2);
         
         // Log détaillé du contenu
@@ -1924,7 +2231,7 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
         
         // Phase 5: Charger Section 3
         console.log('[BILAN MENSUEL MODAL] === DÉBUT CHARGEMENT SECTION 3 ===');
-        const section3 = await calculerSection3Patterns(mois, annee, 1900);
+        const section3 = await calculerSection3Patterns(mois, annee, objectifCaloriqueJour);
         console.log('[BILAN MENSUEL MODAL] Section 3 reçue:', section3);
         console.log('[BILAN MENSUEL MODAL] === FIN CHARGEMENT SECTION 3 ===');
         
@@ -1940,6 +2247,18 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
         console.log('[BILAN MENSUEL MODAL] Section 5 reçue:', section5);
         console.log('[BILAN MENSUEL MODAL] === FIN CHARGEMENT SECTION 5 ===');
         
+        // Phase 8: Charger Section 6 (projection basée sur toutes les sections)
+        console.log('[BILAN MENSUEL MODAL] === DÉBUT CHARGEMENT SECTION 6 ===');
+        const section6 = await calculerSection6Projection(mois, annee, {
+          section1,
+          section2,
+          section3,
+          section4,
+          section5
+        });
+        console.log('[BILAN MENSUEL MODAL] Section 6 reçue:', section6);
+        console.log('[BILAN MENSUEL MODAL] === FIN CHARGEMENT SECTION 6 ===');
+        
         const nouveauBilan = {
           mois,
           annee,
@@ -1948,7 +2267,7 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
           section3,
           section4,
           section5,
-          section6: null, // TODO Phase 8
+          section6
         };
         
         console.log('[BILAN MENSUEL MODAL] Bilan créé:', nouveauBilan);
@@ -2428,12 +2747,16 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                   </div>
                   {sectionsOuvertes.section6 && (
                     <div className="sectionContent">
-                      <div className="placeholder">
-                        <div className="placeholderIcon">⏳</div>
-                        <p className="placeholderText">
-                          Calculs en cours... (Phase 8)
-                        </p>
-                      </div>
+                      {bilanData?.section6 ? (
+                        <Section6Projection data={bilanData.section6} />
+                      ) : (
+                        <div className="placeholder">
+                          <div className="placeholderIcon">⏳</div>
+                          <p className="placeholderText">
+                            Génération du plan d'action...
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
