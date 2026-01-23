@@ -35,6 +35,24 @@ function formatDateContextuelle(dateStr) {
 }
 
 /**
+ * Formate une date au format complet : Jour DD/MM/YYYY
+ * @param {string} dateStr - Date au format YYYY-MM-DD
+ * @returns {string} - Format complet
+ */
+function formatDateComplete(dateStr) {
+  if (!dateStr) return '—';
+  
+  const date = new Date(dateStr + 'T00:00:00');
+  const jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+  const jourSemaine = jours[date.getDay()];
+  const jour = String(date.getDate()).padStart(2, '0');
+  const mois = String(date.getMonth() + 1).padStart(2, '0');
+  const annee = date.getFullYear();
+  
+  return `${jourSemaine} ${jour}/${mois}/${annee}`;
+}
+
+/**
  * Regroupe les repas par période
  * @param {Array} repas - Liste des repas
  * @returns {Object} - Repas regroupés par période
@@ -89,6 +107,7 @@ function RepasForm({ initial, onCancel, onSave }) {
       categorie: "",
       quantite: "",
       kcal: "",
+      est_extra: false,
     }
   );
   const [isFastFood, setIsFastFood] = useState(false);
@@ -136,6 +155,14 @@ function RepasForm({ initial, onCancel, onSave }) {
           <input name="kcal" placeholder="Kcal" type="number" value={form.kcal || ""} onChange={handleChange} required style={{ flex: 1, minWidth: 80 }} />
         </div>
         <div style={{ marginTop: 16 }}>
+          <label style={{ marginRight: 16 }}>
+            <input 
+              type="checkbox" 
+              checked={form.est_extra || false} 
+              onChange={e => setForm({ ...form, est_extra: e.target.checked })} 
+            /> 
+            Est un extra ?
+          </label>
           <label style={{ marginRight: 16 }}>
             <input type="checkbox" checked={isFastFood} onChange={e => setIsFastFood(e.target.checked)} /> Fast food ?
           </label>
@@ -574,8 +601,8 @@ export default function Repas() {
           <tbody>
             {repasSection.map((r) => (
               <tr key={r.id}>
-                <td style={{ padding: 8, border: "1px solid #ddd", position: 'relative' }} title={r.date}>
-                  <span style={{ fontWeight: '600' }}>{formatDateContextuelle(r.date)}</span>
+                <td style={{ padding: 8, border: "1px solid #ddd", position: 'relative' }} title={formatDateContextuelle(r.date)}>
+                  <span style={{ fontWeight: '600' }}>{formatDateComplete(r.date)}</span>
                   {/* Validation semaine (dîner du dimanche) */}
                   {(() => {
                     const d = new Date(r.date);
