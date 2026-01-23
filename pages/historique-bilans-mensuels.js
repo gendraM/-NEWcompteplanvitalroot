@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Navigation from '../components/Navigation';
 import BilanMensuelModal from '../components/BilanMensuelModal';
+import ComparaisonBilansModal from '../components/ComparaisonBilansModal';
 import styles from '../styles/HistoriqueBilansMensuels.module.css';
 
 export default function HistoriqueBilansMensuels() {
   const [bilans, setBilans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bilanSelectionne, setBilanSelectionne] = useState(null);
+  const [comparaisonOuverte, setComparaisonOuverte] = useState(false);
 
   useEffect(() => {
     chargerBilans();
@@ -85,6 +87,13 @@ export default function HistoriqueBilansMensuels() {
           <p className={styles.subtitle}>
             Consultez vos bilans mensuels sauvegardés
           </p>
+          <button
+            onClick={() => setComparaisonOuverte(true)}
+            className={styles.compareButton}
+            disabled={bilans.length < 2}
+          >
+            ⚖️ Comparer des bilans
+          </button>
         </header>
 
         {bilans.length === 0 ? (
@@ -195,6 +204,12 @@ export default function HistoriqueBilansMensuels() {
             onClose={fermerModal}
           />
         )}
+
+        <ComparaisonBilansModal
+          isOpen={comparaisonOuverte}
+          onClose={() => setComparaisonOuverte(false)}
+          bilans={bilans}
+        />
       </div>
     </>
   );
