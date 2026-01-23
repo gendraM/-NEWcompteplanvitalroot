@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { calculerSection1TendancePoids, calculerSection2BudgetCalorique, calculerSection3Patterns, calculerSection4QualiteNutritionnelle, calculerSection5BienEtre, calculerSection6Projection } from '../lib/calculsBilanMensuel';
+import { calculerSection1TendancePoids, calculerSection2BudgetCalorique, calculerSection3Patterns, calculerSection4QualiteNutritionnelle, calculerSection5BienEtre, calculerSection6Projection, genererBilanCompletMensuel } from '../lib/calculsBilanMensuel';
 import { supabase } from '../lib/supabaseClient';
 import { calculerProfilComplet } from '../lib/routeurPoids';
 
@@ -2127,6 +2127,8 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
   // État de chargement des données
   const [loading, setLoading] = useState(true);
   const [bilanData, setBilanData] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   
   console.log('[BILAN MENSUEL MODAL] États initiaux:', { loading, bilanData });
   console.log('[BILAN MENSUEL MODAL] 🔐 RLS actif - pas besoin de userId explicite');
@@ -2297,6 +2299,35 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
+
+  // Fonction de sauvegarde en base de données
+  const sauvegarderBilan = async () => {
+    if (saved) {
+      alert('✅ Ce bilan a déjà été sauvegardé');
+      return;
+    }
+    
+    setSaving(true);
+    console.log('[BILAN MENSUEL] Sauvegarde en cours...', { mois, annee });
+    
+    try {
+      const result = await genererBilanCompletMensuel(mois, annee);
+      
+      if (result) {
+        console.log('[BILAN MENSUEL] ✅ Bilan sauvegardé:', result.id);
+        setSaved(true);
+        alert('✅ Bilan mensuel sauvegardé avec succès !');
+      } else {
+        console.error('[BILAN MENSUEL] ❌ Échec sauvegarde - result est null');
+        alert('❌ Erreur lors de la sauvegarde. Vérifiez la console.');
+      }
+    } catch (err) {
+      console.error('[BILAN MENSUEL] Erreur sauvegarde:', err);
+      alert('❌ Erreur : ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (!isOpen) {
     console.log('[BILAN MENSUEL MODAL] Rendu null (modale fermée)');
@@ -2771,12 +2802,14 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
             </button>
             <button
               className="btn btnPrimary"
-              onClick={() => {
-                console.log('[BILAN MENSUEL] TODO: Télécharger PDF');
-                alert('📄 Téléchargement PDF à venir (Phase 9)');
+              onClick={sauvegarderBilan}
+              disabled={saving || saved}
+              style={{
+                opacity: (saving || saved) ? 0.6 : 1,
+                cursor: (saving || saved) ? 'not-allowed' : 'pointer'
               }}
             >
-              📄 Télécharger PDF
+              {saving ? '⏳ Sauvegarde...' : saved ? '✅ Sauvegardé' : '💾 Sauvegarder'}
             </button>
           </div>
         </div>
