@@ -2796,21 +2796,43 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
           </div>
 
           {/* Footer */}
-          <div className="footer">
-            <button className="btn btnSecondary" onClick={onClose}>
-              Fermer
-            </button>
-            <button
-              className="btn btnPrimary"
-              onClick={sauvegarderBilan}
-              disabled={saving || saved}
+          <div className="footer" style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center' 
+          }}>
+            <button 
+              className="btn"
+              onClick={() => window.location.href = '/historique-bilans-mensuels'}
               style={{
-                opacity: (saving || saved) ? 0.6 : 1,
-                cursor: (saving || saved) ? 'not-allowed' : 'pointer'
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer'
               }}
             >
-              {saving ? '⏳ Sauvegarde...' : saved ? '✅ Sauvegardé' : '💾 Sauvegarder'}
+              📈 Voir l'historique
             </button>
+            
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <button className="btn btnSecondary" onClick={onClose}>
+                Fermer
+              </button>
+              <button
+                className="btn btnPrimary"
+                onClick={sauvegarderBilan}
+                disabled={saving || saved}
+                style={{
+                  opacity: (saving || saved) ? 0.6 : 1,
+                  cursor: (saving || saved) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {saving ? '⏳ Sauvegarde...' : saved ? '✅ Sauvegardé' : '💾 Sauvegarder'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
