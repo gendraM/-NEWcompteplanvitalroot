@@ -1276,7 +1276,14 @@ export default function Suivi() {
         ecart_hebdo: tendance.ecart,
         apports_totaux: Math.round(apportsTotaux),
         objectif_hebdo: objectifHebdo,
-        projection_poids: tendance.projection_poids
+        projection_poids: tendance.projection_poids,
+        // PHASE 2 - Données ABC (Lectures A, B, C + Fragilités)
+        bilan_abc: {
+          lectureA: lectureA || null,
+          lectureB: lectureB || null,
+          lectureC: lectureC || null,
+          fragilites: fragilites || null
+        }
       };
       
       // LOG DEBUG : Vérifier chaque valeur
@@ -1323,20 +1330,13 @@ export default function Suivi() {
           nbRepasSatiete,
           nbRepasRessenti,
           extrasHorsRepas: repartitionTemporelle,
-          // PHASE 2 - Lectures A, B, C + Enrichissements
-          objectifJournalier: lectureA.objectifJournalier,
-          joursCategories: lectureA.joursCategories,
-          joursIncomplets: lectureA.joursIncomplets,
-          detailsJours: lectureA.detailsJours,
-          longestStreak: lectureA.longestStreak,
-          streaks: lectureA.streaks,
-          surplusTotal: lectureB.surplusTotal,
-          jourPlusLourd: lectureB.jourPlusLourd,
-          repartition: lectureB.repartition,
-          deltaKcal: lectureC?.deltaKcal || null,
-          deltaNb: lectureC?.deltaNb || null,
-          tendanceExtras: lectureC?.tendanceExtras || null,
-          fragilites: fragilites
+          // PHASE 2 - Lectures A, B, C + Enrichissements (depuis bilan_abc)
+          bilan_abc: {
+            lectureA: lectureA || null,
+            lectureB: lectureB || null,
+            lectureC: lectureC || null,
+            fragilites: fragilites || null
+          }
         });
         setShowBilanModal(true);
         
