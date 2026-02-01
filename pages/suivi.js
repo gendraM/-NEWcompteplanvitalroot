@@ -42,7 +42,11 @@ import {
   addDays,
   formatDate,
   calculerTendance7j,
-  calculerRepartitionExtrasTemporelle
+  calculerRepartitionExtrasTemporelle,
+  calculerRepartitionJours,
+  calculerImpactJours,
+  calculerEvolutionExtras,
+  analyserFragilites
 } from '../lib/validationSemaine';
 import { estDerniereValidationDuMois, getMoisAnneeValidation } from '../lib/detectionFinMois';
 import { calculerRepartitionTypes, calculerRepartitionMoments } from '../lib/repartitionExtras';
@@ -1193,6 +1197,70 @@ export default function Suivi() {
       const nbRepasSatiete = repasAvecSatiete.length;
       const nbRepasRessenti = repasAvecRessenti.length;
       
+      // ═══════════════════════════════════════════════════════════
+      // PHASE 2 - CALCULS LECTURES A, B, C + ENRICHISSEMENTS
+      // ═══════════════════════════════════════════════════════════
+      
+      // 📊 LECTURE A : Répartition des jours + Streaks
+      console.log('[BILAN ABC] Calcul Lecture A - Répartition jours...');
+      const lectureA = calculerRepartitionJours(repasData, selectedWeekStart, objectifHebdo);
+      console.log('[BILAN ABC] Lecture A résultat:', {
+        objectifJournalier: lectureA.objectifJournalier,
+        joursCategories: lectureA.joursCategories,
+        joursIncomplets: lectureA.joursIncomplets,
+        longestStreak: lectureA.longestStreak,
+        streaks: lectureA.streaks
+      });
+      
+      // 🎯 LECTURE B : Impact des jours sur le surplus
+      console.log('[BILAN ABC] Calcul Lecture B - Impact jours...');
+      const lectureB = calculerImpactJours(lectureA.detailsJours);
+      console.log('[BILAN ABC] Lecture B résultat:', {
+        surplusTotal: lectureB.surplusTotal,
+        jourPlusLourd: lectureB.jourPlusLourd,
+        repartition: lectureB.repartition
+      });
+      
+      // 📈 LECTURE C : Évolution extras N vs N-1
+      console.log('[BILAN ABC] Calcul Lecture C - Évolution extras N vs N-1...');
+      // Compléter fetch N-1 pour récupérer extras_details
+      let extrasKcalN1 = null;
+      let extrasNbN1 = null;
+      if (semainesPrecedentes && semainesPrecedentes.length > 0) {
+        const weekStartN1 = semainesPrecedentes[0].weekStart;
+        const { data: semaineN1Complete } = await supabase
+          .from('semaines_validees')
+          .select('extras_details')
+          .eq('weekStart', weekStartN1)
+          .single();
+        
+        if (semaineN1Complete && semaineN1Complete.extras_details) {
+          try {
+            const detailsN1 = JSON.parse(semaineN1Complete.extras_details);
+            extrasKcalN1 = detailsN1.reduce((sum, extra) => sum + (Number(extra.kcal) || 0), 0);
+            extrasNbN1 = detailsN1.length;
+            console.log('[BILAN ABC] Semaine N-1 détectée:', { weekStartN1, extrasKcalN1, extrasNbN1 });
+          } catch (parseError) {
+            console.warn('[BILAN ABC] Erreur parsing extras_details N-1:', parseError);
+          }
+        }
+      } else {
+        console.log('[BILAN ABC] Aucune semaine N-1 validée trouvée');
+      }
+      
+      const extrasKcalN = extrasInfo.details.reduce((sum, extra) => sum + (Number(extra.kcal) || 0), 0);
+      const extrasNbN = extrasInfo.count;
+      
+      const lectureC = calculerEvolutionExtras(extrasKcalN, extrasNbN, extrasKcalN1, extrasNbN1);
+      console.log('[BILAN ABC] Lecture C résultat:', lectureC);
+      
+      // 🔍 ENRICHISSEMENT : Analyse des fragilités
+      console.log('[BILAN ABC] Calcul Fragilités...');
+      const fragilites = analyserFragilites(lectureA.detailsJours, repasData);
+      console.log('[BILAN ABC] Fragilités résultat:', fragilites);
+      
+      // ═══════════════════════════════════════════════════════════
+      
       let insertOk = false;
       const bilanToInsert = {
         weekStart: selectedWeekStart,
@@ -1255,6 +1323,20 @@ export default function Suivi() {
           nbRepasSatiete,
           nbRepasRessenti,
           extrasHorsRepas: repartitionTemporelle,
+          // PHASE 2 - Lectures A, B, C + Enrichissements
+          objectifJournalier: lectureA.objectifJournalier,
+          joursCategories: lectureA.joursCategories,
+          joursIncomplets: lectureA.joursIncomplets,
+          detailsJours: lectureA.detailsJours,
+          longestStreak: lectureA.longestStreak,
+          streaks: lectureA.streaks,
+          surplusTotal: lectureB.surplusTotal,
+          jourPlusLourd: lectureB.jourPlusLourd,
+          repartition: lectureB.repartition,
+          deltaKcal: lectureC?.deltaKcal || null,
+          deltaNb: lectureC?.deltaNb || null,
+          tendanceExtras: lectureC?.tendanceExtras || null,
+          fragilites: fragilites
         });
         setShowBilanModal(true);
         
