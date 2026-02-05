@@ -825,31 +825,45 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
         margin: '0 auto'
       }}
     >
+      {/* Bouton fermeture fixe en haut à droite - HORS de la div scrollable */}
+      <button
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          top: isMobile ? '0.5rem' : '1rem',
+          right: isMobile ? '0.5rem' : '1rem',
+          background: '#ffffff',
+          border: '2px solid #e2e8f0',
+          borderRadius: '50%',
+          width: isMobile ? '36px' : '40px',
+          height: isMobile ? '36px' : '40px',
+          fontSize: isMobile ? '1.5rem' : '1.8rem',
+          cursor: 'pointer',
+          color: '#64748b',
+          lineHeight: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          transition: 'all 0.2s',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = '#f1f5f9';
+          e.currentTarget.style.color = '#1976d2';
+          e.currentTarget.style.borderColor = '#1976d2';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = '#ffffff';
+          e.currentTarget.style.color = '#64748b';
+          e.currentTarget.style.borderColor = '#e2e8f0';
+        }}
+        aria-label="Fermer le bilan"
+      >
+        ×
+      </button>
+      
       <div className={styles.modal} style={{ padding: modalPadding, fontSize: fontSize }}>
-        {/* Bouton fermeture en haut à droite */}
-        <button
-          onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: isMobile ? '0.5rem' : '1rem',
-            right: isMobile ? '0.5rem' : '1rem',
-            background: 'transparent',
-            border: 'none',
-            fontSize: isMobile ? '1.8rem' : '2.2rem',
-            cursor: 'pointer',
-            color: '#64748b',
-            lineHeight: 1,
-            padding: '0.25rem',
-            zIndex: 10,
-            transition: 'color 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.color = '#1976d2'}
-          onMouseLeave={(e) => e.currentTarget.style.color = '#64748b'}
-          aria-label="Fermer le bilan"
-        >
-          ×
-        </button>
-        
         {/* Titre, période, phrase pédagogique */}
         <h2 style={{marginBottom: '0.7rem', color: '#1976d2', paddingRight: '3rem'}}>Bilan de ta semaine alimentaire</h2>
         <div style={{fontWeight: 500, color: '#444', marginBottom: '0.5rem', fontSize: '1.08rem'}}>
@@ -1072,9 +1086,6 @@ function SectionCommentMange({ bilan, selectedDate }) {
           )}
         </div>
       )}
-      
-      {/* PHASE 3 - Bloc Objectif Personnalisé Semaine Prochaine */}
-      <BlocObjectifSemaineProchaine />
     </div>
   );
 }
