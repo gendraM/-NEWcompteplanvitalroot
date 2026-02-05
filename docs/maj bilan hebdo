@@ -1,0 +1,273 @@
+FICHE DE TRANSMISSION COPILOT — BILAN HEBDO (LECTURE DYNAMIQUE “JUSTE”)
+0) Objectif
+Améliorer le bilan hebdomadaire pour qu’il ne “punisse” pas une semaine majoritairement alignée à cause d’une seule journée.
+Le bilan doit révéler la répartition, l’impact réel, et les évolutions, avec un ton Plan Vital : trajectoire, continuité, direction, pas jugement.
+Le bilan ajoute 3 lectures maximum :
+A) Répartition des jours vs objectif
+B) Jour(s) qui pèsent dans l’écart
+C) Évolution des extras vs semaine précédente
+Aucune IA. Uniquement règles + seuils + verbatim contrôlé.
+
+1) Données attendues (inputs)
+1.1 Périmètre semaine
+week_start_date, week_end_date
+
+
+1.2 Objectif
+objectif_hebdo_kcal (ex: 12110 kcal)
+
+
+objectif_jour_kcal = objectif_hebdo_kcal / 7 (arrondi logique UI)
+
+
+1.3 Pour chaque jour D de la semaine (7 jours)
+Champs minimum :
+kcal_total_jour[D] = total (repas + extras)
+
+
+jour_incomplet[D] (bool) = true si saisie insuffisante (sinon biais)
+
+
+ecart_jour[D] = kcal_total_jour[D] - objectif_jour_kcal
+
+
+Champs extras (si dispo) :
+kcal_extras_jour[D]
+
+
+nb_extras_jour[D]
+
+
+1.4 Semaine précédente (N-1) — pour comparaison
+kcal_extras_semaine_prev
+
+
+nb_extras_semaine_prev
+
+
+
+2) Garde-fous “données incomplètes” (obligatoire)
+Calcul :
+jours_complets = count(jour_incomplet[D] == false)
+
+
+jours_incomplets = 7 - jours_complets
+
+
+Règle :
+Si jours_incomplets >= 2 :
+
+ Afficher une mention “lecture partielle” dans les sections A et B :
+
+ Verbatim fixe :
+
+
+Lecture partielle : certains jours ne sont pas suffisamment renseignés.
+La trajectoire se lit mieux quand la semaine est complète.
+Ne jamais traiter un jour vide comme 0 kcal sans avertissement.
+
+3) SECTION A — Répartition des jours vs objectif (macro simple)
+Objectif : dire “sur 7 jours, combien de jours étaient sous/proches/au-dessus”.
+3.1 Catégorisation de chaque jour (à partir de 
+ecart_jour[D]
+)
+Seuils (ajustables mais à conserver cohérents) :
+SOUS : ecart_jour <= -100
+
+
+PROCHE : -100 < ecart_jour < +100
+
+
+LEGER_DEPASSEMENT : +100 <= ecart_jour < +300
+
+
+DEBORDEMENT : ecart_jour >= +300
+
+
+3.2 Comptages
+nb_sous
+
+
+nb_proche
+
+
+nb_leger_depassement
+
+
+nb_debordement
+
+
+nb_stables = nb_sous + nb_proche
+
+
+3.3 Sortie UI attendue
+Format :
+Sur 7 jours : X jours sous ou proches de l’objectif, Y jours légèrement au-dessus, Z jour(s) de débordement plus marqué.
+3.4 Verbatims Plan Vital (variantes autorisées)
+Choisir 1 phrase (pas plus) selon le profil de la semaine.
+Si nb_stables >= 4 et nb_debordement == 1
+Option 1 :
+La semaine est majoritairement tenue.
+L’écart s’est surtout joué sur un point isolé.
+Option 2 :
+La direction globale est restée stable sur la plupart des jours.
+Un moment précis a pesé plus lourd dans le bilan.
+Si nb_debordement >= 2
+Option 1 :
+Plusieurs journées ont dépassé le cadre prévu.
+Sur la durée, le corps perçoit une direction plus chargée.
+Option 2 :
+La semaine montre une répétition de dépassements.
+Ce n’est pas une journée : c’est une dynamique.
+Si nb_stables >= 6 et nb_debordement == 0
+Option 1 :
+Semaine très régulière.
+Le corps perçoit une continuité stable.
+Option 2 :
+Une semaine alignée dans l’ensemble.
+La trajectoire se construit sur cette répétition.
+
+4) SECTION B — Jour(s) qui pèsent dans l’écart (impact réel)
+Objectif : éviter qu’un seul jour “écrase” tout sans être identifié.
+4.1 Calculer le surplus hebdo (uniquement le positif)
+surplus_total_semaine = sum(max(0, ecart_jour[D]))
+
+
+4.2 Jour le plus lourd
+top1_surplus = max(max(0, ecart_jour[D]))
+
+
+part_top1 = top1_surplus / surplus_total_semaine (si surplus_total_semaine > 0)
+
+
+4.3 Règles d’interprétation
+Si part_top1 >= 0.50 : “un jour concentre la majorité”
+
+
+Si 0.30 <= part_top1 < 0.50 : “un jour pèse fort”
+
+
+Si part_top1 < 0.30 : “excédent diffus”
+
+
+4.4 Sortie UI attendue (très lisible)
+Afficher une phrase + pourcentage arrondi (ex 60%, 45%, 25%).
+Exemples :
+“1 journée explique ~60% de l’excédent hebdomadaire.”
+
+
+“L’excédent est réparti sur plusieurs jours (pas un seul pic).”
+
+
+4.5 Verbatims Plan Vital (variantes)
+Cas “un jour concentre la majorité”
+Option 1 :
+L’écart ne s’est pas construit progressivement :
+il s’est surtout joué sur un moment précis.
+Option 2 :
+La semaine a été globalement tenue.
+Une journée a déplacé la trajectoire.
+Option 3 :
+Ce n’est pas une semaine “ratée”.
+C’est un point à sécuriser.
+Cas “diffus”
+Option 1 :
+L’écart se répète sur plusieurs jours.
+Le corps perçoit une continuité, pas un accident.
+Option 2 :
+La trajectoire s’est construite par accumulation, pas par un seul épisode.
+
+5) SECTION C — Évolution des extras vs semaine précédente (progrès visible)
+Objectif : rendre visible la régulation même si l’écart global augmente.
+5.1 Mesures semaine courante
+extras_kcal_semaine = sum(kcal_extras_jour[D])
+
+
+extras_nb_semaine = sum(nb_extras_jour[D])
+
+
+5.2 Mesures semaine précédente
+extras_kcal_semaine_prev
+
+
+extras_nb_semaine_prev
+
+
+5.3 Variations
+delta_extras_kcal = extras_kcal_semaine - extras_kcal_semaine_prev
+
+
+delta_extras_nb = extras_nb_semaine - extras_nb_semaine_prev
+
+
+5.4 Seuils d’interprétation
+Progrès net si delta_extras_kcal <= -200 OU delta_extras_nb <= -2
+
+
+Stable si -200 < delta_extras_kcal < +200 ET -1 <= delta_extras_nb <= +1
+
+
+Plus présent si delta_extras_kcal >= +200 OU delta_extras_nb >= +2
+
+
+5.5 Nuance intensité / fréquence (option utile, pas obligatoire)
+kcal_moy_par_extra = extras_kcal_semaine / max(1, extras_nb_semaine)
+
+ Comparer à N-1 pour dire :
+
+
+“moins d’extras mais plus lourds”
+
+
+“plus d’extras mais plus petits”
+
+
+5.6 Verbatims Plan Vital (variantes)
+Si progrès net
+Option 1 :
+Les extras sont mieux maîtrisés que la semaine précédente.
+Une régulation est déjà en place.
+Option 2 :
+Sur les extras, une base plus stable se dessine.
+La trajectoire se joue ailleurs cette semaine.
+Si stable
+Option 1 :
+Les extras restent dans une continuité similaire à la semaine précédente.
+Si plus présent
+Option 1 :
+Les extras ont été plus présents cette semaine.
+Sur la durée, cela pèse dans la trajectoire.
+
+6) Règle de composition (éviter surcharge / répétition)
+Le bilan hebdo doit afficher :
+
+
+1 phrase synthèse max pour A
+
+
+1 phrase synthèse max pour B
+
+
+1 phrase synthèse max pour C
+
+
+Les détails peuvent être dans “En savoir plus”, mais sans multiplier les messages.
+
+
+Ne pas moraliser. Ne pas conseiller. Pas de “tu devrais”.
+
+
+
+7) Verbatim “socle” Plan Vital (à réutiliser)
+Fixe :
+Ton corps se construit sur des moyennes. Ce bilan te donne la trajectoire, pas un verdict.
+Fixe :
+Une journée ne décide rien. Une semaine oriente. Deux semaines commencent à s’imprimer.
+
+8) Exemple de sortie finale (logique)
+Quand A indique “semaine tenue”, B indique “1 jour pèse 60%”, C indique “extras en progrès” :
+Sortie possible :
+La semaine est majoritairement tenue.
+L’écart s’est surtout joué sur un moment précis.
+Et les extras sont mieux maîtrisés que la semaine précédente.
+
