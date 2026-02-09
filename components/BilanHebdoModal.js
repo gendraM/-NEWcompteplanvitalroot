@@ -463,15 +463,23 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
                     <div style={{fontWeight: 600, color: '#92400e', marginBottom: '0.3rem'}}>
                       {new Date(jour.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </div>
-                    <div style={{color: '#78716c', fontSize: '0.85rem'}}>
-                      {jour.totalKcal} kcal (écart : +{jour.ecart} kcal)
+                    <div style={{color: '#78716c', fontSize: '0.85rem', marginBottom: '0.5rem'}}>
+                      {jour.kcal_total} kcal (écart : +{jour.ecart} kcal)
                     </div>
-                    {jour.top3 && jour.top3.length > 0 && (
-                      <ul style={{marginTop: '0.4rem', paddingLeft: '1.2rem', color: '#78716c', fontSize: '0.85rem'}}>
-                        {jour.top3.slice(0, 3).map((repas, i) => (
-                          <li key={i}>{repas}</li>
-                        ))}
-                      </ul>
+                    {jour.repasProblematiques && jour.repasProblematiques.length > 0 && (
+                      <div style={{marginTop: '0.5rem'}}>
+                        <div style={{fontSize: '0.8rem', color: '#92400e', fontWeight: 600, marginBottom: '0.3rem'}}>
+                          📋 Repas qui ont pesé :
+                        </div>
+                        <ul style={{marginTop: '0.3rem', paddingLeft: '1.5rem', color: '#78716c', fontSize: '0.85rem', listStyle: 'disc'}}>
+                          {jour.repasProblematiques.slice(0, 3).map((repas, i) => (
+                            <li key={i} style={{marginBottom: '0.2rem'}}>
+                              <strong>{repas.type}</strong> : {repas.aliment} ({repas.kcal} kcal)
+                              {repas.est_extra && <span style={{color: '#f59e0b', marginLeft: '0.3rem', fontSize: '0.8rem'}}>⚠️ Extra</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
                 ))}

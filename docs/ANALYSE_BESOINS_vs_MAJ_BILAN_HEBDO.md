@@ -673,3 +673,112 @@ Faire autrement. On y croit, la semaine pro c'est la bonne !"
 **Validation utilisateur requise avant implémentation** ✅
 
 **Prochaine étape** : Confirmer les priorités et démarrer Phase 1 (streaks + fragilités).
+
+---
+
+## 📝 TODO - AMÉLIORATIONS PROCHAINES
+
+### 🔥 Priorité Haute - Corrections urgentes (09/02/2026)
+
+1. ✅ **[FAIT 09/02]** Corriger affichage repas dans zone fragilités
+   - Problème : Affichait `jour.top3` (inexistant) au lieu de `jour.repasProblematiques`
+   - Problème : Affichait `jour.totalKcal` au lieu de `jour.kcal_total`
+   - Solution : Mapping correct + format enrichi avec type, aliment, kcal, badge extra
+   - Fichier : `components/BilanHebdoModal.js` ligne 461-489
+
+2. 🔧 **[EN COURS]** Améliorer sauvegarde et navigation bilans hebdo
+   - **Sauvegarde** : Vérifier cohérence données entre tableau-de-bord.js et suivi.js
+   - **Navigation** : Ajouter flèches ← → dans BilanHebdoModal pour naviguer entre semaines
+   - **Consultation historique** : Implémenter bouton 👁️ dans DrawerValidation
+   - Fichiers : `components/BilanHebdoModal.js`, `pages/historique-extras.js`, `components/DrawerValidation.js`
+   - Durée : 2-3h
+
+### 🎯 Priorité Moyenne - Enrichissements UX
+
+4. **Afficher détail repas jour problématique dans LECTURE B (Impact jours)**
+   - Actuellement : "Le 7 février pèse fortement (~34%)"
+   - Amélioration : Ajouter bouton "🔍 Voir les repas de ce jour" qui déroule la liste
+   - Fichier : `components/BilanHebdoModal.js` BlocImpactJours (ligne 280+)
+   - Durée : 1h
+
+5. **Export PDF du bilan hebdomadaire**
+   - Ajouter bouton "📥 Télécharger ce bilan (PDF)" en bas de BilanHebdoModal
+   - Utiliser bibliothèque : `jspdf` ou `react-pdf`
+   - Contenu : Toutes sections ABC + graphiques
+   - Fichier : `components/BilanHebdoModal.js`
+   - Durée : 3-4h
+
+6. **Export JSON des données brutes**
+   - Pour analyse externe ou backup
+   - Bouton : "💾 Exporter données (JSON)"
+   - Contenu : `bilan_abc` complet + métadonnées
+   - Fichier : `components/BilanHebdoModal.js`
+   - Durée : 30 min
+
+7. **Navigation semaines précédente/suivante dans BilanHebdoModal**
+   - Ajouter flèches ← → en haut du modal
+   - Charger semaine N-1 ou N+1 sans fermer la modale
+   - Badge "📅 Semaine du 3 février 2026" en header
+   - Fichier : `components/BilanHebdoModal.js`
+   - Durée : 2h
+
+### �️ Corrections techniques à planifier (Reporter à plus tard)
+
+**INCOHÉRENCE SCHEMA BDD - semaines_validees** :
+- **Problème détecté** : La table `semaines_validees` utilise 2 colonnes pour identifier les semaines :
+  - `semaine_debut` (utilisée par tableau-de-bord.js ligne 562 - ancien code)
+  - `weekStart` (utilisée par suivi.js ligne 1266 - nouveau code)
+- **Impact** : Les 2 systèmes écrivent dans des colonnes différentes → Données fragmentées
+- **Solutions possibles** :
+  - Option 1 : Migrer tableau-de-bord.js vers `weekStart` (simple, risque perte données)
+  - Option 2 : Synchro double colonne (garde tout, complexe)
+  - Option 3 : Migration BDD complète avec script SQL (idéal, 2h)
+- **Décision utilisateur** : Reporter à plus tard, ne pas toucher maintenant
+- **Fichiers concernés** : `pages/tableau-de-bord.js` ligne 562, `pages/suivi.js` ligne 1266
+
+**Autres nettoyages** :
+- Renommer `historique-extras.js` → `historique-bilans-hebdo.js` (confusion route)
+- Nettoyer champs obsolètes dans historique (budget_utilise, calories_totales, etc.)
+
+### �🔮 Priorité Basse - Fonctionnalités avancées
+
+8. **Historique bilans avec filtres**
+   - Filtrer par : Mois, Année, Niveau de conformité (bonnes/difficiles)
+   - Stats globales : "18 semaines validées", "Taux conformité moyen 72%"
+   - Afficher meilleure série : "6 semaines d'affilée entre janv-fév"
+   - Fichier : `pages/historique-extras.js`
+   - Durée : 3h
+
+9. **Comparaison entre 2 bilans hebdo**
+   - Sélectionner 2 semaines et afficher comparatif side-by-side
+   - Delta sur chaque métrique : extras, kcal, streaks, fragilités
+   - Fichier : Nouveau composant `ComparaisonBilansModal.js`
+   - Durée : 4h
+
+10. **Graphique évolution streaks sur 12 semaines**
+    - Visualiser progression de la régularité dans le temps
+    - Afficher dans BilanHebdoModal ou page dédiée
+    - Utiliser Chart.js
+    - Durée : 2h
+
+---
+
+## 📊 RÉCAPITULATIF ÉTAT PROJET BILAN ABC
+
+### ✅ TERMINÉ (100%)
+- Phase 1 : Fonctions calcul ABC (detecterStreaksReussis, analyserFragilites, calculerImpactJours, calculerEvolutionExtras)
+- Phase 2 : Sauvegarde Supabase avec bilan_abc JSONB
+- Phase 3 : Interface UI 5 blocs ABC dans BilanHebdoModal
+- Phase 3.5 : UX (responsive, date française, close button, corrections bugs)
+- Correction affichage repas fragilités (09/02/2026)
+
+### 🟡 EN ATTENTE
+- Affichage objectif personnel en début de semaine (reporté)
+- Nettoyage historique-extras.js (10 min)
+- Enrichissements UX (points 4-7 ci-dessus)
+
+### ⏱️ TEMPS ESTIMÉ RESTANT
+- Corrections urgentes (points 2-3) : 25 min
+- Enrichissements prioritaires (points 4-6) : 4-5h
+- Fonctionnalités avancées (points 8-10) : 9h
+- **TOTAL** : ~10-11h pour compléter à 100% tous enrichissements

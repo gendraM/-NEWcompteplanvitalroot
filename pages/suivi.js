@@ -1277,6 +1277,15 @@ export default function Suivi() {
         apports_totaux: Math.round(apportsTotaux),
         objectif_hebdo: objectifHebdo,
         projection_poids: tendance.projection_poids,
+        // Données extras
+        kcal_extras: Math.round(kcalExtras),
+        budget_extras: Math.round(budgetExtras),
+        // Données ressenti (Section 7)
+        satiete_moyenne: satieteMoyenne ? parseFloat(satieteMoyenne) : null,
+        humeur_dominante: humeurDominante || null,
+        note_utilisateur: noteUtilisateur || null,
+        nb_repas_satiete: nbRepasSatiete || 0,
+        nb_repas_ressenti: nbRepasRessenti || 0,
         // PHASE 2 - Données ABC (Lectures A, B, C + Fragilités)
         bilan_abc: {
           lectureA: lectureA || null,
