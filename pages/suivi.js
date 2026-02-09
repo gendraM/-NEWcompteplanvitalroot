@@ -1215,11 +1215,11 @@ export default function Suivi() {
       // 🎯 LECTURE B : Impact des jours sur le surplus
       console.log('[BILAN ABC] Calcul Lecture B - Impact jours...');
       const lectureB = calculerImpactJours(lectureA.detailsJours);
-      console.log('[BILAN ABC] Lecture B résultat:', {
+      console.log('[BILAN ABC] Lecture B résultat:', lectureB ? {
         surplusTotal: lectureB.surplusTotal,
         jourPlusLourd: lectureB.jourPlusLourd,
         repartition: lectureB.repartition
-      });
+      } : 'null (pas de surplus - tous les jours conformes)');
       
       // 📈 LECTURE C : Évolution extras N vs N-1
       console.log('[BILAN ABC] Calcul Lecture C - Évolution extras N vs N-1...');

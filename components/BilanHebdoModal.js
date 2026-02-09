@@ -8,12 +8,28 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
     // Gestion fermeture modale
     if (!open) return null;
     
-    // Styles responsive
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    // 📱 Détection responsive dynamique (se met à jour au resize)
+    const [isMobile, setIsMobile] = React.useState(
+      typeof window !== 'undefined' && window.innerWidth < 768
+    );
+    
+    React.useEffect(() => {
+      const handleResize = () => {
+        setIsMobile(window.innerWidth < 768);
+      };
+      
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, []);
+    
+    // Styles responsive basés sur isMobile
     const modalWidth = isMobile ? '95%' : '90%';
-    const modalMaxWidth = isMobile ? '95%' : '900px';
-    const modalPadding = isMobile ? '1rem' : '1.5rem 2rem';
-    const fontSize = isMobile ? '0.95rem' : '1rem';
+    const modalMaxWidth = isMobile ? '100vw' : '900px';
+    const modalPadding = isMobile ? '4rem 0.8rem 1.5rem 0.8rem' : '3rem 2rem 2rem 2rem';
+    const fontSize = isMobile ? '0.88rem' : '1rem';
+    const titleFontSize = isMobile ? '1.3rem' : '1.8rem';
+    const titleMarginBottom = isMobile ? '0.5rem' : '0.7rem';
+    const periodFontSize = isMobile ? '0.85rem' : '1.08rem';
     
     // Helpers pour les blocs d'analyse textuelle métier
     function isEcartSignificatif(apportsTotaux, objectifHebdo) {
@@ -798,11 +814,12 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
         bottom: 0,
         background: 'rgba(0,0,0,0.6)',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: isMobile ? 'flex-start' : 'center',
         justifyContent: 'center',
         zIndex: 9999,
         overflowY: 'auto',
-        padding: isMobile ? '1rem' : '2rem'
+        padding: isMobile ? '0' : '2rem',
+        WebkitOverflowScrolling: 'touch'
       }}
     >
     {/* Modale - clic ne ferme pas */}
@@ -820,9 +837,10 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
       }}
       style={{
         position: 'relative',
-        width: '100%',
+        width: isMobile ? '100%' : '90%',
         maxWidth: modalMaxWidth,
-        margin: '0 auto'
+        margin: isMobile ? '0' : '0 auto',
+        minHeight: isMobile ? '100vh' : 'auto'
       }}
     >
       {/* Bouton fermeture fixe en haut à droite - HORS de la div scrollable */}
@@ -865,8 +883,24 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
       
       <div className={styles.modal} style={{ padding: modalPadding, fontSize: fontSize }}>
         {/* Titre, période, phrase pédagogique */}
-        <h2 style={{marginBottom: '0.7rem', color: '#1976d2', paddingRight: '3rem'}}>Bilan de ta semaine alimentaire</h2>
-        <div style={{fontWeight: 500, color: '#444', marginBottom: '0.5rem', fontSize: '1.08rem'}}>
+        <h2 style={{
+          marginTop: '0',
+          marginBottom: titleMarginBottom,
+          color: '#1976d2',
+          paddingRight: isMobile ? '3rem' : '3.5rem',
+          fontSize: titleFontSize,
+          lineHeight: isMobile ? '1.3' : '1.2',
+          wordWrap: 'break-word'
+        }}>
+          Bilan de ta semaine alimentaire
+        </h2>
+        <div style={{
+          fontWeight: 500,
+          color: '#444',
+          marginBottom: '0.5rem',
+          fontSize: periodFontSize,
+          lineHeight: isMobile ? '1.4' : '1.2'
+        }}>
           {selectedDate ? (() => {
             const refDate = new Date(selectedDate);
             const day = refDate.getDay();
