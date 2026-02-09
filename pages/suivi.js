@@ -35,11 +35,7 @@ import { calculerProfilComplet } from '../lib/routeurPoids';
 import { 
   calculerExtrasSemaine, 
   genererMessageFeedback, 
-  calculerVariation,
-  getMonday,
-  addDays,
-  formatDate,
-  calculerTendance7j
+  calculerVariation 
 } from '../lib/validationSemaine';
 import { calculerRepartitionTypes, calculerRepartitionMoments } from '../lib/repartitionExtras';
 import { calculerJoursRespectes } from '../lib/joursRespectes';
@@ -1010,18 +1006,30 @@ export default function Suivi() {
     console.log('[LOG BILAN] Début handleValiderSemaine');
     try {
       // 1. Calcul strict du lundi et dimanche de la semaine à partir de la date sélectionnée
-      // Utilisation de getMonday() pour garantir la cohérence ISO 8601
-      const monday = getMonday(selectedDate);
-      const sunday = addDays(monday, 6);
+      // Correction universelle ISO 8601 : semaine du lundi au dimanche
+      // Correction stricte métier : lundi = jour 1, dimanche = jour 7, toujours inclus
+      const selectedDateObj = new Date(selectedDate);
+      // Trouver le lundi de la semaine courante (jour 1)
+      const day = selectedDateObj.getDay();
+      // En JS : 0=dimanche, 1=lundi, ..., 6=samedi
+      // Pour lundi : day=1, donc diff=0 ; pour dimanche : day=0, donc diff=-6
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const monday = new Date(selectedDateObj);
+      monday.setDate(selectedDateObj.getDate() + diffToMonday);
+      monday.setHours(0,0,0,0);
+      // Dimanche = lundi + 6 jours
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
       sunday.setHours(23,59,59,999);
-      const selectedWeekStart = formatDate(monday, 'yyyy-MM-dd');
-      const selectedWeekEnd = formatDate(sunday, 'yyyy-MM-dd');
+      const selectedWeekStart = monday.toISOString().slice(0,10);
+      const selectedWeekEnd = sunday.toISOString().slice(0,10);
       // Log des bornes de la semaine et des dates prises en compte
       const joursSemaine = [];
       for (let i = 0; i < 7; i++) {
-        joursSemaine.push(formatDate(addDays(monday, i), 'yyyy-MM-dd'));
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        joursSemaine.push(d.toISOString().slice(0,10));
       }
-      const selectedDateObj = new Date(selectedDate + 'T12:00:00'); // Midi pour éviter les problèmes de fuseau horaire
       console.log(`[LOG BILAN] Date sélectionnée : ${selectedDate} (jour de la semaine : ${selectedDateObj.getDay()})`);
       console.log(`[LOG BILAN] Semaine du ${selectedWeekStart} au ${selectedWeekEnd}`);
       console.log(`[LOG BILAN] Jours pris en compte pour la semaine :`, joursSemaine);
@@ -1078,62 +1086,22 @@ export default function Suivi() {
       const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasData);
       // Génération du message feedback réel (ou valeur neutre si non utilisé)
       const messageFeedback = genererMessageFeedback ? genererMessageFeedback(extrasInfo.count, 1) : '';
-      
-      // Calcul de la variation (extras semaine N vs N-1)
-      // Récupérer la semaine précédente validée pour calculer la variation
-      const { data: semainesPrecedentes } = await supabase
-        .from('semaines_validees')
-        .select('weekStart, extras_count')
-        .lt('weekStart', selectedWeekStart)
-        .order('weekStart', { ascending: false })
-        .limit(1);
-      const extrasN1 = semainesPrecedentes && semainesPrecedentes.length > 0 ? semainesPrecedentes[0].extras_count : null;
-      const variation = (extrasN1 !== null && typeof extrasN1 === 'number') ? extrasInfo.count - extrasN1 : 0;
-      
-      // Calcul des données Section 1 du bilan (apports totaux, objectif, etc.)
-      const apportsTotaux = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
-      const objectifJour = calculs?.apport_calorique_cible || 1730; // Objectif calorique journalier (apport cible, pas TDEE !)
-      const objectifHebdo = objectifJour * 7; // Objectif hebdomadaire
-      const kcalExtras = repasData.filter(r => r.est_extra).reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
-      
-      // Calcul tendance 7j et projection poids
-      const tendance = calculerTendance7j(apportsTotaux, objectifHebdo);
-      
       let insertOk = false;
       const bilanToInsert = {
         weekStart: selectedWeekStart,
-        // weekEnd supprimé : la colonne n'existe pas dans la table (on calcule weekEnd = weekStart + 6 jours si besoin)
+        weekEnd: selectedWeekEnd,
         validee: true,
         date_validation: new Date().toISOString(),
         extras_count: extrasInfo.count,
         extras_details: JSON.stringify(extrasInfo.details),
         message_feedback: messageFeedback,
-        variation,
-        // Nouvelles colonnes Section 2
-        tendance_7j: tendance.type,
-        ecart_hebdo: tendance.ecart,
-        apports_totaux: Math.round(apportsTotaux),
-        objectif_hebdo: objectifHebdo,
-        projection_poids: tendance.projection_poids
+        variation
       };
-      
-      // LOG DEBUG : Vérifier chaque valeur
-      console.log('[LOG BILAN] 🔍 VALEURS DÉTAILLÉES :');
-      console.log('  weekStart:', selectedWeekStart, typeof selectedWeekStart);
-      console.log('  tendance.type:', tendance.type, typeof tendance.type);
-      console.log('  tendance.ecart:', tendance.ecart, typeof tendance.ecart);
-      console.log('  apportsTotaux:', apportsTotaux, typeof apportsTotaux);
-      console.log('  objectifHebdo:', objectifHebdo, typeof objectifHebdo);
-      console.log('  tendance.projection_poids:', tendance.projection_poids, typeof tendance.projection_poids);
-      console.log('[LOG BILAN] Objet complet à insérer :', JSON.stringify(bilanToInsert, null, 2));
-      
       try {
+        console.log('[LOG BILAN] Données à insérer :', bilanToInsert);
         const { data: insertResult, error: insertError } = await supabase
           .from('semaines_validees')
-          .upsert([bilanToInsert], {
-            onConflict: 'weekStart', // Utilise weekStart comme clé unique pour gérer les doublons
-            ignoreDuplicates: false   // Met à jour si existe déjà
-          });
+          .upsert([bilanToInsert]);
         if (insertError) {
           console.error('[LOG BILAN] Erreur lors de l’enregistrement du bilan dans Supabase :', insertError);
         } else {
@@ -1144,18 +1112,19 @@ export default function Suivi() {
         console.error('[LOG BILAN] Exception JS lors de l’insert bilan Supabase :', err);
       }
       if (insertOk) {
-        // Ouverture de la modale BilanHebdoModal (Section 1 complète)
-        setBilanData({
+        setFeedbackData({
           weekStart: selectedWeekStart,
-          apportsTotaux,
-          objectifHebdo,
-          kcalExtras,
+          weekEnd: selectedWeekEnd,
           extras: extrasInfo.count,
-          budgetExtras,
+          details: extrasInfo.details,
+          message: feedbackDetailleSynth,
           variation,
-          // Pas de données Section 2 pour l'instant (à implémenter)
+          pointsForts,
+          axesAmelioration,
+          tendanceMensuelle,
+          feedbackDetaille
         });
-        setShowBilanModal(true);
+        setShowFeedbackModal(true);
       } else {
         setSnackbar({ open: true, message: "Erreur lors de la validation de la semaine.", type: "error" });
       }
