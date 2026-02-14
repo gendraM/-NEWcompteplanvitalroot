@@ -16,13 +16,12 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       try {
         const { data: { session: currentSession }, error } = await supabase.auth.getSession()
-        
         if (error) {
           console.error('Erreur récupération session:', error)
         }
-        
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
+        console.log('[AuthContext] initAuth - session:', currentSession, 'user:', currentSession?.user)
       } catch (err) {
         console.error('Erreur initialisation auth:', err)
       } finally {
@@ -35,7 +34,7 @@ export const AuthProvider = ({ children }) => {
     // Écoute des changements d'état d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        console.log('Auth event:', event)
+        console.log('[AuthContext] Auth event:', event, 'session:', currentSession, 'user:', currentSession?.user)
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
         setLoading(false)
@@ -49,15 +48,29 @@ export const AuthProvider = ({ children }) => {
   }, []) // Tableau vide = exécution unique au montage
 
   // 3. HANDLERS - Fonctions d'authentification
-  const signUp = async (email, password, metadata = {}) => {
+
+  // Fonction explicite pour re-fetch user/session (après updateUser)
+  const refreshUserSession = async () => {
+    setLoading(true)
+    try {
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession()
+      if (error) {
+        console.error('Erreur refresh session:', error)
+      }
+      setSession(currentSession)
+      setUser(currentSession?.user ?? null)
+    } catch (err) {
+      console.error('Erreur refreshUserSession:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+  const signUp = async (email, password) => {
     try {
       setLoading(true)
       const { data, error } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          data: metadata // Métadonnées utilisateur (prénom, etc.)
-        }
+        password
       })
 
       if (error) throw error
@@ -131,7 +144,8 @@ export const AuthProvider = ({ children }) => {
     signUp,
     signIn,
     signOut,
-    resetPassword
+    resetPassword,
+    refreshUserSession
   }
 
   // 5. RENDU - Provider avec la valeur

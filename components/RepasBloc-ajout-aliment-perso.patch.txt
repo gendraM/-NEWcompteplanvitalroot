@@ -1,0 +1,11 @@
+# Patch d'intégration du formulaire d'ajout d'aliment personnalisé dans RepasBloc.js
+# (Affichage automatique si aliment inconnu dans le référentiel fusionné)
+
+- Importer FormAjoutAliment en haut du fichier
+- Ajouter un état showFormAjoutAliment (booléen)
+- Ajouter un handler pour l'ajout (mock JS, push dans foodsUser)
+- Afficher le formulaire si aliment non trouvé dans referentielComplet ET champ non vide
+- Masquer le formulaire sinon
+- Après ajout, aliment dispo dans autocomplete (mock)
+
+# Ce patch sera appliqué dans RepasBloc.js

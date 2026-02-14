@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
+import { supabase } from '../lib/supabaseClient'
 
 export default function LoginPage() {
   // 1. HOOKS - Déclaration en premier
@@ -10,8 +11,27 @@ export default function LoginPage() {
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
+  // Handler pour renvoyer le mail de confirmation
+  const handleResendConfirmation = async () => {
+    setResendLoading(true)
+    setResendMessage('')
+    try {
+      const { error } = await supabase.auth.resend({ type: 'signup', email })
+      if (error) {
+        setResendMessage('Erreur lors de l’envoi : ' + (error.message || error))
+      } else {
+        setResendMessage('Mail de confirmation renvoyé. Vérifie ta boîte mail et les spams.')
+      }
+    } catch (e) {
+      setResendMessage('Erreur technique lors de l’envoi.')
+    }
+    setResendLoading(false)
+  }
 
   // 2. EFFET - Redirection si déjà connecté
   useEffect(() => {
@@ -79,18 +99,56 @@ export default function LoginPage() {
 
           <div style={styles.inputGroup}>
             <label style={styles.label}>Mot de passe</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              style={styles.input}
-              disabled={loading}
-              autoComplete="current-password"
-            />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                style={styles.input}
+                disabled={loading}
+                autoComplete="current-password"
+              />
+              <span
+                onClick={() => setShowPassword(v => !v)}
+                style={{
+                  position: 'absolute',
+                  right: 14,
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  color: '#888',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '100%'
+                }}
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                tabIndex={0}
+              >
+                {/* Icône œil SVG */}
+                {showPassword ? (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.06 10.06 0 0 1 12 20c-5.05 0-9.29-3.36-10-8 0-.34.03-.67.08-1A9.77 9.77 0 0 1 4.22 5.22M9.88 9.88A3 3 0 0 1 12 9c1.66 0 3 1.34 3 3 0 .41-.08.8-.22 1.16" /><path d="M1 1l22 22" /></svg>
+                ) : (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="12" rx="10" ry="7" /><circle cx="12" cy="12" r="3" /></svg>
+                )}
+              </span>
+            </div>
           </div>
 
           {error && <div style={styles.error}>{error}</div>}
+
+          {/* Bouton renvoi mail confirmation */}
+          <button
+            type="button"
+            style={{ ...styles.button, background: '#43cea2', marginTop: 8, marginBottom: 8, opacity: resendLoading ? 0.7 : 1 }}
+            onClick={handleResendConfirmation}
+            disabled={resendLoading || !email}
+          >
+            {resendLoading ? 'Envoi en cours...' : 'Renvoyer le mail de confirmation'}
+          </button>
+          {resendMessage && <div style={{ color: resendMessage.startsWith('Erreur') ? '#e53935' : '#43a047', fontWeight: 600, marginTop: 6 }}>{resendMessage}</div>}
 
           <button 
             type="submit" 

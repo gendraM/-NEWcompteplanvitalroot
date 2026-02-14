@@ -11,7 +11,10 @@ export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [nom, setNom] = useState('')
+  const [pseudo, setPseudo] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -31,8 +34,8 @@ export default function SignupPage() {
     setLoading(true)
 
     // Validation
-    if (!email || !password || !confirmPassword) {
-      setError('Veuillez remplir tous les champs obligatoires')
+    if (!pseudo || !email || !password || !confirmPassword) {
+      setError('Veuillez remplir tous les champs obligatoires, dont le pseudo')
       setLoading(false)
       return
     }
@@ -51,7 +54,8 @@ export default function SignupPage() {
 
     // Tentative d'inscription
     const { error: signUpError } = await signUp(email, password, {
-      nom: nom || undefined
+      nom: nom || undefined,
+      pseudo: pseudo
     })
 
     if (signUpError) {
@@ -94,6 +98,19 @@ export default function SignupPage() {
         ) : (
           <form onSubmit={handleSubmit} style={styles.form}>
             <div style={styles.inputGroup}>
+              <label style={styles.label}>Pseudo *</label>
+              <input
+                type="text"
+                value={pseudo}
+                onChange={(e) => setPseudo(e.target.value)}
+                placeholder="Choisissez un pseudo unique"
+                style={styles.input}
+                disabled={loading}
+                autoComplete="username"
+                required
+              />
+            </div>
+            <div style={styles.inputGroup}>
               <label style={styles.label}>Nom (optionnel)</label>
               <input
                 type="text"
@@ -122,31 +139,85 @@ export default function SignupPage() {
 
             <div style={styles.inputGroup}>
               <label style={styles.label}>Mot de passe *</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                style={styles.input}
-                disabled={loading}
-                autoComplete="new-password"
-                required
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  style={styles.input}
+                  disabled={loading}
+                  autoComplete="new-password"
+                  required
+                />
+                <span
+                  onClick={() => setShowPassword(v => !v)}
+                  style={{
+                    position: 'absolute',
+                    right: 14,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    color: '#888',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    height: '100%'
+                  }}
+                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  tabIndex={0}
+                >
+                  {/* Icône œil SVG */}
+                  {showPassword ? (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.06 10.06 0 0 1 12 20c-5.05 0-9.29-3.36-10-8 0-.34.03-.67.08-1A9.77 9.77 0 0 1 4.22 5.22M9.88 9.88A3 3 0 0 1 12 9c1.66 0 3 1.34 3 3 0 .41-.08.8-.22 1.16" /><path d="M1 1l22 22" /></svg>
+                  ) : (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="12" rx="10" ry="7" /><circle cx="12" cy="12" r="3" /></svg>
+                  )}
+                </span>
+              </div>
               <small style={styles.hint}>Minimum 6 caractères</small>
             </div>
 
             <div style={styles.inputGroup}>
               <label style={styles.label}>Confirmer le mot de passe *</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                style={styles.input}
-                disabled={loading}
-                autoComplete="new-password"
-                required
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  style={styles.input}
+                  disabled={loading}
+                  autoComplete="new-password"
+                  required
+                />
+                <span
+                  onClick={() => setShowConfirmPassword(v => !v)}
+                  style={{
+                    position: 'absolute',
+                    right: 14,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    color: '#888',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    height: '100%'
+                  }}
+                  aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  tabIndex={0}
+                >
+                  {/* Icône œil SVG */}
+                  {showConfirmPassword ? (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.06 10.06 0 0 1 12 20c-5.05 0-9.29-3.36-10-8 0-.34.03-.67.08-1A9.77 9.77 0 0 1 4.22 5.22M9.88 9.88A3 3 0 0 1 12 9c1.66 0 3 1.34 3 3 0 .41-.08.8-.22 1.16" /><path d="M1 1l22 22" /></svg>
+                  ) : (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="12" rx="10" ry="7" /><circle cx="12" cy="12" r="3" /></svg>
+                  )}
+                </span>
+              </div>
             </div>
 
             {error && <div style={styles.error}>{error}</div>}

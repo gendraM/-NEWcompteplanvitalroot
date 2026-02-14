@@ -3,6 +3,7 @@ import { SupabaseProvider, supabase } from '../lib/supabaseClient';
 import { AuthProvider } from '../contexts/AuthContext';
 import { DefisProvider } from '../components/DefisContext';
 import BandeauCompletionProfil from '../components/BandeauCompletionProfil';
+import Navigation from '../components/Navigation';
 
 function MyApp({ Component, pageProps }) {
   const [afficherBandeau, setAfficherBandeau] = useState(false);
@@ -42,6 +43,7 @@ function MyApp({ Component, pageProps }) {
     <SupabaseProvider>
       <AuthProvider>
         <DefisProvider>
+          <Navigation />
           {profilVerifie && afficherBandeau && <BandeauCompletionProfil onClose={masquerBandeau} />}
           <Component {...pageProps} />
         </DefisProvider>
