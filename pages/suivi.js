@@ -27,13 +27,30 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import BandeauDefiActif from '../components/BandeauDefiActif';
 import ModalFeedbackValidation from '../components/ModalFeedbackValidation';
+import BilanHebdoModal from '../components/BilanHebdoModal';
+import PopupBilanMensuel from '../components/PopupBilanMensuel';
+import BilanMensuelModal from '../components/BilanMensuelModal';
+import { fetchRepasPeriode } from '../lib/repasUtils';
+import BudgetExtrasCard from '../components/BudgetExtrasCard';
 import { supabase } from '../lib/supabaseClient';
 import { calculerProfilComplet } from '../lib/routeurPoids';
 import { 
   calculerExtrasSemaine, 
   genererMessageFeedback, 
-  calculerVariation 
+  calculerVariation,
+  getMonday,
+  addDays,
+  formatDate,
+  calculerTendance7j,
+  calculerRepartitionExtrasTemporelle,
+  calculerRepartitionJours,
+  calculerImpactJours,
+  calculerEvolutionExtras,
+  analyserFragilites
 } from '../lib/validationSemaine';
+import { estDerniereValidationDuMois, getMoisAnneeValidation } from '../lib/detectionFinMois';
+import { calculerRepartitionTypes, calculerRepartitionMoments } from '../lib/repartitionExtras';
+import { calculerJoursRespectes } from '../lib/joursRespectes';
 import { 
   calculerJourRelatif, 
   isPeriodeActive, 
@@ -414,6 +431,8 @@ function calculerEtatPastille(criteriaId, typeRepas, champsRepasEnCours) {
 
 // MAIN COMPONENT
 export default function Suivi() {
+    // State pour gestion d'erreur validation semaine (conforme template, point de vigilance)
+    const [validationError, setValidationError] = useState('');
   // ═══════════════════════════════════════════════════════════
   // RÉCUPÉRER LES PARAMÈTRES DE FILTRAGE DEPUIS L'URL
   // ═══════════════════════════════════════════════════════════
@@ -428,6 +447,8 @@ export default function Suivi() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0,10));
   // Hook pour l'affichage de l'alerte calorique (DOIT ÊTRE DÉCLARÉ AVANT SON UTILISATION dans useEffect)
   const [repasSemaine, setRepasSemaine] = useState([]);
+  // Hook pour userId (nécessaire pour BudgetExtrasCard)
+  const [userId, setUserId] = useState(null);
   
   // ═══════════════════════════════════════════════════════════
   // NOUVEAUX HOOKS VALIDATION SEMAINE (9 janvier 2026)
@@ -435,6 +456,13 @@ export default function Suivi() {
   const [feedbackData, setFeedbackData] = useState(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [derniereSemaineValidee, setDerniereSemaineValidee] = useState(null);
+  // Bilan hebdo : état modal et données
+  const [showBilanModal, setShowBilanModal] = useState(false);
+  const [bilanData, setBilanData] = useState(null);
+  // Bilan mensuel : pop-up + modal
+  const [showPopupBilanMensuel, setShowPopupBilanMensuel] = useState(false);
+  const [showBilanMensuelModal, setShowBilanMensuelModal] = useState(false);
+  const [bilanMensuelData, setBilanMensuelData] = useState(null);
   // Hook pour tracker les champs du repas en cours (portions, féculents, hydratation, etc.)
   const [champsRepasEnCours, setChampsRepasEnCours] = useState({});
   // Récupérer la date du jeûne programmé (stockée en localStorage ou BDD)
@@ -698,6 +726,12 @@ export default function Suivi() {
   // Chargement profil et calcul objectif calorique personnalisé (routeur poids)
   useEffect(() => {
     async function fetchProfilEtCalculs() {
+      // Récupérer userId
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+
       const { data: profil, error } = await supabase
         .from('profil')
         .select('sexe, age, taille, poids_de_depart, niveau_activite, objectif')
@@ -850,10 +884,11 @@ export default function Suivi() {
   .from('semaines_validees')
         .select('weekStart, validee');
       // Fusionner le flag de validation
-      const historyWithValidation = history.map(week => {
-        const valid = semainesValidees?.find(s => s.weekStart === week.weekStart)?.validee === true;
-        return { ...week, validee: valid };
-      });
+        const historyWithValidation = history.map(week => {
+          const validRaw = semainesValidees?.find(s => s.weekStart === week.weekStart)?.validee;
+          const valid = validRaw === true || validRaw === 'true' || validRaw === 1;
+          return { ...week, validee: valid };
+        });
       setWeeklyHistory(historyWithValidation);
     }
     fetchHistory();
@@ -983,70 +1018,373 @@ export default function Suivi() {
   };
   // ----------- HANDLER DE VALIDATION DE LA SEMAINE -----------
   const handleValiderSemaine = async () => {
+    // Log début de la fonction de validation de la semaine
+    console.log('[LOG BILAN] Début handleValiderSemaine');
     try {
-      // Calculer la date de début de la semaine sélectionnée
-      const selectedWeekStart = (() => {
-        const selectedDateObj = new Date(selectedDate);
-        const day = selectedDateObj.getDay();
-        const monday = new Date(selectedDateObj);
-        monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
-        monday.setHours(0,0,0,0);
-        return monday.toISOString().slice(0,10);
-      })();
+      // 1. Calcul strict du lundi et dimanche de la semaine à partir de la date sélectionnée
+      // Utilisation de getMonday() pour garantir la cohérence ISO 8601
+      const monday = getMonday(selectedDate);
+      const sunday = addDays(monday, 6);
+      sunday.setHours(23,59,59,999);
+      const selectedWeekStart = formatDate(monday, 'yyyy-MM-dd');
+      const selectedWeekEnd = formatDate(sunday, 'yyyy-MM-dd');
+      // Log des bornes de la semaine et des dates prises en compte
+      const joursSemaine = [];
+      for (let i = 0; i < 7; i++) {
+        joursSemaine.push(formatDate(addDays(monday, i), 'yyyy-MM-dd'));
+      }
+      const selectedDateObj = new Date(selectedDate + 'T12:00:00'); // Midi pour éviter les problèmes de fuseau horaire
+      console.log(`[LOG BILAN] Date sélectionnée : ${selectedDate} (jour de la semaine : ${selectedDateObj.getDay()})`);
+      console.log(`[LOG BILAN] Semaine du ${selectedWeekStart} au ${selectedWeekEnd}`);
+      console.log(`[LOG BILAN] Jours pris en compte pour la semaine :`, joursSemaine);
+
+      // 2. Récupérer tous les repas de la période (lundi-dimanche) via fonction utilitaire fiabilisée
+      const repasData = await fetchRepasPeriode(selectedWeekStart, selectedWeekEnd);
+      // Log du nombre de repas récupérés et aperçu des repas
+      console.log(`[LOG BILAN] Nombre de repas récupérés : ${repasData.length}`);
+      if (repasData.length > 0) {
+        console.log('[LOG BILAN] Liste des repas (id, date, kcal) :', repasData.map(r => ({id: r.id, date: r.date, kcal: r.kcal})));
+      } else {
+        console.log('[LOG BILAN] Aucun repas trouvé pour cette période.');
+      }
+      // Log du total kcal calculé
+      const totalKcalLog = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
+      console.log(`[LOG BILAN] Total kcal calculé sur la période : ${totalKcalLog}`);
+
+      // 3. Récupérer le profil utilisateur pour le calcul du budget extras (logique BudgetExtrasCard)
+      let budgetExtras = 0;
+      let objectifType = 'perte';
+      let profilComplet = null;
+      let calculs = null;
+      const { data: profil, error: profilError } = await supabase
+        .from('profil')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (!profilError && profil && profil.sexe && profil.niveau_activite) {
+        if (profil.poids_de_depart && profil.objectif) {
+          if (profil.poids_de_depart > profil.objectif) {
+            objectifType = 'perte';
+          } else if (profil.poids_de_depart < profil.objectif) {
+            objectifType = 'prise';
+          } else {
+            objectifType = 'maintien';
+          }
+        }
+        profilComplet = {
+          sexe: profil.sexe,
+          age: profil.age,
+          taille: profil.taille,
+          poids_de_depart: profil.poids_de_depart,
+          niveau_activite: profil.niveau_activite,
+          objectif: objectifType
+        };
+        calculs = calculerProfilComplet(profilComplet);
+        if (calculs && typeof calculs.budgetExtras === 'number' && !isNaN(calculs.budgetExtras)) {
+          budgetExtras = calculs.budgetExtras;
+        }
+      }
+
+      // Calcul des extras juste avant la sauvegarde
+      const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasData);
+      // Génération du message feedback réel (ou valeur neutre si non utilisé)
+      const messageFeedback = genererMessageFeedback ? genererMessageFeedback(extrasInfo.count, 1) : '';
       
-      // Calculer les extras de la semaine
-      const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasSemaine);
-      
-      // Charger les semaines validées pour calculer la variation
-      const { data: semainesValidees } = await supabase
+      // Calcul de la variation (extras semaine N vs N-1)
+      // Récupérer la semaine précédente validée pour calculer la variation
+      const { data: semainesPrecedentes } = await supabase
         .from('semaines_validees')
-        .select('weekStart, validee, extras_count');
+        .select('weekStart, extras_count')
+        .lt('weekStart', selectedWeekStart)
+        .order('weekStart', { ascending: false })
+        .limit(1);
+      const extrasN1 = semainesPrecedentes && semainesPrecedentes.length > 0 ? semainesPrecedentes[0].extras_count : null;
+      const variation = (extrasN1 !== null && typeof extrasN1 === 'number') ? extrasInfo.count - extrasN1 : 0;
       
-      // Calculer la variation par rapport à la semaine précédente
-      const variation = calculerVariation(extrasInfo.count, semainesValidees || [], selectedWeekStart);
+      // Calcul des données Section 1 du bilan (apports totaux, objectif, etc.)
+      const apportsTotaux = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
+      const objectifJour = calculs?.apport_calorique_cible || 1730; // Objectif calorique journalier (apport cible, pas TDEE !)
+      const objectifHebdo = objectifJour * 7; // Objectif hebdomadaire
+      const kcalExtras = repasData.filter(r => r.est_extra).reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
       
-      // Générer le message de feedback
-      const message = genererMessageFeedback(extrasInfo.count, 2);
+      // Calcul tendance 7j et projection poids
+      const tendance = calculerTendance7j(apportsTotaux, objectifHebdo);
       
-      // Persister la validation dans Supabase avec toutes les informations
-      const { error } = await supabase.from('semaines_validees').upsert([{ 
-        weekStart: selectedWeekStart, 
+      // ═══════════════════════════════════════════════════════════
+      // SECTION 7 - Calcul satiété, humeur et note utilisateur
+      // ═══════════════════════════════════════════════════════════
+      
+      // Mapping satiété texte → score numérique (1-5)
+      const mapSatieteScore = (satieteTexte) => {
+        if (!satieteTexte) return null;
+        const map = {
+          'oui': 5,                // Respecté satiété = excellent
+          'non': 2,                // Dépassé = faible
+          'pas de faim': 3         // Mangé sans faim = moyen
+        };
+        return map[satieteTexte] || null;
+      };
+      
+      // Mapping ressenti → score émotionnel (1-5)
+      const mapRessentiScore = (ressentiTexte) => {
+        if (!ressentiTexte) return null;
+        const map = {
+          'léger': 5,              // Excellent
+          'satisfait': 5,          // Excellent
+          "j'assume": 4,           // Bon
+          'neutre': 3,             // Moyen
+          'lourd': 2,              // Faible
+          'ballonné': 1,           // Très faible
+          'je regrette': 1,        // Très faible
+          'je culpabilise': 1      // Très faible
+        };
+        return map[ressentiTexte] || null;
+      };
+      
+      // Calcul satiété moyenne (converti en score 1-5)
+      const repasAvecSatiete = repasData.filter(r => r.satiete);
+      console.log('[DEBUG] Repas avec satiété:', repasAvecSatiete.length, '/', repasData.length);
+      console.log('[DEBUG] Exemple repas:', repasData.slice(0, 2).map(r => ({ date: r.date, satiete: r.satiete, ressenti: r.ressenti })));
+      const satieteMoyenne = repasAvecSatiete.length > 0
+        ? (repasAvecSatiete.reduce((sum, r) => sum + mapSatieteScore(r.satiete), 0) / repasAvecSatiete.length).toFixed(1)
+        : null;
+      
+      // Calcul ressenti dominant (mode statistique) - utilise "ressenti" pas "humeur_associee"
+      const repasAvecRessenti = repasData.filter(r => r.ressenti);
+      console.log('[DEBUG] Repas avec ressenti:', repasAvecRessenti.length, '/', repasData.length);
+      const ressentiCounts = {};
+      repasAvecRessenti.forEach(r => {
+        ressentiCounts[r.ressenti] = (ressentiCounts[r.ressenti] || 0) + 1;
+      });
+      const ressentiDominant = Object.keys(ressentiCounts).length > 0
+        ? Object.entries(ressentiCounts).sort((a, b) => b[1] - a[1])[0][0]
+        : null;
+      
+      // Mapping ressenti → humeur lisible
+      const mapRessentiHumeur = (ressenti) => {
+        if (!ressenti) return 'Non renseigné';
+        const map = {
+          'léger': '🌱 Léger et bien',
+          'satisfait': '😊 Satisfait',
+          "j'assume": "💪 J'assume",
+          'neutre': '😐 Neutre',
+          'lourd': '😑 Lourd',
+          'ballonné': '🤢 Ballonné',
+          'je regrette': '😔 Je regrette',
+          'je culpabilise': '😟 Je culpabilise'
+        };
+        return map[ressenti] || ressenti;
+      };
+      
+      const humeurDominante = mapRessentiHumeur(ressentiDominant);
+      
+      // Note utilisateur (chercher dans commentaire ou note)
+      const repasAvecNote = repasData.find(r => (r.commentaire && r.commentaire.trim() !== '') || (r.note && r.note.trim() !== ''));
+      const noteUtilisateur = repasAvecNote?.commentaire || repasAvecNote?.note || null;
+      
+      console.log('[LOG BILAN] Section 7 - Données calculées:');
+      console.log('  Satiété moyenne:', satieteMoyenne, '(sur', repasAvecSatiete.length, 'repas)');
+      console.log('  Ressenti dominant:', ressentiDominant, '→', humeurDominante, '(sur', repasAvecRessenti.length, 'repas)');
+      console.log('  Note utilisateur:', noteUtilisateur ? noteUtilisateur.substring(0, 50) + '...' : 'Aucune');
+      
+      // Calcul répartition temporelle extras (basé sur type de repas)
+      const extrasAvecType = repasData.filter(r => r.est_extra && r.type);
+      const repartitionTemporelle = calculerRepartitionExtrasTemporelle(extrasAvecType);
+      console.log('[LOG BILAN] Répartition extras temporelle:', repartitionTemporelle, '(sur', extrasAvecType.length, 'extras avec type)');
+      
+      // Contexte pour affichage
+      const nbRepasSatiete = repasAvecSatiete.length;
+      const nbRepasRessenti = repasAvecRessenti.length;
+      
+      // ═══════════════════════════════════════════════════════════
+      // PHASE 2 - CALCULS LECTURES A, B, C + ENRICHISSEMENTS
+      // ═══════════════════════════════════════════════════════════
+      
+      // 📊 LECTURE A : Répartition des jours + Streaks
+      console.log('[BILAN ABC] Calcul Lecture A - Répartition jours...');
+      const lectureA = calculerRepartitionJours(repasData, selectedWeekStart, objectifHebdo);
+      console.log('[BILAN ABC] Lecture A résultat:', {
+        objectifJournalier: lectureA.objectifJournalier,
+        joursCategories: lectureA.joursCategories,
+        joursIncomplets: lectureA.joursIncomplets,
+        longestStreak: lectureA.longestStreak,
+        streaks: lectureA.streaks
+      });
+      
+      // 🎯 LECTURE B : Impact des jours sur le surplus
+      console.log('[BILAN ABC] Calcul Lecture B - Impact jours...');
+      const lectureB = calculerImpactJours(lectureA.detailsJours);
+      console.log('[BILAN ABC] Lecture B résultat:', lectureB ? {
+        surplusTotal: lectureB.surplusTotal,
+        jourPlusLourd: lectureB.jourPlusLourd,
+        repartition: lectureB.repartition
+      } : 'null (pas de surplus - tous les jours conformes)');
+      
+      // 📈 LECTURE C : Évolution extras N vs N-1
+      console.log('[BILAN ABC] Calcul Lecture C - Évolution extras N vs N-1...');
+      // Compléter fetch N-1 pour récupérer extras_details
+      let extrasKcalN1 = null;
+      let extrasNbN1 = null;
+      if (semainesPrecedentes && semainesPrecedentes.length > 0) {
+        const weekStartN1 = semainesPrecedentes[0].weekStart;
+        const { data: semaineN1Complete } = await supabase
+          .from('semaines_validees')
+          .select('extras_details')
+          .eq('weekStart', weekStartN1)
+          .single();
+        
+        if (semaineN1Complete && semaineN1Complete.extras_details) {
+          try {
+            const detailsN1 = JSON.parse(semaineN1Complete.extras_details);
+            extrasKcalN1 = detailsN1.reduce((sum, extra) => sum + (Number(extra.kcal) || 0), 0);
+            extrasNbN1 = detailsN1.length;
+            console.log('[BILAN ABC] Semaine N-1 détectée:', { weekStartN1, extrasKcalN1, extrasNbN1 });
+          } catch (parseError) {
+            console.warn('[BILAN ABC] Erreur parsing extras_details N-1:', parseError);
+          }
+        }
+      } else {
+        console.log('[BILAN ABC] Aucune semaine N-1 validée trouvée');
+      }
+      
+      const extrasKcalN = extrasInfo.details.reduce((sum, extra) => sum + (Number(extra.kcal) || 0), 0);
+      const extrasNbN = extrasInfo.count;
+      
+      const lectureC = calculerEvolutionExtras(extrasKcalN, extrasNbN, extrasKcalN1, extrasNbN1);
+      console.log('[BILAN ABC] Lecture C résultat:', lectureC);
+      
+      // 🔍 ENRICHISSEMENT : Analyse des fragilités
+      console.log('[BILAN ABC] Calcul Fragilités...');
+      const fragilites = analyserFragilites(lectureA.detailsJours, repasData);
+      console.log('[BILAN ABC] Fragilités résultat:', fragilites);
+      
+      // ═══════════════════════════════════════════════════════════
+      
+      let insertOk = false;
+      const bilanToInsert = {
+        weekStart: selectedWeekStart,
+        // weekEnd supprimé : la colonne n'existe pas dans la table (on calcule weekEnd = weekStart + 6 jours si besoin)
         validee: true,
         date_validation: new Date().toISOString(),
         extras_count: extrasInfo.count,
-        extras_details: extrasInfo.details,
-        message_feedback: message,
-        variation: variation
-      }]);
-      if (error) {
-        setSnackbar({ open: true, message: error.message || "Erreur lors de la validation.", type: "error" });
-        return;
-      }
-      
-      // Afficher le modal de feedback au lieu du snackbar
-      const feedbackInfo = {
-        weekStart: selectedWeekStart,
-        extrasCount: extrasInfo.count,
-        extrasDetails: extrasInfo.details,
-        message: message,
-        variation: variation,
-        dateValidation: new Date().toISOString()
+        extras_details: JSON.stringify(extrasInfo.details),
+        message_feedback: messageFeedback,
+        variation,
+        // Nouvelles colonnes Section 2
+        tendance_7j: tendance.type,
+        ecart_hebdo: tendance.ecart,
+        apports_totaux: Math.round(apportsTotaux),
+        objectif_hebdo: objectifHebdo,
+        projection_poids: tendance.projection_poids,
+        // Données extras
+        kcal_extras: Math.round(kcalExtras),
+        budget_extras: Math.round(budgetExtras),
+        // Données ressenti (Section 7)
+        satiete_moyenne: satieteMoyenne ? parseFloat(satieteMoyenne) : null,
+        humeur_dominante: humeurDominante || null,
+        note_utilisateur: noteUtilisateur || null,
+        nb_repas_satiete: nbRepasSatiete || 0,
+        nb_repas_ressenti: nbRepasRessenti || 0,
+        // PHASE 2 - Données ABC (Lectures A, B, C + Fragilités)
+        bilan_abc: {
+          lectureA: lectureA || null,
+          lectureB: lectureB || null,
+          lectureC: lectureC || null,
+          fragilites: fragilites || null
+        }
       };
-      setFeedbackData(feedbackInfo);
-      setShowFeedbackModal(true);
-      setDerniereSemaineValidee(feedbackInfo);
-      // Recharger l’historique pour mettre à jour la timeline
-      const history = getWeeklyExtrasHistory(repasSemaine, selectedDate, 16);
-      const { data: semainesValideesRefresh } = await supabase
-        .from('semaines_validees')
-        .select('weekStart, validee');
-      const historyWithValidation = history.map(week => {
-        const valid = semainesValideesRefresh?.find(s => s.weekStart === week.weekStart)?.validee === true;
-        return { ...week, validee: valid };
-      });
-      setWeeklyHistory(historyWithValidation);
+      
+      // LOG DEBUG : Vérifier chaque valeur
+      console.log('[LOG BILAN] 🔍 VALEURS DÉTAILLÉES :');
+      console.log('  weekStart:', selectedWeekStart, typeof selectedWeekStart);
+      console.log('  tendance.type:', tendance.type, typeof tendance.type);
+      console.log('  tendance.ecart:', tendance.ecart, typeof tendance.ecart);
+      console.log('  apportsTotaux:', apportsTotaux, typeof apportsTotaux);
+      console.log('  objectifHebdo:', objectifHebdo, typeof objectifHebdo);
+      console.log('  tendance.projection_poids:', tendance.projection_poids, typeof tendance.projection_poids);
+      console.log('[LOG BILAN] Objet complet à insérer :', JSON.stringify(bilanToInsert, null, 2));
+      
+      try {
+        const { data: insertResult, error: insertError } = await supabase
+          .from('semaines_validees')
+          .upsert([bilanToInsert], {
+            onConflict: 'weekStart', // Utilise weekStart comme clé unique pour gérer les doublons
+            ignoreDuplicates: false   // Met à jour si existe déjà
+          });
+        if (insertError) {
+          console.error('[LOG BILAN] Erreur lors de l’enregistrement du bilan dans Supabase :', insertError);
+        } else {
+          console.log('[LOG BILAN] Bilan enregistré avec succès dans Supabase :', insertResult);
+          insertOk = true;
+        }
+      } catch (err) {
+        console.error('[LOG BILAN] Exception JS lors de l’insert bilan Supabase :', err);
+      }
+      if (insertOk) {
+        // Ouverture de la modale BilanHebdoModal (Section 1 complète)
+        console.log('[DEBUG setBilanData] nbRepasSatiete:', nbRepasSatiete, 'nbRepasRessenti:', nbRepasRessenti);
+        setBilanData({
+          weekStart: selectedWeekStart,
+          apportsTotaux,
+          objectifHebdo,
+          kcalExtras,
+          extras: extrasInfo.count,
+          budgetExtras,
+          variation,
+          // Section 7 - Données ressenti
+          satieteMoyenne,
+          humeurDominante,
+          noteUtilisateur,
+          nbRepasSatiete,
+          nbRepasRessenti,
+          extrasHorsRepas: repartitionTemporelle,
+          // PHASE 2 - Lectures A, B, C + Enrichissements (depuis bilan_abc)
+          bilan_abc: {
+            lectureA: lectureA || null,
+            lectureB: lectureB || null,
+            lectureC: lectureC || null,
+            fragilites: fragilites || null
+          }
+        });
+        setShowBilanModal(true);
+        
+        // ═══════════════════════════════════════════════════════════
+        // DÉTECTION FIN DE MOIS - DÉCLENCHEMENT BILAN MENSUEL
+        // ═══════════════════════════════════════════════════════════
+        console.log('[BILAN MENSUEL] Vérification si dernière validation du mois...');
+        const estDerniere = estDerniereValidationDuMois(selectedWeekStart);
+        console.log('[BILAN MENSUEL] Résultat détection:', estDerniere);
+        
+        if (estDerniere) {
+          const periode = getMoisAnneeValidation(selectedWeekStart);
+          console.log('[BILAN MENSUEL] 🎉 Dernière validation du mois détectée !', periode);
+          
+          // Afficher pop-up notification
+          setBilanMensuelData({ mois: periode.mois, annee: periode.annee });
+          setShowPopupBilanMensuel(true);
+        }
+      } else {
+        setSnackbar({ open: true, message: "Erreur lors de la validation de la semaine.", type: "error" });
+      }
+      try {
+        const historyTimeline = getWeeklyExtrasHistory(repasData, selectedDate, 16);
+        const { data: semainesValideesRefresh } = await supabase
+          .from('semaines_validees')
+          .select('weekStart, validee');
+        const historyWithValidation = historyTimeline.map(week => {
+          const valid = semainesValideesRefresh?.find(s => s.weekStart === week.weekStart)?.validee === true;
+          return { ...week, validee: valid };
+        });
+        setWeeklyHistory(historyWithValidation);
+      } catch (e) {
+        console.error('[LOG BILAN] Erreur lors du rechargement de la timeline :', e);
+      }
     } catch (e) {
-      setSnackbar({ open: true, message: "Erreur lors de la validation.", type: "error" });
+      // Log d'erreur si une exception est levée
+      console.error('[LOG BILAN] Erreur JS validation semaine:', e);
+      setValidationError(e.message || "Erreur lors de la validation.");
+      setSnackbar({ open: true, message: e.message || "Erreur lors de la validation.", type: "error" });
     }
   };
   // ----------- AFFICHAGE -----------
@@ -1207,6 +1545,52 @@ export default function Suivi() {
         </div>
       </div>
 
+      {/* ═══════════════════════════════════════════════════════════
+          BUDGET EXTRAS HEBDOMADAIRE (PHASE 3)
+          Affichage du budget calorique extras personnalisé
+          ═══════════════════════════════════════════════════════════ */}
+      <div style={{padding: '1rem', background: 'rgba(100,150,255,0.1)', borderRadius: 8, margin: '1rem 0', border: '2px dashed #6496ff'}}>
+        <div style={{
+          fontSize: '1.05rem',
+          fontWeight: 700,
+          color: '#fff',
+          background: 'linear-gradient(90deg, #6496ff 0%, #1976d2 100%)',
+          borderRadius: '8px',
+          padding: '6px 0',
+          marginBottom: '0.7rem',
+          textAlign: 'center',
+          letterSpacing: '0.5px',
+          boxShadow: '0 1px 4px rgba(100,150,255,0.10)'
+        }}>
+          📅 Semaine du {(() => {
+            const selectedDateObj = new Date(selectedDate);
+            const day = selectedDateObj.getDay();
+            const monday = new Date(selectedDateObj);
+            monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            function fmt(d) {
+              return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+            return `${fmt(monday)} au ${fmt(sunday)}`;
+          })()}
+        </div>
+        <div style={{fontSize: '0.9rem', marginBottom: '0.5rem'}}>
+          🔍 <strong>DEBUG Budget Extras Card:</strong>
+        </div>
+        <div style={{fontSize: '0.85rem', fontFamily: 'monospace'}}>
+          • userId from Supabase: <strong>{userId || 'NULL (pas connecté)'}</strong><br/>
+          • Mode: <strong>{userId ? 'Authentifié' : 'localStorage (sans authentification)'}</strong><br/>
+          • Composant: <strong>{userId ? '✅ Mode authentifié' : '⚠️ Mode TEST (localStorage)'}</strong><br/>
+          <span style={{color:'#1976d2',fontWeight:600}}>
+            {calculsRouteur && calculsRouteur.budget_extras_kcal
+              ? `Budget extras personnalisé : ${calculsRouteur.budget_extras_kcal} kcal/semaine`
+              : 'Budget extras non disponible'}
+          </span>
+        </div>
+      </div>
+      {/* Afficher en mode localStorage (userId=null) ou authentifié */}
+      <BudgetExtrasCard userId={userId} selectedDate={selectedDate} />
 
       {/* --------- ZONE 1 : Feedback immédiat --------- */}
       <ZoneFeedbackHebdo
@@ -1624,6 +2008,40 @@ export default function Suivi() {
                   >
                     ✅ Valider ma semaine
                   </button>
+                  
+                  {/* 🧪 BOUTON TEST DÉTECTION FIN DE MOIS (mode dev) */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <button
+                      style={{
+                        background: '#ff9800',
+                        color: '#fff',
+                        border: '2px dashed #f57c00',
+                        borderRadius: 18,
+                        padding: '8px 20px',
+                        fontWeight: 600,
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        marginTop: 12,
+                        display: 'block',
+                        width: '100%'
+                      }}
+                      onClick={() => {
+                        console.log('🧪 TEST DÉTECTION FIN DE MOIS');
+                        console.log('Date sélectionnée:', selectedDate);
+                        const estDerniere = estDerniereValidationDuMois(selectedDate);
+                        console.log('Résultat détection:', estDerniere);
+                        if (estDerniere) {
+                          const periode = getMoisAnneeValidation(selectedDate);
+                          console.log('Période détectée:', periode);
+                          alert(`✅ DERNIÈRE VALIDATION DU MOIS\nMois: ${periode.mois}\nAnnée: ${periode.annee}`);
+                        } else {
+                          alert('❌ PAS la dernière validation du mois');
+                        }
+                      }}
+                    >
+                      🧪 Tester détection fin de mois
+                    </button>
+                  )}
                 </div>
               )
             )}
@@ -1785,9 +2203,42 @@ export default function Suivi() {
             📅 Planifier mes repas
           </button>
         </Link>
-          <Link href="/tableau-de-bord">
+        <Link href="/historique-extras">
+          <button style={{
+            background: "#1976d2",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 24px",
+            fontWeight: 600,
+            fontSize: 16,
+            cursor: "pointer",
+            marginTop: 16
+          }}>
+            📊 Historique des bilans hebdo
+          </button>
+        </Link>
+        <Link href="/tableau-de-bord">
+          <button style={{
+            background: "#43a047",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 24px",
+            fontWeight: 600,
+            fontSize: 16,
+            cursor: "pointer",
+            marginTop: 16
+          }}>
+            🏠 Retour au tableau de bord
+          </button>
+        </Link>
+
+        {/* NOUVEAU : BOUTON CRISTALLISATION (visible uniquement si phase active) */}
+        {cristallisationActive && (
+          <Link href="/cristallisation-quotidien">
             <button style={{
-              background: "#43a047",
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
               color: "#fff",
               border: "none",
               borderRadius: 8,
@@ -1795,31 +2246,13 @@ export default function Suivi() {
               fontWeight: 600,
               fontSize: 16,
               cursor: "pointer",
-              marginTop: 16
+              marginTop: 16,
+              boxShadow: "0 4px 12px rgba(102,126,234,0.3)"
             }}>
-              🏠 Retour au tableau de bord
+              🏔️ Suivi Cristallisation
             </button>
           </Link>
-
-          {/* NOUVEAU : BOUTON CRISTALLISATION (visible uniquement si phase active) */}
-          {cristallisationActive && (
-            <Link href="/cristallisation-quotidien">
-              <button style={{
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "10px 24px",
-                fontWeight: 600,
-                fontSize: 16,
-                cursor: "pointer",
-                marginTop: 16,
-                boxShadow: "0 4px 12px rgba(102,126,234,0.3)"
-              }}>
-                🏔️ Suivi Cristallisation
-              </button>
-            </Link>
-          )}
+        )}
       </div>
 
       {/* ═══════════════════════════════════════════════════════════
@@ -1836,6 +2269,45 @@ export default function Suivi() {
         variation={feedbackData?.variation}
         dateValidation={feedbackData?.dateValidation}
         quota={2}
+      />
+      
+      {/* ═══════════════════════════════════════════════════════════
+          POP-UP BILAN MENSUEL (22 janvier 2026)
+          Notifie utilisateur qu'un bilan mensuel est disponible
+          ═══════════════════════════════════════════════════════════ */}
+      <PopupBilanMensuel
+        isOpen={showPopupBilanMensuel}
+        mois={bilanMensuelData?.mois}
+        annee={bilanMensuelData?.annee}
+        onClose={() => setShowPopupBilanMensuel(false)}
+        onVoirBilan={() => {
+          setShowPopupBilanMensuel(false);
+          setShowBilanMensuelModal(true);
+          console.log('[BILAN MENSUEL] Ouverture modale bilan mensuel');
+        }}
+      />
+      
+      {/* ═══════════════════════════════════════════════════════════
+          MODALE BILAN MENSUEL
+          Affiche le bilan mensuel détaillé avec 6 sections
+          ═══════════════════════════════════════════════════════════ */}
+      <BilanMensuelModal
+        isOpen={showBilanMensuelModal}
+        mois={bilanMensuelData?.mois}
+        annee={bilanMensuelData?.annee}
+        onClose={() => setShowBilanMensuelModal(false)}
+      />
+      
+      {/* MODALE BILAN HEBDO ALIMENTAIRE */}
+      <BilanHebdoModal
+        open={showBilanModal}
+        onClose={() => setShowBilanModal(false)}
+        bilan={bilanData}
+        selectedDate={selectedDate} // On transmet explicitement la date sélectionnée
+        onLearnMore={() => {
+          setShowBilanModal(false);
+          // TODO: ouvrir la section "en savoir plus" ou naviguer vers l’historique détaillé
+        }}
       />
     </div>
   );

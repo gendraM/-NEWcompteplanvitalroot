@@ -1,0 +1,125 @@
+
+## Fiche métier — Lecture analyse bilan (mise à jour)
+
+### Principes généraux
+
+Tous les blocs d’analyse et de feedback du bilan hebdomadaire doivent :
+- Être strictement dynamiques : chaque phrase, chaque bloc, chaque alerte s’adapte à la donnée réelle de l’utilisateur.
+- Respecter la logique métier décrite ci-dessous, sans jamais afficher de contenu générique ou statique.
+- Utiliser des alertes visuelles (couleur, icône) pour attirer l’attention sur les situations hors cadre, et valoriser les situations conformes.
+- Être pédagogiques : chaque bloc doit expliquer, justifier, et clarifier la situation réelle, sans jugement, mais avec précision.
+- Ne jamais masquer un bloc : tous les blocs sont présents, mais leur contenu s’adapte dynamiquement.
+
+---
+
+### 1️⃣ BLOC : « Lecture de la semaine »
+
+**Texte affiché (cas d’écart significatif)**
+> Cette semaine, la trajectoire globale s’éloigne de l’objectif hebdomadaire.
+
+**RÈGLE DE GESTION**
+Ce paragraphe s’affiche lorsque l’écart hebdomadaire est significatif, c’est-à-dire :
+- le total consommé dépasse clairement l’objectif fixé,
+- et cet écart ne peut pas être considéré comme marginal ou absorbable.
+
+👉 Si l’écart était faible ou nul, la formulation change dynamiquement vers :
+> "reste proche de l’objectif"
+ou
+> "s’inscrit dans le cadre prévu"
+
+---
+
+**Texte affiché (cas extras responsables)**
+> L’écart constaté ne s’explique pas par les repas hors extras, qui restent proches du cadre prévu, mais par le poids cumulé des extras sur la semaine.
+
+**RÈGLE DE GESTION**
+Ce paragraphe s’affiche lorsque :
+- les calories hors extras sont proches de l’objectif hebdomadaire,
+- la différence entre « avec extras » et « sans extras » explique l’essentiel de l’écart.
+
+👉 Si les repas hors extras étaient eux-mêmes excessifs :
+La lecture bascule vers une responsabilité partagée, ou une remise en cause du cadre global, pas seulement des extras.
+
+---
+
+**Texte affiché (cas extras hors budget)**
+> Le nombre d’extras consommés, combiné à leur charge calorique totale, place cette semaine hors zone d’équilibre par rapport au budget fixé.
+
+**RÈGLE DE GESTION**
+Ce paragraphe s’affiche lorsque :
+- le nombre d’extras n’est pas nul,
+- ET que leur poids calorique total dépasse nettement le budget extras prévu.
+
+👉 Règle clé : croisement fréquence × charge (extras peu nombreux mais très lourds, ou extras fréquents et cumulés).
+Dans les deux cas, la semaine sort de la zone d’équilibre.
+
+---
+
+**Texte affiché (synthèse cause unique)**
+> 👉 Le constat est clair : ce ne sont pas les repas qui déséquilibrent la semaine, mais la manière dont les extras se sont exprimés.
+
+**RÈGLE DE GESTION**
+Cette phrase de synthèse s’affiche uniquement lorsque l’analyse précédente permet d’identifier une cause principale unique (ici : les extras).
+👉 Si plusieurs causes coexistent, la phrase devient plus nuancée.
+👉 Si aucune cause claire n’émerge, elle disparaît.
+
+---
+
+### 2️⃣ BLOC « EN SAVOIR PLUS »
+
+Ce bloc n’apporte pas de nouvelles informations, il justifie le diagnostic.
+
+**A) Lecture « repas vs extras »**
+> Sans extras, ta semaine est à X kcal.
+> Avec extras, elle monte à Y kcal.
+> → Ça signifie que la différence se joue majoritairement sur les extras, pas sur les repas.
+
+**RÈGLE DE GESTION**
+Ce bloc s’affiche lorsque la comparaison “avec / sans extras” est disponible ET que l’écart entre les deux est significatif.
+👉 Si l’écart est faible, ce bloc est soit reformulé, soit masqué car peu pertinent.
+
+**B) Lecture « écart expliqué »**
+> Objectif : X kcal
+> Réalisé : Y kcal
+> → +Z kcal : c’est le signal principal de la semaine.
+
+**RÈGLE DE GESTION**
+Ce bloc s’affiche dès qu’un écart existe, quel que soit son sens (dépassement ou déficit).
+👉 Le texte change selon le signe et l’ampleur de l’écart, mais la logique reste : nommer le signal dominant.
+
+**C) Lecture « fréquence vs intensité »**
+> Extras : N
+> Poids calorique extras : X kcal
+> Budget extras : Y kcal
+> → Cette semaine, les extras sont à la fois présents (fréquence) et très lourds (intensité).
+
+**RÈGLE DE GESTION**
+Ce bloc s’affiche lorsque des extras sont présents et que leur poids calorique permet une analyse qualitative.
+👉 Selon les cas, la conclusion varie : fréquents mais modérés, rares mais très lourds, ou cumul des deux.
+
+---
+
+### 3️⃣ BLOCS 🔍 (lecture approfondie)
+
+**🔍 Répartition de l’écart**
+S’affiche lorsque l’écart peut être attribué majoritairement à un seul levier (extras ou repas).
+
+**🔍 Fréquence vs charge**
+S’affiche lorsque le nombre d’événements est faible mais à fort impact, ou inversement, pour éviter une lecture simpliste.
+
+**🔍 Lecture de trajectoire**
+S’affiche dans tous les cas, car il projette la logique dans le temps, sans donner d’action, sans injonction.
+
+---
+
+## Verbatims utilisés pour clarifier ces points
+
+> "Tous les blocs d’analyse et de feedback doivent être strictement dynamiques, pédagogiques, et visuellement alertants, en s’adaptant à la donnée réelle de l’utilisateur. Aucun bloc n’est masqué, mais leur contenu s’ajuste dynamiquement selon la situation réelle, conformément à la fiche métier."
+
+> "Chaque phrase, chaque bloc, chaque alerte doit s’adapter à la donnée réelle, sans jamais afficher de contenu générique ou statique."
+
+> "Les alertes visuelles (couleur, icône) sont utilisées pour attirer l’attention sur les situations hors cadre, et valoriser les situations conformes."
+
+> "La pédagogie prime : chaque bloc explique, justifie, et clarifie la situation réelle, sans jugement, mais avec précision."
+
+> "La logique métier prévaut sur toute généralisation : chaque cas est traité selon les règles et verbatims définis dans cette fiche."

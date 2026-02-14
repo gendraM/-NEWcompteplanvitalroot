@@ -1,3 +1,141 @@
+# 🆕 À PRÉVOIR — Bilan hebdomadaire alimentaire (ajouts futurs)
+
+## Message doux personnalisé Section 7 "Comment tu manges"
+**Date identification :** 2026-01-21  
+**Priorité :** 🟡 Moyenne  
+**Statut :** ⏳ À faire  
+**Temps estimé :** 55 minutes
+
+**Objectif :** Créer une fonction `genererMessageDoux(bilan)` qui génère un message bienveillant et contextuel selon les données de la semaine (satiété, humeur, extras temporels).
+
+**Emplacement :** `/components/BilanHebdoModal.js` avant ligne 611 (avant fonction SectionCommentMange)
+
+**Logique d'adaptation (4 cas + 1 défaut) :**
+
+1. **Cas 1 : Extras concentrés soir/nuit (> 70%)**
+   - Condition : `(extrasHorsRepas.soir + extrasHorsRepas.nuit) / totalExtras > 0.7`
+   - Message : *"Tes extras se concentrent en fin de journée : c'est souvent un signal de fatigue ou de besoin de décompresser. Et si tu expérimentais une pause douce en soirée (tisane, musique, lecture) avant de chercher du réconfort dans la nourriture ?"*
+
+2. **Cas 2 : Humeur basse + extras élevés (> 3)**
+   - Condition : `humeurScore < 3 ET totalExtras > 3`
+   - Message : *"Cette semaine a été plus riche, et ton humeur a été plus basse. C'est normal de chercher du réconfort dans la nourriture : elle est là, disponible, réconfortante. Mais elle ne résout pas ce qui se passe à l'intérieur. Peut-être qu'un temps pour toi, même 5 minutes, pourrait t'aider à mieux identifier ce dont tu as vraiment besoin."*
+
+3. **Cas 3 : Satiété basse (< 3.5)**
+   - Condition : `satieteMoyenne < 3.5`
+   - Message : *"Ta satiété moyenne est basse : tes repas ne te portent pas assez longtemps. Cela peut venir d'un manque de protéines, de féculents en quantité suffisante, ou d'une mastication trop rapide. Essaie d'observer : qu'est-ce qui te cale vraiment ?"*
+
+4. **Cas 4 : Semaine équilibrée (extras ≤ 2 ET satiété ≥ 4)**
+   - Condition : `totalExtras <= 2 ET satieteMoyenne >= 4`
+   - Message : *"Cette semaine, tu as maintenu une belle régularité : peu d'extras, une satiété stable. C'est dans ces semaines-là que ton corps apprend à te faire confiance. Continue comme ça, sans pression, juste avec constance."*
+
+5. **Message par défaut (aucun cas ne match)**
+   - Message : *"Ce que tu ressens aujourd'hui n'est qu'une étape : c'est la continuité qui façonne ton chemin."*
+
+**Fonction à implémenter :**
+```javascript
+function genererMessageDoux(bilan) {
+  const satieteMoyenne = bilan?.satieteMoyenne || 0;
+  const humeurDominante = bilan?.humeurDominante || '';
+  const extrasHorsRepas = bilan?.extrasHorsRepas || { matin: 0, apresmidi: 0, soir: 0, nuit: 0 };
+  
+  // Calculs
+  const totalExtras = extrasHorsRepas.matin + extrasHorsRepas.apresmidi + extrasHorsRepas.soir + extrasHorsRepas.nuit;
+  const extrasFinJournee = extrasHorsRepas.soir + extrasHorsRepas.nuit;
+  const proportionFinJournee = totalExtras > 0 ? extrasFinJournee / totalExtras : 0;
+  
+  // Mapping humeur vers score numérique
+  const mapHumeurScore = (humeur) => {
+    if (humeur.includes('Léger') || humeur.includes('Satisfait')) return 5;
+    if (humeur.includes('J\'assume')) return 4;
+    if (humeur.includes('Neutre')) return 3;
+    if (humeur.includes('Lourd')) return 2;
+    return 1; // Ballonné/Je regrette/Je culpabilise
+  };
+  const humeurScore = mapHumeurScore(humeurDominante);
+  
+  // Logique conditionnelle
+  if (totalExtras > 0 && proportionFinJournee > 0.7) {
+    return "Tes extras se concentrent en fin de journée : c'est souvent un signal de fatigue ou de besoin de décompresser. Et si tu expérimentais une pause douce en soirée (tisane, musique, lecture) avant de chercher du réconfort dans la nourriture ?";
+  }
+  
+  if (humeurScore < 3 && totalExtras > 3) {
+    return "Cette semaine a été plus riche, et ton humeur a été plus basse. C'est normal de chercher du réconfort dans la nourriture : elle est là, disponible, réconfortante. Mais elle ne résout pas ce qui se passe à l'intérieur. Peut-être qu'un temps pour toi, même 5 minutes, pourrait t'aider à mieux identifier ce dont tu as vraiment besoin.";
+  }
+  
+  if (satieteMoyenne < 3.5 && satieteMoyenne > 0) {
+    return "Ta satiété moyenne est basse : tes repas ne te portent pas assez longtemps. Cela peut venir d'un manque de protéines, de féculents en quantité suffisante, ou d'une mastication trop rapide. Essaie d'observer : qu'est-ce qui te cale vraiment ?";
+  }
+  
+  if (totalExtras <= 2 && satieteMoyenne >= 4) {
+    return "Cette semaine, tu as maintenu une belle régularité : peu d'extras, une satiété stable. C'est dans ces semaines-là que ton corps apprend à te faire confiance. Continue comme ça, sans pression, juste avec constance.";
+  }
+  
+  return "Ce que tu ressens aujourd'hui n'est qu'une étape : c'est la continuité qui façonne ton chemin.";
+}
+```
+
+**Intégration dans le rendu :**
+- Remplacer le message statique actuel (ligne ~661) par : `{genererMessageDoux(bilan)}`
+- Le message doit s'afficher en italique, couleur texte normale, dans un bloc dédié
+
+**Tests à effectuer :**
+- Test Cas 1 : Mock données avec 5 extras soir, 1 matin → Vérifier message "fin de journée"
+- Test Cas 2 : Mock humeur "Ballonné" + 4 extras → Vérifier message "humeur basse"
+- Test Cas 3 : Mock satiété 2.8 → Vérifier message "satiété basse"
+- Test Cas 4 : Mock satiété 4.5 + 1 extra → Vérifier message "belle régularité"
+- Test défaut : Mock données vides → Vérifier message par défaut
+
+---
+
+## Répartition des extras (type, moment, planifié/impulsif)
+**Objectif :** Permettre d’analyser et d’afficher la répartition des extras consommés selon leur type (mini, normal, majeur), le moment (matin, midi, soir, nuit) et s’ils étaient planifiés ou impulsifs. Cette fonctionnalité vise à affiner le feedback et à proposer des conseils plus personnalisés.
+
+## Fermeture consciente (stop conscient)
+**Objectif :** Intégrer un suivi de la compétence “fermeture consciente” (ex : bouton “J’ai fermé” après un extra, identification du moment le plus dur, déclencheur dominant). Permettra d’accompagner l’utilisateur dans la gestion des écarts et la reprise du contrôle.
+
+## Message motivationnel personnalisé
+**Objectif :** Générer un message de motivation dynamique et personnalisé selon la situation de la semaine (sous budget, surplus, progression, etc.), pour renforcer l’engagement et la bienveillance.
+
+## UI en cartes + suggestion micro-action
+**Objectif :** Refondre l’UI du bilan hebdomadaire sous forme de 4 cartes (axes) + 1 zone “action pour demain”, avec pour chaque carte : 3 chiffres max, 1 phrase de lecture, 1 suggestion micro-action. Vise à améliorer la lisibilité et l’impact pédagogique.
+
+# 🗓️ Amélioration à prévoir : Format date section "Tout" (gestion des repas)
+
+**Objectif :**
+Remplacer le format ISO (AAAA-MM-JJ) de la période globale affichée dans le bandeau bleu clair (mode "Tout") par un format français lisible (ex : du 5 janvier 2026 jusqu’à aujourd’hui).
+
+**Contexte :**
+Actuellement, la période globale s’affiche sous la forme « du 2026-01-05 jusqu’à aujourd’hui ». L’objectif est d’améliorer la lisibilité pour l’utilisateur.
+
+**Actions à mener :**
+- Adapter le formatage de la date la plus ancienne (début) en français long
+- Garder « jusqu’à aujourd’hui » pour la fin
+- Tester l’affichage sur différents jeux de données
+
+# 🆕 AJOUTS PROPOSÉS (2026-01-11)
+
+### 11. Ajout d'aliment personnalisé lors de la saisie
+
+**Objectif :** Permettre à l'utilisateur, lors de la saisie d'un repas, d'ajouter un aliment qui n'existe pas dans le référentiel, via un formulaire dédié, dans le même style que les aliments existants. L'aliment enrichira le référentiel interne (personnel ou global selon validation/modération).
+
+**Fonctionnalités attendues :**
+- Détection automatique d'absence dans l'autocomplete
+- Proposition d'ajout rapide (bouton ou lien)
+- Formulaire simplifié (nom, catégorie, kcal, portion, QN...)
+- Stockage temporaire (table custom ou localStorage)
+- Possibilité de validation/modération ultérieure
+
+### 12. Composition d'assiette/repas complet multi-aliments
+
+**Objectif :** Permettre à l'utilisateur de composer une assiette complète ou un repas composé de plusieurs aliments, avec analyse nutritionnelle globale, et possibilité de sauvegarder ces compositions pour les proposer ensuite dans la planification des repas.
+
+**Fonctionnalités attendues :**
+- Ajout multiple d'aliments dans une même saisie
+- Calcul automatique des kcal totales, QN moyen, répartition nutriments
+- Sauvegarde de la composition (repas favori)
+- Suggestion dans la planification
+- Analyse d'équilibre et compatibilité avec l'objectif
+
 # 🔧 AMÉLIORATIONS CONTINUES - DÉVELOPPEMENT APP
 
 **Objectif :** Backlog des améliorations identifiées à implémenter progressivement  

@@ -1,21 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { supabase } from '../lib/supabaseClient';
-import { CRITERES_CRISTALLISATION } from '../data/referentiel';
-import { analyserCriteresAutomatiques } from '../lib/analyseRepas3Jours';
-
-export default function CristallisationQuotidien() { 
-   // Déclarer tous les hooks d'état AVANT tout usage dans les hooks ou dépendances
-  const [isClient, setIsClient] = useState(false);
-  const [jourAffiche, setJourAffiche] = useState(1); // DÉPLACÉ EN HAUT
-  const router = useRouter();
-  // === PROGRAMME ===
-  const [dateDebut, setDateDebut] = useState(null);
-  const [jourActuel, setJourActuel] = useState(1);
-  const [totalJours] = useState(45);
-
-  // === HANDLERS POUR DÉFIS PERSONNALISÉS ET BADGES ===
-  // Sélectionner un défi personnalisé pour affichage ou validation
+    // === DÉFIS PERSONNALISÉS : sélection ===
+  // === HANDLER SÉLECTION DÉFI COMPORTEMENTAL ===
   const handleSelectDefi = (defi) => {
     setDefiSelectionne(defi);
     // Charger le journal du défi sélectionné (exemple : depuis localStorage ou Supabase)
@@ -31,32 +15,69 @@ export default function CristallisationQuotidien() {
     }
   };
 
-  // Valider une étape ou un défi personnalisé
-  const handleValiderDefi = (defiId, etape) => {
-    // Exemple : marquer l’étape comme validée dans le journal, puis sauvegarder
-    const journalKey = `journalDefi_${defiId}_${jourAffiche}`;
-    let journal = {};
-    try {
-      const journalStr = localStorage.getItem(journalKey);
-      journal = journalStr ? JSON.parse(journalStr) : {};
-    } catch (e) { journal = {}; }
-    journal[etape] = true;
-    localStorage.setItem(journalKey, JSON.stringify(journal));
-    setJournalDefi(journal);
-  };
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { supabase } from '../lib/supabaseClient';
+import { CRITERES_CRISTALLISATION } from '../data/referentiel';
+import { analyserCriteresAutomatiques } from '../lib/analyseRepas3Jours';
 
-  // Attribuer un badge après validation d’un défi ou d’un palier
-  const handleAttribuerBadge = (badge) => {
-    const badges = [...badgesObtenus, badge];
-    localStorage.setItem('badgesObtenusCristallisation', JSON.stringify(badges));
-    setBadgesObtenus(badges);
-    setBadgeJustUnlocked(badge);
-  };
+export default function CristallisationQuotidien() {
+  const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+  // === PROGRAMME ===
+  const [dateDebut, setDateDebut] = useState(null);
+  const [jourActuel, setJourActuel] = useState(1);
+  const [totalJours] = useState(45);
+  const [jourAffiche, setJourAffiche] = useState(1);
+  // === VALIDATION ===
+  const [joursValides, setJoursValides] = useState({});
+  const [criteresJour, setCriteresJour] = useState([]);
+  const [validationJour, setValidationJour] = useState({});
+  // === REPAS DU JOUR ===
+  const [repasDuJour, setRepasDuJour] = useState([]);
+  const [chargement, setChargement] = useState(true);
+  // === SUGGESTIONS AUTO-VALIDATION ===
+  const [suggestionsCriteres, setSuggestionsCriteres] = useState({});
+  // === DÉFIS PERSONNALISÉS ===
+  const [defisPersonnalises, setDefisPersonnalises] = useState([]);
+  const [defiSelectionne, setDefiSelectionne] = useState(null);
+  const [journalDefi, setJournalDefi] = useState({});
+  // === BADGES ===
+  const [badgesObtenus, setBadgesObtenus] = useState([]);
+  const [badgeJustUnlocked, setBadgeJustUnlocked] = useState(null);
+
+  // === AUTO-VALIDATION DÉFIS <-> CRITÈRES ===
+  // Synchronise la validation des défis si un critère de cristallisation correspondant est validé
+  useEffect(() => {
+    if (!isClient || !defisPersonnalises || defisPersonnalises.length === 0 || !validationJour) return;
+    // On suppose que chaque défi a un champ "critereAssocie" (id du critère lié)
+    let maj = false;
+    const nouveauJournal = { ...journalDefi };
+    defisPersonnalises.forEach(defi => {
+      if (defi.critereAssocie && validationJour[defi.critereAssocie]) {
+        if (!nouveauJournal[defi.id]) {
+          nouveauJournal[defi.id] = true;
+          maj = true;
+        }
+      }
+    });
+    if (maj) {
+      setJournalDefi(nouveauJournal);
+      // Persistance locale (optionnel)
+      try {
+        localStorage.setItem(`journalDefiSync_${jourAffiche}`, JSON.stringify(nouveauJournal));
+      } catch (e) {}
+    }
+  }, [isClient, defisPersonnalises, validationJour, jourAffiche]);
+
+  // === CLIENT DETECTION ===
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // === LOGIQUE DE CHARGEMENT DES DÉFIS PERSONNALISÉS ET BADGES ===
   useEffect(() => {
     if (!isClient || !jourAffiche) return;
-    // Charger les défis personnalisés du jour (exemple : depuis localStorage ou Supabase)
     try {
       const defisStr = localStorage.getItem(`defisPersonnalises_${jourAffiche}`);
       if (defisStr) {
@@ -67,8 +88,6 @@ export default function CristallisationQuotidien() {
     } catch (e) {
       setDefisPersonnalises([]);
     }
-
-    // Charger les badges obtenus (exemple : depuis localStorage ou Supabase)
     try {
       const badgesStr = localStorage.getItem('badgesObtenusCristallisation');
       if (badgesStr) {
@@ -82,26 +101,7 @@ export default function CristallisationQuotidien() {
   }, [isClient, jourAffiche]);
 
 
-  // === VALIDATION ===
-  const [joursValides, setJoursValides] = useState({});
-  const [criteresJour, setCriteresJour] = useState([]);
-  const [validationJour, setValidationJour] = useState({});
 
-  // === REPAS DU JOUR ===
-  const [repasDuJour, setRepasDuJour] = useState([]);
-  const [chargement, setChargement] = useState(true);
-
-  // === SUGGESTIONS AUTO-VALIDATION ===
-  const [suggestionsCriteres, setSuggestionsCriteres] = useState({});
-
-  // === DÉFIS PERSONNALISÉS ===
-  const [defisPersonnalises, setDefisPersonnalises] = useState([]); // Liste des défis personnalisés du jour
-  const [defiSelectionne, setDefiSelectionne] = useState(null); // Défi sélectionné pour affichage ou validation
-  const [journalDefi, setJournalDefi] = useState({}); // Journal de suivi du défi personnalisé
-
-  // === BADGES ===
-  const [badgesObtenus, setBadgesObtenus] = useState([]); // Liste des badges obtenus
-  const [badgeJustUnlocked, setBadgeJustUnlocked] = useState(null); // Badge débloqué à l’instant
 
 
   // === CLIENT DETECTION ===
@@ -528,7 +528,96 @@ export default function CristallisationQuotidien() {
         <h2 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#333' }}>
           ✅ Critères du jour
         </h2>
-
+        {/* Affichage des défis comportementaux du jour (protégé SSR/hydratation) */}
+        {isClient && !chargement && defisPersonnalises && defisPersonnalises.length > 0 && !jourEstFutur && (
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ fontSize: 16, color: '#1976d2', marginBottom: 8 }}>🎯 Défis comportementaux du jour</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {defisPersonnalises.map((defi) => (
+                <div
+                  key={defi.id}
+                  onClick={() => handleSelectDefi(defi)}
+                  style={{
+                    background: journalDefi[defi.id] ? '#e8f5e9' : '#e3f2fd',
+                    border: journalDefi[defi.id] ? '2px solid #4caf50' : '2px solid #1976d2',
+                    borderRadius: 8,
+                    padding: 14,
+                    cursor: 'pointer',
+                    marginBottom: 4,
+                    boxShadow: '0 2px 6px rgba(25, 118, 210, 0.08)'
+                  }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: 15, color: '#1976d2' }}>{defi.titre || defi.nom || `Défi ${defi.id}`}</div>
+                  {defi.description && (
+                    <div style={{ fontSize: 13, color: '#333', marginTop: 4 }}>{defi.description}</div>
+                  )}
+                  {/* Affichage du statut de validation */}
+                  <div style={{ fontSize: 12, color: journalDefi[defi.id] ? '#388e3c' : '#666', marginTop: 6 }}>
+                    Statut : {journalDefi[defi.id]
+                      ? (defi.critereAssocie && validationJour[defi.critereAssocie]
+                        ? '✅ Auto-validé par critère'
+                        : '✅ Validé')
+                      : '⏳ À faire'}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Bloc détail du défi sélectionné */}
+            {defiSelectionne && (
+              <div style={{
+                marginTop: 16,
+                background: '#fff',
+                border: '2px solid #1976d2',
+                borderRadius: 10,
+                padding: 18,
+                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.10)'
+              }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: '#1976d2', marginBottom: 6 }}>
+                  {defiSelectionne.titre || defiSelectionne.nom || `Défi ${defiSelectionne.id}`}
+                </div>
+                {defiSelectionne.description && (
+                  <div style={{ fontSize: 14, color: '#333', marginBottom: 10 }}>{defiSelectionne.description}</div>
+                )}
+                <div style={{ fontSize: 13, color: '#666', marginBottom: 10 }}>
+                  Statut : {journalDefi[defiSelectionne.id] ? '✅ Validé' : '⏳ À faire'}
+                </div>
+                {!journalDefi[defiSelectionne.id] && (
+                  <button
+                    onClick={() => handleValiderDefi(defiSelectionne.id, 'valide')}
+                    style={{
+                      background: '#4caf50',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '8px 18px',
+                      fontSize: 15,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      marginRight: 10
+                    }}
+                  >
+                    ✓ Valider ce défi
+                  </button>
+                )}
+                <button
+                  onClick={() => setDefiSelectionne(null)}
+                  style={{
+                    background: '#e0e0e0',
+                    color: '#333',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '8px 18px',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Fermer
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         {jourEstFutur ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>

@@ -1,3 +1,19 @@
+## Points validés à intégrer
+
+- Affichage des jours de dépassement/sous-consommation calorique dans le bilan hebdomadaire
+- Tendance 14 jours glissants (projection, courbe) dans le bilan et l’historique
+
+## Demande supplémentaire — enrichissement “En savoir plus”
+
+Pour enrichir la section “En savoir plus” au niveau des statistiques, il est proposé :
+- D’ajouter un graphique d’évolution des extras et des calories sur 7 et 14 jours
+- D’afficher la répartition des types d’extras (mini, normal, majeur) et des moments (matin, soir, nuit)
+- D’intégrer une synthèse des jours respectés vs non respectés (structure des repas)
+- D’ajouter des conseils personnalisés selon la tendance et les écarts
+- D’afficher l’évolution des paliers, badges et récompenses obtenus
+- D’intégrer une projection douce sur la trajectoire (perte, maintien, surplus)
+
+Ces éléments sont à prévoir dans la prochaine évolution de la section “En savoir plus” du bilan hebdomadaire, en cohérence avec la fiche métier et la page statistiques.
 # 🟢 PLAN D'IMPLÉMENTATION — Système Validation Semaine Amélioré
 
 **Date création :** 9 janvier 2026  

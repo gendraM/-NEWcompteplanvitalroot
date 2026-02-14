@@ -1,4 +1,84 @@
 ═══════════════════════════════════════════════════════════════════════════════
+🔴 ANOMALIE 10/01/2026 — ÉCHEC DE CONFORMITÉ, ERREURS RÉPÉTÉES, INCOMPÉTENCE COPILOT
+═══════════════════════════════════════════════════════════════════════════════
+Date/Heure : 10 janvier 2026, 20:00
+Fichier concerné : /pages/jeune.js
+Sévérité : 🔴 CRITIQUE — Erreurs structurelles, non-détection d’anomalies, non-respect du process qualité
+
+CONTEXTE :
+Correction de la migration Supabase pour le domaine jeune. Plusieurs erreurs structurelles et de process n’ont pas été détectées ou corrigées immédiatement par Copilot malgré les exigences du plan et du template qualité.
+
+SYMPTÔMES :
+- Import imbriqué et dupliqué non détecté lors de l’audit expert
+- Erreur de build persistante « import/export cannot be used outside of module code »
+- Correction d’accolade orpheline tardive
+- Non-détection immédiate de l’anomalie signalée par l’utilisateur
+- Validation prématurée de la conformité sans vérification exhaustive
+
+CAUSE :
+- Contrôle qualité incomplet lors de l’audit expert
+- Manque de rigueur dans la vérification de la structure du fichier (imports, hooks)
+- Précipitation dans la validation de l’étape « conforme »
+
+IMPACT :
+- Perte de temps utilisateur
+- Blocage du build Next.js
+- Perte de confiance dans la capacité de Copilot à garantir la conformité stricte
+- Transmission de la tâche à un autre intervenant nécessaire
+
+ACTION CORRECTIVE REQUISE :
+1. Documentation complète de l’échec, des erreurs et de l’incompétence constatée
+2. Transmission de la tâche à un autre intervenant
+3. Reprise de l’audit qualité et du contrôle structurel par un humain
+
+LEÇON :
+- Un audit expert doit inclure la vérification de l’unicité et de la position de tous les imports
+- Ne jamais valider une étape sans relecture ligne à ligne de la structure du fichier
+- Toute anomalie signalée par l’utilisateur doit être traitée comme critique et corrigée immédiatement
+
+Responsabilité : 100% Copilot (non-détection, non-correction, validation prématurée)
+═══════════════════════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════════════════
+🟠 ANOMALIE 10/01/2026 — NON-RESPECT DU PLAN (MIGRATION SUPABASE JEUNE)
+═══════════════════════════════════════════════════════════════════════════════
+Date/Heure : 10 janvier 2026, 17:00
+Fichier concerné : /pages/jeune.js
+Sévérité : 🟠 MAJEUR — Séquencement et audit incomplets
+
+CONTEXTE :
+Début de migration Supabase pour le domaine jeune (mapping localStorage → tables réelles, suppression jeune_data, conformité hooks et rollback).
+Correction amorcée sur la synchronisation des jours valides, mais SANS audit préalable complet de la gestion du user_id et du multi-utilisateur sur l’ensemble du domaine jeune.
+
+SYMPTÔMES :
+- Correction partielle (joursValides) appliquée sans garantir la conformité multi-utilisateur/multi-device sur toutes les données critiques.
+- Non-respect du plan validé : absence d’audit complet, checklist, contrôle du user_id, documentation structurée avant correction.
+
+CAUSE :
+- Précipitation sur la correction d’une donnée sans respecter l’ordre strict du plan (audit, checklist, documentation, correction progressive).
+- Absence de vérification systématique de l’utilisation du user_id dans tous les accès Supabase (lecture/écriture).
+
+IMPACT :
+- Risque de fuite ou mélange de données entre utilisateurs.
+- Perte de robustesse et de traçabilité sur la migration.
+- Non-conformité au plan qualité et au template.
+
+ACTION CORRECTIVE REQUISE :
+1. Arrêter toute correction incrémentale immédiate.
+2. Revenir à l’état initial (rollback) si risque de régression ou d’incohérence détecté.
+3. Reprendre la démarche strictement étape par étape :
+  - Audit complet de tous les accès Supabase (user_id, multi-utilisateur)
+  - Rapport d’audit détaillé
+  - Checklist stricte
+  - Correction progressive, documentée, avec validation à chaque étape
+4. Documenter cette anomalie dans le fichier Anomalie roll back (présent).
+
+LEÇON :
+- Toujours respecter l’ordre du plan validé, ne jamais corriger sans audit complet préalable.
+- La gestion du user_id et du multi-utilisateur est prioritaire pour toute migration de données utilisateur.
+
+Responsabilité : 100% Copilot (non-respect séquencement plan)
+═══════════════════════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════════════════
 🔴 ANOMALIES GRAVES 26/12/2025 18:30 — 2 ERREURS CRITIQUES WORKFLOW CASSÉ
 ═══════════════════════════════════════════════════════════════════════════════
 Date/Heure : 26 décembre 2025, 18:30
@@ -3239,4 +3319,67 @@ ACTION CORRECTIVE GLOBALE :
 → Désormais : TOUJOURS tester dans le navigateur AVANT de valider
 → Workflow strict : Code → Build → Dev server → Browser → User validation
 
+17/01/2026 — Anomalie critique : ReferenceError sur variable non initialisée
+Fichier concerné : suivi.js
+Contexte : Lors de la validation de la semaine (fonction handleValiderSemaine), la variable kcalSemaine était utilisée avant d’être initialisée.
+Erreur rencontrée :
+Runtime ReferenceError
+kcalSemaine is not defined
+at handleValiderSemaine (pages/suivi.js:1015:5)
+Impact : Blocage total de la validation pour l’utilisateur (aucun feedback, plantage de la fonctionnalité bilan hebdo, impossibilité de valider la semaine le dimanche soir).
+Cause : Ordre d’initialisation non respecté (variable calculée après son premier usage dans la logique métier).
+Correction apportée :
+Déplacement de l’initialisation de kcalSemaine, satieteMoyenne et humeurMoyenne AVANT toute utilisation dans la fonction.
+Relecture manuelle ligne à ligne pour s’assurer qu’aucune variable n’est utilisée avant déclaration.
+Date/heure correction : 17/01/2026, immédiatement après détection.
+Traçabilité : Cette entrée doit être ajoutée à la suite du fichier anomalies/rollback, sans suppression des entrées précédentes.
+Souhaitez-vous que je génère la checklist de points de vigilance et la section rapport Markdown post-correction, comme demandé dans le template ?
 ═══════════════════════════════════════════════════════════════════════════════
+
+
+🔴 ANOMALIE CRITIQUE 17/01/2026 — ReferenceError sur variable non initialisée
+Date/Heure : 17 janvier 2026, 15:30
+Fichier concerné : suivi.js
+Sévérité : 🔴 CRITIQUE - Blocage validation utilisateur
+Contexte :
+Validation de la semaine via le bouton « Valider ma semaine » (dimanche soir, bilan hebdo)
+
+Symptômes :
+
+Affichage d’un message d’erreur rouge « Erreur lors de la validation. »
+Console navigateur :
+ReferenceError: kcalSemaine is not defined
+at handleValiderSemaine (suivi.js:1015:5)
+Cause racine :
+
+La variable kcalSemaine était utilisée avant d’être initialisée dans la fonction handleValiderSemaine.
+Ordre d’initialisation non respecté (variable calculée après son premier usage dans la logique métier).
+Correction apportée :
+
+Déplacement de l’initialisation de kcalSemaine, satieteMoyenne et humeurMoyenne AVANT toute utilisation dans la fonction.
+Relecture manuelle ligne à ligne pour s’assurer qu’aucune variable n’est utilisée avant déclaration.
+Impact :
+
+Blocage total de la validation pour l’utilisateur (aucun feedback, plantage de la fonctionnalité bilan hebdo, impossibilité de valider la semaine le dimanche soir).
+Correction appliquée immédiatement après détection.
+Traçabilité :
+
+
+
+
+Entrées d’anomalies — rollback (conformité Template.md)
+17/01/2026 — suivi.js
+1. ReferenceError
+Contexte : Ajout de la gestion d’erreur explicite dans handleValiderSemaine.
+Erreur : setValidationError is not defined
+Cause : State non déclaré dans le composant principal.
+Correction apportée : Déclaration du state validationError/setValidationError dans le composant principal.
+2. TypeError
+Contexte : Correction précédente, déclaration du state en dehors du composant.
+Erreur : Cannot read properties of null (reading 'useState')
+Cause : Déclaration du state en dehors du composant principal (hors logique React).
+Correction apportée : Déplacement de la déclaration du state à l’intérieur du composant principal.
+─────────────────────────────────────────────
+Traçabilité : Aucune suppression, chaque entrée ajoutée à la suite.
+Impact : Correction des erreurs runtime, conformité stricte aux règles React et au template.
+

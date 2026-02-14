@@ -1,0 +1,394 @@
+Ton corps évolue dans le temps.
+Ce bilan te montre la trajectoire, pas un jugement
+TITRE ÉCRAN
+Bilan de ta semaine (Semaine du 05/01 au 11/01)
+SOUS-TEXTE
+Ton corps se construit sur des moyennes. Ce bilan te donne la trajectoire, pas un verdict.
+BOUTON PRINCIPAL
+Comprendre en détail (ouvre une page “Détails & conseils” avec sections)
+
+Section 1. Gestion des kcal et développement du plaisir conscient
+Objectif :  Apprendre à respecter les besoins de son corps, et à se faire plaisir sans culpabilité.
+Affichages clés :
+Kcal total consommé 
+dont budget extras hebdo : X kcal
+Consommé : Y kcal
+Écart : +/– Z kcal
+Nombre d’extras (et répartition par type) :
+ mini / normal / 2x / majeur = non plus adapté
+nouvelle règle :
+Titre du sous bloc
+Lecture des extras de la semaine
+Ici, on regarde comment les extras se sont exprimés cette semaine :
+par leur nombre et par leur poids calorique total.
+Nombre d’extras consommés
+C’est ici que tu fais toute la différence.
+Lecture automatique parmi ces cas :
+ Cas 1 — Peu d’extras, mais très caloriques
+Cette semaine, les extras ont été peu nombreux mais très chargés.
+Leur impact vient surtout de leur intensité.
+ Ex : 1–2 extras = 600 kcal
+
+ Cas 2 — Plusieurs extras, charge modérée
+Cette semaine, les extras ont été fréquents mais répartis en petites quantités.
+Leur impact vient de l’accumulation.
+ Ex : 5–6 extras = 550 kcal
+
+ Cas 3 — Plusieurs extras, charge élevée
+Cette semaine, les extras ont été à la fois fréquents et chargés.
+La répétition et l’intensité se sont additionnées.
+Ex : 6 extras = 900 kcal
+ Cas 4 — Extras maîtrisés
+Cette semaine, le nombre et la charge des extras sont restés dans le budget prévu.
+Ex : 3 extras = 350 kcal / budget 500 kcal
+“Moments extras” : combien ont été planifiés vs impulsifs (si tu as l’info, sinon “non disponible” en mode test)
+en gros :
+
+“Moments extras” : combien ont été planifiés vs impulsifs (si tu as l’info, sinon “non disponible” en mode test)
+en gros :
+ SECTION 1 — Gestion des kcal et développement du plaisir conscient
+(Copilot, fais des Suggestion de titre plus parlant que “gestion des kcal”)
+Objectif de la section
+Comprendre l’impact qu’as eu les aliments que tu as consommée cette semaine et voir en quoi cela influence ton parcours  tout en développant un plaisir plus conscient et mieux réparti.
+
+1. Lecture globale de la semaine (le cadre)
+Ici, on pose le socle factuel, sans jugement.
+Affichage principal (1 bloc synthèse)
+Apports totaux de la semaine : X kcal
+
+
+Objectif hebdomadaire estimé : Y kcal
+
+ (calculé à partir de Life Access : objectif × 7 jours)
+
+
+Écart hebdomadaire :
+
+
+Z kcal / – Z kcal
+
+
+Phrase de lecture automatique (clé)
+Selon l’écart :
+Si déficit :
+
+ Cette semaine crée un déficit énergétique. Elle va dans le sens de la perte de poids.
+
+
+Si proche de 0 :
+
+ Cette semaine est globalement en maintien. La trajectoire est stable.
+
+
+Si surplus :
+
+ Cette semaine est plus riche en énergie. Le corps aura besoin de temps pour s’ajuster.
+
+
+👉 Important :
+On parle de la semaine, jamais de “tu as trop mangé”.
+
+2. Lecture de trajectoire (ce que ça implique)
+On transforme les chiffres en sens.
+Affichage “Tendance de la semaine”
+🟦 Tendance identifiée :
+
+ Perte / Maintien / Surplus
+
+
+🔄 Fenêtre de lecture :
+
+ Le corps réagit sur des moyennes.
+
+ Cette tendance s’interprète sur 7 jours et se confirme sur 14 jours glissants.
+
+
+Message doux systématique (signature)
+Une semaine ne décide pas de tout.
+La répétition des semaines construit le changement.
+Option visuelle (si tu veux plus tard) :
+une jauge “déficit ↔ maintien ↔ surplus”
+
+
+ou une petite flèche de trajectoire (↘︎ ↔︎ ↗︎)
+
+
+
+3. Zoom plaisir & extras (là où l’utilisateur apprend)
+Ici, on reconnecte les kcal aux comportements, pas à la morale.
+Sous-bloc : Budget extras
+Budget extras hebdomadaire : X kcal
+
+
+Consommé en extras : Y kcal
+
+
+Part des extras dans la semaine : Z %
+
+
+Lecture automatique :
+Si extras bien répartis :
+
+ Tes plaisirs sont globalement intégrés et conscients.
+
+
+Si extras concentrés :
+
+ Les extras se concentrent sur peu de moments. C’est souvent là que la fatigue ou la charge mentale jouent.
+
+
+
+4. Moments forts et zones de fragilité (le cœur de ce que tu veux)
+C’est LA partie clé que tu cherchais.
+Affichage “Moments de la semaine”
+🟢 Moments favorables
+
+ (exemples générés selon données)
+
+
+repas structurés
+
+
+extras planifiés
+
+
+journées sans dépassement
+
+
+🟠 Moments de fragilité
+
+ (sans jugement)
+
+
+extras tardifs
+
+
+extras non planifiés
+
+
+accumulation sur une même journée
+
+
+Phrase de cadrage (très importante)
+Ces moments ne sont pas des erreurs.
+Ce sont des points d’apprentissage pour rendre la semaine prochaine plus simple.
+
+5. Lecture synthèse (1 phrase qui rassemble tout)
+À la fin de la section 1, tu peux afficher UNE phrase de synthèse, par exemple :
+Semaine en déficit :
+
+ Tu avances dans la bonne direction. La clé sera de reproduire cette structure.
+
+
+Semaine en maintien :
+
+ Ton équilibre est présent. Un léger ajustement suffira pour relancer la perte.
+
+
+Semaine riche :
+
+ Cette semaine a été plus riche. Ton corps s’adapte sur 14 jours. On ajuste, sans repartir de zéro.
+
+
+
+
+
+Lecture motivationnelle (message dynamique) :
+Si sous budget :
+
+ “Tu as laissé volontairement de l’espace. C’est là que la perte se crée.”
+
+
+Si budget dépassé :
+
+ “Semaine plus riche. Pas grave : on se recalibre. Ce qui compte, c’est la répétition, pas la perfection.”
+
+
+
+Section 2. TRAJECTOIRE ÉNERGÉTIQUE ET TENDANCE (7 JOURS + 14 JOURS)
+Objectif : ancrer le concept “le changement se fige sur 14 jours glissants” et éviter la panique.
+🧭 INTENTION DE CETTE SECTION (très important)
+Cette section n’explique pas la semaine.
+Elle met en relation :
+la semaine N-1
+
+
+la semaine N
+
+
+la moyenne sur 14 jours glissants
+Pour aider l’utilisateur à comprendre ce qui se répète, ce qui s’améliore, ce qui résiste encore.
+👉 On n’est plus dans le comptage.
+👉 On est dans la lecture de trajectoire comportementale.
+
+Section 2, copilot trouve le titre de cette SECTION 
+Ta trajectoire sur 14 jours
+Sous-texte (clé, signature de l’app)
+Ton corps se construit sur des moyennes.
+Ce regard sur 14 jours t’aide à comprendre ce qui s’ancre — pas à juger ce qui a été.
+👉 Cette phrase est parfaite pour ce moment précis.
+On parle du temps, pas du “bien/mal”.
+
+STRUCTURE DE LA SECTION (claire, lisible, profonde)
+1️⃣ Comparaison simple : semaine vs semaine
+Bloc : “Évolution par rapport à la semaine précédente”
+Affichages :
+Apports semaine précédente : X kcal
+
+
+Apports semaine actuelle : Y kcal
+
+
+Évolution : + / – Z kcal
+
+
+Mais surtout : lecture traduite automatiquement, par exemple :
+🔽 Cette semaine est plus légère que la précédente.
+
+
+↔️ Cette semaine est globalement similaire à la précédente.
+
+
+🔼 Cette semaine est plus riche que la précédente.
+
+
+👉 Pas de chiffres agressifs, juste une direction.
+
+2️⃣ Lecture sur 14 jours glissants (le cœur de la prise de conscience)
+Bloc : “Lecture sur 14 jours”
+Affichage :
+Moyenne énergétique sur 14 jours
+
+
+Positionnement :
+
+ Déficit léger / Maintien / Surplus
+
+
+Message fondamental (à ne jamais enlever)
+Le corps ne réagit pas à une journée, ni même à une seule semaine.
+Il répond à ce que tu répètes.
+3️⃣ Ce qui s’ancre (renforcement positif)
+Bloc : “Ce que tu es en train d’ancrer”
+Ce bloc est essentiel pour la motivation.
+Exemples de formulations possibles (selon données) :
+✔️ Des extras plus souvent planifiés que la semaine dernière
+
+
+✔️ Moins d’accumulation sur une même journée
+
+
+✔️ Une meilleure répartition des plaisirs sur la semaine
+
+
+✔️ Un déficit plus stable, même sans perfection
+
+
+Phrase d’ancrage
+Ces répétitions sont ce qui construit ton résultat futur.
+👉 On félicite le processus, pas le résultat.
+
+4️⃣ Schémas récurrents encore présents (zone de vérité)
+C’est ici que tu fais la vraie différence avec toutes les apps.
+Bloc : “Schémas encore sensibles”
+(libellé volontairement doux)
+Exemples :
+🔸 Extras concentrés en fin de journée
+
+
+🔸 Difficulté à s’arrêter après un premier plaisir
+
+
+🔸 Pics énergétiques liés à la fatigue ou à la charge mentale
+
+
+Phrase clé (non négociable)
+Un schéma qui se répète n’est pas un échec.
+C’est une information.
+👉 Tu normalises.
+👉 Tu sécurises.
+👉 Tu rends le changement possible.
+
+5️⃣ Projection consciente vers la semaine suivante
+Ici, tu relies vérité + avenir, sans pression.
+Bloc : “Pour la semaine qui commence”
+Une seule idée à la fois, par exemple :
+Planifier un plaisir à l’avance pour éviter l’accumulation
+
+
+Sécuriser un moment fragile identifié
+
+
+Accepter consciemment la fin d’un extra
+
+
+Message de clôture (très important)
+Le changement ne se joue pas demain.
+Il se joue dans la répétition de petites décisions, ici et maintenant.
+
+Rappelles que le présent est le levier, pas la semaine prochaine.
+Section 3  comment j’ai mangé :
+donnée satieté; humeur notes ecrité par utilisateur 
+Répartition “extras hors repas” :
+
+ matin / après-midi / soir / nuit
+
+
+
+
+Message doux, non punitif :
+“Ton rythme explique une partie de tes choix. On va rendre la semaine prochaine plus facile, pas plus stricte.”
+Bouton “En savoir plus” section :
+Rythme & faim (fin de journée = sommeil, collation tardive structurée, etc.)
+
+Bouton en savoir plus et la modal s’ouvre à définir selon fiche metier si c est la page statistique ?  si oui quele donné y figure en quoi elle t elle differete du tableaux de bord.
+
+attention copilot règle importante : 
+🧩 SECTION 1 — SEMAINE EN COURS
+👉 On ne parle PAS de “trajectoire”, mais de 
+signal
+Nouveau rôle clair de la section 1 :
+“Voici les signaux que tu envoies à ton corps cette semaine.”
+Ce que tu peux afficher (légitime et juste)
+📊 Signal énergétique de la semaine
+
+
+déficit / proche maintien / surplus
+
+
+🟡 Libellé très important :
+
+ Signal en cours (ou direction actuelle)
+
+
+Phrase clé (à intégrer absolument)
+Cette semaine donne une direction.
+Le corps observe encore.
+👉 Tu ne mens pas.
+👉 Tu n’exagères pas.
+👉 Tu responsabilises sans écraser.
+
+🧭 SECTION 2 — 14 JOURS GLISSANTS
+👉 Là seulement, on parle de 
+trajectoire
+Nouveau rôle clair :
+“Voici ce que ton corps est en train d’intégrer.”
+Ici :
+comparaison semaine N vs N-1
+
+
+moyenne 14 jours
+
+
+schémas récurrents
+
+
+ancrage / résistance
+
+
+projection
+
+
+Phrase signature (parfaite ici, et ici seulement)
+Ton corps se construit sur des moyennes.
+Ce regard sur 14 jours montre la trajectoire, pas un verdict.

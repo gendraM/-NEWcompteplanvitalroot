@@ -215,7 +215,7 @@ git push
 
 #### Option 1 : Via Pull Request (RECOMMANDÉ)
 
-1. **Aller sur GitHub** : https://github.com/gendraM/-NEWcompteplanvitalroot
+1. **Aller sur GitHub** : 
 2. **Cliquer sur "Pull requests"** → "New pull request"
 3. **Configurer :**
    - Base : `main`
