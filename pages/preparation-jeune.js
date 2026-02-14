@@ -306,6 +306,7 @@ export default function PreparationJeune() {
   // === LOGIQUE MÉTIER ===
   // Calcul de la progression réelle
   useEffect(() => {
+    console.log('🔍 [useEffect criteres] Déclenché - criteres a changé');
     const nbValid = criteres.filter(c => c.valide).length;
     setProgression(nbValid);
     setSyntheseVisible(nbValid === criteresMetier.length);
@@ -317,7 +318,10 @@ export default function PreparationJeune() {
         prep.criteres = criteres;
         prep.updatedAt = new Date().toISOString();
         window.localStorage.setItem('preparationData', JSON.stringify(prep));
+        console.log('🔍 [useEffect criteres] avant savePreparationJeuneSupabase, prep.id =', prep.id);
+        console.log('🔍 [useEffect criteres] avant savePreparationJeuneSupabase, prep.startDate =', prep.startDate);
         if (userId) {
+          console.log('💾 [useEffect criteres] Appelant savePreparationJeuneSupabase avec userId:', userId);
           await savePreparationJeuneSupabase(userId, prep);
         }
       }
@@ -404,6 +408,8 @@ export default function PreparationJeune() {
 
   // Handler pour validation de la modale et activation complète du workflow
   function handleStartPreparationModal(data) {
+    console.log('🔍 [handleStartPreparationModal] Données reçues de la modale:', data);
+    console.log('🔍 [handleStartPreparationModal] data.id exist?', data.id);
     // Sauvegarde des données de préparation
     setPreparationData(data);
     if (typeof window !== 'undefined') {
@@ -416,6 +422,7 @@ export default function PreparationJeune() {
     setPreparationActive(true);
     // Initialisation des critères métier
     const criteresInit = criteresMetier.map(c => ({ ...c, valide: false, dateValidation: null }));
+    console.log('🔍 [handleStartPreparationModal] Critères init créés, va déclencher setCriteres() qui devrait déclencher useEffect');
     setCriteres(criteresInit);
     if (typeof window !== 'undefined') {
       localStorage.setItem('criteresPreparation', JSON.stringify(criteresInit));
@@ -855,12 +862,16 @@ const DebugPanel = () => (
                   </div>
                 </div>
               )}
-              <button
-                onClick={async () => {
-                  setFeedbackMessage('⏳ Archivage de la préparation en cours...');
-                  try {
-                    const { ajouterPreparationHistorique, savePreparationJeuneSupabase } = await import('../lib/preparationsJeune');
-                    // Construction du bilan complet
+            </>
+          )}
+          
+          {/* Boutons toujours accessibles, en dehors de tout conditionnel */}
+          <button
+            onClick={async () => {
+                      setFeedbackMessage('⏳ Archivage de la préparation en cours...');
+                      try {
+                        const { ajouterPreparationHistorique, savePreparationJeuneSupabase } = await import('../lib/preparationsJeune');
+                        // Construction du bilan complet
                     const preparationArchivee = {
                       userId: userId || null,
                       dateDebut: dateJeune,
@@ -911,11 +922,9 @@ const DebugPanel = () => (
               >
                 Finaliser ma préparation jeune
               </button>
-              <button onClick={handleResetPreparation} style={{ marginTop: '14px', backgroundColor: '#FF6B6B', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: 16, fontFamily: 'Inter, Roboto, Arial, sans-serif' }}>
-                Réinitialiser ma préparation
-              </button>
-            </>
-          )}
+                  <button onClick={handleResetPreparation} style={{ marginTop: '14px', backgroundColor: '#FF6B6B', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: 16, fontFamily: 'Inter, Roboto, Arial, sans-serif' }}>
+                    Réinitialiser ma préparation
+                  </button>
         </div>
       </div>
     </div>
