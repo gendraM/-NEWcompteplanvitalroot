@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { calculerStatsGlobales, detecterJoursCritiques } from '../lib/analyzeHistorique';
 
 export default function HistoriqueReprisesModal({ historiqueReprises, onFermer, onConsulter }) {
   const [repriseSelectionnee, setRepriseSelectionnee] = useState(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [repriseToDelete, setRepriseToDelete] = useState(null);
+  const [ongletActif, setOngletActif] = useState('liste'); // 'liste' | 'dashboard'
 
   // Formatage date
   const formaterDate = (dateStr) => {
@@ -106,7 +108,7 @@ export default function HistoriqueReprisesModal({ historiqueReprises, onFermer, 
           boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>📊 Mes reprises archivées</h2>
           <button
             onClick={onFermer}
@@ -120,6 +122,32 @@ export default function HistoriqueReprisesModal({ historiqueReprises, onFermer, 
             ✕
           </button>
         </div>
+
+        {/* Onglets Liste / Dashboard */}
+        {!repriseSelectionnee && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {['liste', 'dashboard'].map((onglet) => (
+              <button
+                key={onglet}
+                onClick={() => setOngletActif(onglet)}
+                style={{
+                  flex: 1,
+                  padding: '8px 0',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  background: ongletActif === onglet ? '#667eea' : '#f0f0f0',
+                  color: ongletActif === onglet ? '#fff' : '#555',
+                  transition: 'background 0.2s',
+                }}
+              >
+                {onglet === 'liste' ? '📋 Mes reprises' : '📈 Dashboard'}
+              </button>
+            ))}
+          </div>
+        )}
 
         {repriseSelectionnee ? (
           // Détail d'une reprise
@@ -344,9 +372,99 @@ export default function HistoriqueReprisesModal({ historiqueReprises, onFermer, 
             </div>
           </div>
         ) : (
-          // Liste des reprises
+          // Liste des reprises ou Dashboard
           <div>
-            {historiqueReprises.map((reprise, index) => (
+            {ongletActif === 'dashboard' ? (
+              // ── DASHBOARD ANALYTIQUE ──────────────────────────────────────
+              (() => {
+                const stats = calculerStatsGlobales(historiqueReprises);
+                const joursCritiques = detecterJoursCritiques(historiqueReprises);
+                const styleCard = { background: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: 8, padding: '12px 16px', marginBottom: 12 };
+                const styleLabel = { fontSize: 11, color: '#999', fontWeight: 500, marginBottom: 4 };
+                const styleValue = { fontSize: 22, fontWeight: 700 };
+                return (
+                  <div>
+                    {/* KPIs globaux */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                      <div style={styleCard}>
+                        <div style={styleLabel}>Reprises totales</div>
+                        <div style={{ ...styleValue, color: '#1976d2' }}>{stats.totalReprises}</div>
+                      </div>
+                      <div style={styleCard}>
+                        <div style={styleLabel}>Taux de réussite</div>
+                        <div style={{ ...styleValue, color: stats.tauxReussite >= 50 ? '#43a047' : '#ff9800' }}>{stats.tauxReussite}%</div>
+                      </div>
+                      {stats.alimentMeilleur && (
+                        <div style={{ ...styleCard, gridColumn: '1 / -1' }}>
+                          <div style={styleLabel}>🏆 Aliment clé (reprises réussies)</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: '#2e7d32' }}>
+                            {stats.alimentMeilleur.aliment}
+                            <span style={{ fontSize: 12, fontWeight: 500, color: '#888', marginLeft: 8 }}>
+                              ({stats.alimentMeilleur.occurrences}×)
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {stats.evolutionPoidsMoyen != null && (
+                        <div style={{ ...styleCard, gridColumn: '1 / -1' }}>
+                          <div style={styleLabel}>⚖️ Évolution poids moyenne / reprise</div>
+                          <div style={{ ...styleValue, color: stats.evolutionPoidsMoyen <= 0 ? '#43a047' : '#f44336', fontSize: 18 }}>
+                            {stats.evolutionPoidsMoyen > 0 ? '+' : ''}{stats.evolutionPoidsMoyen} kg
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Stats par phase */}
+                    <div style={styleCard}>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#333' }}>📊 Phases atteintes</div>
+                      {Object.entries(stats.phaseStats).map(([phase, s]) => (
+                        <div key={phase} style={{ marginBottom: 8 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                            <span style={{ fontWeight: 600 }}>{phase}</span>
+                            <span style={{ color: s.taux >= 80 ? '#43a047' : s.taux >= 50 ? '#ff9800' : '#f44336', fontWeight: 600 }}>
+                              {s.compteur} ({s.taux}%)
+                            </span>
+                          </div>
+                          <div style={{ width: '100%', height: 6, background: '#e0e0e0', borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{ width: `${s.taux}%`, height: '100%', background: s.taux >= 80 ? '#43a047' : s.taux >= 50 ? '#ff9800' : '#f44336', borderRadius: 3 }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Jours critiques */}
+                    {joursCritiques.length > 0 && (
+                      <div style={{ ...styleCard, borderColor: '#ffb74d', background: '#fff8e1' }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#e65100' }}>⚠️ Jours critiques détectés</div>
+                        {joursCritiques.slice(0, 5).map((c, idx) => (
+                          <div key={idx} style={{ fontSize: 12, color: '#555', marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Jour {c.jour} — Phase {c.phase}</span>
+                            <span style={{ color: c.alerte === 'CRITIQUE' ? '#f44336' : '#ff9800', fontWeight: 600 }}>
+                              {c.alerte} ({c.tauxStagnation}%)
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Recommandation pour prochaine reprise */}
+                    {stats.alimentMeilleur && (
+                      <div style={{ ...styleCard, borderColor: '#a5d6a7', background: '#e8f5e9' }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: '#2e7d32' }}>💡 Recommandations pour ta prochaine reprise</div>
+                        <div style={{ fontSize: 12, color: '#388e3c', lineHeight: 1.6 }}>
+                          Basé sur tes {stats.totalReprises} reprise{stats.totalReprises > 1 ? 's' : ''} :{' '}
+                          intègre <strong>{stats.alimentMeilleur.aliment}</strong> dans ton programme — c'est ton aliment le plus fréquent dans les reprises réussies.
+                          {joursCritiques.length > 0 && ` Prépare-toi particulièrement pour le Jour ${joursCritiques[0].jour} (Phase ${joursCritiques[0].phase}) qui est souvent difficile.`}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+            ) : (
+              // ── LISTE DES REPRISES ────────────────────────────────────────
+              historiqueReprises.map((reprise, index) => (
               <div
                 key={reprise.id || index}
                 style={{
@@ -443,7 +561,8 @@ export default function HistoriqueReprisesModal({ historiqueReprises, onFermer, 
                   <span style={{ fontSize: 18, marginLeft: 12, color: '#999' }}>→</span>
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         )}
 

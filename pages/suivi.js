@@ -57,6 +57,8 @@ import RepasBloc from "../components/RepasBloc";
 import TimelineProgression from "../components/TimelineProgression";
 import SaisieDefiAlimentaire from "../components/SaisieDefiAlimentaire";
 import SaisieRepriseJeune from "../components/SaisieRepriseJeune";
+import PropositionsIntelligentes from "../components/PropositionsIntelligentes";
+import { analyserHistorique } from "../lib/analyzeHistorique";
 import { useDefis } from "../components/DefisContext";
 
 // Utilitaire message cyclique
@@ -524,6 +526,7 @@ export default function Suivi() {
   const [jourReprise, setJourReprise] = useState(null);
   const [programmeReprise, setProgrammeReprise] = useState(null);
   const [alimentsAutorises, setAlimentsAutorises] = useState([]);
+  const [analyseReprise, setAnalyseReprise] = useState({ propositionsAliments: [], alertesJoursCritiques: [], statsGlobales: {}, recommandations: [] });
 
   // ═══════════════════════════════════════════════════════════
   // NOUVEAU : DÉTECTION PHASE CRISTALLISATION
@@ -665,6 +668,19 @@ export default function Suivi() {
 
     detecterReprise();
   }, [selectedDate, supabase]);
+
+  // Analyse intelligente de l'historique des reprises pour propositions
+  useEffect(() => {
+    if (!repriseActive || jourReprise == null || phaseReprise == null) return;
+    if (typeof window === 'undefined') return;
+    try {
+      const historique = JSON.parse(localStorage.getItem('historiqueReprises') || '[]');
+      const analyse = analyserHistorique(historique, jourReprise, phaseReprise);
+      setAnalyseReprise(analyse);
+    } catch (e) {
+      console.error('[ANALYSE HISTORIQUE] Erreur:', e);
+    }
+  }, [repriseActive, jourReprise, phaseReprise]);
   // Import du contexte défis pour savoir si un défi alimentaire est en cours
   // Respecte la checklist : hooks, logique, handlers déclarés avant le rendu
   // Utilisation du hook useDefis pour la réactivité
@@ -1537,11 +1553,20 @@ export default function Suivi() {
         <>
           {/* Affichage séparé : Reprise OU Défi */}
           {repriseActive ? (
-            <SaisieRepriseJeune 
-              phaseReprise={phaseReprise}
-              jourReprise={jourReprise}
-              programmeReprise={programmeReprise}
-            />
+            <>
+              <PropositionsIntelligentes
+                propositionsAliments={analyseReprise.propositionsAliments}
+                alertesJoursCritiques={analyseReprise.alertesJoursCritiques}
+                recommandations={analyseReprise.recommandations}
+                jourActuel={jourReprise}
+                phaseActuelle={phaseReprise}
+              />
+              <SaisieRepriseJeune 
+                phaseReprise={phaseReprise}
+                jourReprise={jourReprise}
+                programmeReprise={programmeReprise}
+              />
+            </>
           ) : defiAlimentaireActif ? (
             <SaisieDefiAlimentaire />
           ) : (
