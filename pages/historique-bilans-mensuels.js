@@ -81,7 +81,7 @@ export default function HistoriqueBilansMensuels() {
   return (
     <>
       <Navigation />
-      <div className={styles.container}>
+      <div className={`${styles.container} historique-bilans-mensuels-page`}>
         <header className={styles.header}>
           <h1>📈 Historique des bilans mensuels</h1>
           <p className={styles.subtitle}>
@@ -201,6 +201,7 @@ export default function HistoriqueBilansMensuels() {
             isOpen={true}
             mois={bilanSelectionne.mois}
             annee={bilanSelectionne.annee}
+            modeHistorique={true}
             onClose={fermerModal}
           />
         )}

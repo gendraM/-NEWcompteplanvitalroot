@@ -2,6 +2,64 @@
    STYLES IMPRESSION PDF - BilanHebdoModal
    ======================================== */
 @media print {
+  .historique-bilans-mensuels-page > * {
+    display: none !important;
+  }
+
+  .historique-bilans-mensuels-page > .bilan-mensuel-overlay {
+    display: block !important;
+  }
+
+  .historique-bilans-mensuels-page .bilan-mensuel-overlay,
+  .historique-bilans-mensuels-page .bilan-mensuel-modal {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+
+  .historique-bilans-mensuels-page .bilan-mensuel-modal {
+    padding: 1.2cm !important;
+    border-radius: 0 !important;
+  }
+
+  .historique-bilans-mensuels-page .bilan-mensuel-modal,
+  .historique-bilans-mensuels-page .bilan-mensuel-modal * {
+    animation: none !important;
+    transition: none !important;
+    text-shadow: none !important;
+  }
+
+  .historique-bilans-mensuels-page .bilan-mensuel-no-print {
+    display: none !important;
+  }
+
+  .historique-bilans-mensuels-page .bilan-mensuel-content .sectionContent,
+  .historique-bilans-mensuels-page .print-expand {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  .historique-bilans-mensuels-page .bilan-mensuel-section,
+  .historique-bilans-mensuels-page .section,
+  .historique-bilans-mensuels-page .sectionContent,
+  .historique-bilans-mensuels-page .content {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
   /* Masquer les éléments de la page historique (titre, liste, lien retour) */
   .page-title,
   .bilans-list,
@@ -11,8 +69,18 @@
     display: none !important;
   }
   
-  /* Réinitialiser le backdrop pour l'impression */
+  /* Réinitialiser le backdrop pour l'impression (hebdo + mensuel) */
   .bilan-modal-backdrop {
+    position: static !important;
+    background: white !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  .bilan-mensuel-overlay {
     position: static !important;
     background: white !important;
     width: 100% !important;
@@ -23,7 +91,8 @@
   }
   
   /* Modale en mode statique */
-  [role="dialog"] {
+  [role="dialog"],
+  .bilan-mensuel-modal {
     position: static !important;
     width: 100% !important;
     max-width: none !important;
@@ -33,9 +102,11 @@
     background: white !important;
     min-height: auto !important;
   }
-  
-  /* Masquer tous les boutons */
-  button {
+
+  /* Masquer uniquement les actions non pertinentes à l'impression */
+  .bilan-modal-backdrop button,
+  .bilan-mensuel-modal button,
+  .bilan-mensuel-no-print {
     display: none !important;
   }
   
@@ -48,6 +119,20 @@
     opacity: 1 !important;
     height: auto !important;
     max-height: none !important;
+  }
+
+  .bilan-mensuel-content .sectionContent {
+    display: block !important;
+  }
+
+  .bilan-mensuel-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 1rem !important;
+  }
+
+  .bilan-mensuel-print-header {
+    border-radius: 0 !important;
   }
   
   /* Forcer tous les <details> à être ouverts */

@@ -2111,7 +2111,7 @@ function Section6Projection({ data }) {
  * - annee: number - Année du bilan
  * - onClose: function - Callback de fermeture
  */
-export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
+export default function BilanMensuelModal({ isOpen, mois, annee, onClose, modeHistorique = false }) {
   console.log('[BILAN MENSUEL MODAL] Composant monté avec props:', { isOpen, mois, annee });
   
   // État des sections (true = ouverte, false = fermée)
@@ -2129,6 +2129,7 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
   const [bilanData, setBilanData] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   
   console.log('[BILAN MENSUEL MODAL] États initiaux:', { loading, bilanData });
   console.log('[BILAN MENSUEL MODAL] 🔐 RLS actif - pas besoin de userId explicite');
@@ -2146,6 +2147,15 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
       [section]: !prev[section]
     }));
   };
+
+  const ouvrirToutesLesSections = () => ({
+    section1: true,
+    section2: true,
+    section3: true,
+    section4: true,
+    section5: true,
+    section6: true,
+  });
 
   // Charger les données du bilan mensuel
   useEffect(() => {
@@ -2328,6 +2338,48 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
       setSaving(false);
     }
   };
+
+  const imprimerBilan = () => {
+    if (typeof window === 'undefined') return;
+
+    const etatAvantImpression = { ...sectionsOuvertes };
+    let etatRestaure = false;
+    let handleAfterPrint;
+
+    const restaurerEtat = () => {
+      if (etatRestaure) return;
+      etatRestaure = true;
+      setSectionsOuvertes(etatAvantImpression);
+      setIsPrinting(false);
+      if (handleAfterPrint) {
+        window.removeEventListener('afterprint', handleAfterPrint);
+      }
+    };
+
+    handleAfterPrint = () => {
+      restaurerEtat();
+    };
+
+    setIsPrinting(true);
+    setSectionsOuvertes(ouvrirToutesLesSections());
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    setTimeout(() => {
+      window.print();
+
+      setTimeout(() => {
+        if (!window.matchMedia || !window.matchMedia('print').matches) {
+          restaurerEtat();
+        }
+      }, 700);
+    }, 140);
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsPrinting(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) {
     console.log('[BILAN MENSUEL MODAL] Rendu null (modale fermée)');
@@ -2574,11 +2626,11 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
         }
       `}</style>
 
-      <div className="overlay" onClick={onClose}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="overlay bilan-mensuel-overlay" onClick={onClose}>
+        <div className="modal bilan-mensuel-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
           {/* Header */}
-          <div className="header">
-            <button className="closeBtn" onClick={onClose} aria-label="Fermer">
+          <div className="header bilan-mensuel-print-header">
+            <button className="closeBtn bilan-mensuel-no-print" onClick={onClose} aria-label="Fermer">
               ×
             </button>
             <h2 className="title">📊 Bilan Mensuel</h2>
@@ -2588,7 +2640,7 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
           </div>
 
           {/* Content */}
-          <div className="content">
+          <div className="content bilan-mensuel-content">
             {loading ? (
               // Skeleton loader
               <div>
@@ -2601,7 +2653,7 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
             ) : (
               <>
                 {/* Section 1: Tendance poids & objectif */}
-                <div className="section">
+                <div className="section bilan-mensuel-section">
                   <div
                     className="sectionHeader"
                     onClick={() => toggleSection('section1')}
@@ -2617,8 +2669,8 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                       ▼
                     </span>
                   </div>
-                  {sectionsOuvertes.section1 && (
-                    <div className="sectionContent">
+                  {(sectionsOuvertes.section1 || isPrinting) && (
+                    <div className="sectionContent print-expand">
                       {bilanData?.section1 ? (
                         <Section1TendancePoids data={bilanData.section1} />
                       ) : (
@@ -2632,7 +2684,7 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                 </div>
 
                 {/* Section 2: Budget calorique */}
-                <div className="section">
+                <div className="section bilan-mensuel-section">
                   <div
                     className="sectionHeader"
                     onClick={() => toggleSection('section2')}
@@ -2648,8 +2700,8 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                       ▼
                     </span>
                   </div>
-                  {sectionsOuvertes.section2 && (
-                    <div className="sectionContent">
+                  {(sectionsOuvertes.section2 || isPrinting) && (
+                    <div className="sectionContent print-expand">
                       {bilanData?.section2 ? (
                         <Section2BudgetCalorique data={bilanData.section2} />
                       ) : (
@@ -2663,7 +2715,7 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                 </div>
 
                 {/* Section 3: Patterns comportementaux */}
-                <div className="section">
+                <div className="section bilan-mensuel-section">
                   <div
                     className="sectionHeader"
                     onClick={() => toggleSection('section3')}
@@ -2679,8 +2731,8 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                       ▼
                     </span>
                   </div>
-                  {sectionsOuvertes.section3 && (
-                    <div className="sectionContent">
+                  {(sectionsOuvertes.section3 || isPrinting) && (
+                    <div className="sectionContent print-expand">
                       {bilanData?.section3 ? (
                         <Section3PatternsComportementaux data={bilanData.section3} />
                       ) : (
@@ -2694,7 +2746,7 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                 </div>
 
                 {/* Section 4: Qualité nutritionnelle */}
-                <div className="section">
+                <div className="section bilan-mensuel-section">
                   <div
                     className="sectionHeader"
                     onClick={() => toggleSection('section4')}
@@ -2710,8 +2762,8 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                       ▼
                     </span>
                   </div>
-                  {sectionsOuvertes.section4 && (
-                    <div className="sectionContent">
+                  {(sectionsOuvertes.section4 || isPrinting) && (
+                    <div className="sectionContent print-expand">
                       {bilanData?.section4 ? (
                         <Section4QualiteNutritionnelle data={bilanData.section4} />
                       ) : (
@@ -2727,7 +2779,7 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                 </div>
 
                 {/* Section 5: Bien-être & ressentis */}
-                <div className="section">
+                <div className="section bilan-mensuel-section">
                   <div
                     className="sectionHeader"
                     onClick={() => toggleSection('section5')}
@@ -2743,8 +2795,8 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                       ▼
                     </span>
                   </div>
-                  {sectionsOuvertes.section5 && (
-                    <div className="sectionContent">
+                  {(sectionsOuvertes.section5 || isPrinting) && (
+                    <div className="sectionContent print-expand">
                       {bilanData?.section5 ? (
                         <Section5BienEtre data={bilanData.section5} />
                       ) : (
@@ -2760,7 +2812,7 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                 </div>
 
                 {/* Section 6: Projection mois suivant */}
-                <div className="section">
+                <div className="section bilan-mensuel-section">
                   <div
                     className="sectionHeader"
                     onClick={() => toggleSection('section6')}
@@ -2776,8 +2828,8 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
                       ▼
                     </span>
                   </div>
-                  {sectionsOuvertes.section6 && (
-                    <div className="sectionContent">
+                  {(sectionsOuvertes.section6 || isPrinting) && (
+                    <div className="sectionContent print-expand">
                       {bilanData?.section6 ? (
                         <Section6Projection data={bilanData.section6} />
                       ) : (
@@ -2796,13 +2848,13 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
           </div>
 
           {/* Footer */}
-          <div className="footer" style={{ 
+          <div className="footer bilan-mensuel-footer bilan-mensuel-no-print" style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center' 
           }}>
             <button 
-              className="btn"
+              className="btn bilan-mensuel-no-print"
               onClick={() => window.location.href = '/historique-bilans-mensuels'}
               style={{
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -2818,11 +2870,24 @@ export default function BilanMensuelModal({ isOpen, mois, annee, onClose }) {
             </button>
             
             <div style={{ display: 'flex', gap: '15px' }}>
-              <button className="btn btnSecondary" onClick={onClose}>
+              {modeHistorique && (
+                <button
+                  className="btn btnSecondary bilan-mensuel-no-print"
+                  onClick={imprimerBilan}
+                  disabled={loading || isPrinting}
+                  style={{
+                    opacity: (loading || isPrinting) ? 0.6 : 1,
+                    cursor: (loading || isPrinting) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {isPrinting ? '🖨️ Impression...' : '🖨️ Imprimer'}
+                </button>
+              )}
+              <button className="btn btnSecondary bilan-mensuel-no-print" onClick={onClose}>
                 Fermer
               </button>
               <button
-                className="btn btnPrimary"
+                className="btn btnPrimary bilan-mensuel-no-print"
                 onClick={sauvegarderBilan}
                 disabled={saving || saved}
                 style={{

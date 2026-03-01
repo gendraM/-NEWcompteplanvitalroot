@@ -1512,3 +1512,31 @@ useEffect(() => {
 **Prochaine revue :** À définir selon priorités projet
 
 A ajouter permettre a l utilisateur quand il saisit aliment si non exiqstant dans le referentiel de l ajouter dans le meme style que existant pour enrichissement interne du referentiel, aussi permetre la compoqition d assiette complete/ repas complet avec ajout multiple de plusieurs aliment qui apres analyse pourront aussi etre propose dans planification des repas
+
+---
+
+## 🖨️ Amélioration à prévoir : Impression Bilan Mensuel (historique)
+
+**Date identification :** 2026-03-01  
+**Priorité :** 🔴 Haute  
+**Statut :** ⏳ À finaliser (comportement impression non conforme)
+
+### Problème constaté
+- Lors du clic sur **Imprimer** dans le **bilan mensuel historique**, l’aperçu inclut encore des éléments de la page (ex: barre de navigation de l’app).
+- Le rendu actuel ne doit pas être un “print écran” de la page, mais **l’impression du bilan mensuel uniquement**.
+
+### Comportement attendu
+- N’imprimer que la modale du bilan mensuel.
+- Exclure complètement la navigation, les listes et tout élément hors bilan.
+- Autoriser un rendu multi-pages propre si le bilan est long.
+- Conserver la lisibilité (sections complètes, sans chevauchement ni découpe incohérente).
+
+### Référence fonctionnelle
+- Aligner le comportement sur l’impression du **bilan hebdomadaire** (qui est la référence de fonctionnement).
+
+### Contrôles de validation obligatoires
+1. Ouvrir un bilan mensuel depuis l’historique.
+2. Cliquer sur **Imprimer**.
+3. Vérifier que seul le bilan est présent dans l’aperçu (aucune barre de navigation).
+4. Vérifier que toutes les sections du bilan apparaissent.
+5. Vérifier la pagination sur plusieurs pages si nécessaire.
