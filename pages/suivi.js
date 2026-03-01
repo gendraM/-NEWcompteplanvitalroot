@@ -48,7 +48,7 @@ import {
   calculerEvolutionExtras,
   analyserFragilites
 } from '../lib/validationSemaine';
-import { estDerniereValidationDuMois, getMoisAnneeValidation } from '../lib/detectionFinMois';
+import { estDerniereValidationDuMois, getMoisAnneeValidation, bilanMensuelDejaValide } from '../lib/detectionFinMois';
 import { calculerRepartitionTypes, calculerRepartitionMoments } from '../lib/repartitionExtras';
 import { calculerJoursRespectes } from '../lib/joursRespectes';
 import { 
@@ -463,6 +463,7 @@ export default function Suivi() {
   const [showPopupBilanMensuel, setShowPopupBilanMensuel] = useState(false);
   const [showBilanMensuelModal, setShowBilanMensuelModal] = useState(false);
   const [bilanMensuelData, setBilanMensuelData] = useState(null);
+  const lastAutoBilanMensuelKeyRef = useRef(null);
   // Hook pour tracker les champs du repas en cours (portions, féculents, hydratation, etc.)
   const [champsRepasEnCours, setChampsRepasEnCours] = useState({});
   // Récupérer la date du jeûne programmé (stockée en localStorage ou BDD)
@@ -519,6 +520,75 @@ export default function Suivi() {
       setPrepValid(localStorage.getItem('prep_valid_' + selectedDate) === '1');
     }
   }, [selectedDate]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function verifierDeclenchementAutomatiqueBilanMensuel() {
+      if (!selectedDate || showPopupBilanMensuel || showBilanMensuelModal) {
+        return;
+      }
+
+      const dateSelectionnee = new Date(selectedDate + 'T12:00:00');
+      if (isNaN(dateSelectionnee.getTime())) {
+        return;
+      }
+
+      const lendemain = new Date(dateSelectionnee);
+      lendemain.setDate(dateSelectionnee.getDate() + 1);
+      const estDernierJourCalendrier = dateSelectionnee.getMonth() !== lendemain.getMonth();
+
+      if (!estDernierJourCalendrier) {
+        return;
+      }
+
+      const monday = getMonday(selectedDate);
+      const weekStart = formatDate(monday, 'yyyy-MM-dd');
+
+      if (!weekStart) {
+        return;
+      }
+
+      const estDerniere = estDerniereValidationDuMois(weekStart);
+      if (!estDerniere) {
+        return;
+      }
+
+      const periode = getMoisAnneeValidation(weekStart);
+      if (!periode) {
+        return;
+      }
+
+      const periodeKey = `${periode.annee}-${String(periode.mois).padStart(2, '0')}`;
+      if (lastAutoBilanMensuelKeyRef.current === periodeKey) {
+        return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      const dejaValide = user
+        ? await bilanMensuelDejaValide(periode.mois, periode.annee, user.id)
+        : false;
+
+      if (cancelled || dejaValide) {
+        return;
+      }
+
+      lastAutoBilanMensuelKeyRef.current = periodeKey;
+      setBilanMensuelData({ mois: periode.mois, annee: periode.annee });
+      setShowPopupBilanMensuel(true);
+      console.log('[BILAN MENSUEL] Déclenchement automatique fin de mois', {
+        selectedDate,
+        weekStart,
+        periode,
+      });
+    }
+
+    verifierDeclenchementAutomatiqueBilanMensuel();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate, showPopupBilanMensuel, showBilanMensuelModal]);
 
   // ═══════════════════════════════════════════════════════════
   // NOUVEAU : VALIDATION AUTOMATIQUE DES CRITÈRES (26/12/2025)

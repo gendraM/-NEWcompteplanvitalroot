@@ -110,7 +110,7 @@ export default function PopupBilanMensuel({
             opacity: 0.95,
           }}
         >
-          Vous venez de valider la dernière semaine de <strong>{nomMois} {annee}</strong>.
+          <strong>{nomMois} {annee}</strong> est terminé.
           <br />
           Découvrez votre bilan mensuel complet !
         </p>

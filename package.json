@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test:fin-mois": "node scripts/test-fin-mois.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.9.0",
