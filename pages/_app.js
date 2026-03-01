@@ -4,6 +4,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { DefisProvider } from '../components/DefisContext';
 import BandeauCompletionProfil from '../components/BandeauCompletionProfil';
 import Navigation from '../components/Navigation';
+import '../styles/print.css';
 
 function MyApp({ Component, pageProps }) {
   const [afficherBandeau, setAfficherBandeau] = useState(false);

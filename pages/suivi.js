@@ -1175,7 +1175,15 @@ export default function Suivi() {
       // Calcul des données Section 1 du bilan (apports totaux, objectif, etc.)
       const apportsTotaux = repasData.reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
       const objectifJour = calculs?.apport_calorique_cible || 1730; // Objectif calorique journalier (apport cible, pas TDEE !)
-      const objectifHebdo = objectifJour * 7; // Objectif hebdomadaire
+      // Compter uniquement les jours avec données réelles
+      const joursAvecDonnees = new Set();
+      repasData.forEach(r => {
+        if (r.date && r.kcal > 0) {
+          joursAvecDonnees.add(r.date);
+        }
+      });
+      const nbJoursSaisis = joursAvecDonnees.size;
+      const objectifHebdo = nbJoursSaisis > 0 ? objectifJour * nbJoursSaisis : objectifJour * 7;
       const kcalExtras = repasData.filter(r => r.est_extra).reduce((sum, r) => sum + (Number(r.kcal) || 0), 0);
       
       // Calcul tendance 7j et projection poids
@@ -1331,6 +1339,8 @@ export default function Suivi() {
       
       // ═══════════════════════════════════════════════════════════
       
+      const objectifPerso = localStorage.getItem(`objectif_semaine_${selectedWeekStart}`);
+
       let insertOk = false;
       const bilanToInsert = {
         weekStart: selectedWeekStart,
@@ -1347,6 +1357,7 @@ export default function Suivi() {
         apports_totaux: Math.round(apportsTotaux),
         objectif_hebdo: objectifHebdo,
         projection_poids: tendance.projection_poids,
+        nb_jours_saisis: nbJoursSaisis,
         // Données extras
         kcal_extras: Math.round(kcalExtras),
         budget_extras: Math.round(budgetExtras),
@@ -1356,6 +1367,7 @@ export default function Suivi() {
         note_utilisateur: noteUtilisateur || null,
         nb_repas_satiete: nbRepasSatiete || 0,
         nb_repas_ressenti: nbRepasRessenti || 0,
+        objectif_perso: objectifPerso || null,
         // PHASE 2 - Données ABC (Lectures A, B, C + Fragilités)
         bilan_abc: {
           lectureA: lectureA || null,
@@ -1402,6 +1414,7 @@ export default function Suivi() {
           extras: extrasInfo.count,
           budgetExtras,
           variation,
+          nbJoursSaisis,
           // Section 7 - Données ressenti
           satieteMoyenne,
           humeurDominante,
@@ -2374,6 +2387,7 @@ export default function Suivi() {
         onClose={() => setShowBilanModal(false)}
         bilan={bilanData}
         selectedDate={selectedDate} // On transmet explicitement la date sélectionnée
+        modeValidation={true}
         onLearnMore={() => {
           setShowBilanModal(false);
           // TODO: ouvrir la section "en savoir plus" ou naviguer vers l’historique détaillé

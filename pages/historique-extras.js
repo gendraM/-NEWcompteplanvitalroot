@@ -8,6 +8,13 @@ export default function HistoriqueBilans() {
   const [bilanModalOpen, setBilanModalOpen] = useState(false);
   const [bilanData, setBilanData] = useState(null);
 
+  const handleDownloadPDF = (bilan) => {
+    handleOpenBilan(bilan);
+    setTimeout(() => {
+      window.print();
+    }, 3000);
+  };
+
   useEffect(() => {
     async function fetchBilans() {
       const { data: semaines } = await supabase
@@ -50,6 +57,15 @@ export default function HistoriqueBilans() {
     
     const debut = getMonday(bilan.weekStart);
     const fin = addDays(debut, 6);
+
+    let nbJoursSaisis = bilan.nb_jours_saisis;
+    if (!nbJoursSaisis || nbJoursSaisis === 0) {
+      if (bilan.bilan_abc?.lectureA?.detailsJours) {
+        nbJoursSaisis = bilan.bilan_abc.lectureA.detailsJours.filter(j => !j.incomplet).length;
+      } else {
+        nbJoursSaisis = 7;
+      }
+    }
     
     setBilanData({
       weekStart: bilan.weekStart,
@@ -62,6 +78,7 @@ export default function HistoriqueBilans() {
       budgetExtras: budgetExtras,
       extras: bilan.extras_count || 0,
       variation: bilan.variation || null,
+      nbJoursSaisis,
       tendance_7j: bilan.tendance_7j || null,
       ecart_hebdo: bilan.ecart_hebdo || null,
       projection_poids: bilan.projection_poids || null,
@@ -71,6 +88,7 @@ export default function HistoriqueBilans() {
       noteUtilisateur: bilan.note_utilisateur || null,
       nbRepasSatiete: bilan.nb_repas_satiete || 0,
       nbRepasRessenti: bilan.nb_repas_ressenti || 0,
+      objectif_perso: bilan.objectif_perso || null,
       bilan_abc: bilan.bilan_abc || null,
       verbatim: bilan.verbatim || "Ton corps évolue dans le temps. Ce bilan te montre la trajectoire, pas un jugement.",
       message_feedback: bilan.message_feedback || null,
@@ -82,11 +100,11 @@ export default function HistoriqueBilans() {
   };
 
   return (
-    <div style={{maxWidth:700,margin:"0 auto",padding:"32px 8px 64px",fontFamily:"system-ui,Arial,sans-serif"}}>
-      <h1 style={{textAlign:"center",marginBottom:24,fontWeight:800,fontSize:32,letterSpacing:"0.5px",color:"#1976d2"}}>
+    <div className="historique-bilans-page" style={{maxWidth:700,margin:"0 auto",padding:"32px 8px 64px",fontFamily:"system-ui,Arial,sans-serif"}}>
+      <h1 className="page-title" style={{textAlign:"center",marginBottom:24,fontWeight:800,fontSize:32,letterSpacing:"0.5px",color:"#1976d2"}}>
         🥗 Bilans hebdomadaires alimentaires
       </h1>
-      <ul style={{listStyle:'none',padding:0}}>
+      <ul className="bilans-list" style={{listStyle:'none',padding:0}}>
         {semainesValidees.length === 0 && (
           <li style={{color:'#888',textAlign:'center',margin:'2rem 0'}}>Aucun bilan hebdomadaire validé pour l'instant.</li>
         )}
@@ -99,13 +117,18 @@ export default function HistoriqueBilans() {
           }
           return (
             <li key={bilan.weekStart} style={{marginBottom:16,background:'#f8fafc',borderRadius:8,padding:'12px 18px',boxShadow:'0 1px 4px #e0e0e0'}}>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
                 <span>
                   <b>Semaine du {fmt(debut)} au {fmt(fin)}</b>
                 </span>
-                <button style={{background:'#1976d2',color:'#fff',border:'none',borderRadius:6,padding:'6px 16px',fontWeight:600,cursor:'pointer'}} onClick={()=>handleOpenBilan(bilan)}>
-                  Voir bilan
-                </button>
+                <div style={{display:'flex',gap:8}}>
+                  <button style={{background:'#1976d2',color:'#fff',border:'none',borderRadius:6,padding:'8px 16px',fontWeight:600,cursor:'pointer',fontSize:'0.95rem'}} onClick={()=>handleOpenBilan(bilan)}>
+                    👁️ Voir
+                  </button>
+                  <button style={{background:'#2563eb',color:'#fff',border:'none',borderRadius:6,padding:'8px 16px',fontWeight:600,cursor:'pointer',fontSize:'0.95rem'}} onClick={()=>handleDownloadPDF(bilan)}>
+                    📥 PDF
+                  </button>
+                </div>
               </div>
             </li>
           );
@@ -118,6 +141,8 @@ export default function HistoriqueBilans() {
         open={bilanModalOpen}
         onClose={()=>setBilanModalOpen(false)}
         bilan={bilanData}
+        selectedDate={bilanData?.weekStart}
+        modeValidation={false}
         onLearnMore={()=>setBilanModalOpen(false)}
       />
     </div>
