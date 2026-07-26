@@ -658,6 +658,19 @@ export default function RepriseAlimentaireApresJeune() {
             });
           });
 
+          // 🆕 Construire poidsParJourParPhase depuis les jours validés
+          // Structure : { "Phase 1": [{ jour: 1, poids: null }, ...], ... }
+          const poidsParJourParPhase = {};
+          joursValidesObjLS.forEach(jourObj => {
+            const phaseKey = `Phase ${jourObj.phase || 1}`;
+            if (!poidsParJourParPhase[phaseKey]) poidsParJourParPhase[phaseKey] = [];
+            poidsParJourParPhase[phaseKey].push({
+              jour: jourObj.jour_numero,
+              date: jourObj.date || null,
+              poids: jourObj.poids != null ? jourObj.poids : null,
+            });
+          });
+
           if (joursValidesLS.length === 0 || !dateDebutLS) {
             console.log('⚠️ Aucune reprise à archiver (0 jours validés ou pas de date)');
           } else {
@@ -678,6 +691,7 @@ export default function RepriseAlimentaireApresJeune() {
               dateArchivage: new Date().toISOString(),
               phaseMaxAtteinte: phaseMaxAtteinte, // 🆕 Ajout du champ ici
               poidsFinReprise: poidsActuel || null, // 🆕 Poids final saisi à la fin de la reprise (optionnel)
+              poidsParJourParPhase: poidsParJourParPhase, // 🆕 Structure poids par jour par phase
               alimentsConsommesParPhase: alimentsConsommesParPhase // 🆕 Aliments consommés regroupés par phase
             };
 
