@@ -28,7 +28,6 @@ ChartJS.register(
 );
 
 const COLORS = ["#43cea2", "#1976d2", "#ffb347", "#ff6b6b", "#b39ddb", "#4dd0e1"];
-
 // Fonction utilitaire hors composant React
 function getMotivationMessage({ progression, extras, humeurCounts, tauxSatiete }) {
   if (progression.badge) {

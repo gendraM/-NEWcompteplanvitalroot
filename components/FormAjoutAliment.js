@@ -52,7 +52,11 @@ export default function FormAjoutAliment({ nomInitial = '', onSave, onCancel }) 
       return;
     }
     setErreur('');
-    onSave({ nom: autoCorrectNom(nom), categorie, sousCategorie, unite, quantite, kcal, qn, portionDefaut, marque, alternatives });
+    // Calcul correct de kcalParUnite = kcal total / quantité de référence
+    const kcalNum = Number(kcal);
+    const quantiteNum = Number(quantite);
+    const kcalParUnite = quantiteNum > 0 ? (kcalNum / quantiteNum) : kcalNum;
+    onSave({ nom: autoCorrectNom(nom), categorie, sousCategorie, unite, quantite: quantiteNum, kcal: kcalNum, kcalParUnite, qn, portionDefaut, marque, alternatives });
   }
 
   return (
@@ -67,39 +71,8 @@ export default function FormAjoutAliment({ nomInitial = '', onSave, onCancel }) 
         <span style={{cursor:'pointer',color:'#1976d2',fontWeight:700,fontSize:18,position:'relative'}}
           tabIndex={0}
           aria-label="Information catégorie"
-          onFocus={e=>e.target.nextSibling.style.display='block'}
-          onBlur={e=>e.target.nextSibling.style.display='none'}
-          onMouseEnter={e=>e.target.nextSibling.style.display='block'}
-          onMouseLeave={e=>e.target.nextSibling.style.display='none'}
         >
           i
-          <span style={{
-            display:'none',position:'absolute',left:'110%',top:0,zIndex:10,
-            background:'#fff',border:'1px solid #1976d2',borderRadius:6,padding:'10px 14px',fontSize:13,minWidth:320,
-            boxShadow:'0 2px 8px #1976d255',color:'#222',fontWeight:400
-          }}>
-            <b>Catégorie</b> : grande famille d’aliments (ex : féculent, protéine, snack, asiatique, etc.)<br/>
-            <b>Sous-catégorie</b> : précision sur le type ou l’origine (ex : “Chocolat”, “Brochette japonaise”, “marque”, “recette maison”…).<br/>
-            <span style={{color:'#1976d2'}}>Utilisez la catégorie pour le classement principal, la sous-catégorie pour affiner.</span>
-            <hr style={{margin:'8px 0'}}/>
-            <b>Comment classer mon aliment ?</b><br/>
-            <ul style={{paddingLeft:18,margin:'6px 0'}}>
-              <li><b>Féculent</b> : galette de maïs, purée de patate douce maison<br/><i>Sous-catégorie : “galette”, “purée maison”</i></li>
-              <li><b>Protéine</b> : omelette végétale, steak de pois chiche<br/><i>Sous-catégorie : “omelette”, “végétal”, “pois chiche”</i></li>
-              <li><b>Légume</b> : poêlée de légumes oubliés, soupe froide maison<br/><i>Sous-catégorie : “poêlée”, “soupe maison”</i></li>
-              <li><b>Fruit</b> : compote de mangue, salade de fruits exotiques<br/><i>Sous-catégorie : “compote”, “salade maison”</i></li>
-              <li><b>Boisson</b> : boisson lactée végétale, smoothie cacao<br/><i>Sous-catégorie : “lait végétal”, “smoothie”</i></li>
-              <li><b>Snack</b> : chips de patate douce, crackers sésame<br/><i>Sous-catégorie : “chips”, “crackers”</i></li>
-              <li><b>Dessert</b> : flan coco, mousse de patate douce<br/><i>Sous-catégorie : “flan”, “mousse”</i></li>
-              <li><b>Confiserie</b> : pâte de fruit artisanale, nougat tendre<br/><i>Sous-catégorie : “pâte de fruit”, “nougat”</i></li>
-              <li><b>Fast-food</b> : burger végétal maison, wrap lentilles<br/><i>Sous-catégorie : “burger maison”, “wrap”</i></li>
-              <li><b>Salade</b> : salade de quinoa, taboulé libanais<br/><i>Sous-catégorie : “quinoa”, “taboulé”</i></li>
-              <li><b>Sandwich</b> : panini aubergine, sandwich houmous<br/><i>Sous-catégorie : “panini”, “houmous”</i></li>
-              <li><b>Tarte</b> : tarte courgette chèvre, quiche sans pâte<br/><i>Sous-catégorie : “tarte”, “quiche”</i></li>
-              <li><b>Produit laitier</b> : boisson lactée chocolatée, yaourt végétal<br/><i>Sous-catégorie : “lait chocolaté”, “yaourt végétal”</i></li>
-            </ul>
-            <span style={{color:'#1976d2',fontSize:12}}>Astuce : si tu hésites, inspire-toi des produits similaires dans l’autocomplete ou choisis la catégorie la plus générale, puis précise en sous-catégorie.</span>
-          </span>
         </span>
         <select value={categorie} onChange={e => setCategorie(e.target.value)}>
           <option value="">Choisir</option>

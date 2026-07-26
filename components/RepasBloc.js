@@ -6,7 +6,7 @@ import referentielAliments from '../data/referentiel';
 import { TYPES_EXTRAS, detecterTypeExtra, getOptionsExtras } from '../lib/extras';
 import useUserReferentiel from '../lib/useUserReferentiel';
 import FormAjoutAliment from './FormAjoutAliment';
-import foodsUser from '../data/foods_user';
+// import foodsUser from '../data/foods_user';
 // import FlipNumbers from 'react-flip-numbers'
 
 // 🐛 DEBUG: Vérifier le référentiel chargé
@@ -77,7 +77,7 @@ export default function RepasBloc({
   kcalPrevu,
   onChangeChampsRepas
 }) {  // Hook Supabase avec contexte (doit être en premier)
-  const supabase = useSupabase();
+  // (supabase déjà déclaré plus bas, ne pas redéclarer ici)
   // État pour afficher le formulaire d’ajout personnalisé
   const [showFormAjoutAliment, setShowFormAjoutAliment] = useState(false);
   const [alimentPropose, setAlimentPropose] = useState('');
@@ -97,6 +97,9 @@ export default function RepasBloc({
   const [categorie, setCategorie] = useState('');
   const [quantite, setQuantite] = useState('');
   const [kcal, setKcal] = useState('');
+  // --- DEBUG: log avant render (hors JSX)
+  // (ce log sera exécuté à chaque render, avant le return)
+  console.log('[DEBUG] Avant render champ Kcal :', kcal);
   // Champ Note pour analyse comportementale
   const [note, setNote] = useState('');
   // Auto-remplissage conditionnel des champs si repas conforme au planning ET données planifiées valides
@@ -361,15 +364,19 @@ function getSuggestionsFromNotes(repasList) {
     }
   }, [aliment])
 
-  // Calcul automatique des kcal selon la quantité et l'aliment (référentiel)
+  // Calcul automatique des kcal selon la quantité et l'aliment (référentiel complet : global + custom)
   useEffect(() => {
-    const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase())
+    const found = referentielComplet.find(a => a.nom.toLowerCase() === aliment.toLowerCase())
     if (found && quantite) {
       const quantiteNum = parseFloat(quantite)
       if (found.kcalParUnite) {
+        // Pour aliments custom : kcalParUnite est le ratio kcal/unité
         setKcal((quantiteNum * found.kcalParUnite).toFixed(0))
-      } else {
-        // Fallback pour anciens aliments sans kcalParUnite
+      } else if (found.kcal && found.quantite) {
+        // Fallback: calculer le ratio kcal/quantite
+        setKcal((quantiteNum * (found.kcal / found.quantite)).toFixed(0))
+      } else if (found.kcal) {
+        // Très ancien format, utiliser tel quel
         setKcal((quantiteNum * found.kcal).toFixed(0))
       }
     } else if (!found) {
@@ -382,8 +389,20 @@ function getSuggestionsFromNotes(repasList) {
   // ...existing code...
 
   // DEBUG: Chargement du référentiel fusionné
-  const userId = 'demo'; // À remplacer par user_id réel (auth)
-  const { referentielComplet, referentielCustom } = useUserReferentiel(userId);
+  // Récupération de l'user_id réel via Supabase Auth
+  const supabase = useSupabase();
+  const [userId, setUserId] = useState(null);
+  useEffect(() => {
+    async function fetchUserId() {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData && userData.user && userData.user.id) {
+        setUserId(userData.user.id);
+      }
+    }
+    fetchUserId();
+  }, [supabase]);
+  const { referentielComplet, referentielCustom, refresh: refreshReferentiel } = useUserReferentiel(userId);
+  const [ajoutSucces, setAjoutSucces] = useState(null); // message de succès/erreur inline
   console.log('🔍 DEBUG RepasBloc - Référentiel fusionné:', {
     nombreAliments: referentielComplet.length,
     premiersAliments: referentielComplet.slice(0, 5).map(a => a.nom),
@@ -402,9 +421,19 @@ function getSuggestionsFromNotes(repasList) {
     const inputNorm = normalizeNomAliment(input);
     // On fusionne les deux référentiels, puis on filtre sur le nom
     const fusion = Array.isArray(referentielComplet) ? referentielComplet : referentielAliments;
-    return fusion.filter(alim =>
+    const suggestions = fusion.filter(alim =>
       normalizeNomAliment(alim.nom).includes(inputNorm)
     );
+    // DEBUG
+    console.log('🔍 DEBUG getSuggestions:', {
+      input,
+      inputNorm,
+      fusionLength: fusion.length,
+      suggestionsLength: suggestions.length,
+      suggestions: suggestions.map(a => a.nom),
+      fusionPreview: fusion.slice(0, 5).map(a => a.nom)
+    });
+    return suggestions;
   }
 
   // Contrôle anti-doublon lors de l'ajout custom
@@ -546,25 +575,62 @@ function getSuggestionsFromNotes(repasList) {
     }
   }
 
-  // Handler pour ajout mock d’un aliment personnalisé (avant Supabase)
-  function handleAjoutAlimentPerso(data) {
-    // Ajout dans le mock foodsUser (simulation, non persistant)
-    foodsUser.push({
-      id: foodsUser.length + 1,
-      user_id: userId,
-      ...data
-    });
-    setShowFormAjoutAliment(false); // Fermeture automatique du formulaire
-    setAliment(data.nom);
-    setSuggestionsFiltrees([]);
-    setAfficherSuggestions(false);
-    // Optionnel : message de succès
-    alert('Aliment personnalisé ajouté ! Il est maintenant disponible dans la liste.');
-    // Focus automatique sur l’input principal après fermeture (UX)
-    setTimeout(() => {
-      const input = document.querySelector('input[name="aliment"]');
-      if (input) input.focus();
-    }, 200);
+  // Handler pour ajout d'un aliment personnalisé en BDD Supabase
+  async function handleAjoutAlimentPerso(data) {
+    setAjoutSucces(null);
+    try {
+      if (!userId) {
+        setAjoutSucces({ type: 'erreur', message: "Utilisateur non authentifié : impossible d'ajouter l'aliment personnalisé." });
+        return;
+      }
+      // Insertion dans Supabase
+      const { error } = await supabase
+        .from('referentiel_user_custom')
+        .insert([
+          {
+            user_id: userId,
+            aliment_data: data,
+            statut: 'en_attente',
+            date_ajout: new Date().toISOString()
+          }
+        ]);
+      if (error) {
+        setAjoutSucces({ type: 'erreur', message: "Erreur lors de l'ajout de l'aliment personnalisé : " + error.message });
+        return;
+      }
+      // Fermeture du formulaire
+      setShowFormAjoutAliment(false);
+      // Pré-remplissage immédiat des champs avec les données saisies
+      setAliment(data.nom);
+      if (data.categorie) setCategorie(data.categorie);
+      // Pré-remplir avec la portion recommandée ou fallback
+      const portionAUtiliser = data.portionDefaut || data.quantite || 100;
+      setQuantite(String(portionAUtiliser));
+      // Calculer les kcal pour la portion recommandée
+      if (data.kcalParUnite) {
+        const kcalCalcule = portionAUtiliser * data.kcalParUnite;
+        setKcal(String(kcalCalcule.toFixed(0)));
+      } else if (data.kcal && data.quantite) {
+        // Fallback ancien format
+        const kcalCalcule = portionAUtiliser * (data.kcal / data.quantite);
+        setKcal(String(kcalCalcule.toFixed(0)));
+      } else if (data.kcal) {
+        setKcal(String(Number(data.kcal)));
+      }
+      setSuggestionsFiltrees([]);
+      setAfficherSuggestions(false);
+      // Rafraîchissement du référentiel pour disponibilité immédiate en suggestions
+      refreshReferentiel();
+      setAjoutSucces({ type: 'succes', message: "Aliment personnalisé ajouté ! Il est disponible dans vos repas (en attente de modération)." });
+      // Focus automatique sur l'input principal après fermeture (UX)
+      setTimeout(() => {
+        const input = document.querySelector('input[name="aliment"]');
+        if (input) input.focus();
+      }, 200);
+    } catch (e) {
+      setAjoutSucces({ type: 'erreur', message: "Erreur technique lors de l'ajout de l'aliment personnalisé." });
+      console.error(e);
+    }
   }
 
   return (
@@ -728,6 +794,24 @@ function getSuggestionsFromNotes(repasList) {
                   key={idx}
                   onClick={() => {
                     setAliment(a.nom);
+                    // Pré-remplissage des champs à partir du référentiel complet (global + custom)
+                    const found = referentielComplet.find(alim => alim.nom && alim.nom.toLowerCase() === a.nom.toLowerCase());
+                    console.log('[DEBUG RepasBloc] Aliment sélectionné:', found);
+                    if (found) {
+                      if (found.categorie) setCategorie(found.categorie);
+                      // Pré-remplir avec la PORTION RECOMMANDÉE (portionDefaut) ou fallback sur quantite de référence
+                      const portionAUtiliser = found.portionDefaut || found.quantite || 100;
+                      setQuantite(String(portionAUtiliser));
+                      // Calcul dynamique des kcal : portion × kcalParUnite
+                      if (found.kcalParUnite && found.quantite) {
+                        const kcalCalcule = portionAUtiliser * found.kcalParUnite;
+                        setKcal(String(kcalCalcule.toFixed(0)));
+                        console.log('[DEBUG] setKcal calculé:', { portionAUtiliser, kcalParUnite: found.kcalParUnite, kcalCalcule });
+                      } else if (found.kcal) {
+                        setKcal(String(Number(found.kcal)));
+                        console.log('[DEBUG] setKcal fallback (ancien format):', found.kcal);
+                      }
+                    }
                     setAfficherSuggestions(false);
                   }}
                   style={{
@@ -770,9 +854,28 @@ function getSuggestionsFromNotes(repasList) {
               />
             </div>
           )}
+          {/* Message de retour inline (succès ou erreur) */}
+          {ajoutSucces && (
+            <div style={{
+              marginTop: 10,
+              padding: '10px 14px',
+              borderRadius: 6,
+              background: ajoutSucces.type === 'succes' ? '#e8f5e9' : '#ffebee',
+              color: ajoutSucces.type === 'succes' ? '#2e7d32' : '#b71c1c',
+              border: `1px solid ${ajoutSucces.type === 'succes' ? '#a5d6a7' : '#ef9a9a'}`,
+              fontSize: 14,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>{ajoutSucces.type === 'succes' ? '✅ ' : '❌ '}{ajoutSucces.message}</span>
+              <button type="button" onClick={() => setAjoutSucces(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+            </div>
+          )}
         </div>
         {(() => {
-          const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
+          // Recherche dans le référentiel complet (global + custom)
+          const found = referentielComplet.find(a => a.nom && a.nom.toLowerCase() === aliment.toLowerCase());
           return found && found.portionDefaut ? (
             <div style={{ fontSize: 12, color: '#666', marginTop: 4, marginBottom: 8 }}>
               📏 Portion recommandée : {found.portionDefaut}
@@ -805,7 +908,7 @@ function getSuggestionsFromNotes(repasList) {
         </datalist>
 
         <label>Quantité{(() => {
-          const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
+          const found = referentielComplet.find(a => a.nom && a.nom.toLowerCase() === aliment.toLowerCase());
           if (found && found.unite) {
             const uniteLabel = {
               'CS': 'cuillère(s) à soupe',
@@ -835,17 +938,18 @@ function getSuggestionsFromNotes(repasList) {
           value={kcal} 
           onChange={e => setKcal(e.target.value)}
           readOnly={(() => {
-            const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
-            return found && found.kcalParUnite && quantite;
+            const found = referentielComplet.find(a => a.nom && a.nom.toLowerCase() === aliment.toLowerCase());
+            // Autorise le calcul automatique si kcalParUnite ou kcal sont présents
+            return found && ((found.kcalParUnite || found.kcal) && quantite);
           })()}
           style={(() => {
-            const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
-            return (found && found.kcalParUnite && quantite) ? { background: '#f0f0f0' } : {};
+            const found = referentielComplet.find(a => a.nom && a.nom.toLowerCase() === aliment.toLowerCase());
+            return (found && (found.kcalParUnite || found.kcal) && quantite) ? { background: '#f0f0f0' } : {};
           })()}
         />
         {(() => {
-          const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
-          return (found && found.kcalParUnite && quantite) ? (
+          const found = referentielComplet.find(a => a.nom && a.nom.toLowerCase() === aliment.toLowerCase());
+          return (found && (found.kcalParUnite || found.kcal) && quantite) ? (
             <div style={{ fontSize: 12, color: '#4caf50', marginTop: 4 }}>
               ✨ Calculé automatiquement
             </div>
