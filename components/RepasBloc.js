@@ -352,15 +352,19 @@ function getSuggestionsFromNotes(repasList) {
     }
   }, [aliment])
 
-  // Calcul automatique des kcal selon la quantité et l'aliment (référentiel)
+  // Calcul automatique des kcal selon la quantité et l'aliment (référentiel complet : global + custom)
   useEffect(() => {
-    const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase())
+    const found = referentielComplet.find(a => a.nom.toLowerCase() === aliment.toLowerCase())
     if (found && quantite) {
       const quantiteNum = parseFloat(quantite)
       if (found.kcalParUnite) {
+        // Pour aliments custom : kcalParUnite est le ratio kcal/unité
         setKcal((quantiteNum * found.kcalParUnite).toFixed(0))
-      } else {
-        // Fallback pour anciens aliments sans kcalParUnite
+      } else if (found.kcal && found.quantite) {
+        // Fallback: calculer le ratio kcal/quantite
+        setKcal((quantiteNum * (found.kcal / found.quantite)).toFixed(0))
+      } else if (found.kcal) {
+        // Très ancien format, utiliser tel quel
         setKcal((quantiteNum * found.kcal).toFixed(0))
       }
     } else if (!found) {
@@ -587,9 +591,20 @@ function getSuggestionsFromNotes(repasList) {
       // Pré-remplissage immédiat des champs avec les données saisies
       setAliment(data.nom);
       if (data.categorie) setCategorie(data.categorie);
-      if (data.quantite) setQuantite(String(data.quantite));
-      if (data.kcalParUnite) setKcal(String(Number(data.kcalParUnite)));
-      else if (data.kcal) setKcal(String(Number(data.kcal)));
+      // Pré-remplir avec la portion recommandée ou fallback
+      const portionAUtiliser = data.portionDefaut || data.quantite || 100;
+      setQuantite(String(portionAUtiliser));
+      // Calculer les kcal pour la portion recommandée
+      if (data.kcalParUnite) {
+        const kcalCalcule = portionAUtiliser * data.kcalParUnite;
+        setKcal(String(kcalCalcule.toFixed(0)));
+      } else if (data.kcal && data.quantite) {
+        // Fallback ancien format
+        const kcalCalcule = portionAUtiliser * (data.kcal / data.quantite);
+        setKcal(String(kcalCalcule.toFixed(0)));
+      } else if (data.kcal) {
+        setKcal(String(Number(data.kcal)));
+      }
       setSuggestionsFiltrees([]);
       setAfficherSuggestions(false);
       // Rafraîchissement du référentiel pour disponibilité immédiate en suggestions
@@ -771,16 +786,18 @@ function getSuggestionsFromNotes(repasList) {
                     console.log('[DEBUG RepasBloc] Aliment sélectionné:', found);
                     if (found) {
                       if (found.categorie) setCategorie(found.categorie);
-                      if (found.quantite) setQuantite(String(found.quantite));
-                      // Correction : remplir Kcal avec kcal ou kcalParUnite
-                      if (found.kcalParUnite) {
-                        setKcal(String(Number(found.kcalParUnite)));
-                        console.log('[DEBUG] setKcal appelé avec (kcalParUnite):', found.kcalParUnite);
+                      // Pré-remplir avec la PORTION RECOMMANDÉE (portionDefaut) ou fallback sur quantite de référence
+                      const portionAUtiliser = found.portionDefaut || found.quantite || 100;
+                      setQuantite(String(portionAUtiliser));
+                      // Calcul dynamique des kcal : portion × kcalParUnite
+                      if (found.kcalParUnite && found.quantite) {
+                        const kcalCalcule = portionAUtiliser * found.kcalParUnite;
+                        setKcal(String(kcalCalcule.toFixed(0)));
+                        console.log('[DEBUG] setKcal calculé:', { portionAUtiliser, kcalParUnite: found.kcalParUnite, kcalCalcule });
                       } else if (found.kcal) {
                         setKcal(String(Number(found.kcal)));
-                        console.log('[DEBUG] setKcal appelé avec (kcal):', found.kcal);
+                        console.log('[DEBUG] setKcal fallback (ancien format):', found.kcal);
                       }
-                      // Ajout d'autres champs si besoin (unite, portionDefaut...)
                     }
                     setAfficherSuggestions(false);
                   }}
