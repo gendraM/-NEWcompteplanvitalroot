@@ -1552,3 +1552,44 @@ A ajouter permettre a l utilisateur quand il saisit aliment si non exiqstant dan
 - QN harmonisé avec les viennoiseries proches
 - Alternatives existantes uniquement
 - Vérification anti-doublons et test build
+
+---
+
+## 🔥 RÉFLEXION À PRÉVOIR : MODE DE CUISSON / IMPACT kcal / QN
+
+### Objectif
+Permettre à l'utilisateur d'ajouter un mode de cuisson en plus de l'aliment, afin d'affiner le calcul des kcal et, éventuellement, l'évaluation QN sans mélanger l'aliment et sa préparation.
+
+### Principe métier
+- L'aliment reste la base principale du calcul.
+- Le mode de cuisson est un modificateur séparé (vapeur, four, grillé, frit, pané, poêlé, sauce, huile ajoutée, etc.).
+- La quantité reste la dernière variable de calcul.
+
+### Réflexion kcal
+- Le calcul kcal doit pouvoir intégrer un coefficient ou un malus/bonus selon le mode de cuisson.
+- Les cuissons simples (vapeur, grillé, four simple) doivent avoir un impact faible ou nul.
+- Les cuissons grasses ou transformées (frit, pané, huile, sauce) doivent augmenter les kcal de façon visible.
+- La règle ne sera pas un +30% systématique : le bonus/malus dépendra du type de cuisson.
+
+### Réflexion QN
+- Le QN ne doit pas bouger pour toutes les cuissons.
+- Les cuissons simples ne changent pas ou peu le QN.
+- Les cuissons qui ajoutent transformation ou gras (friture, panure, sauce industrielle) peuvent faire baisser le QN.
+- Le QN doit rester un indicateur de transformation globale, pas un simple indicateur de cuisson.
+
+### UX envisagée
+- L'utilisateur choisit d'abord l'aliment.
+- Puis il choisit éventuellement le mode de cuisson.
+- Puis il saisit la quantité.
+- L'application calcule ensuite les kcal totales et, si pertinent, ajuste le QN affiché.
+
+### Statut
+- Réflexion validée à ce stade.
+- Aucune implémentation immédiate.
+- Fonctionnalité à traiter plus tard dans un batch dédié.
+
+### Impact attendu
+- Meilleure précision nutritionnelle.
+- Meilleure lisibilité des écarts entre aliments nature, vapeur, frits ou panés.
+- Réduction des ambiguïtés entre aliment brut et aliment préparé.
+- Base plus propre pour les futures catégories poisson, charcuterie, viandes et plats composés.
