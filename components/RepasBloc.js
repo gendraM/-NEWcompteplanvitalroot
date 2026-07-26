@@ -385,7 +385,8 @@ function getSuggestionsFromNotes(repasList) {
     }
     fetchUserId();
   }, [supabase]);
-  const { referentielComplet, referentielCustom } = useUserReferentiel(userId);
+  const { referentielComplet, referentielCustom, refresh: refreshReferentiel } = useUserReferentiel(userId);
+  const [ajoutSucces, setAjoutSucces] = useState(null); // message de succès/erreur inline
   console.log('🔍 DEBUG RepasBloc - Référentiel fusionné:', {
     nombreAliments: referentielComplet.length,
     premiersAliments: referentielComplet.slice(0, 5).map(a => a.nom),
@@ -558,11 +559,12 @@ function getSuggestionsFromNotes(repasList) {
     }
   }
 
-  // Handler pour ajout mock d’un aliment personnalisé (avant Supabase)
+  // Handler pour ajout d'un aliment personnalisé en BDD Supabase
   async function handleAjoutAlimentPerso(data) {
+    setAjoutSucces(null);
     try {
       if (!userId) {
-        alert("Utilisateur non authentifié : impossible d'ajouter l'aliment personnalisé.");
+        setAjoutSucces({ type: 'erreur', message: "Utilisateur non authentifié : impossible d'ajouter l'aliment personnalisé." });
         return;
       }
       // Insertion dans Supabase
@@ -577,21 +579,29 @@ function getSuggestionsFromNotes(repasList) {
           }
         ]);
       if (error) {
-        alert('Erreur lors de l\'ajout de l\'aliment personnalisé : ' + error.message);
+        setAjoutSucces({ type: 'erreur', message: "Erreur lors de l'ajout de l'aliment personnalisé : " + error.message });
         return;
       }
-      setShowFormAjoutAliment(false); // Fermeture automatique du formulaire
+      // Fermeture du formulaire
+      setShowFormAjoutAliment(false);
+      // Pré-remplissage immédiat des champs avec les données saisies
       setAliment(data.nom);
+      if (data.categorie) setCategorie(data.categorie);
+      if (data.quantite) setQuantite(String(data.quantite));
+      if (data.kcalParUnite) setKcal(String(Number(data.kcalParUnite)));
+      else if (data.kcal) setKcal(String(Number(data.kcal)));
       setSuggestionsFiltrees([]);
       setAfficherSuggestions(false);
-      alert('Aliment personnalisé ajouté ! Il est maintenant disponible dans la liste (privé, en attente de modération).');
-      // Focus automatique sur l’input principal après fermeture (UX)
+      // Rafraîchissement du référentiel pour disponibilité immédiate en suggestions
+      refreshReferentiel();
+      setAjoutSucces({ type: 'succes', message: "Aliment personnalisé ajouté ! Il est disponible dans vos repas (en attente de modération)." });
+      // Focus automatique sur l'input principal après fermeture (UX)
       setTimeout(() => {
         const input = document.querySelector('input[name="aliment"]');
         if (input) input.focus();
       }, 200);
     } catch (e) {
-      alert('Erreur technique lors de l\'ajout de l\'aliment personnalisé.');
+      setAjoutSucces({ type: 'erreur', message: "Erreur technique lors de l'ajout de l'aliment personnalisé." });
       console.error(e);
     }
   }
@@ -812,6 +822,24 @@ function getSuggestionsFromNotes(repasList) {
                 onSave={handleAjoutAlimentPerso}
                 onCancel={() => setShowFormAjoutAliment(false)}
               />
+            </div>
+          )}
+          {/* Message de retour inline (succès ou erreur) */}
+          {ajoutSucces && (
+            <div style={{
+              marginTop: 10,
+              padding: '10px 14px',
+              borderRadius: 6,
+              background: ajoutSucces.type === 'succes' ? '#e8f5e9' : '#ffebee',
+              color: ajoutSucces.type === 'succes' ? '#2e7d32' : '#b71c1c',
+              border: `1px solid ${ajoutSucces.type === 'succes' ? '#a5d6a7' : '#ef9a9a'}`,
+              fontSize: 14,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>{ajoutSucces.type === 'succes' ? '✅ ' : '❌ '}{ajoutSucces.message}</span>
+              <button type="button" onClick={() => setAjoutSucces(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
             </div>
           )}
         </div>
