@@ -1469,3 +1469,86 @@ useEffect(() => {
 **Prochaine revue :** À définir selon priorités projet
 
 A ajouter permettre a l utilisateur quand il saisit aliment si non exiqstant dans le referentiel de l ajouter dans le meme style que existant pour enrichissement interne du referentiel, aussi permetre la compoqition d assiette complete/ repas complet avec ajout multiple de plusieurs aliment qui apres analyse pourront aussi etre propose dans planification des repas
+
+---
+
+## 🥐 Audit Catégorie Viennoiserie (2026-07-26)
+
+**Objectif :**
+Évaluer la complétude de la catégorie viennoiserie et préparer les prochains ajouts en batch, sans modification immédiate du référentiel.
+
+**Statut :** ⏳ À faire (report volontaire)
+
+### Couverture actuelle observée
+
+- Nombre d'entrées en catégorie viennoiserie : 13
+- Entrées présentes :
+  - Croissant
+  - Pain au chocolat
+  - Pain aux raisins
+  - Chausson aux pommes
+  - Brioche
+  - Brioche au sucre
+  - Brioche feuilletée
+  - Palmier
+  - Torsade chocolat
+  - Suisse (crème pépites)
+  - Mini croissant
+  - Mini pain au chocolat
+  - Mini pain aux raisins
+
+### Manques probables (priorité FR)
+
+- Chocolatine
+- Pain suisse
+- Pain au lait
+- Pain viennois
+- Kouign-amann
+- Oranais
+
+### Manques probables (secondaire FR/régional)
+
+- Brioche vendéenne
+- Brioche tressée
+- Brioche Nanterre
+- Brioche pralines
+
+### Manques probables (international/anglais)
+
+- Danish pastry
+- Cinnamon roll
+- Cinnamon bun
+- Sticky bun
+- Apple strudel
+- Babka
+- Cruffin
+- Scone
+
+### Cas à conserver hors catégorie viennoiserie (sauf décision produit)
+
+- Muffin myrtille (catégorie snack)
+- Donuts McDo (catégorie fast-food)
+
+### Recommandation d'implémentation
+
+- Ne pas ajouter tout en une fois.
+- Procéder par batchs pour garantir la qualité nutritionnelle, éviter les doublons et contrôler l'impact autocomplete.
+
+**Batch 1 recommandé (court terme, 6 entrées FR prioritaires)**
+- Chocolatine
+- Pain suisse
+- Pain au lait
+- Pain viennois
+- Kouign-amann
+- Oranais
+
+**Batch 2 recommandé (ultérieur)**
+- Variantes régionales FR + entrées internationales (anglais).
+
+### Critères qualité à respecter au moment de l'ajout
+
+- PortionDefaut au format utilisateur (par pièce avec grammage)
+- kcal et kcalParUnite cohérents avec la portion
+- QN harmonisé avec les viennoiseries proches
+- Alternatives existantes uniquement
+- Vérification anti-doublons et test build
