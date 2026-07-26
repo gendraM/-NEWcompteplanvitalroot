@@ -308,6 +308,21 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
         {/* Résumé des données principales */}
         <section style={{marginBottom: '2rem', background: '#f4f8ff', borderRadius: 12, padding: '1.2rem 1.5rem', boxShadow: '0 1px 6px #dbeafe'}}>
           <h3 style={{marginBottom: '1rem', color: '#1976d2', fontSize: '1.15rem'}}>Résumé des données principales</h3>
+          {typeof bilan?.fiabilite_pourcent === 'number' && (
+            <div style={{
+              marginBottom: 12,
+              background: '#ffffff',
+              border: '1px solid #dbeafe',
+              borderRadius: 8,
+              padding: '10px 12px',
+              color: '#1e293b',
+              fontSize: '0.98rem'
+            }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Qualité de suivi: {bilan.fiabilite_pourcent}%</div>
+              <div>{bilan.jours_observes || 0} jours suivis normalement</div>
+              <div>{bilan.jours_estimes || 0} jours reconstitués</div>
+            </div>
+          )}
           <ul style={{listStyle: 'none', padding: 0, margin: 0, fontSize: '1.08rem'}}>
             {/* Calories totales consommées (avec et hors extras) */}
             <li style={{marginBottom: 8}}>
