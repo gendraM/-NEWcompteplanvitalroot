@@ -1486,7 +1486,6 @@ useEffect(() => {
 
 A ajouter permettre a l utilisateur quand il saisit aliment si non exiqstant dans le referentiel de l ajouter dans le meme style que existant pour enrichissement interne du referentiel, aussi permetre la compoqition d assiette complete/ repas complet avec ajout multiple de plusieurs aliment qui apres analyse pourront aussi etre propose dans planification des repas
 
-
 anomalie a corigé constaté le 17 01 2026
 Problème principal :
 
@@ -1515,3 +1514,290 @@ Documenter chaque anomalie, rollback et correction dans le fichier d’audit.
 Prochaine étape :
 
 Générer un plan d’implémentation strict pour corriger le calcul dynamique des Kcal afin qu’il fonctionne pour les deux types d’aliments, sans casser l’existant, et valider ce plan avec l’utilisateur avant toute modification du code.
+
+---
+
+## 🥐 Audit Catégorie Viennoiserie (2026-07-26)
+
+**Objectif :**
+Évaluer la complétude de la catégorie viennoiserie et préparer les prochains ajouts en batch, sans modification immédiate du référentiel.
+
+**Statut :** ⏳ À faire (report volontaire)
+
+### Couverture actuelle observée
+
+- Nombre d'entrées en catégorie viennoiserie : 13
+- Entrées présentes :
+  - Croissant
+  - Pain au chocolat
+  - Pain aux raisins
+  - Chausson aux pommes
+  - Brioche
+  - Brioche au sucre
+  - Brioche feuilletée
+  - Palmier
+  - Torsade chocolat
+  - Suisse (crème pépites)
+  - Mini croissant
+  - Mini pain au chocolat
+  - Mini pain aux raisins
+
+### Manques probables (priorité FR)
+
+- Chocolatine
+- Pain suisse
+- Pain au lait
+- Pain viennois
+- Kouign-amann
+- Oranais
+
+### Manques probables (secondaire FR/régional)
+
+- Brioche vendéenne
+- Brioche tressée
+- Brioche Nanterre
+- Brioche pralines
+
+### Manques probables (international/anglais)
+
+- Danish pastry
+- Cinnamon roll
+- Cinnamon bun
+- Sticky bun
+- Apple strudel
+- Babka
+- Cruffin
+- Scone
+
+### Cas à conserver hors catégorie viennoiserie (sauf décision produit)
+
+- Muffin myrtille (catégorie snack)
+- Donuts McDo (catégorie fast-food)
+
+### Recommandation d'implémentation
+
+- Ne pas ajouter tout en une fois.
+- Procéder par batchs pour garantir la qualité nutritionnelle, éviter les doublons et contrôler l'impact autocomplete.
+
+**Batch 1 recommandé (court terme, 6 entrées FR prioritaires)**
+- Chocolatine
+- Pain suisse
+- Pain au lait
+- Pain viennois
+- Kouign-amann
+- Oranais
+
+**Batch 2 recommandé (ultérieur)**
+- Variantes régionales FR + entrées internationales (anglais).
+
+### Critères qualité à respecter au moment de l'ajout
+
+- PortionDefaut au format utilisateur (par pièce avec grammage)
+- kcal et kcalParUnite cohérents avec la portion
+- QN harmonisé avec les viennoiseries proches
+- Alternatives existantes uniquement
+- Vérification anti-doublons et test build
+
+---
+
+## 🔥 RÉFLEXION À PRÉVOIR : MODE DE CUISSON / IMPACT kcal / QN
+
+### Objectif
+Permettre à l'utilisateur d'ajouter un mode de cuisson en plus de l'aliment, afin d'affiner le calcul des kcal et, éventuellement, l'évaluation QN sans mélanger l'aliment et sa préparation.
+
+### Principe métier
+- L'aliment reste la base principale du calcul.
+- Le mode de cuisson est un modificateur séparé (vapeur, four, grillé, frit, pané, poêlé, sauce, huile ajoutée, etc.).
+- La quantité reste la dernière variable de calcul.
+
+### Réflexion kcal
+- Le calcul kcal doit pouvoir intégrer un coefficient ou un malus/bonus selon le mode de cuisson.
+- Les cuissons simples (vapeur, grillé, four simple) doivent avoir un impact faible ou nul.
+- Les cuissons grasses ou transformées (frit, pané, huile, sauce) doivent augmenter les kcal de façon visible.
+- La règle ne sera pas un +30% systématique : le bonus/malus dépendra du type de cuisson.
+
+### Réflexion QN
+- Le QN ne doit pas bouger pour toutes les cuissons.
+- Les cuissons simples ne changent pas ou peu le QN.
+- Les cuissons qui ajoutent transformation ou gras (friture, panure, sauce industrielle) peuvent faire baisser le QN.
+- Le QN doit rester un indicateur de transformation globale, pas un simple indicateur de cuisson.
+
+### UX envisagée
+- L'utilisateur choisit d'abord l'aliment.
+- Puis il choisit éventuellement le mode de cuisson.
+- Puis il saisit la quantité.
+- L'application calcule ensuite les kcal totales et, si pertinent, ajuste le QN affiché.
+
+### Statut
+- Réflexion validée à ce stade.
+- Aucune implémentation immédiate.
+- Fonctionnalité à traiter plus tard dans un batch dédié.
+
+### Impact attendu
+- Meilleure précision nutritionnelle.
+- Meilleure lisibilité des écarts entre aliments nature, vapeur, frits ou panés.
+- Réduction des ambiguïtés entre aliment brut et aliment préparé.
+- Base plus propre pour les futures catégories poisson, charcuterie, viandes et plats composés.
+
+---
+
+## 🦐 CLARIFICATION TAXONOMIE : POISSON VS FRUITS DE MER (2026-07-26)
+
+### Décision constatée (état actuel)
+- Les crevettes ne sont pas dans la catégorie `poisson`.
+- Elles sont dans la catégorie `protéine` avec la sous-catégorie `Fruits de mer`.
+- Même logique pour les moules et le crabe/surimi actuellement présents.
+
+### Évaluation métier
+- Cette organisation est cohérente avec la taxonomie actuelle (famille protéines).
+- Elle n'est pas bloquante pour la saisie ni pour les calculs.
+
+### Point de vigilance
+- Côté utilisateur, la lecture peut être moins intuitive si l'on veut suivre "tout ce qui vient de la mer" dans un seul bloc.
+- Les analyses centrées uniquement sur la catégorie `poisson` peuvent sous-estimer la consommation marine réelle.
+
+### Harmonisation recommandée (plus tard)
+- Ne pas recatégoriser en masse maintenant.
+- Prévoir une couche d'harmonisation "produits de la mer" (vue/famille transverse) regroupant :
+  - Poissons (catégorie `poisson`)
+  - Fruits de mer (catégorie `protéine`, sous-catégorie `Fruits de mer`)
+- Appliquer cette harmonisation en priorité sur les filtres, statistiques et écrans de synthèse avant toute migration structurelle.
+
+### Statut
+- Décision validée : structure actuelle conservée.
+- Harmonisation transverse reportée à un batch dédié.
+
+---
+
+## 🥣 BATCH C CÉRÉALES (EUROPE/AFRIQUE) — À FAIRE PLUS TARD
+
+### Objectif
+Étendre la couverture de la catégorie `céréales` sur des références Europe/Afrique, après finalisation des batchs prioritaires déjà exécutés.
+
+### Entrées prévues (Batch C)
+- Weetabix Chocolate (Weetabix)
+- Golden Morn (Nestlé)
+- Milo Cereal (Nestlé)
+- Oat Crisp (Alpen)
+- Muesli Noix et Graines (Jordans)
+- Granola Fruits Rouges (Bjorg)
+
+### Règles à conserver au moment de l'exécution
+- Marque obligatoire sur les entrées grande distribution.
+- Vérification anti-doublon avant ajout.
+- Cohérence `portionDefaut` (30g à 40g), `kcal`, `qn`.
+- Alternatives uniquement vers des entrées existantes.
+- Build complet en fin de batch.
+
+### Statut
+- Batch identifié et validé dans la feuille de route.
+- Implémentation reportée volontairement à une session ultérieure.
+
+---
+
+## 🍰 CATÉGORIE PÂTISSERIE — PROPOSITION DE TRAITEMENT (À FAIRE PLUS TARD)
+
+### Objectif
+Finaliser la catégorie pâtisserie pour supprimer le placeholder restant et structurer les entrées avec des libellés explicites, cohérents avec les autres catégories déjà traitées.
+
+### Constat actuel
+- La catégorie pâtisserie contient encore un placeholder (`Exemple pâtisserie`).
+- Une base de produits existe déjà (ex: Tartelette aux fruits, Paris-Brest, Opéra, Saint-Honoré).
+
+### Règles proposées
+- Supprimer le placeholder uniquement quand le lot minimal est en place.
+- Nommage explicite avec origine/type quand utile (boulangerie, maison, industriel, marque).
+- Portion lisible utilisateur (part en g, pièce en g).
+- Vérification anti-doublon stricte avant ajout.
+
+### Batch A recommandé (pâtisserie FR prioritaire)
+- Mille-feuille
+- Éclair chocolat
+- Éclair café
+- Religieuse chocolat
+- Tarte citron meringuée
+- Tarte aux fraises
+- Flan pâtissier
+- Chou à la crème
+
+### Statut
+- Plan validé en intention.
+- Implémentation reportée à une session ultérieure.
+
+---
+
+## 🥛 CATÉGORIES LAIT / YAOURT / CONFISERIES / CHOCOLAT — PROPOSITION (À FAIRE PLUS TARD)
+
+### Objectif
+Harmoniser ces familles avec la même méthodologie que céréales: audit, anti-doublon, conventions de nommage, batchs progressifs, validation build.
+
+### 1) Lait — proposition
+
+#### Règles
+- Distinguer clairement lait animal / végétal.
+- Marque facultative pour génériques, obligatoire pour références industrielles spécifiques.
+- Portions en ml standardisées (100ml, 200ml, 250ml).
+
+#### Batch A recommandé
+- Lait demi-écrémé
+- Lait écrémé
+- Lait entier
+- Lait sans lactose
+- Boisson amande sans sucres
+- Boisson soja nature
+
+### 2) Yaourt — proposition
+
+#### Règles
+- Éviter les doublons de même nom multi-marques si non nécessaires.
+- Clarifier yaourt nature, yaourt aromatisé, grec, skyr, végétal.
+- Portion standard 100g à 150g selon format.
+
+#### Batch A recommandé
+- Yaourt nature (générique)
+- Yaourt grec nature (générique)
+- Skyr nature (générique)
+- Yaourt vanille (industriel)
+- Yaourt aux fruits (industriel)
+- Yaourt végétal nature (soja)
+
+### 3) Confiseries — proposition
+
+#### Règles
+- Marque explicite obligatoire pour produits de grande distribution.
+- Sous-catégories distinctes: gélifiés, caramels, sucettes, acidulés.
+- Portion courte lisible (pièce, 20g, 25g).
+
+#### Batch A recommandé
+- Haribo Dragibus
+- Haribo Tagada
+- Carambar Original
+- Chupa Chups Fraise
+- Haribo Fraise Pik
+- Krema Batna
+
+### 4) Chocolat — proposition
+
+#### Règles
+- Séparer chocolat noir, lait, blanc, pâte à tartiner, barre chocolatée.
+- Portion standard (carré, 20g, 30g, barre unitaire).
+- QN plus strict sur ultra-transformés/sucrés.
+
+#### Batch A recommandé
+- Chocolat noir 70%
+- Chocolat au lait
+- Chocolat blanc
+- Pâte à tartiner chocolat noisette
+- Barre chocolatée type Snickers
+- Barre chocolatée type Mars
+
+### Cadre d’exécution commun (pour plus tard)
+- Étape 1: audit existant + placeholders + doublons
+- Étape 2: mapping et conventions de nommage
+- Étape 3: batch A limité par catégorie
+- Étape 4: tests autocomplete + build
+
+### Statut global
+- Propositions validées pour la feuille de route.
+- Aucune implémentation immédiate demandée.
+- Exécution reportée à des batchs ultérieurs.

@@ -4,17 +4,57 @@ const referentielAliments = [
   { nom: "Paris-Brest", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: 320, qn: 1, portionDefaut: "part (100g)", unite: "g", alternatives: ["Tartelette aux fruits", "Saint-Honoré"], typeOrigine: "boulangerie" },
   { nom: "Opéra", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: 350, qn: 1, portionDefaut: "part (90g)", unite: "g", alternatives: ["Paris-Brest", "Saint-Honoré"], typeOrigine: "boulangerie" },
   { nom: "Saint-Honoré", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: 340, qn: 1, portionDefaut: "part (100g)", unite: "g", alternatives: ["Opéra", "Paris-Brest"], typeOrigine: "boulangerie" },
-  // Enrichissement catégorie "gâteau" (ajout 15%)
-  { nom: "Gâteau au yaourt", categorie: "gâteaux", sousCategorie: null, marque: null, kcal: 250, qn: 1, portionDefaut: "part (80g)", unite: "g", alternatives: ["Quatre-quarts", "Fondant au chocolat"], typeOrigine: "maison" },
-  { nom: "Fondant au chocolat", categorie: "gâteaux", sousCategorie: null, marque: null, kcal: 350, qn: 1, portionDefaut: "part (90g)", unite: "g", alternatives: ["Gâteau au yaourt", "Quatre-quarts"], typeOrigine: "maison" },
-  { nom: "Quatre-quarts", categorie: "gâteaux", sousCategorie: null, marque: "Ker Cadélac", kcal: 370, qn: 1, portionDefaut: "tranche (40g)", unite: "g", alternatives: ["Gâteau au yaourt", "Madeleine"], typeOrigine: "industriel" },
-  { nom: "Madeleine", categorie: "gâteaux", sousCategorie: null, marque: "St Michel", kcal: 130, qn: 1, portionDefaut: "1 madeleine (25g)", unite: "g", alternatives: ["Quatre-quarts", "Gâteau au yaourt"], typeOrigine: "industriel" },
+  // Enrichissement catégorie "gâteaux" (harmonisation batch 1)
+  { nom: "Gâteau au yaourt", categorie: "gâteaux", sousCategorie: "Gâteaux maison", marque: null, kcal: 250, qn: 1, portionDefaut: "1 part (80g)", unite: "part", alternatives: ["Quatre-quarts", "Fondant au chocolat"], typeOrigine: "maison" },
+  { nom: "Fondant au chocolat", categorie: "gâteaux", sousCategorie: "Gâteaux au chocolat", marque: null, kcal: 350, qn: 1, portionDefaut: "1 part (90g)", unite: "part", alternatives: ["Moelleux au chocolat", "Gâteau au yaourt"], typeOrigine: "maison" },
+  { nom: "Quatre-quarts", categorie: "gâteaux", sousCategorie: "Cakes tranchés", marque: "Ker Cadélac", kcal: 370, qn: 1, portionDefaut: "1 tranche (40g)", unite: "part", alternatives: ["Cake marbré", "Madeleine"], typeOrigine: "industriel" },
+  { nom: "Madeleine", categorie: "gâteaux", sousCategorie: "Gâteaux individuels", marque: "St Michel", kcal: 130, qn: 1, portionDefaut: "1 madeleine (25g)", unite: "piece", alternatives: ["Quatre-quarts", "Cake citron"], typeOrigine: "industriel" },
+  { nom: "Cake marbré", categorie: "gâteaux", sousCategorie: "Cakes tranchés", marque: null, kcal: 300, qn: 1, portionDefaut: "1 tranche (70g)", unite: "part", alternatives: ["Quatre-quarts", "Cake citron"], typeOrigine: "industriel" },
+  { nom: "Cake citron", categorie: "gâteaux", sousCategorie: "Cakes tranchés", marque: null, kcal: 280, qn: 1, portionDefaut: "1 tranche (70g)", unite: "part", alternatives: ["Cake marbré", "Madeleine"], typeOrigine: "industriel" },
+  { nom: "Moelleux au chocolat", categorie: "gâteaux", sousCategorie: "Gâteaux au chocolat", marque: null, kcal: 360, qn: 1, portionDefaut: "1 part (90g)", unite: "part", alternatives: ["Fondant au chocolat", "Brownie (industriel)"], typeOrigine: "maison" },
+  { nom: "Brownie (industriel)", categorie: "gâteaux", sousCategorie: "Gâteaux au chocolat", marque: null, kcal: 320, qn: 1, portionDefaut: "1 part (80g)", unite: "part", alternatives: ["Moelleux au chocolat", "Fondant au chocolat"], typeOrigine: "industriel" },
+  { nom: "Cheesecake (industriel)", categorie: "gâteaux", sousCategorie: "Gâteaux crémeux/froids", marque: null, kcal: 340, qn: 1, portionDefaut: "1 part (100g)", unite: "part", alternatives: ["Gâteau au yaourt", "Fondant au chocolat"], typeOrigine: "industriel" },
+  // Enrichissement catégorie "charcuterie" (batch autonome)
+  { nom: "Jambon cru", categorie: "charcuterie", sousCategorie: "Charcuterie sèche", marque: null, kcal: 130, qn: 2, portionDefaut: "2 tranches (30g)", unite: "tranche", alternatives: ["Jambon sec", "Coppa"], typeOrigine: "industriel" },
+  { nom: "Jambon sec", categorie: "charcuterie", sousCategorie: "Charcuterie sèche", marque: null, kcal: 140, qn: 2, portionDefaut: "2 tranches (30g)", unite: "tranche", alternatives: ["Jambon cru", "Rosette"], typeOrigine: "industriel" },
+  { nom: "Blanc de dinde", categorie: "charcuterie", sousCategorie: "Charcuterie volaille", marque: null, kcal: 95, qn: 3, portionDefaut: "2 tranches (60g)", unite: "tranche", alternatives: ["Jambon blanc (sans couenne)", "Mortadelle"], typeOrigine: "industriel" },
+  { nom: "Saucisson sec", categorie: "charcuterie", sousCategorie: "Charcuterie sèche", marque: null, kcal: 150, qn: 1, portionDefaut: "4 tranches (40g)", unite: "tranche", alternatives: ["Rosette", "Coppa"], typeOrigine: "industriel" },
+  { nom: "Rosette", categorie: "charcuterie", sousCategorie: "Charcuterie sèche", marque: null, kcal: 160, qn: 1, portionDefaut: "4 tranches (30g)", unite: "tranche", alternatives: ["Saucisson sec", "Coppa"], typeOrigine: "industriel" },
+  { nom: "Coppa", categorie: "charcuterie", sousCategorie: "Charcuterie sèche", marque: null, kcal: 120, qn: 2, portionDefaut: "4 tranches (30g)", unite: "tranche", alternatives: ["Rosette", "Jambon cru"], typeOrigine: "industriel" },
+  { nom: "Pâté de campagne", categorie: "charcuterie", sousCategorie: "Pâté / terrine", marque: null, kcal: 170, qn: 1, portionDefaut: "2 tranches (50g)", unite: "tranche", alternatives: ["Terrine de campagne", "Rillettes de porc"], typeOrigine: "maison" },
+  { nom: "Rillettes de porc", categorie: "charcuterie", sousCategorie: "Pâté / terrine", marque: null, kcal: 200, qn: 1, portionDefaut: "2 CS (40g)", unite: "CS", alternatives: ["Pâté de campagne", "Terrine de campagne"], typeOrigine: "industriel" },
+  { nom: "Mortadelle", categorie: "charcuterie", sousCategorie: "Charcuterie cuite", marque: null, kcal: 120, qn: 2, portionDefaut: "4 tranches (40g)", unite: "tranche", alternatives: ["Blanc de dinde", "Jambon blanc (sans couenne)"], typeOrigine: "industriel" },
+  { nom: "Bacon tranché", categorie: "charcuterie", sousCategorie: "Charcuterie fumée", marque: null, kcal: 130, qn: 1, portionDefaut: "2 tranches (30g)", unite: "tranche", alternatives: ["Jambon sec", "Rosette"], typeOrigine: "industriel" },
+  { nom: "Terrine de campagne", categorie: "charcuterie", sousCategorie: "Pâté / terrine", marque: null, kcal: 160, qn: 1, portionDefaut: "2 tranches (50g)", unite: "tranche", alternatives: ["Pâté de campagne", "Rillettes de porc"], typeOrigine: "maison" },
+  // Enrichissement catégorie "poisson" (batch autonome)
+  { nom: "Poisson blanc", categorie: "poisson", sousCategorie: "Poissons blancs", marque: null, kcal: 110, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Cabillaud (filet)", "Merlu (filet)"], typeOrigine: "naturel" },
+  { nom: "Cabillaud (filet)", categorie: "poisson", sousCategorie: "Poissons blancs", marque: null, kcal: 100, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Poisson blanc", "Merlu (filet)"], typeOrigine: "naturel" },
+  { nom: "Saumon frais", categorie: "poisson", sousCategorie: "Poissons gras", marque: null, kcal: 220, qn: 4, portionDefaut: "120g", unite: "g", alternatives: ["Maquereau (filet)", "Truite (filet)"], typeOrigine: "naturel" },
+  { nom: "Thon (naturel)", categorie: "poisson", sousCategorie: "Poissons en boîte", marque: null, kcal: 100, qn: 4, portionDefaut: "1 petite boîte (80g)", unite: "boite", alternatives: ["Thon en boîte", "Sardines (boîte nature)"], typeOrigine: "industriel" },
+  { nom: "Sardines (boîte nature)", categorie: "poisson", sousCategorie: "Poissons en boîte", marque: null, kcal: 180, qn: 3, portionDefaut: "1 boîte (100g)", unite: "boite", alternatives: ["Thon (naturel)", "Thon en boîte"], typeOrigine: "industriel" },
+  { nom: "Maquereau (filet)", categorie: "poisson", sousCategorie: "Poissons gras", marque: null, kcal: 200, qn: 4, portionDefaut: "120g", unite: "g", alternatives: ["Saumon frais", "Truite (filet)"], typeOrigine: "naturel" },
+  { nom: "Truite (filet)", categorie: "poisson", sousCategorie: "Poissons frais", marque: null, kcal: 150, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Poisson blanc", "Cabillaud (filet)"], typeOrigine: "naturel" },
+  { nom: "Colin (filet)", categorie: "poisson", sousCategorie: "Poissons blancs", marque: null, kcal: 90, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Merlu (filet)", "Cabillaud (filet)"], typeOrigine: "naturel" },
+  { nom: "Merlu (filet)", categorie: "poisson", sousCategorie: "Poissons blancs", marque: null, kcal: 85, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Colin (filet)", "Cabillaud (filet)"], typeOrigine: "naturel" },
+  { nom: "Dorade fraîche", categorie: "poisson", sousCategorie: "Poissons frais", marque: null, kcal: 110, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Bar (filet)", "Truite (filet)"], typeOrigine: "naturel" },
+  { nom: "Bar (filet)", categorie: "poisson", sousCategorie: "Poissons frais", marque: null, kcal: 100, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Dorade fraîche", "Merlu (filet)"], typeOrigine: "naturel" },
+  { nom: "Hareng (filet)", categorie: "poisson", sousCategorie: "Poissons gras", marque: null, kcal: 180, qn: 4, portionDefaut: "120g", unite: "g", alternatives: ["Maquereau (filet)", "Sardines (boîte nature)"], typeOrigine: "naturel" },
+  { nom: "Anchois", categorie: "poisson", sousCategorie: "Poissons en boîte", marque: null, kcal: 190, qn: 3, portionDefaut: "1 petite boîte (50g)", unite: "boite", alternatives: ["Sardines (boîte nature)", "Thon en boîte"], typeOrigine: "industriel" },
+  { nom: "Thon en boîte", categorie: "poisson", sousCategorie: "Poissons en boîte", marque: null, kcal: 110, qn: 4, portionDefaut: "1 petite boîte (80g)", unite: "boite", alternatives: ["Thon (naturel)", "Sardines (boîte nature)"], typeOrigine: "industriel" },
+  // Batch A - Couverture continentale poisson (Afrique + Europe)
+  { nom: "Tilapia (filet)", categorie: "poisson", sousCategorie: "Poissons frais", marque: null, kcal: 115, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Capitaine", "Merlu (filet)"], typeOrigine: "naturel" },
+  { nom: "Sardinelle", categorie: "poisson", sousCategorie: "Poissons gras", marque: null, kcal: 185, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Hareng (filet)", "Maquereau (filet)"], typeOrigine: "naturel" },
+  { nom: "Chinchard", categorie: "poisson", sousCategorie: "Poissons gras", marque: null, kcal: 170, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Sardinelle", "Hareng (filet)"], typeOrigine: "naturel" },
+  { nom: "Capitaine", categorie: "poisson", sousCategorie: "Poissons blancs", marque: null, kcal: 110, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Tilapia (filet)", "Poisson blanc"], typeOrigine: "naturel" },
+  { nom: "Mérou", categorie: "poisson", sousCategorie: "Poissons blancs", marque: null, kcal: 120, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Capitaine", "Bar (filet)"], typeOrigine: "naturel" },
+  { nom: "Silure", categorie: "poisson", sousCategorie: "Poissons frais", marque: null, kcal: 130, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Tilapia (filet)", "Capitaine"], typeOrigine: "naturel" },
+  { nom: "Merlan (filet)", categorie: "poisson", sousCategorie: "Poissons blancs", marque: null, kcal: 95, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Colin (filet)", "Cabillaud (filet)"], typeOrigine: "naturel" },
+  { nom: "Lieu noir (filet)", categorie: "poisson", sousCategorie: "Poissons blancs", marque: null, kcal: 100, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Merlan (filet)", "Colin (filet)"], typeOrigine: "naturel" },
+  { nom: "Lieu jaune (filet)", categorie: "poisson", sousCategorie: "Poissons blancs", marque: null, kcal: 105, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Lieu noir (filet)", "Merlu (filet)"], typeOrigine: "naturel" },
+  { nom: "Sole (filet)", categorie: "poisson", sousCategorie: "Poissons frais", marque: null, kcal: 90, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Merlan (filet)", "Dorade fraîche"], typeOrigine: "naturel" },
+  { nom: "Lotte (filet)", categorie: "poisson", sousCategorie: "Poissons frais", marque: null, kcal: 95, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Sole (filet)", "Bar (filet)"], typeOrigine: "naturel" },
+  { nom: "Rouget (filet)", categorie: "poisson", sousCategorie: "Poissons frais", marque: null, kcal: 125, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Dorade fraîche", "Lotte (filet)"], typeOrigine: "naturel" },
   // Catégories ajoutées explicitement pour futurs enregistrements (structure, à enrichir)
-  { nom: "Exemple gâteau", categorie: "gâteaux", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
-  { nom: "Exemple pâtisserie", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
-  { nom: "Exemple céréales", categorie: "céréales", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
-  { nom: "Exemple charcuterie", categorie: "charcuterie", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
-  { nom: "Exemple poisson", categorie: "poisson", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
             // Bonbons et confiseries
             { nom: "Maltesers", categorie: "confiserie", sousCategorie: "Chocolat", marque: "Maltesers", kcal: 150, qn: 1, portionDefaut: "25g", unite: "g", alternatives: ["M&M’s", "Smarties"] },
             { nom: "M&M’s", categorie: "confiserie", sousCategorie: "Chocolat", marque: "M&M’s", kcal: 140, qn: 1, portionDefaut: "25g", unite: "g", alternatives: ["Maltesers", "Smarties"] },
@@ -78,9 +118,9 @@ const referentielAliments = [
         // Starbucks
         { nom: "Cappuccino", categorie: "boisson", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 120, qn: 2, portionDefaut: "Tall (35cl)", unite: "cl", alternatives: ["Frappuccino Caramel"] },
         { nom: "Frappuccino Caramel", categorie: "boisson", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 320, qn: 1, portionDefaut: "Grande (47cl)", unite: "cl", alternatives: ["Cappuccino"] },
-        { nom: "Muffin myrtille", categorie: "snack", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 420, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Cookie chocolat", "Cheesecake"] },
-        { nom: "Cookie chocolat", categorie: "snack", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 390, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Muffin myrtille", "Cheesecake"] },
-        { nom: "Cheesecake", categorie: "dessert", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 350, qn: 1, portionDefaut: "part", unite: "part", alternatives: ["Cookie chocolat", "Muffin myrtille"] },
+        { nom: "Muffin myrtille", categorie: "snack", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 420, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Cookie chocolat", "Cheesecake Starbucks"] },
+        { nom: "Cookie chocolat", categorie: "snack", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 390, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Muffin myrtille", "Cheesecake Starbucks"] },
+        { nom: "Cheesecake Starbucks", categorie: "dessert", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 350, qn: 1, portionDefaut: "part", unite: "part", alternatives: ["Cookie chocolat", "Muffin myrtille"] },
 
         // Class'Croute
         { nom: "Salade César", categorie: "salade", sousCategorie: "Class'Croute", marque: "Class'Croute", kcal: 350, qn: 2, portionDefaut: "barquette", unite: "barquette", alternatives: ["Wrap poulet curry"] },
@@ -217,15 +257,25 @@ const referentielAliments = [
       { nom: "Jus multifruits", categorie: "boisson", sousCategorie: "Jus de fruits", marque: "Pago", kcal: 50, qn: 1, portionDefaut: "200ml", unite: "ml", alternatives: ["Jus d’orange", "Jus de pomme"] },
       { nom: "Nectar d’abricot", categorie: "boisson", sousCategorie: "Nectar de fruits", marque: "Andros", kcal: 60, qn: 1, portionDefaut: "200ml", unite: "ml", alternatives: ["Jus d’orange", "Jus multifruits"] },
       // Céréales petit-déjeuner (marques connues)
-      { nom: "Corn Flakes", categorie: "féculent", sousCategorie: "Céréales petit-déjeuner", marque: "Kellogg’s", kcal: 150, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Special K", "Weetabix"] },
-      { nom: "Special K", categorie: "féculent", sousCategorie: "Céréales petit-déjeuner", marque: "Kellogg’s", kcal: 160, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Corn Flakes", "Fitness"] },
-      { nom: "Weetabix", categorie: "féculent", sousCategorie: "Céréales petit-déjeuner", marque: "Weetabix", kcal: 112, qn: 2, portionDefaut: "2 biscuits (37,5g)", unite: "g", alternatives: ["Granola", "Country Crisp"] },
-      { nom: "Granola", categorie: "féculent", sousCategorie: "Céréales petit-déjeuner", marque: "Jordans", kcal: 180, qn: 2, portionDefaut: "40g", unite: "g", alternatives: ["Muesli", "Country Crisp"] },
-      { nom: "Trésor", categorie: "féculent", sousCategorie: "Céréales petit-déjeuner", marque: "Kellogg’s", kcal: 200, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Chocapic", "Lion Céréales"] },
-      { nom: "Miel Pops", categorie: "féculent", sousCategorie: "Céréales petit-déjeuner", marque: "Kellogg’s", kcal: 120, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Frosties", "Chocapic"] },
-      { nom: "Fitness", categorie: "féculent", sousCategorie: "Céréales petit-déjeuner", marque: "Nestlé", kcal: 112, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Special K", "Country Crisp"] },
-      { nom: "Lion Céréales", categorie: "féculent", sousCategorie: "Céréales petit-déjeuner", marque: "Nestlé", kcal: 160, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Trésor", "Chocapic"] },
-      { nom: "Country Crisp", categorie: "féculent", sousCategorie: "Céréales petit-déjeuner", marque: "Jordans", kcal: 180, qn: 2, portionDefaut: "40g", unite: "g", alternatives: ["Granola", "Weetabix"] },
+      { nom: "Corn Flakes", categorie: "céréales", sousCategorie: "Céréales de maïs", marque: "Kellogg’s", kcal: 150, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Special K", "Riz soufflé nature"] },
+      { nom: "Special K", categorie: "céréales", sousCategorie: "Céréales complètes", marque: "Kellogg’s", kcal: 160, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Corn Flakes", "Fitness"] },
+      { nom: "Weetabix", categorie: "céréales", sousCategorie: "Céréales complètes", marque: "Weetabix", kcal: 112, qn: 2, portionDefaut: "2 biscuits (37,5g)", unite: "g", alternatives: ["All-Bran", "Country Crisp"] },
+      { nom: "Granola", categorie: "céréales", sousCategorie: "Muesli / granola", marque: "Jordans", kcal: 180, qn: 2, portionDefaut: "40g", unite: "g", alternatives: ["Country Crisp", "Céréales muesli"] },
+      { nom: "Trésor", categorie: "céréales", sousCategorie: "Céréales fourrées", marque: "Kellogg’s", kcal: 200, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Chocapic", "Lion Céréales"] },
+      { nom: "Miel Pops", categorie: "céréales", sousCategorie: "Céréales soufflées", marque: "Kellogg’s", kcal: 120, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Riz soufflé nature", "Chocapic"] },
+      { nom: "Fitness", categorie: "céréales", sousCategorie: "Céréales complètes", marque: "Nestlé", kcal: 112, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Special K", "All-Bran"] },
+      { nom: "Lion Céréales", categorie: "céréales", sousCategorie: "Céréales chocolatées", marque: "Nestlé", kcal: 160, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Trésor", "Chocapic"] },
+      { nom: "Country Crisp", categorie: "céréales", sousCategorie: "Muesli / granola", marque: "Jordans", kcal: 180, qn: 2, portionDefaut: "40g", unite: "g", alternatives: ["Granola", "Weetabix"] },
+      { nom: "Crunch", categorie: "céréales", sousCategorie: "Céréales chocolatées", marque: "Nestlé", kcal: 160, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Chocapic", "Lion Céréales"] },
+      { nom: "Riz soufflé nature", categorie: "céréales", sousCategorie: "Céréales soufflées", marque: "Kellogg’s", kcal: 120, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Miel Pops", "Corn Flakes"] },
+      { nom: "Chocapic", categorie: "céréales", sousCategorie: "Céréales chocolatées", marque: "Nestlé", kcal: 150, qn: 2, portionDefaut: "30g", unite: "g", alternatives: ["Crunch", "Lion Céréales"] },
+      { nom: "All-Bran", categorie: "céréales", sousCategorie: "Céréales complètes", marque: "Kellogg’s", kcal: 105, qn: 3, portionDefaut: "30g", unite: "g", alternatives: ["Special K", "Weetabix"] },
+      { nom: "Flocons d’avoine (Quaker)", categorie: "céréales", sousCategorie: "Flocons d’avoine", marque: "Quaker", kcal: 130, qn: 3, portionDefaut: "40g", unite: "g", alternatives: ["Flocons d’avoine (Bjorg)", "Muesli Fruits"] },
+      { nom: "Flocons d’avoine (Bjorg)", categorie: "céréales", sousCategorie: "Flocons d’avoine", marque: "Bjorg", kcal: 128, qn: 3, portionDefaut: "40g", unite: "g", alternatives: ["Flocons d’avoine (Quaker)", "Muesli Fruits"] },
+      { nom: "Muesli Fruits", categorie: "céréales", sousCategorie: "Muesli / granola", marque: "Bjorg", kcal: 165, qn: 2, portionDefaut: "40g", unite: "g", alternatives: ["Granola", "Muesli Chocolat"] },
+      { nom: "Muesli Chocolat", categorie: "céréales", sousCategorie: "Muesli / granola", marque: "Jordans", kcal: 180, qn: 2, portionDefaut: "40g", unite: "g", alternatives: ["Muesli Fruits", "Granola Chocolat"] },
+      { nom: "Granola Avoine Miel", categorie: "céréales", sousCategorie: "Muesli / granola", marque: "Quaker", kcal: 190, qn: 2, portionDefaut: "40g", unite: "g", alternatives: ["Granola", "Country Crisp"] },
+      { nom: "Granola Chocolat", categorie: "céréales", sousCategorie: "Muesli / granola", marque: "Kellogg’s", kcal: 195, qn: 2, portionDefaut: "40g", unite: "g", alternatives: ["Muesli Chocolat", "Granola"] },
 
       // Yaourts et produits laitiers (marques connues)
       { nom: "Yaourt nature", categorie: "laitier", sousCategorie: "Yaourt nature", marque: "Danone", kcal: 60, qn: 1, portionDefaut: "125g", unite: "g", alternatives: ["Yaourt brassé nature", "Yaourt grec nature"] },
@@ -271,22 +321,6 @@ const referentielAliments = [
   // 🍚 FÉCULENTS
   // ═══════════════════════════════════════════════════════════
   
-  // RIZ
-  { 
-    nom: "Riz blanc / basmati", 
-    categorie: "féculent", 
-    sousCategorie: "Riz", 
-    kcal: 180,
-    qn: 2,
-    portionDefaut: "2 CS",
-    unite: "CS",
-    kcalParUnite: 90,
-    mesureRecommandee: "Cuillère à soupe",
-    portionMax: "2 CS Bombées", 
-    typeRepas: "Déjeuner", 
-    moment: "Midi", 
-    alternatives: ["Riz complet", "Quinoa", "Couscous"] 
-  },
   { 
     nom: "Riz complet", 
     categorie: "féculent", 
@@ -1153,8 +1187,8 @@ const referentielAliments = [
   },
   { 
     nom: "Jambon blanc (sans couenne)", 
-    categorie: "protéine", 
-    sousCategorie: "Viandes", 
+    categorie: "charcuterie", 
+    sousCategorie: "Charcuterie cuite", 
     kcal: 110,
     qn: 3,
     portionDefaut: "2 tranches (60g)",
@@ -1164,7 +1198,8 @@ const referentielAliments = [
     portionMax: "2-3 tranches", 
     typeRepas: "Petit-déjeuner", 
     moment: "Matin", 
-    alternatives: ["Œuf", "Fromage blanc"] 
+    alternatives: ["Blanc de dinde", "Mortadelle"],
+    typeOrigine: "industriel" 
   },
   { 
     nom: "Chorizo", 
@@ -2388,7 +2423,8 @@ const referentielAliments = [
     portionMax: "3 biscuits", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Chocolat noir"] 
+    alternatives: ["Petit Beurre (Lu)", "Biscuits fourrés (BN)"],
+    typeOrigine: "industriel" 
   },
   { 
     nom: "Biscuits fourrés (BN)", 
@@ -2591,8 +2627,8 @@ const referentielAliments = [
   // PÂTISSERIES BOULANGERIE
   { 
     nom: "Éclair au chocolat", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Pâtisseries à choux", 
     kcal: 260,
     qn: 1,
     portionDefaut: "1 éclair",
@@ -2602,12 +2638,13 @@ const referentielAliments = [
     portionMax: "1 pièce", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Yaourt nature + cacao"] 
+    alternatives: ["Éclair café", "Religieuse chocolat"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Mille-feuille", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Pâtisseries feuilletées", 
     kcal: 340,
     qn: 1,
     portionDefaut: "1 part",
@@ -2617,12 +2654,13 @@ const referentielAliments = [
     portionMax: "1 part", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Compote maison"] 
+    alternatives: ["Tarte citron meringuée", "Flan pâtissier"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Tarte aux fruits", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Tartes sucrées", 
     kcal: 280,
     qn: 1,
     portionDefaut: "1 part",
@@ -2632,12 +2670,13 @@ const referentielAliments = [
     portionMax: "1 part", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Fruits frais"] 
+    alternatives: ["Tarte aux fraises", "Tartelette aux fruits"],
+    typeOrigine: "boulangerie"
   },
   { 
-    nom: "Paris-Brest", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    nom: "Paris-Brest (industriel)", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Entremets / gâteaux de vitrine", 
     kcal: 420,
     qn: 1,
     portionDefaut: "1 part",
@@ -2647,12 +2686,13 @@ const referentielAliments = [
     portionMax: "1 part", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Yaourt grec + noix"] 
+    alternatives: ["Paris-Brest", "Opéra"],
+    typeOrigine: "industriel"
   },
   { 
-    nom: "Religieuse", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    nom: "Religieuse chocolat", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Pâtisseries à choux", 
     kcal: 380,
     qn: 1,
     portionDefaut: "1 religieuse",
@@ -2662,12 +2702,13 @@ const referentielAliments = [
     portionMax: "1 pièce", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Yaourt nature"] 
+    alternatives: ["Éclair au chocolat", "Chou à la crème"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Macaron", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Entremets / gâteaux de vitrine", 
     kcal: 90,
     qn: 1,
     portionDefaut: "1 macaron",
@@ -2677,12 +2718,13 @@ const referentielAliments = [
     portionMax: "2 pièces", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Fruit frais"] 
+    alternatives: ["Cannelé", "Financier"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Financier", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Entremets / gâteaux de vitrine", 
     kcal: 140,
     qn: 1,
     portionDefaut: "1 financier",
@@ -2692,12 +2734,13 @@ const referentielAliments = [
     portionMax: "1 pièce", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Amandes"] 
+    alternatives: ["Macaron", "Cannelé"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Cannelé", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Entremets / gâteaux de vitrine", 
     kcal: 110,
     qn: 1,
     portionDefaut: "1 cannelé",
@@ -2707,12 +2750,13 @@ const referentielAliments = [
     portionMax: "1 pièce", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Fruit frais"] 
+    alternatives: ["Financier", "Macaron"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Chouquette", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Pâtisseries à choux", 
     kcal: 25,
     qn: 1,
     portionDefaut: "1 chouquette",
@@ -2722,22 +2766,104 @@ const referentielAliments = [
     portionMax: "5 pièces", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Fruit sec"] 
+    alternatives: ["Chou à la crème", "Éclair au chocolat"],
+    typeOrigine: "boulangerie"
+  },
+  {
+    nom: "Éclair café",
+    categorie: "pâtisserie",
+    sousCategorie: "Pâtisseries à choux",
+    kcal: 250,
+    qn: 1,
+    portionDefaut: "1 éclair",
+    unite: "piece",
+    kcalParUnite: 250,
+    mesureRecommandee: "Unité",
+    portionMax: "1 pièce",
+    typeRepas: "Collation",
+    moment: "Après-midi",
+    alternatives: ["Éclair au chocolat", "Religieuse chocolat"],
+    typeOrigine: "boulangerie"
+  },
+  {
+    nom: "Tarte citron meringuée",
+    categorie: "pâtisserie",
+    sousCategorie: "Tartes sucrées",
+    kcal: 300,
+    qn: 1,
+    portionDefaut: "1 part (100g)",
+    unite: "part",
+    kcalParUnite: 300,
+    mesureRecommandee: "Unité",
+    portionMax: "1 part",
+    typeRepas: "Collation",
+    moment: "Après-midi",
+    alternatives: ["Tarte aux fruits", "Tarte aux fraises"],
+    typeOrigine: "boulangerie"
+  },
+  {
+    nom: "Tarte aux fraises",
+    categorie: "pâtisserie",
+    sousCategorie: "Tartes sucrées",
+    kcal: 270,
+    qn: 1,
+    portionDefaut: "1 part (100g)",
+    unite: "part",
+    kcalParUnite: 270,
+    mesureRecommandee: "Unité",
+    portionMax: "1 part",
+    typeRepas: "Collation",
+    moment: "Après-midi",
+    alternatives: ["Tarte aux fruits", "Tartelette aux fruits"],
+    typeOrigine: "boulangerie"
+  },
+  {
+    nom: "Flan pâtissier",
+    categorie: "pâtisserie",
+    sousCategorie: "Flans et crèmes pâtissières",
+    kcal: 240,
+    qn: 1,
+    portionDefaut: "1 part (120g)",
+    unite: "part",
+    kcalParUnite: 240,
+    mesureRecommandee: "Unité",
+    portionMax: "1 part",
+    typeRepas: "Collation",
+    moment: "Après-midi",
+    alternatives: ["Mille-feuille", "Tarte citron meringuée"],
+    typeOrigine: "boulangerie"
+  },
+  {
+    nom: "Chou à la crème",
+    categorie: "pâtisserie",
+    sousCategorie: "Pâtisseries à choux",
+    kcal: 170,
+    qn: 1,
+    portionDefaut: "1 pièce (60g)",
+    unite: "piece",
+    kcalParUnite: 170,
+    mesureRecommandee: "Unité",
+    portionMax: "1 pièce",
+    typeRepas: "Collation",
+    moment: "Après-midi",
+    alternatives: ["Religieuse chocolat", "Éclair au chocolat"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Gâteau au chocolat (fait maison)", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "gâteaux", 
+    sousCategorie: "Gâteaux au chocolat", 
     kcal: 320,
     qn: 1,
-    portionDefaut: "1 part",
+    portionDefaut: "1 part (100g)",
     unite: "part",
     kcalParUnite: 320,
     mesureRecommandee: "Unité",
     portionMax: "1 part", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Compote chocolat"] 
+    alternatives: ["Compote chocolat"], 
+    typeOrigine: "maison" 
   },
 
   // FAST FOOD DÉTAILLÉ
