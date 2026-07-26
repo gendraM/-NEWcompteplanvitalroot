@@ -1,0 +1,95 @@
+# MISE EN CONFORMIT2 KCAL
+
+Date: 26/07/2026
+Périmètre: catégories fromage et viennoiserie
+Objectif: comparer les valeurs actuelles du référentiel avec des références nutritionnelles fiables et identifier les écarts à corriger.
+
+## 1) Méthodologie d'audit
+- Extraction des valeurs actuelles depuis [data/referentiel.js](data/referentiel.js).
+- Comparaison avec des références externes:
+  - CIQUAL (ANSES) pour aliments génériques.
+  - Open Food Facts (OFF) pour portions marque quand pertinent (Kiri, Babybel, Vache qui rit, Boursin, etc.).
+- Calcul de l'écart:
+  - Ecart kcal = kcal_actuel - kcal_ref_portion
+  - Ecart % = (ecart / kcal_ref_portion) x 100
+
+## 2) Hypothèses de portion utilisées pour la comparaison
+- Fromage: portions déjà explicites en g dans le référentiel (30g, 16g), ou portion marque standard pour unités (ex: Kiri 18g, Babybel 20g, Vache qui rit 17g, Apéricube 5g).
+- Viennoiserie: portion usuelle boulangerie (croissant 60g, pain au chocolat 75g, pain aux raisins 90g, chausson 95g, etc.).
+- Important: pour viennoiseries sans grammage explicite dans le référentiel, l'analyse donne un écart indicatif fort mais nécessite une validation finale par grammage réel cible.
+
+## 3) Audit FROMAGE
+
+| Aliment | Kcal actuel | Réf kcal/100g | Portion ref | Kcal ref portion | Ecart kcal | Ecart % | Source ref | Statut |
+|---|---:|---:|---:|---:|---:|---:|---|---|
+| Kiri | 45 | 305 | 18g | 55 | -10 | -18.2% | OFF Kiri | A corriger |
+| Babybel | 65 | 330 | 20g | 66 | -1 | -1.5% | OFF Babybel Mini | OK |
+| Vache qui rit | 35 | 275 | 17g | 47 | -12 | -25.5% | OFF Vache qui rit | A corriger |
+| Apéricube | 12 | 290 | 5g | 15 | -3 | -20.0% | OFF Apéricube | A corriger |
+| Camembert | 80 | 265 | 30g | 80 | 0 | 0.0% | CIQUAL | OK |
+| Brie | 90 | 334 | 30g | 100 | -10 | -10.0% | CIQUAL | A corriger |
+| Roquefort | 100 | 369 | 30g | 111 | -11 | -9.9% | CIQUAL | A corriger |
+| Comté | 120 | 418 | 30g | 125 | -5 | -4.0% | CIQUAL | Tolérable |
+| Chèvre frais | 75 | 260 | 30g | 78 | -3 | -3.8% | CIQUAL | Tolérable |
+| Emmental râpé | 110 | 380 | 30g | 114 | -4 | -3.5% | CIQUAL | Tolérable |
+| Emmental bloc | 110 | 380 | 30g | 114 | -4 | -3.5% | CIQUAL | Tolérable |
+| Emmental tranches | 110 | 380 | 30g | 114 | -4 | -3.5% | CIQUAL | Tolérable |
+| Saint-Nectaire | 90 | 340 | 30g | 102 | -12 | -11.8% | CIQUAL | A corriger |
+| Reblochon | 95 | 327 | 30g | 98 | -3 | -3.1% | CIQUAL | Tolérable |
+| Cantal | 110 | 403 | 30g | 121 | -11 | -9.1% | CIQUAL | A corriger |
+| Bleu d’Auvergne | 100 | 353 | 30g | 106 | -6 | -5.7% | CIQUAL | Tolérable |
+| Boursin | 80 | 410 | 16g | 66 | +14 | +21.2% | OFF Boursin | A corriger |
+| Tartare | 80 | 260 | 16g | 42 | +38 | +90.5% | OFF Tartare | Critique |
+| Saint-Morêt | 70 | 240 | 16g | 38 | +32 | +84.2% | OFF Saint-Morêt | Critique |
+
+### Synthèse fromage
+- Conformes/tolérables: Camembert, Babybel, Comté, Chèvre frais, Emmental (x3), Reblochon, Bleu d’Auvergne.
+- Ecarts significatifs: Kiri, Vache qui rit, Apéricube, Brie, Roquefort, Saint-Nectaire, Cantal, Boursin.
+- Ecarts critiques: Tartare, Saint-Morêt.
+
+## 4) Audit VIENNOISERIE
+
+| Aliment | Kcal actuel | Réf kcal/100g | Portion ref | Kcal ref portion | Ecart kcal | Ecart % | Source ref | Statut |
+|---|---:|---:|---:|---:|---:|---:|---|---|
+| Croissant | 180 | 406 | 60g | 244 | -64 | -26.2% | CIQUAL | A corriger |
+| Pain au chocolat | 240 | 423 | 75g | 317 | -77 | -24.3% | CIQUAL | A corriger |
+| Pain aux raisins | 260 | 333 | 90g | 300 | -40 | -13.3% | CIQUAL | A corriger |
+| Chausson aux pommes | 280 | 338 | 95g | 321 | -41 | -12.8% | CIQUAL | A corriger |
+| Brioche | 150 | 374 | 40g | 150 | 0 | 0.0% | CIQUAL | OK |
+| Brioche au sucre | 190 | 380 | 70g | 266 | -76 | -28.6% | CIQUAL (approx produit) | A corriger |
+| Brioche feuilletée | 260 | 420 | 95g | 399 | -139 | -34.8% | CIQUAL (approx produit) | Critique |
+| Palmier | 150 | 400 | 40g | 160 | -10 | -6.3% | CIQUAL (approx produit) | Tolérable |
+| Torsade chocolat | 230 | 405 | 100g | 405 | -175 | -43.2% | CIQUAL (approx produit) | Critique |
+| Suisse (crème pépites) | 290 | 360 | 110g | 396 | -106 | -26.8% | CIQUAL (approx produit) | Critique |
+
+### Synthèse viennoiserie
+- Conforme: Brioche (1 tranche 40g).
+- Tolérable: Palmier (écart faible).
+- A corriger: Croissant, Pain au chocolat, Pain aux raisins, Chausson, Brioche au sucre.
+- Critique: Brioche feuilletée, Torsade chocolat, Suisse.
+
+## 5) Conformité aux règles projet
+Règles projet visées: données réalistes, portions standardisées, traçabilité source, cohérence autocomplete.
+
+Constats:
+- Les portions sont parfois non pondérées ("1 pièce", "1 portion") sans grammage: source de dérive.
+- Une partie des kcal est sous-estimée en viennoiserie.
+- Quelques fromages industriels/tartinables sont surévalués (Tartare, Saint-Morêt, Boursin).
+
+## 6) Plan de mise en conformité recommandé (avant codage de correction)
+1. Verrouiller un grammage cible par portion pour chaque entrée "piece/portion".
+2. Fixer une source primaire par entrée:
+   - CIQUAL pour génériques
+   - OFF/marque pour produits de marque
+3. Recalculer automatiquement: kcal_portion = round(kcal_100g x grammes_portion / 100).
+4. Ajouter dans le référentiel un champ de traçabilité source (ex: sourceKcal, dateSource).
+5. Revalider l'autocomplétion après mise à jour (portion affichée + QN + kcal calculée).
+
+## 7) Priorité de correction (ordre)
+Priorité 1 (critique): Tartare, Saint-Morêt, Torsade chocolat, Brioche feuilletée, Suisse.
+Priorité 2 (forte): Croissant, Pain au chocolat, Brioche au sucre, Vache qui rit, Kiri, Brie, Roquefort, Saint-Nectaire, Cantal.
+Priorité 3 (faible): Apéricube, Palmier, écarts mineurs fromages AOP proches.
+
+## 8) Limites de l'analyse
+- Les valeurs viennoiserie marquées "approx produit" doivent être validées avec le grammage final décidé métier (boulangerie/industriel).
+- L'analyse est volontairement conservative: elle vise à détecter les écarts importants avant correction.

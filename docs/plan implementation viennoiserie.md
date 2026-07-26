@@ -144,3 +144,42 @@ Total estimé : 2 à 2.5 jours selon le volume réel à enrichir.
 
 ## 13. Résultat attendu
 Une catégorie viennoiserie réellement enrichie, sans effet "structure vide", cohérente côté données, et fiable pour l’autocomplétion.
+
+## 14. Exécution pas à pas (réalisée)
+
+### Étape 1 — Audit & Cartographie (Phase A) ✅
+- Inventaire réalisé sur la catégorie viennoiserie.
+- Constat initial : une entrée placeholder `Exemple viennoiserie` était présente sans contenu métier.
+- Constat complémentaire : des viennoiseries existaient déjà sous d’autres catégories (notamment `extra` et `féculent`).
+
+### Étape 2 — Normalisation de structure (Phase B) ✅
+- Taxonomie retenue : `categorie: "viennoiserie"` pour les produits de la famille viennoiserie détaillée.
+- Sous-catégories harmonisées :
+  - Viennoiserie feuilletée
+  - Viennoiserie briochée
+  - Viennoiserie fourrée
+  - Viennoiserie sucrée classique
+
+### Étape 3 — Complétion & Nettoyage (Phase C) ✅
+- Placeholder `Exemple viennoiserie` retiré.
+- Entrées recatégorisées en `viennoiserie` :
+  - Croissant
+  - Pain au chocolat
+  - Pain aux raisins
+  - Chausson aux pommes
+  - Brioche
+- Entrées ajoutées pour compléter le lot minimal :
+  - Brioche au sucre
+  - Brioche feuilletée
+  - Palmier
+  - Torsade chocolat
+  - Suisse (crème pépites)
+
+### Étape 4 — Validation autocomplétion (Phase D) ✅
+- La logique autocomplete exclut déjà les placeholders `Exemple ...`.
+- La catégorie viennoiserie dispose désormais d’entrées métier réelles et exploitables.
+
+## 15. État final
+- Catégorie viennoiserie enrichie et opérationnelle.
+- Placeholder viennoiserie supprimé.
+- Lot minimal de base disponible pour la saisie/autocomplétion.
