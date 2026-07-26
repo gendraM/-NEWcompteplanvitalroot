@@ -23,7 +23,7 @@ function RetourAccueil() {
 // ...existing code...
 // ----------- HANDLER POUR LA SAUVEGARDE D'UN REPAS -----------
 // La fonction handleSaveRepas est définie plus bas dans le composant principal, après l’import unique de Supabase.
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import BandeauDefiActif from '../components/BandeauDefiActif';
 import ModalFeedbackValidation from '../components/ModalFeedbackValidation';
@@ -57,6 +57,7 @@ import RepasBloc from "../components/RepasBloc";
 import TimelineProgression from "../components/TimelineProgression";
 import SaisieDefiAlimentaire from "../components/SaisieDefiAlimentaire";
 import SaisieRepriseJeune from "../components/SaisieRepriseJeune";
+import ModeTrouSuiviCard from "../components/ModeTrouSuiviCard";
 import { useDefis } from "../components/DefisContext";
 
 // Utilitaire message cyclique
@@ -78,6 +79,37 @@ function isInLast7Days(dateString, refDateString) {
   sevenDaysAgo.setDate(now.getDate() - 6);
   const target = new Date(dateString);
   return target >= sevenDaysAgo && target <= now;
+}
+
+function parseLocalDate(isoDate) {
+  if (!isoDate || typeof isoDate !== 'string') return null;
+  const [year, month, day] = isoDate.split('-').map(Number);
+  if (!year || !month || !day) return null;
+  const parsed = new Date(year, month - 1, day);
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+}
+
+function formatLocalDateToIso(dateObj) {
+  if (!(dateObj instanceof Date)) return null;
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDateRangeIso(dateStartIso, dateEndIso) {
+  const start = parseLocalDate(dateStartIso);
+  const end = parseLocalDate(dateEndIso);
+  if (!start || !end || end < start) return [];
+
+  const result = [];
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    result.push(formatLocalDateToIso(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return result;
 }
 
 function Snackbar({ open, message, type = "info", onClose }) {
@@ -450,12 +482,7 @@ export default function Suivi() {
   // Hook pour tracker les champs du repas en cours (portions, féculents, hydratation, etc.)
   const [champsRepasEnCours, setChampsRepasEnCours] = useState({});
   // Récupérer la date du jeûne programmé (stockée en localStorage ou BDD)
-  const [dateJeune, setDateJeune] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('dateJeunePrevu') || null;
-    }
-    return null;
-  });
+  const [dateJeune, setDateJeune] = useState(null);
   // Liste des critères par jalon (doit matcher la timeline métier)
   const criteresPreparation = [
     { jour: -30, label: "Respect strict des quantités à chaque repas" },
@@ -478,12 +505,7 @@ export default function Suivi() {
     }) || null;
   }
   // Stockage des validations locales (clé: "prep_valid_{date}")
-  const [prepValid, setPrepValid] = useState(() => {
-    if (typeof window !== 'undefined' && selectedDate) {
-      return localStorage.getItem('prep_valid_' + selectedDate) === '1';
-    }
-    return false;
-  });
+  const [prepValid, setPrepValid] = useState(false);
   // Handler validation manuelle
   const handleValiderCriterePrep = () => {
     if (typeof window !== 'undefined' && selectedDate && critereActif) {
@@ -497,6 +519,13 @@ export default function Suivi() {
       setSnackbar({ open: true, message: "Critère de préparation validé pour aujourd'hui !", type: "success" });
     }
   };
+  // Sync hook si date change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setDateJeune(localStorage.getItem('dateJeunePrevu') || null);
+    }
+  }, []);
+
   // Sync hook si date change
   useEffect(() => {
     if (typeof window !== 'undefined' && selectedDate) {
@@ -706,6 +735,135 @@ export default function Suivi() {
   const [showNotesHistory, setShowNotesHistory] = useState(false);
   // Plan de repas du jour (repas planifiés)
   const [repasPlan, setRepasPlan] = useState({});
+  // Mode trou de suivi: périodes reconstituées (données estimées)
+  const [periodesEstimees, setPeriodesEstimees] = useState([]);
+  const [suggestionTrouSuivi, setSuggestionTrouSuivi] = useState(null);
+
+  useEffect(() => {
+    const loadLocal = () => {
+      if (typeof window === 'undefined') return [];
+      try {
+        const raw = window.localStorage.getItem('periodes_estimees_suivi');
+        return raw ? JSON.parse(raw) : [];
+      } catch (error) {
+        console.warn('[TrouSuivi] Lecture periodes estimees locale impossible:', error);
+        return [];
+      }
+    };
+
+    const loadPeriodesEstimees = async () => {
+      const local = loadLocal();
+
+      // Sans userId auth, on reste en mode local.
+      if (!userId) {
+        setPeriodesEstimees(local);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('suivi_periodes_estimees')
+          .select('*')
+          .eq('user_id', userId)
+          .order('date_debut', { ascending: false });
+
+        if (error) throw error;
+
+        const mapped = (data || []).map((row) => ({
+          id: row.id,
+          type: 'estimee',
+          created_at: row.created_at,
+          dateDebut: row.date_debut,
+          dateFin: row.date_fin,
+          qualiteAlimentaire: row.qualite_alimentaire,
+          frequenceExtras: row.frequence_extras,
+          repasMoyens: row.repas_moyens,
+          challengeRealise: row.challenge_realise ? 'oui' : 'non',
+          challengeType: row.challenge_type || '',
+          challengeDuree: row.challenge_duree || '',
+          evolutionPoids: row.evolution_poids,
+          energieGlobale: row.energie_globale,
+          classification: row.classification || {}
+        }));
+
+        setPeriodesEstimees(mapped);
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('periodes_estimees_suivi', JSON.stringify(mapped));
+        }
+      } catch (error) {
+        console.warn('[TrouSuivi] Lecture periodes estimees Supabase impossible, fallback local:', error);
+        setPeriodesEstimees(local);
+      }
+    };
+
+    loadPeriodesEstimees();
+  }, [userId]);
+
+  const handleSavePeriodeEstimee = useCallback(async (payload) => {
+    const periode = {
+      id: Date.now().toString(),
+      type: 'estimee',
+      created_at: new Date().toISOString(),
+      ...payload
+    };
+
+    let savedRemotely = false;
+
+    const effectiveUserId = userId || (typeof window !== 'undefined'
+      ? (window.localStorage.getItem('journal_user_id') || 'laurelle_test_user')
+      : 'laurelle_test_user');
+
+    if (effectiveUserId) {
+      try {
+        const remotePayload = {
+          user_id: effectiveUserId,
+          date_debut: payload.dateDebut,
+          date_fin: payload.dateFin,
+          qualite_alimentaire: payload.qualiteAlimentaire || null,
+          frequence_extras: payload.frequenceExtras || null,
+          repas_moyens: payload.repasMoyens || null,
+          challenge_realise: payload.challengeRealise === 'oui',
+          challenge_type: payload.challengeType || null,
+          challenge_duree: payload.challengeDuree || null,
+          evolution_poids: payload.evolutionPoids || null,
+          energie_globale: payload.energieGlobale || null,
+          classification: payload.classification || {},
+          source: 'questionnaire'
+        };
+
+        const { error } = await supabase
+          .from('suivi_periodes_estimees')
+          .upsert([remotePayload], { onConflict: 'user_id,date_debut,date_fin' });
+
+        if (!error) savedRemotely = true;
+        else console.warn('[TrouSuivi] Ecriture Supabase impossible, fallback local:', error);
+      } catch (error) {
+        console.warn('[TrouSuivi] Exception ecriture Supabase, fallback local:', error);
+      }
+    }
+
+    setPeriodesEstimees((prev) => {
+      const exists = prev.some((p) => p?.dateDebut === periode.dateDebut && p?.dateFin === periode.dateFin);
+      const next = exists ? prev : [...prev, periode];
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('periodes_estimees_suivi', JSON.stringify(next));
+      }
+      return next;
+    });
+
+    setSuggestionTrouSuivi(null);
+    setSnackbar({
+      open: true,
+      message: savedRemotely
+        ? 'Periode reconstituee en donnees estimees (sauvegardee Supabase).'
+        : 'Periode reconstituee en donnees estimees (sauvegardee localement).',
+      type: 'success'
+    });
+  }, [userId]);
+
+  const handleDismissTrouSuivi = useCallback(() => {
+    setSuggestionTrouSuivi(null);
+  }, []);
 
   // Chargement profil et calcul objectif calorique personnalisé (routeur poids)
   useEffect(() => {
@@ -820,6 +978,111 @@ export default function Suivi() {
     }
     fetchRepasEtPlan();
   }, [selectedDate, repriseActive]); // 🆕 Ajout repriseActive pour recharger quand statut change
+
+  useEffect(() => {
+    if (!Array.isArray(repasSemaine) || repasSemaine.length === 0 || !selectedDate) {
+      setSuggestionTrouSuivi(null);
+      return;
+    }
+
+    const selectedDateObj = parseLocalDate(selectedDate);
+    if (!selectedDateObj) {
+      setSuggestionTrouSuivi(null);
+      return;
+    }
+
+    const datesObservees = Array.from(
+      new Set(
+        repasSemaine
+          .map((r) => r.date)
+          .filter((d) => typeof d === 'string' && d <= selectedDate)
+      )
+    ).sort();
+
+    if (datesObservees.length === 0) {
+      setSuggestionTrouSuivi(null);
+      return;
+    }
+
+    const derniereDateObservee = datesObservees[datesObservees.length - 1];
+    const derniereDateObj = parseLocalDate(derniereDateObservee);
+    if (!derniereDateObj || selectedDateObj <= derniereDateObj) {
+      setSuggestionTrouSuivi(null);
+      return;
+    }
+
+    const diffJours = Math.floor((selectedDateObj - derniereDateObj) / (1000 * 60 * 60 * 24));
+    if (diffJours < 14) {
+      setSuggestionTrouSuivi(null);
+      return;
+    }
+
+    const dateDebutObj = new Date(derniereDateObj);
+    dateDebutObj.setDate(dateDebutObj.getDate() + 1);
+    const dateDebut = formatLocalDateToIso(dateDebutObj);
+    const dateFin = selectedDate;
+
+    const dejaEstime = periodesEstimees.some((p) => (
+      p?.dateDebut === dateDebut && p?.dateFin === dateFin
+    ));
+
+    if (dejaEstime) {
+      setSuggestionTrouSuivi(null);
+      return;
+    }
+
+    setSuggestionTrouSuivi({
+      dateDebut,
+      dateFin,
+      nbJoursSansSaisie: diffJours
+    });
+  }, [repasSemaine, selectedDate, periodesEstimees]);
+
+  const statsFiabiliteSemaine = useMemo(() => {
+    if (!selectedDate) {
+      return { observes: 0, estimes: 0, fiabilite: 100 };
+    }
+
+    const selectedDateObj = parseLocalDate(selectedDate);
+    if (!selectedDateObj) {
+      return { observes: 0, estimes: 0, fiabilite: 100 };
+    }
+
+    const day = selectedDateObj.getDay();
+    const monday = new Date(selectedDateObj);
+    monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(0, 0, 0, 0);
+
+    const weekStart = formatLocalDateToIso(monday);
+    const weekEnd = formatLocalDateToIso(sunday);
+    const joursSemaine = getDateRangeIso(weekStart, weekEnd);
+
+    const observesSet = new Set(
+      repasSemaine
+        .map((r) => r.date)
+        .filter((d) => joursSemaine.includes(d))
+    );
+
+    const estimesSet = new Set();
+    periodesEstimees.forEach((periode) => {
+      const joursPeriode = getDateRangeIso(periode?.dateDebut, periode?.dateFin);
+      joursPeriode.forEach((jour) => {
+        if (joursSemaine.includes(jour) && !observesSet.has(jour)) {
+          estimesSet.add(jour);
+        }
+      });
+    });
+
+    const observes = observesSet.size;
+    const estimes = estimesSet.size;
+    const total = observes + estimes;
+    const fiabilite = total > 0 ? Math.round((observes / total) * 100) : 100;
+
+    return { observes, estimes, fiabilite };
+  }, [selectedDate, repasSemaine, periodesEstimees]);
 
   // ═══════════════════════════════════════════════════════════
   // VALIDATION AUTOMATIQUE DES CRITÈRES - Analyse post-chargement repas
@@ -957,25 +1220,30 @@ export default function Suivi() {
       objectifCalorique !== null && caloriesDuJour !== null && caloriesDuJour > objectifCalorique
     );
   }, [objectifCalorique, caloriesDuJour]);
+
+  // Evite les mismatches SSR/CSR dus au fuseau horaire serveur vs client.
+  const [dayOfWeekNow, setDayOfWeekNow] = useState(null);
+  useEffect(() => {
+    setDayOfWeekNow(new Date().getDay());
+  }, []);
   // ...autres hooks et logique métier...
 
   // ----------- LOGIQUE D'AFFICHAGE DYNAMIQUE MOTIVATION -----------
-  const today = new Date();
   // FIX: Parser la date en local au lieu d'UTC pour éviter les décalages de timezone
   const [year, month, day] = selectedDate.split('-').map(Number);
   const selected = new Date(year, month - 1, day);
-  const dayOfWeek = today.getDay();
+  const dayOfWeek = dayOfWeekNow;
   const selectedDayOfWeek = selected.getDay();
   const extrasEnCours = extrasThisWeek;
   let messageMotivation = null;
   let showComparatif = false;
   let showValidation = false;
   // Motivation selon le jour réel
-  if (dayOfWeek >= 1 && dayOfWeek <= 3) {
+  if (dayOfWeek !== null && dayOfWeek >= 1 && dayOfWeek <= 3) {
     messageMotivation = `Nouvelle semaine, nouveaux objectifs ! Palier actuel : ${currentPalier} extras/semaine.`;
     showComparatif = false;
   }
-  if (dayOfWeek >= 4 && dayOfWeek <= 6) {
+  if (dayOfWeek !== null && dayOfWeek >= 4 && dayOfWeek <= 6) {
     if (extrasEnCours <= currentPalier) {
       messageMotivation = `Bravo, garde le cap, tu es sur la bonne voie ! (${extrasEnCours}/${currentPalier} extras)`;
     } else {
@@ -983,7 +1251,7 @@ export default function Suivi() {
     }
     showComparatif = false;
   }
-  if (dayOfWeek === 0) {
+  if (dayOfWeek !== null && dayOfWeek === 0) {
     showComparatif = true;
     messageMotivation = null;
   }
@@ -1095,6 +1363,9 @@ export default function Suivi() {
         extras_count: extrasInfo.count,
         extras_details: JSON.stringify(extrasInfo.details),
         message_feedback: messageFeedback,
+        jours_observes: statsFiabiliteSemaine.observes,
+        jours_estimes: statsFiabiliteSemaine.estimes,
+        fiabilite_pourcent: statsFiabiliteSemaine.fiabilite,
         variation
       };
       try {
@@ -1122,6 +1393,9 @@ export default function Suivi() {
           pointsForts,
           axesAmelioration,
           tendanceMensuelle,
+          joursObserves: statsFiabiliteSemaine.observes,
+          joursEstimes: statsFiabiliteSemaine.estimes,
+          fiabilitePourcent: statsFiabiliteSemaine.fiabilite,
           feedbackDetaille
         });
         setShowFeedbackModal(true);
@@ -1303,6 +1577,14 @@ export default function Suivi() {
               ? (objectifCalorique - caloriesDuJour) + " kcal"
               : "..."}
           </span>
+        </div>
+        <div style={{ marginTop: 10, fontSize: 13, color: '#334155', lineHeight: 1.55 }}>
+          <strong>Fiabilite de la semaine: {statsFiabiliteSemaine.fiabilite}%</strong>
+          <div>{statsFiabiliteSemaine.observes} jours suivis normalement</div>
+          <div>{statsFiabiliteSemaine.estimes} jours reconstitues</div>
+        </div>
+        <div style={{ marginTop: 6, fontSize: 12, color: '#64748b' }}>
+          Les calories affichées ci-dessus restent basées uniquement sur les repas réellement saisis.
         </div>
       </div>
 
@@ -1527,6 +1809,12 @@ export default function Suivi() {
           }}
         />
       </div>
+
+      <ModeTrouSuiviCard
+        suggestion={suggestionTrouSuivi}
+        onSave={handleSavePeriodeEstimee}
+        onDismiss={handleDismissTrouSuivi}
+      />
 
       {loading ? (
         <div style={{ textAlign: "center", margin: "48px 0" }}>
