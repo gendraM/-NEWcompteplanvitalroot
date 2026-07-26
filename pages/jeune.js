@@ -340,45 +340,86 @@ const OUTILS_SUGGESTIONS = [
 ];
 // === FONCTIONS ASYNC SUPABASE (REMPLACENT MOCKDATA) ===
 async function getRepasRecentsAsync() {
-  const { data } = await supabase
-    .from('repas_reels')
-    .select('aliment, categorie, est_extra')
-    .order('date', { ascending: false })
-    .limit(3);
-  
-  return data || [];
+  try {
+    const { data, error } = await supabase
+      .from('repas_reels')
+      .select('aliment, categorie, est_extra')
+      .order('date', { ascending: false })
+      .limit(3);
+
+    if (error) throw error;
+    if (data && data.length > 0) {
+      localStorage.setItem('repasRecentsCache', JSON.stringify(data));
+      return data;
+    }
+
+    const cache = localStorage.getItem('repasRecentsCache');
+    return cache ? JSON.parse(cache) : [];
+  } catch (error) {
+    console.warn('Fallback repasRecentsCache:', error);
+    const cache = localStorage.getItem('repasRecentsCache');
+    return cache ? JSON.parse(cache) : [];
+  }
 }
 
 async function fetchPoidsDepart() {
-  const { data: profil } = await supabase
-    .from('profil')
-    .select('poids_de_depart')
-    .limit(1)
-    .single();
-  
-  if (profil?.poids_de_depart) return profil.poids_de_depart;
-  
-  const { data: historique } = await supabase
-    .from('historique_poids')
-    .select('poids')
-    .order('date', { ascending: false })
-    .limit(1)
-    .single();
-  
-  if (historique?.poids) return historique.poids;
-  
-  return null;
+  try {
+    const { data: profil, error } = await supabase
+      .from('profil')
+      .select('poids_de_depart')
+      .limit(1)
+      .single();
+
+    if (error) throw error;
+    if (profil?.poids_de_depart) {
+      localStorage.setItem('poidsDepartCache', JSON.stringify(profil.poids_de_depart));
+      return profil.poids_de_depart;
+    }
+
+    const { data: historique, error: historiqueError } = await supabase
+      .from('historique_poids')
+      .select('poids')
+      .order('date', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (historiqueError) throw historiqueError;
+    if (historique?.poids) {
+      localStorage.setItem('poidsDepartCache', JSON.stringify(historique.poids));
+      return historique.poids;
+    }
+
+    const cache = localStorage.getItem('poidsDepartCache');
+    return cache ? JSON.parse(cache) : null;
+  } catch (error) {
+    console.warn('Fallback poidsDepartCache:', error);
+    const cache = localStorage.getItem('poidsDepartCache');
+    return cache ? JSON.parse(cache) : null;
+  }
 }
 
 async function getDernierRepasAsync() {
-  const { data } = await supabase
-    .from('repas_reels')
-    .select('aliment, categorie')
-    .order('date', { ascending: false })
-    .limit(1)
-    .single();
-  
-  return data || null;
+  try {
+    const { data, error } = await supabase
+      .from('repas_reels')
+      .select('aliment, categorie')
+      .order('date', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) throw error;
+    if (data) {
+      localStorage.setItem('dernierRepasCache', JSON.stringify(data));
+      return data;
+    }
+
+    const cache = localStorage.getItem('dernierRepasCache');
+    return cache ? JSON.parse(cache) : null;
+  } catch (error) {
+    console.warn('Fallback dernierRepasCache:', error);
+    const cache = localStorage.getItem('dernierRepasCache');
+    return cache ? JSON.parse(cache) : null;
+  }
 }
 // === FIN FONCTIONS ASYNC ===
 
@@ -978,7 +1019,25 @@ export default function Jeune() {
       message_personnel: messagePerso || "",
       created_at: aujourdhui
     };
-    
+
+    let supabaseOk = false;
+    if (user_id) {
+      try {
+        const { error } = await supabase
+          .from('bilans_jeune')
+          .upsert([bilan], { onConflict: 'user_id,date_debut' });
+
+        if (error) {
+          console.warn('Erreur sauvegarde bilan Supabase:', error);
+        } else {
+          supabaseOk = true;
+          console.log('✅ Bilan sauvegardé sur Supabase');
+        }
+      } catch (error) {
+        console.error('❌ Erreur sauvegarde bilan Supabase:', error);
+      }
+    }
+
     // Sauvegarder dans localStorage
     localStorage.setItem('bilanJeune', JSON.stringify(bilan));
     
@@ -1016,6 +1075,12 @@ export default function Jeune() {
       }
     } catch (error) {
       console.warn('Erreur fin parcours Supabase:', error);
+    }
+
+    if (supabaseOk) {
+      alert('✅ Bilan généré et sauvegardé sur Supabase.');
+    } else {
+      alert('✅ Bilan généré localement (sauvegarde distante en attente).');
     }
     
     return bilan;
