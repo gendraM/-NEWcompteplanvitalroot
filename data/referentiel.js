@@ -734,10 +734,10 @@ const referentielAliments = [
   // VIENNOISERIES
   { 
     nom: "Mini croissant", 
-    categorie: "féculent", 
+    categorie: "viennoiserie", 
     sousCategorie: "Viennoiseries", 
     kcal: 150,
-    qn: 2,
+    qn: 1,
     portionDefaut: "1 pièce",
     unite: "piece",
     kcalParUnite: 150,
@@ -749,10 +749,10 @@ const referentielAliments = [
   },
   { 
     nom: "Mini pain au chocolat", 
-    categorie: "féculent", 
+    categorie: "viennoiserie", 
     sousCategorie: "Viennoiseries", 
     kcal: 180,
-    qn: 2,
+    qn: 1,
     portionDefaut: "1 pièce",
     unite: "piece",
     kcalParUnite: 180,
@@ -764,10 +764,10 @@ const referentielAliments = [
   },
   { 
     nom: "Mini pain aux raisins", 
-    categorie: "féculent", 
+    categorie: "viennoiserie", 
     sousCategorie: "Viennoiseries", 
     kcal: 160,
-    qn: 2,
+    qn: 1,
     portionDefaut: "1 pièce",
     unite: "piece",
     kcalParUnite: 160,
