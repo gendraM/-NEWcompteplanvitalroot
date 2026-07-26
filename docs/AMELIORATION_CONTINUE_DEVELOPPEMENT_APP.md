@@ -1621,3 +1621,138 @@ Permettre à l'utilisateur d'ajouter un mode de cuisson en plus de l'aliment, af
 ### Statut
 - Décision validée : structure actuelle conservée.
 - Harmonisation transverse reportée à un batch dédié.
+
+---
+
+## 🥣 BATCH C CÉRÉALES (EUROPE/AFRIQUE) — À FAIRE PLUS TARD
+
+### Objectif
+Étendre la couverture de la catégorie `céréales` sur des références Europe/Afrique, après finalisation des batchs prioritaires déjà exécutés.
+
+### Entrées prévues (Batch C)
+- Weetabix Chocolate (Weetabix)
+- Golden Morn (Nestlé)
+- Milo Cereal (Nestlé)
+- Oat Crisp (Alpen)
+- Muesli Noix et Graines (Jordans)
+- Granola Fruits Rouges (Bjorg)
+
+### Règles à conserver au moment de l'exécution
+- Marque obligatoire sur les entrées grande distribution.
+- Vérification anti-doublon avant ajout.
+- Cohérence `portionDefaut` (30g à 40g), `kcal`, `qn`.
+- Alternatives uniquement vers des entrées existantes.
+- Build complet en fin de batch.
+
+### Statut
+- Batch identifié et validé dans la feuille de route.
+- Implémentation reportée volontairement à une session ultérieure.
+
+---
+
+## 🍰 CATÉGORIE PÂTISSERIE — PROPOSITION DE TRAITEMENT (À FAIRE PLUS TARD)
+
+### Objectif
+Finaliser la catégorie pâtisserie pour supprimer le placeholder restant et structurer les entrées avec des libellés explicites, cohérents avec les autres catégories déjà traitées.
+
+### Constat actuel
+- La catégorie pâtisserie contient encore un placeholder (`Exemple pâtisserie`).
+- Une base de produits existe déjà (ex: Tartelette aux fruits, Paris-Brest, Opéra, Saint-Honoré).
+
+### Règles proposées
+- Supprimer le placeholder uniquement quand le lot minimal est en place.
+- Nommage explicite avec origine/type quand utile (boulangerie, maison, industriel, marque).
+- Portion lisible utilisateur (part en g, pièce en g).
+- Vérification anti-doublon stricte avant ajout.
+
+### Batch A recommandé (pâtisserie FR prioritaire)
+- Mille-feuille
+- Éclair chocolat
+- Éclair café
+- Religieuse chocolat
+- Tarte citron meringuée
+- Tarte aux fraises
+- Flan pâtissier
+- Chou à la crème
+
+### Statut
+- Plan validé en intention.
+- Implémentation reportée à une session ultérieure.
+
+---
+
+## 🥛 CATÉGORIES LAIT / YAOURT / CONFISERIES / CHOCOLAT — PROPOSITION (À FAIRE PLUS TARD)
+
+### Objectif
+Harmoniser ces familles avec la même méthodologie que céréales: audit, anti-doublon, conventions de nommage, batchs progressifs, validation build.
+
+### 1) Lait — proposition
+
+#### Règles
+- Distinguer clairement lait animal / végétal.
+- Marque facultative pour génériques, obligatoire pour références industrielles spécifiques.
+- Portions en ml standardisées (100ml, 200ml, 250ml).
+
+#### Batch A recommandé
+- Lait demi-écrémé
+- Lait écrémé
+- Lait entier
+- Lait sans lactose
+- Boisson amande sans sucres
+- Boisson soja nature
+
+### 2) Yaourt — proposition
+
+#### Règles
+- Éviter les doublons de même nom multi-marques si non nécessaires.
+- Clarifier yaourt nature, yaourt aromatisé, grec, skyr, végétal.
+- Portion standard 100g à 150g selon format.
+
+#### Batch A recommandé
+- Yaourt nature (générique)
+- Yaourt grec nature (générique)
+- Skyr nature (générique)
+- Yaourt vanille (industriel)
+- Yaourt aux fruits (industriel)
+- Yaourt végétal nature (soja)
+
+### 3) Confiseries — proposition
+
+#### Règles
+- Marque explicite obligatoire pour produits de grande distribution.
+- Sous-catégories distinctes: gélifiés, caramels, sucettes, acidulés.
+- Portion courte lisible (pièce, 20g, 25g).
+
+#### Batch A recommandé
+- Haribo Dragibus
+- Haribo Tagada
+- Carambar Original
+- Chupa Chups Fraise
+- Haribo Fraise Pik
+- Krema Batna
+
+### 4) Chocolat — proposition
+
+#### Règles
+- Séparer chocolat noir, lait, blanc, pâte à tartiner, barre chocolatée.
+- Portion standard (carré, 20g, 30g, barre unitaire).
+- QN plus strict sur ultra-transformés/sucrés.
+
+#### Batch A recommandé
+- Chocolat noir 70%
+- Chocolat au lait
+- Chocolat blanc
+- Pâte à tartiner chocolat noisette
+- Barre chocolatée type Snickers
+- Barre chocolatée type Mars
+
+### Cadre d’exécution commun (pour plus tard)
+- Étape 1: audit existant + placeholders + doublons
+- Étape 2: mapping et conventions de nommage
+- Étape 3: batch A limité par catégorie
+- Étape 4: tests autocomplete + build
+
+### Statut global
+- Propositions validées pour la feuille de route.
+- Aucune implémentation immédiate demandée.
+- Exécution reportée à des batchs ultérieurs.
