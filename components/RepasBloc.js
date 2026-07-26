@@ -666,11 +666,12 @@ function getSuggestionsFromNotes(repasList) {
               const normaliser = (str) => str.toLowerCase()
                 .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
                 .replace(/œ/g, 'oe');
+              const isPlaceholder = (nom) => normaliser(nom).startsWith('exemple ');
               const valNormalisee = normaliser(val);
               let filtrees = [];
               if (val.length >= 1) {
                 filtrees = referentielComplet.filter(a => 
-                  normaliser(a.nom).includes(valNormalisee)
+                  !isPlaceholder(a.nom) && normaliser(a.nom).includes(valNormalisee)
                 ).slice(0, 10); // Max 10 suggestions
                 setSuggestionsFiltrees(filtrees);
                 setAfficherSuggestions(true);
@@ -679,7 +680,7 @@ function getSuggestionsFromNotes(repasList) {
                 setAfficherSuggestions(false);
               }
               // Détection aliment inconnu (toujours mise à jour)
-              const found = referentielComplet.find(a => normaliser(a.nom) === valNormalisee);
+              const found = referentielComplet.find(a => !isPlaceholder(a.nom) && normaliser(a.nom) === valNormalisee);
               setShowFormAjoutAliment(!found && val.length > 2);
               setAlimentPropose(val);
             }}

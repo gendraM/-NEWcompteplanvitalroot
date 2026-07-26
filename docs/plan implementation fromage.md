@@ -156,3 +156,32 @@ Total estimé : 2 à 2.5 jours selon volume de corrections.
 
 ## 13. Résultat attendu
 Une catégorie fromage pleinement exploitable en saisie, cohérente côté données, sans effet "structure prête mais contenu en attente" dans l’autocomplétion.
+
+## 14. Exécution pas à pas (réalisée)
+
+### Étape 1 — Audit & Cartographie (Phase A) ✅
+- Inventaire réalisé sur le lot fromage prévu.
+- Résultat : les 15 fromages de référence sont présents dans le référentiel.
+- Écart identifié : taxonomie incohérente (fromage stocké majoritairement sous `laitier`).
+- Écart identifié : présence d’un placeholder `Exemple fromage`.
+
+### Étape 2 — Décision d’harmonisation (Phase B) ✅
+- Règle validée pour l’implémentation :
+  - Catégorie explicite `fromage` pour les entrées fromage.
+  - Catégorie `laitier` conservée pour les yaourts/boissons lactées/non-fromages.
+
+Mapping appliqué :
+- `laitier` -> `fromage` pour : Kiri, Babybel, Vache qui rit, Apéricube, Camembert, Brie, Roquefort, Comté, Chèvre frais, Emmental râpé/bloc/tranches, Saint-Nectaire, Reblochon, Cantal, Bleu d’Auvergne, Boursin, Tartare, Saint-Morêt.
+
+### Étape 3 — Nettoyage référentiel (Phase C) ✅
+- Placeholder `Exemple fromage` retiré.
+- Données fromage conservées avec leurs champs métier (kcal, qn, portionDefaut, unite, alternatives).
+
+### Étape 4 — Validation autocomplétion (Phase D) ✅
+- Sécurisation appliquée : exclusion des entrées placeholder `Exemple ...` dans la logique de suggestions et dans la détection d’aliment existant.
+- Bénéfice : évite les résultats “coquilles vides” dans l’autocomplete.
+
+## 15. État final
+- Catégorie fromage enrichie et harmonisée.
+- Structure “placeholder fromage” supprimée.
+- Autocomplétion durcie contre les entrées d’exemple.

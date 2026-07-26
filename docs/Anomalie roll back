@@ -4360,3 +4360,45 @@ useEffect(() => {
     // Utiliser le state aujourdhui pour cohérence
     const today = new Date(aujourdhui);
     today
+═══════════════════════════════════════════════════════════════════════════════
+🔴 ANOMALIE 26/07/2026 — Build cassé (tableau-de-bord.js)
+═══════════════════════════════════════════════════════════════════════════════
+Date/Heure : 26 juillet 2026
+Fichier concerné : /pages/tableau-de-bord.js
+Sévérité : 🔴 CRITIQUE — Build Next.js bloqué
+
+SYMPTÔMES :
+- `npm run build` échoue.
+- Erreur 1 : `Expected '</', got 'if'` (erreur de syntaxe).
+- Erreur 2 (après correction syntaxe) : `ReferenceError: COLORS is not defined` lors du prerender de `/tableau-de-bord`.
+
+CAUSE RACINE :
+1. Un bloc JSX/composant dupliqué et incomplet était présent en tête de fichier, ce qui a cassé le parsing JavaScript/JSX.
+2. La constante `COLORS` utilisée dans plusieurs graphiques n'était plus définie dans le fichier.
+3. L'enregistrement Chart.js (`ChartJS.register(...)`) n'était pas initialisé dans la version chargée du fichier.
+
+IMPACT :
+- Build production impossible.
+- Page `/tableau-de-bord` non générable en statique.
+- Pipeline de livraison bloqué.
+
+CORRECTION APPLIQUÉE :
+1. Suppression du bloc dupliqué/corrompu qui introduisait l'erreur de syntaxe.
+2. Ajout de l'initialisation Chart.js (`ChartJS.register(...)`).
+3. Ajout de la palette `COLORS` utilisée par les datasets et styles.
+4. Relance build : succès complet (`npm run build` ✅).
+
+VÉRIFICATION :
+- Build final OK.
+- Route `/tableau-de-bord` générée avec succès.
+- Aucune erreur de compilation restante sur ce point.
+
+RESPONSABILITÉ :
+- Copilot (correction d'un état de fichier incohérent qui bloquait le build).
+
+MESURE PRÉVENTIVE :
+- Après toute modification de page dashboard/graphique :
+  - vérifier présence de `ChartJS.register(...)`,
+  - vérifier présence des constantes de style globales (`COLORS`),
+  - exécuter systématiquement `npm run build` avant clôture.
+═══════════════════════════════════════════════════════════════════════════════
