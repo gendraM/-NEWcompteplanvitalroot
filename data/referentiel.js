@@ -14,10 +14,21 @@ const referentielAliments = [
   { nom: "Moelleux au chocolat", categorie: "gâteaux", sousCategorie: "Gâteaux au chocolat", marque: null, kcal: 360, qn: 1, portionDefaut: "1 part (90g)", unite: "part", alternatives: ["Fondant au chocolat", "Brownie (industriel)"], typeOrigine: "maison" },
   { nom: "Brownie (industriel)", categorie: "gâteaux", sousCategorie: "Gâteaux au chocolat", marque: null, kcal: 320, qn: 1, portionDefaut: "1 part (80g)", unite: "part", alternatives: ["Moelleux au chocolat", "Fondant au chocolat"], typeOrigine: "industriel" },
   { nom: "Cheesecake (industriel)", categorie: "gâteaux", sousCategorie: "Gâteaux crémeux/froids", marque: null, kcal: 340, qn: 1, portionDefaut: "1 part (100g)", unite: "part", alternatives: ["Gâteau au yaourt", "Fondant au chocolat"], typeOrigine: "industriel" },
+  // Enrichissement catégorie "charcuterie" (batch autonome)
+  { nom: "Jambon cru", categorie: "charcuterie", sousCategorie: "Charcuterie sèche", marque: null, kcal: 130, qn: 2, portionDefaut: "2 tranches (30g)", unite: "tranche", alternatives: ["Jambon sec", "Coppa"], typeOrigine: "industriel" },
+  { nom: "Jambon sec", categorie: "charcuterie", sousCategorie: "Charcuterie sèche", marque: null, kcal: 140, qn: 2, portionDefaut: "2 tranches (30g)", unite: "tranche", alternatives: ["Jambon cru", "Rosette"], typeOrigine: "industriel" },
+  { nom: "Blanc de dinde", categorie: "charcuterie", sousCategorie: "Charcuterie volaille", marque: null, kcal: 95, qn: 3, portionDefaut: "2 tranches (60g)", unite: "tranche", alternatives: ["Jambon blanc (sans couenne)", "Mortadelle"], typeOrigine: "industriel" },
+  { nom: "Saucisson sec", categorie: "charcuterie", sousCategorie: "Charcuterie sèche", marque: null, kcal: 150, qn: 1, portionDefaut: "4 tranches (40g)", unite: "tranche", alternatives: ["Rosette", "Coppa"], typeOrigine: "industriel" },
+  { nom: "Rosette", categorie: "charcuterie", sousCategorie: "Charcuterie sèche", marque: null, kcal: 160, qn: 1, portionDefaut: "4 tranches (30g)", unite: "tranche", alternatives: ["Saucisson sec", "Coppa"], typeOrigine: "industriel" },
+  { nom: "Coppa", categorie: "charcuterie", sousCategorie: "Charcuterie sèche", marque: null, kcal: 120, qn: 2, portionDefaut: "4 tranches (30g)", unite: "tranche", alternatives: ["Rosette", "Jambon cru"], typeOrigine: "industriel" },
+  { nom: "Pâté de campagne", categorie: "charcuterie", sousCategorie: "Pâté / terrine", marque: null, kcal: 170, qn: 1, portionDefaut: "2 tranches (50g)", unite: "tranche", alternatives: ["Terrine de campagne", "Rillettes de porc"], typeOrigine: "maison" },
+  { nom: "Rillettes de porc", categorie: "charcuterie", sousCategorie: "Pâté / terrine", marque: null, kcal: 200, qn: 1, portionDefaut: "2 CS (40g)", unite: "CS", alternatives: ["Pâté de campagne", "Terrine de campagne"], typeOrigine: "industriel" },
+  { nom: "Mortadelle", categorie: "charcuterie", sousCategorie: "Charcuterie cuite", marque: null, kcal: 120, qn: 2, portionDefaut: "4 tranches (40g)", unite: "tranche", alternatives: ["Blanc de dinde", "Jambon blanc (sans couenne)"], typeOrigine: "industriel" },
+  { nom: "Bacon tranché", categorie: "charcuterie", sousCategorie: "Charcuterie fumée", marque: null, kcal: 130, qn: 1, portionDefaut: "2 tranches (30g)", unite: "tranche", alternatives: ["Jambon sec", "Rosette"], typeOrigine: "industriel" },
+  { nom: "Terrine de campagne", categorie: "charcuterie", sousCategorie: "Pâté / terrine", marque: null, kcal: 160, qn: 1, portionDefaut: "2 tranches (50g)", unite: "tranche", alternatives: ["Pâté de campagne", "Rillettes de porc"], typeOrigine: "maison" },
   // Catégories ajoutées explicitement pour futurs enregistrements (structure, à enrichir)
   { nom: "Exemple pâtisserie", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
   { nom: "Exemple céréales", categorie: "céréales", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
-  { nom: "Exemple charcuterie", categorie: "charcuterie", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
   { nom: "Exemple poisson", categorie: "poisson", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
             // Bonbons et confiseries
             { nom: "Maltesers", categorie: "confiserie", sousCategorie: "Chocolat", marque: "Maltesers", kcal: 150, qn: 1, portionDefaut: "25g", unite: "g", alternatives: ["M&M’s", "Smarties"] },
@@ -275,22 +286,6 @@ const referentielAliments = [
   // 🍚 FÉCULENTS
   // ═══════════════════════════════════════════════════════════
   
-  // RIZ
-  { 
-    nom: "Riz blanc / basmati", 
-    categorie: "féculent", 
-    sousCategorie: "Riz", 
-    kcal: 180,
-    qn: 2,
-    portionDefaut: "2 CS",
-    unite: "CS",
-    kcalParUnite: 90,
-    mesureRecommandee: "Cuillère à soupe",
-    portionMax: "2 CS Bombées", 
-    typeRepas: "Déjeuner", 
-    moment: "Midi", 
-    alternatives: ["Riz complet", "Quinoa", "Couscous"] 
-  },
   { 
     nom: "Riz complet", 
     categorie: "féculent", 
@@ -1157,8 +1152,8 @@ const referentielAliments = [
   },
   { 
     nom: "Jambon blanc (sans couenne)", 
-    categorie: "protéine", 
-    sousCategorie: "Viandes", 
+    categorie: "charcuterie", 
+    sousCategorie: "Charcuterie cuite", 
     kcal: 110,
     qn: 3,
     portionDefaut: "2 tranches (60g)",
@@ -1168,7 +1163,8 @@ const referentielAliments = [
     portionMax: "2-3 tranches", 
     typeRepas: "Petit-déjeuner", 
     moment: "Matin", 
-    alternatives: ["Œuf", "Fromage blanc"] 
+    alternatives: ["Blanc de dinde", "Mortadelle"],
+    typeOrigine: "industriel" 
   },
   { 
     nom: "Chorizo", 
@@ -2392,7 +2388,8 @@ const referentielAliments = [
     portionMax: "3 biscuits", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Chocolat noir"] 
+    alternatives: ["Petit Beurre (Lu)", "Biscuits fourrés (BN)"],
+    typeOrigine: "industriel" 
   },
   { 
     nom: "Biscuits fourrés (BN)", 
