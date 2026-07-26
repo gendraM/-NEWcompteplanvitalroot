@@ -1593,3 +1593,31 @@ Permettre à l'utilisateur d'ajouter un mode de cuisson en plus de l'aliment, af
 - Meilleure lisibilité des écarts entre aliments nature, vapeur, frits ou panés.
 - Réduction des ambiguïtés entre aliment brut et aliment préparé.
 - Base plus propre pour les futures catégories poisson, charcuterie, viandes et plats composés.
+
+---
+
+## 🦐 CLARIFICATION TAXONOMIE : POISSON VS FRUITS DE MER (2026-07-26)
+
+### Décision constatée (état actuel)
+- Les crevettes ne sont pas dans la catégorie `poisson`.
+- Elles sont dans la catégorie `protéine` avec la sous-catégorie `Fruits de mer`.
+- Même logique pour les moules et le crabe/surimi actuellement présents.
+
+### Évaluation métier
+- Cette organisation est cohérente avec la taxonomie actuelle (famille protéines).
+- Elle n'est pas bloquante pour la saisie ni pour les calculs.
+
+### Point de vigilance
+- Côté utilisateur, la lecture peut être moins intuitive si l'on veut suivre "tout ce qui vient de la mer" dans un seul bloc.
+- Les analyses centrées uniquement sur la catégorie `poisson` peuvent sous-estimer la consommation marine réelle.
+
+### Harmonisation recommandée (plus tard)
+- Ne pas recatégoriser en masse maintenant.
+- Prévoir une couche d'harmonisation "produits de la mer" (vue/famille transverse) regroupant :
+  - Poissons (catégorie `poisson`)
+  - Fruits de mer (catégorie `protéine`, sous-catégorie `Fruits de mer`)
+- Appliquer cette harmonisation en priorité sur les filtres, statistiques et écrans de synthèse avant toute migration structurelle.
+
+### Statut
+- Décision validée : structure actuelle conservée.
+- Harmonisation transverse reportée à un batch dédié.

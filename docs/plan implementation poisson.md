@@ -292,3 +292,31 @@ L’harmonisation de la catégorie `poisson` ne doit **pas** entraîner un dépl
 - 0 placeholder.
 - Aucun déplacement massif hors scope.
 - Cohérence renforcée avec la règle: poisson seul = oui, poisson intégré à un autre produit = non.
+
+## 20. Batch A — Extension continentale (2026-07-26) ✅
+
+### Ajouts Afrique (6)
+- Tilapia (filet)
+- Sardinelle
+- Chinchard
+- Capitaine
+- Mérou
+- Silure
+
+### Ajouts Europe (6)
+- Merlan (filet)
+- Lieu noir (filet)
+- Lieu jaune (filet)
+- Sole (filet)
+- Lotte (filet)
+- Rouget (filet)
+
+### Contrôles
+- Build validé après ajout.
+- Contrôle anti-doublon nominal : 1 occurrence par nouvelle entrée.
+- Total catégorie `poisson` après Batch A : 26 entrées.
+
+### Clarification crustacés / fruits de mer
+- Dans la taxonomie actuelle, les crustacés et fruits de mer sont déjà présents dans `categorie: "protéine"` et `sousCategorie: "Fruits de mer"`.
+- Exemples déjà présents : `Crevettes (cuites)`, `Moules (cuites)`, `Crabe / Surimi`.
+- Décision Batch A : conserver ces entrées dans leur famille actuelle pour éviter une recatégorisation massive hors périmètre.
