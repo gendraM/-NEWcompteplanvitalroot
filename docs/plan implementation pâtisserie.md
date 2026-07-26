@@ -161,3 +161,45 @@ Une catégorie `pâtisserie` complète, cohérente et exploitable, sans placehol
 ## 15. Décision de lot recommandée
 - **À faire maintenant :** validation du plan.
 - **À faire ensuite :** implémentation par batch dans `data/referentiel.js`.
+
+## 16. Exécution pas à pas (réalisée) ✅
+
+### Étape 1 — Audit & Cartographie (Phase A) ✅
+- Placeholder confirmé au départ : `Exemple pâtisserie`.
+- Entrées existantes détectées dans `pâtisserie` : base vitrine déjà amorcée.
+- Entrées proches détectées en `extra` sous `Pâtisseries` (candidats à harmonisation).
+
+### Étape 2 — Normalisation structure & règles (Phase B) ✅
+- Arbitrage validé : basculer les pâtisseries de vitrine évidentes vers `pâtisserie`.
+- Clarification de nommage pour éviter collision stricte : `Paris-Brest (industriel)`.
+- Sous-catégories harmonisées :
+  - `Pâtisseries à choux`
+  - `Pâtisseries feuilletées`
+  - `Tartes sucrées`
+  - `Entremets / gâteaux de vitrine`
+  - `Flans et crèmes pâtissières`
+
+### Étape 3 — Complétion & Nettoyage (Phase C) ✅
+- Placeholder `Exemple pâtisserie` supprimé.
+- Recatégorisations/harmonisations effectuées sur les entrées pâtisserie évidentes déjà présentes.
+- Ajouts du lot minimal manquant effectués :
+  - `Éclair café`
+  - `Tarte citron meringuée`
+  - `Tarte aux fraises`
+  - `Flan pâtissier`
+  - `Chou à la crème`
+
+### Étape 4 — Validation autocomplétion & non-régression (Phase D) ✅
+- Build complet exécuté avec succès après implémentation.
+- Contrôles post-batch :
+  - `PATISSERIE_COUNT=18`
+  - `PLACEHOLDER_PATISSERIE=0`
+  - `Éclair café=1`
+  - `Flan pâtissier=1`
+  - `Chou à la crème=1`
+  - Doublons stricts dans `pâtisserie` : 0
+
+## 17. État final après exécution
+- Catégorie `pâtisserie` désormais exploitable et sans placeholder.
+- Lot prioritaire intégré et cohérent avec la méthode appliquée aux autres catégories.
+- Build validé, pas de régression détectée.

@@ -55,7 +55,6 @@ const referentielAliments = [
   { nom: "Lotte (filet)", categorie: "poisson", sousCategorie: "Poissons frais", marque: null, kcal: 95, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Sole (filet)", "Bar (filet)"], typeOrigine: "naturel" },
   { nom: "Rouget (filet)", categorie: "poisson", sousCategorie: "Poissons frais", marque: null, kcal: 125, qn: 5, portionDefaut: "120g", unite: "g", alternatives: ["Dorade fraîche", "Lotte (filet)"], typeOrigine: "naturel" },
   // Catégories ajoutées explicitement pour futurs enregistrements (structure, à enrichir)
-  { nom: "Exemple pâtisserie", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
             // Bonbons et confiseries
             { nom: "Maltesers", categorie: "confiserie", sousCategorie: "Chocolat", marque: "Maltesers", kcal: 150, qn: 1, portionDefaut: "25g", unite: "g", alternatives: ["M&M’s", "Smarties"] },
             { nom: "M&M’s", categorie: "confiserie", sousCategorie: "Chocolat", marque: "M&M’s", kcal: 140, qn: 1, portionDefaut: "25g", unite: "g", alternatives: ["Maltesers", "Smarties"] },
@@ -2628,8 +2627,8 @@ const referentielAliments = [
   // PÂTISSERIES BOULANGERIE
   { 
     nom: "Éclair au chocolat", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Pâtisseries à choux", 
     kcal: 260,
     qn: 1,
     portionDefaut: "1 éclair",
@@ -2639,12 +2638,13 @@ const referentielAliments = [
     portionMax: "1 pièce", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Yaourt nature + cacao"] 
+    alternatives: ["Éclair café", "Religieuse chocolat"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Mille-feuille", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Pâtisseries feuilletées", 
     kcal: 340,
     qn: 1,
     portionDefaut: "1 part",
@@ -2654,12 +2654,13 @@ const referentielAliments = [
     portionMax: "1 part", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Compote maison"] 
+    alternatives: ["Tarte citron meringuée", "Flan pâtissier"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Tarte aux fruits", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Tartes sucrées", 
     kcal: 280,
     qn: 1,
     portionDefaut: "1 part",
@@ -2669,12 +2670,13 @@ const referentielAliments = [
     portionMax: "1 part", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Fruits frais"] 
+    alternatives: ["Tarte aux fraises", "Tartelette aux fruits"],
+    typeOrigine: "boulangerie"
   },
   { 
-    nom: "Paris-Brest", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    nom: "Paris-Brest (industriel)", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Entremets / gâteaux de vitrine", 
     kcal: 420,
     qn: 1,
     portionDefaut: "1 part",
@@ -2684,12 +2686,13 @@ const referentielAliments = [
     portionMax: "1 part", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Yaourt grec + noix"] 
+    alternatives: ["Paris-Brest", "Opéra"],
+    typeOrigine: "industriel"
   },
   { 
-    nom: "Religieuse", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    nom: "Religieuse chocolat", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Pâtisseries à choux", 
     kcal: 380,
     qn: 1,
     portionDefaut: "1 religieuse",
@@ -2699,12 +2702,13 @@ const referentielAliments = [
     portionMax: "1 pièce", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Yaourt nature"] 
+    alternatives: ["Éclair au chocolat", "Chou à la crème"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Macaron", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Entremets / gâteaux de vitrine", 
     kcal: 90,
     qn: 1,
     portionDefaut: "1 macaron",
@@ -2714,12 +2718,13 @@ const referentielAliments = [
     portionMax: "2 pièces", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Fruit frais"] 
+    alternatives: ["Cannelé", "Financier"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Financier", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Entremets / gâteaux de vitrine", 
     kcal: 140,
     qn: 1,
     portionDefaut: "1 financier",
@@ -2729,12 +2734,13 @@ const referentielAliments = [
     portionMax: "1 pièce", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Amandes"] 
+    alternatives: ["Macaron", "Cannelé"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Cannelé", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Entremets / gâteaux de vitrine", 
     kcal: 110,
     qn: 1,
     portionDefaut: "1 cannelé",
@@ -2744,12 +2750,13 @@ const referentielAliments = [
     portionMax: "1 pièce", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Fruit frais"] 
+    alternatives: ["Financier", "Macaron"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Chouquette", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "pâtisserie", 
+    sousCategorie: "Pâtisseries à choux", 
     kcal: 25,
     qn: 1,
     portionDefaut: "1 chouquette",
@@ -2759,7 +2766,88 @@ const referentielAliments = [
     portionMax: "5 pièces", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Fruit sec"] 
+    alternatives: ["Chou à la crème", "Éclair au chocolat"],
+    typeOrigine: "boulangerie"
+  },
+  {
+    nom: "Éclair café",
+    categorie: "pâtisserie",
+    sousCategorie: "Pâtisseries à choux",
+    kcal: 250,
+    qn: 1,
+    portionDefaut: "1 éclair",
+    unite: "piece",
+    kcalParUnite: 250,
+    mesureRecommandee: "Unité",
+    portionMax: "1 pièce",
+    typeRepas: "Collation",
+    moment: "Après-midi",
+    alternatives: ["Éclair au chocolat", "Religieuse chocolat"],
+    typeOrigine: "boulangerie"
+  },
+  {
+    nom: "Tarte citron meringuée",
+    categorie: "pâtisserie",
+    sousCategorie: "Tartes sucrées",
+    kcal: 300,
+    qn: 1,
+    portionDefaut: "1 part (100g)",
+    unite: "part",
+    kcalParUnite: 300,
+    mesureRecommandee: "Unité",
+    portionMax: "1 part",
+    typeRepas: "Collation",
+    moment: "Après-midi",
+    alternatives: ["Tarte aux fruits", "Tarte aux fraises"],
+    typeOrigine: "boulangerie"
+  },
+  {
+    nom: "Tarte aux fraises",
+    categorie: "pâtisserie",
+    sousCategorie: "Tartes sucrées",
+    kcal: 270,
+    qn: 1,
+    portionDefaut: "1 part (100g)",
+    unite: "part",
+    kcalParUnite: 270,
+    mesureRecommandee: "Unité",
+    portionMax: "1 part",
+    typeRepas: "Collation",
+    moment: "Après-midi",
+    alternatives: ["Tarte aux fruits", "Tartelette aux fruits"],
+    typeOrigine: "boulangerie"
+  },
+  {
+    nom: "Flan pâtissier",
+    categorie: "pâtisserie",
+    sousCategorie: "Flans et crèmes pâtissières",
+    kcal: 240,
+    qn: 1,
+    portionDefaut: "1 part (120g)",
+    unite: "part",
+    kcalParUnite: 240,
+    mesureRecommandee: "Unité",
+    portionMax: "1 part",
+    typeRepas: "Collation",
+    moment: "Après-midi",
+    alternatives: ["Mille-feuille", "Tarte citron meringuée"],
+    typeOrigine: "boulangerie"
+  },
+  {
+    nom: "Chou à la crème",
+    categorie: "pâtisserie",
+    sousCategorie: "Pâtisseries à choux",
+    kcal: 170,
+    qn: 1,
+    portionDefaut: "1 pièce (60g)",
+    unite: "piece",
+    kcalParUnite: 170,
+    mesureRecommandee: "Unité",
+    portionMax: "1 pièce",
+    typeRepas: "Collation",
+    moment: "Après-midi",
+    alternatives: ["Religieuse chocolat", "Éclair au chocolat"],
+    typeOrigine: "boulangerie"
   },
   { 
     nom: "Gâteau au chocolat (fait maison)", 
