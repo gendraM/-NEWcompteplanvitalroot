@@ -72,11 +72,11 @@ Mettre en place un plan d’implémentation clair, progressif et vérifiable pou
 - Cake marbré
 - Cake citron
 - Moelleux au chocolat
-- Brownie (version générique, hors enseigne)
-- Cheesecake (version générique)
+- Brownie (version industrielle, hors enseigne)
+- Cheesecake (version industrielle)
 
 ### 7.2 Sous-catégories recommandées
-- Gâteaux maison classiques
+- Gâteaux fait maison
 - Gâteaux au chocolat
 - Cakes tranchés
 - Gâteaux individuels
@@ -108,7 +108,7 @@ Contraintes :
 2. Identifier placeholder, champs incomplets, écarts kcal/portion/QN.
 3. Lister les candidats hors catégorie (extra/snack/dessert/fast-food) et décider :
    - recatégoriser,
-   - dupliquer version générique,
+  - dupliquer version industrielle ou maison selon le cas,
    - ou conserver hors périmètre.
 4. Produire un tableau "Prévu vs Réel".
 
@@ -197,7 +197,7 @@ Une catégorie `gâteaux` réellement enrichie, cohérente côté nutrition (por
 L’harmonisation de la catégorie `gâteaux` ne doit **pas** entraîner un déplacement massif des aliments `snack`, `dessert`, `fast-food` ou autres catégories vers `gâteaux`.
 
 ### Matrice de décision (obligatoire)
-1. **Entrée générique ou maison de type gâteau**
+1. **Entrée industriel ou maison de type gâteau**
 - Cible : `gâteaux`
 - Exemple : gâteau au yaourt, fondant, cake marbré, moelleux.
 
@@ -215,7 +215,7 @@ L’harmonisation de la catégorie `gâteaux` ne doit **pas** entraîner un dép
 ### Règles de sécurité de migration
 - Interdiction de recatégorisation en masse.
 - Toute recatégorisation doit être listée avant exécution dans un tableau de mapping “avant → après”.
-- Si doute, conserver la catégorie actuelle et créer une variante générique dans `gâteaux`.
+- Si doute, conserver la catégorie actuelle et créer une variante explicite `fait maison` ou `industriel` dans `gâteaux`.
 
 ### Impact attendu
 - Préservation de la logique métier des catégories existantes.
@@ -225,3 +225,43 @@ L’harmonisation de la catégorie `gâteaux` ne doit **pas** entraîner un dép
 ## 17. État de validation des étapes
 - Aucune étape validée existante n’a été supprimée.
 - Cette mise à jour ajoute uniquement des règles de cadrage et de gouvernance pour la phase d’implémentation future.
+
+## 18. Exécution pas à pas (réalisée)
+
+### Étape 1 — Audit & Cartographie (Phase A) ✅
+- Inventaire effectué sur la catégorie `gâteaux`.
+- Constat confirmé : présence d’un placeholder `Exemple gâteau`.
+- Constat complémentaire : coexistence d’entrées proches hors catégorie (`snack`, `dessert`, `fast-food`, `extra`).
+
+### Étape 2 — Normalisation structure & règles (Phase B) ✅
+- Taxonomie validée sans recatégorisation en masse.
+- Règle appliquée : les produits enseigne restent dans leur catégorie d’origine (`snack`, `dessert`, `fast-food`).
+- Règle appliquée : les variantes sont nommées de façon explicite selon l’origine pour éviter les collisions (ex: `Brownie (industriel)`, `Cheesecake (industriel)`, `Cheesecake Starbucks`).
+- Sous-catégories gâteaux renseignées pour homogénéiser la structure.
+
+### Étape 3 — Complétion & Nettoyage (Phase C) ✅
+- Placeholder `Exemple gâteau` supprimé.
+- Entrées ajoutées au lot prioritaire :
+  - Cake marbré
+  - Cake citron
+  - Moelleux au chocolat
+  - Brownie (industriel)
+  - Cheesecake (industriel)
+- Entrées gâteaux existantes harmonisées (`portionDefaut`, `unite`, `sousCategorie`).
+- Recatégorisation ciblée validée (cas explicite maison) :
+  - `Gâteau au chocolat (fait maison)` passé de `extra` vers `gâteaux`.
+
+### Étape 4 — Validation autocomplétion & non-régression (Phase D) ✅
+- Contrôle placeholders : 0 placeholder restant dans `gâteaux`.
+- Contrôle anti-doublon impliquant `gâteaux` : 0 doublon bloquant.
+- Tests autocomplete exécutés sur : `gate`, `choco`, `fond`, `yaourt`, `brown`, `cheese`.
+- Vérification des distinctions :
+  - Les entrées enseigne (ex: `Brownie`, `Cheesecake`) restent dans leurs catégories initiales.
+  - Les entrées `fait maison` / `industriel` apparaissent en `gâteaux` avec libellés explicites.
+- Build complet exécuté : OK.
+
+## 19. État final après exécution
+- Catégorie `gâteaux` portée à 10 entrées exploitables.
+- 0 placeholder dans `gâteaux`.
+- Aucun déplacement massif d’autres catégories.
+- Cohérence renforcée pour les distinctions industriel/enseigne/maison.

@@ -4,13 +4,17 @@ const referentielAliments = [
   { nom: "Paris-Brest", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: 320, qn: 1, portionDefaut: "part (100g)", unite: "g", alternatives: ["Tartelette aux fruits", "Saint-Honoré"], typeOrigine: "boulangerie" },
   { nom: "Opéra", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: 350, qn: 1, portionDefaut: "part (90g)", unite: "g", alternatives: ["Paris-Brest", "Saint-Honoré"], typeOrigine: "boulangerie" },
   { nom: "Saint-Honoré", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: 340, qn: 1, portionDefaut: "part (100g)", unite: "g", alternatives: ["Opéra", "Paris-Brest"], typeOrigine: "boulangerie" },
-  // Enrichissement catégorie "gâteau" (ajout 15%)
-  { nom: "Gâteau au yaourt", categorie: "gâteaux", sousCategorie: null, marque: null, kcal: 250, qn: 1, portionDefaut: "part (80g)", unite: "g", alternatives: ["Quatre-quarts", "Fondant au chocolat"], typeOrigine: "maison" },
-  { nom: "Fondant au chocolat", categorie: "gâteaux", sousCategorie: null, marque: null, kcal: 350, qn: 1, portionDefaut: "part (90g)", unite: "g", alternatives: ["Gâteau au yaourt", "Quatre-quarts"], typeOrigine: "maison" },
-  { nom: "Quatre-quarts", categorie: "gâteaux", sousCategorie: null, marque: "Ker Cadélac", kcal: 370, qn: 1, portionDefaut: "tranche (40g)", unite: "g", alternatives: ["Gâteau au yaourt", "Madeleine"], typeOrigine: "industriel" },
-  { nom: "Madeleine", categorie: "gâteaux", sousCategorie: null, marque: "St Michel", kcal: 130, qn: 1, portionDefaut: "1 madeleine (25g)", unite: "g", alternatives: ["Quatre-quarts", "Gâteau au yaourt"], typeOrigine: "industriel" },
+  // Enrichissement catégorie "gâteaux" (harmonisation batch 1)
+  { nom: "Gâteau au yaourt", categorie: "gâteaux", sousCategorie: "Gâteaux maison", marque: null, kcal: 250, qn: 1, portionDefaut: "1 part (80g)", unite: "part", alternatives: ["Quatre-quarts", "Fondant au chocolat"], typeOrigine: "maison" },
+  { nom: "Fondant au chocolat", categorie: "gâteaux", sousCategorie: "Gâteaux au chocolat", marque: null, kcal: 350, qn: 1, portionDefaut: "1 part (90g)", unite: "part", alternatives: ["Moelleux au chocolat", "Gâteau au yaourt"], typeOrigine: "maison" },
+  { nom: "Quatre-quarts", categorie: "gâteaux", sousCategorie: "Cakes tranchés", marque: "Ker Cadélac", kcal: 370, qn: 1, portionDefaut: "1 tranche (40g)", unite: "part", alternatives: ["Cake marbré", "Madeleine"], typeOrigine: "industriel" },
+  { nom: "Madeleine", categorie: "gâteaux", sousCategorie: "Gâteaux individuels", marque: "St Michel", kcal: 130, qn: 1, portionDefaut: "1 madeleine (25g)", unite: "piece", alternatives: ["Quatre-quarts", "Cake citron"], typeOrigine: "industriel" },
+  { nom: "Cake marbré", categorie: "gâteaux", sousCategorie: "Cakes tranchés", marque: null, kcal: 300, qn: 1, portionDefaut: "1 tranche (70g)", unite: "part", alternatives: ["Quatre-quarts", "Cake citron"], typeOrigine: "industriel" },
+  { nom: "Cake citron", categorie: "gâteaux", sousCategorie: "Cakes tranchés", marque: null, kcal: 280, qn: 1, portionDefaut: "1 tranche (70g)", unite: "part", alternatives: ["Cake marbré", "Madeleine"], typeOrigine: "industriel" },
+  { nom: "Moelleux au chocolat", categorie: "gâteaux", sousCategorie: "Gâteaux au chocolat", marque: null, kcal: 360, qn: 1, portionDefaut: "1 part (90g)", unite: "part", alternatives: ["Fondant au chocolat", "Brownie (industriel)"], typeOrigine: "maison" },
+  { nom: "Brownie (industriel)", categorie: "gâteaux", sousCategorie: "Gâteaux au chocolat", marque: null, kcal: 320, qn: 1, portionDefaut: "1 part (80g)", unite: "part", alternatives: ["Moelleux au chocolat", "Fondant au chocolat"], typeOrigine: "industriel" },
+  { nom: "Cheesecake (industriel)", categorie: "gâteaux", sousCategorie: "Gâteaux crémeux/froids", marque: null, kcal: 340, qn: 1, portionDefaut: "1 part (100g)", unite: "part", alternatives: ["Gâteau au yaourt", "Fondant au chocolat"], typeOrigine: "industriel" },
   // Catégories ajoutées explicitement pour futurs enregistrements (structure, à enrichir)
-  { nom: "Exemple gâteau", categorie: "gâteaux", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
   { nom: "Exemple pâtisserie", categorie: "pâtisserie", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
   { nom: "Exemple céréales", categorie: "céréales", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
   { nom: "Exemple charcuterie", categorie: "charcuterie", sousCategorie: null, marque: null, kcal: null, qn: null, portionDefaut: null, unite: null, alternatives: [], typeOrigine: null },
@@ -78,9 +82,9 @@ const referentielAliments = [
         // Starbucks
         { nom: "Cappuccino", categorie: "boisson", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 120, qn: 2, portionDefaut: "Tall (35cl)", unite: "cl", alternatives: ["Frappuccino Caramel"] },
         { nom: "Frappuccino Caramel", categorie: "boisson", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 320, qn: 1, portionDefaut: "Grande (47cl)", unite: "cl", alternatives: ["Cappuccino"] },
-        { nom: "Muffin myrtille", categorie: "snack", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 420, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Cookie chocolat", "Cheesecake"] },
-        { nom: "Cookie chocolat", categorie: "snack", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 390, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Muffin myrtille", "Cheesecake"] },
-        { nom: "Cheesecake", categorie: "dessert", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 350, qn: 1, portionDefaut: "part", unite: "part", alternatives: ["Cookie chocolat", "Muffin myrtille"] },
+        { nom: "Muffin myrtille", categorie: "snack", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 420, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Cookie chocolat", "Cheesecake Starbucks"] },
+        { nom: "Cookie chocolat", categorie: "snack", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 390, qn: 1, portionDefaut: "1 pièce", unite: "piece", alternatives: ["Muffin myrtille", "Cheesecake Starbucks"] },
+        { nom: "Cheesecake Starbucks", categorie: "dessert", sousCategorie: "Starbucks", marque: "Starbucks", kcal: 350, qn: 1, portionDefaut: "part", unite: "part", alternatives: ["Cookie chocolat", "Muffin myrtille"] },
 
         // Class'Croute
         { nom: "Salade César", categorie: "salade", sousCategorie: "Class'Croute", marque: "Class'Croute", kcal: 350, qn: 2, portionDefaut: "barquette", unite: "barquette", alternatives: ["Wrap poulet curry"] },
@@ -2726,18 +2730,19 @@ const referentielAliments = [
   },
   { 
     nom: "Gâteau au chocolat (fait maison)", 
-    categorie: "extra", 
-    sousCategorie: "Pâtisseries", 
+    categorie: "gâteaux", 
+    sousCategorie: "Gâteaux au chocolat", 
     kcal: 320,
     qn: 1,
-    portionDefaut: "1 part",
+    portionDefaut: "1 part (100g)",
     unite: "part",
     kcalParUnite: 320,
     mesureRecommandee: "Unité",
     portionMax: "1 part", 
     typeRepas: "Collation", 
     moment: "Après-midi", 
-    alternatives: ["Compote chocolat"] 
+    alternatives: ["Compote chocolat"], 
+    typeOrigine: "maison" 
   },
 
   // FAST FOOD DÉTAILLÉ
