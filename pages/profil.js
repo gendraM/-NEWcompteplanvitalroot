@@ -336,6 +336,34 @@ export default function ProfilPage() {
 
   return (
     <div style={styles.container}>
+      {/* Bouton de déconnexion en haut à droite */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+        <button
+          onClick={async () => {
+            if (window && window.supabase) {
+              await window.supabase.auth.signOut();
+              window.location.href = '/';
+            } else if (typeof supabase !== 'undefined') {
+              await supabase.auth.signOut();
+              window.location.href = '/';
+            }
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #43cea2 100%)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '24px',
+            padding: '10px 22px',
+            fontSize: '1rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(67, 126, 234, 0.15)',
+            marginRight: '0.5rem'
+          }}
+        >
+          Se déconnecter
+        </button>
+      </div>
       <h1 style={styles.title}>Bienvenue sur ton espace forme !</h1>
       {!dernierProfil || editMode ? (
         <div style={styles.formBlock}>

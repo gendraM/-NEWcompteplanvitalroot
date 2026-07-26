@@ -1,17 +1,46 @@
-# 🆕 À PRÉVOIR — Bilan hebdomadaire alimentaire (ajouts futurs)
+#### Étapes à prévoir (à faire plus tard)
 
-## Répartition des extras (type, moment, planifié/impulsif)
-**Objectif :** Permettre d’analyser et d’afficher la répartition des extras consommés selon leur type (mini, normal, majeur), le moment (matin, midi, soir, nuit) et s’ils étaient planifiés ou impulsifs. Cette fonctionnalité vise à affiner le feedback et à proposer des conseils plus personnalisés.
+2. Refonte progressive des catégories existantes
+  - Revoir les plats classés dans « plat principal », « extra », « snack » et les répartir dans les nouvelles catégories ou dans des sous-catégories plus précises.
+  - Regrouper ou enrichir les catégories peu représentées (ex : tarte, dessert, entrée, salade) pour éviter les doublons ou les catégories orphelines.
+  - Harmoniser l’usage des catégories pour chaque nouvel ajout.
 
-## Fermeture consciente (stop conscient)
-**Objectif :** Intégrer un suivi de la compétence “fermeture consciente” (ex : bouton “J’ai fermé” après un extra, identification du moment le plus dur, déclencheur dominant). Permettra d’accompagner l’utilisateur dans la gestion des écarts et la reprise du contrôle.
+3. Impact pour les utilisateurs existants
+  - Effets positifs :
+    - Meilleure clarté lors de la recherche ou de la saisie d’un aliment.
+    - Suggestions plus pertinentes dans l’autocomplete.
+    - Réduction des erreurs de classement et des doublons.
+    - Possibilité de filtrer ou d’analyser plus finement les repas par famille d’aliments.
+  - Points de vigilance :
+    - Les aliments déjà saisis avec une ancienne catégorie (« extra », « plat principal », etc.) devront être reclassés automatiquement ou semi-automatiquement dans la nouvelle catégorie correspondante.
+    - Les historiques de repas resteront intacts, mais l’affichage de la catégorie pourra changer (ex : un plat anciennement « extra » apparaîtra désormais comme « gâteau » ou « pâtisserie »).
+    - Il faudra prévoir une migration des données pour reclasser les anciennes entrées, avec une règle de correspondance claire (mapping).
+    - L’utilisateur ne perdra aucune donnée : seules les étiquettes/catégories affichées évolueront pour plus de cohérence.
 
-## Message motivationnel personnalisé
-**Objectif :** Générer un message de motivation dynamique et personnalisé selon la situation de la semaine (sous budget, surplus, progression, etc.), pour renforcer l’engagement et la bienveillance.
+4. Recommandation technique
+  - Mettre en place un script de migration pour reclasser les anciennes entrées selon le nouveau mapping.
+  - Ajouter une info-bulle ou un message temporaire pour expliquer à l’utilisateur le changement de catégories lors de la saisie ou de la consultation de l’historique.
+### 13. Amélioration des catégories du référentiel alimentaire (2026-01-17)
 
-## UI en cartes + suggestion micro-action
-**Objectif :** Refondre l’UI du bilan hebdomadaire sous forme de 4 cartes (axes) + 1 zone “action pour demain”, avec pour chaque carte : 3 chiffres max, 1 phrase de lecture, 1 suggestion micro-action. Vise à améliorer la lisibilité et l’impact pédagogique.
+**Objectif :**
+Optimiser la cohérence, la granularité et la représentativité des catégories du référentiel alimentaire.
 
+**Actions à mener :**
+- Revoir la granularité de « plat principal », « extra », « snack » (créer des sous-catégories ou répartir dans des catégories plus précises).
+- Regrouper ou enrichir les catégories peu représentées pour éviter les doublons ou les catégories orphelines.
+- Harmoniser l’usage des catégories pour chaque plat ajouté à l’avenir.
+- Ajouter explicitement : gâteaux, pâtisserie, viennoiserie, céréales, charcuterie, poisson, fromage.
+
+**Proposition immédiate :**
+- Démarrer la création des catégories manquantes (gâteaux, pâtisserie, viennoiserie, céréales, charcuterie, poisson, fromage) dans le référentiel.
+- Lancer l’audit et la refonte progressive des catégories existantes selon les axes ci-dessus.
+
+**Bénéfices attendus :**
+- Cohérence et clarté pour l’utilisateur lors de la saisie ou de la recherche d’aliments.
+- Réduction des erreurs de classement et des doublons.
+- Meilleure couverture des familles d’aliments et adaptation aux besoins réels.
+
+**Statut :** À faire
 # 🗓️ Amélioration à prévoir : Format date section "Tout" (gestion des repas)
 
 **Objectif :**
@@ -27,7 +56,22 @@ Actuellement, la période globale s’affiche sous la forme « du 2026-01-05 jus
 
 # 🆕 AJOUTS PROPOSÉS (2026-01-11)
 
-### 11. Ajout d'aliment personnalisé lors de la saisie
+
+### 11.1 À FAIRE — Encadré explicatif “Comment classer mon aliment ?” dans le formulaire d’ajout
+
+**Objectif :**
+Guider l’utilisateur pour choisir la bonne catégorie et sous-catégorie lors de l’ajout d’un aliment personnalisé, avec des exemples concrets (aliments inventés ou non présents dans le référentiel) pour chaque grande famille, et des cas fréquents/ambigus.
+
+**Actions à mener :**
+- Ajouter un encadré ou une info-bulle “Comment classer mon aliment ?” dans le formulaire d’ajout d’aliment personnalisé.
+- Expliquer la différence catégorie/sous-catégorie.
+- Donner des exemples concrets pour chaque catégorie (sans reprendre d’aliments déjà présents dans le référentiel).
+- Conseiller l’utilisateur en cas de doute (s’inspirer de l’autocomplete, choisir la catégorie la plus générale, préciser en sous-catégorie).
+
+**Bénéfices :**
+- Réduit les erreurs de classement, améliore la cohérence des données, facilite l’expérience utilisateur.
+
+**Statut :** À faire
 
 **Objectif :** Permettre à l'utilisateur, lors de la saisie d'un repas, d'ajouter un aliment qui n'existe pas dans le référentiel, via un formulaire dédié, dans le même style que les aliments existants. L'aliment enrichira le référentiel interne (personnel ou global selon validation/modération).
 

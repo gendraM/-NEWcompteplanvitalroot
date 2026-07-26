@@ -14,10 +14,8 @@ import {
   CategoryScale,
   LinearScale,
   PointElement,
-  LineElement,
-  Title,
-} from "chart.js";
-import Link from "next/link";
+  LineElement
+} from 'chart.js';
 
 ChartJS.register(
   ArcElement,
@@ -26,18 +24,12 @@ ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
-  LineElement,
-  Title
+  LineElement
 );
 
-const COLORS = [
-  "#43a047", // vert
-  "#1976d2", // bleu
-  "#ffa726", // orange
-  "#e53935", // rouge
-  "#9c27b0", // violet
-];
+const COLORS = ["#43cea2", "#1976d2", "#ffb347", "#ff6b6b", "#b39ddb", "#4dd0e1"];
 
+// Fonction utilitaire hors composant React
 function getMotivationMessage({ progression, extras, humeurCounts, tauxSatiete }) {
   if (progression.badge) {
     return `🏆 ${progression.badge} : ${progression.message}`;

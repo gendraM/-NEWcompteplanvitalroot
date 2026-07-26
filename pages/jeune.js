@@ -338,81 +338,47 @@ const OUTILS_SUGGESTIONS = [
   "Musique apaisante",
   "Soutien d’un proche"
 ];
-
-// === FONCTIONS ASYNC SUPABASE (PRIORITÉ SUPABASE, FALLBACK LOCALSTORAGE) ===
+// === FONCTIONS ASYNC SUPABASE (REMPLACENT MOCKDATA) ===
 async function getRepasRecentsAsync() {
-  try {
-    const { data, error } = await supabase
-      .from('repas_reels')
-      .select('aliment, categorie, est_extra')
-      .order('date', { ascending: false })
-      .limit(3);
-    if (error) throw error;
-    if (data && data.length > 0) {
-      localStorage.setItem('repasRecentsCache', JSON.stringify(data));
-      return data;
-    }
-    // fallback localStorage
-    const cache = localStorage.getItem('repasRecentsCache');
-    return cache ? JSON.parse(cache) : [];
-  } catch (e) {
-    const cache = localStorage.getItem('repasRecentsCache');
-    return cache ? JSON.parse(cache) : [];
-  }
+  const { data } = await supabase
+    .from('repas_reels')
+    .select('aliment, categorie, est_extra')
+    .order('date', { ascending: false })
+    .limit(3);
+  
+  return data || [];
 }
 
 async function fetchPoidsDepart() {
-  try {
-    const { data: profil, error } = await supabase
-      .from('profil')
-      .select('poids_de_depart')
-      .limit(1)
-      .single();
-    if (error) throw error;
-    if (profil?.poids_de_depart) {
-      localStorage.setItem('poidsDepartCache', JSON.stringify(profil.poids_de_depart));
-      return profil.poids_de_depart;
-    }
-    const { data: historique, error: err2 } = await supabase
-      .from('historique_poids')
-      .select('poids')
-      .order('date', { ascending: false })
-      .limit(1)
-      .single();
-    if (err2) throw err2;
-    if (historique?.poids) {
-      localStorage.setItem('poidsDepartCache', JSON.stringify(historique.poids));
-      return historique.poids;
-    }
-    // fallback localStorage
-    const cache = localStorage.getItem('poidsDepartCache');
-    return cache ? JSON.parse(cache) : null;
-  } catch (e) {
-    const cache = localStorage.getItem('poidsDepartCache');
-    return cache ? JSON.parse(cache) : null;
-  }
+  const { data: profil } = await supabase
+    .from('profil')
+    .select('poids_de_depart')
+    .limit(1)
+    .single();
+  
+  if (profil?.poids_de_depart) return profil.poids_de_depart;
+  
+  const { data: historique } = await supabase
+    .from('historique_poids')
+    .select('poids')
+    .order('date', { ascending: false })
+    .limit(1)
+    .single();
+  
+  if (historique?.poids) return historique.poids;
+  
+  return null;
 }
 
 async function getDernierRepasAsync() {
-  try {
-    const { data, error } = await supabase
-      .from('repas_reels')
-      .select('aliment, categorie')
-      .order('date', { ascending: false })
-      .limit(1)
-      .single();
-    if (error) throw error;
-    if (data) {
-      localStorage.setItem('dernierRepasCache', JSON.stringify(data));
-      return data;
-    }
-    // fallback localStorage
-    const cache = localStorage.getItem('dernierRepasCache');
-    return cache ? JSON.parse(cache) : null;
-  } catch (e) {
-    const cache = localStorage.getItem('dernierRepasCache');
-    return cache ? JSON.parse(cache) : null;
-  }
+  const { data } = await supabase
+    .from('repas_reels')
+    .select('aliment, categorie')
+    .order('date', { ascending: false })
+    .limit(1)
+    .single();
+  
+  return data || null;
 }
 // === FIN FONCTIONS ASYNC ===
 
@@ -820,52 +786,14 @@ export default function Jeune() {
     }
   }, [router.isReady, router.query.validation]);
 
-  // Synchronisation automatique localStorage + Supabase pour les états critiques
-  useEffect(() => {
-    if (isClient) {
-      saveState("dureeJeune", dureeJeune);
-      // TODO: synchroniser sur Supabase si parcoursId existe
-    }
-  }, [dureeJeune, isClient]);
-  useEffect(() => {
-    if (isClient) {
-      saveState("jourEnCours", jourEnCours);
-      // TODO: synchroniser sur Supabase si parcoursId existe
-    }
-  }, [jourEnCours, isClient]);
-  useEffect(() => {
-    if (isClient) {
-      saveState("joursValides", joursValides);
-      // Synchronisation Supabase
-      if (parcoursId) {
-        ParcoursAPI.updateJoursValides(parcoursId, joursValides).catch(() => {});
-      }
-    }
-  }, [joursValides, isClient, parcoursId]);
-  useEffect(() => {
-    if (isClient) {
-      saveState("poidsDepart", poidsDepart);
-      // TODO: synchroniser sur Supabase si besoin
-    }
-  }, [poidsDepart, isClient]);
-  useEffect(() => {
-    if (isClient) {
-      saveState("messagePerso", messagePerso);
-      // TODO: synchroniser sur Supabase si besoin
-    }
-  }, [messagePerso, isClient]);
-  useEffect(() => {
-    if (isClient) {
-      saveState("outilsJeune", outils);
-      // TODO: synchroniser sur Supabase si besoin
-    }
-  }, [outils, isClient]);
-  useEffect(() => {
-    if (isClient) {
-      saveState("dateDebutJeune", dateDebutJeune);
-      // TODO: synchroniser sur Supabase si besoin
-    }
-  }, [dateDebutJeune, isClient]);
+  // Sauvegarder dans localStorage quand les valeurs changent
+  useEffect(() => { if (isClient) saveState("dureeJeune", dureeJeune); }, [dureeJeune, isClient]);
+  useEffect(() => { if (isClient) saveState("jourEnCours", jourEnCours); }, [jourEnCours, isClient]);
+  useEffect(() => { if (isClient) saveState("joursValides", joursValides); }, [joursValides, isClient]);
+  useEffect(() => { if (isClient) saveState("poidsDepart", poidsDepart); }, [poidsDepart, isClient]);
+  useEffect(() => { if (isClient) saveState("messagePerso", messagePerso); }, [messagePerso, isClient]);
+  useEffect(() => { if (isClient) saveState("outilsJeune", outils); }, [outils, isClient]);
+  useEffect(() => { if (isClient) saveState("dateDebutJeune", dateDebutJeune); }, [dateDebutJeune, isClient]);
 
   // Chargement des données Supabase au montage (mono-utilisateur)
   useEffect(() => {
@@ -999,7 +927,7 @@ export default function Jeune() {
   // Générer le bilan détaillé du jeûne
   const genererBilanJeune = async () => {
     const aujourdhui = new Date().toISOString().split('T')[0];
-
+    
     // Calculer perte de poids (si poids final renseigné)
     let pertePoids = null;
     let poidsActuel = null;
@@ -1010,7 +938,7 @@ export default function Jeune() {
         pertePoids = poidsInitial - poidsActuel;
       }
     }
-
+    
     // Analyser les outils utilisés
     const outilsComptes = {};
     Object.values(outils).flat().forEach(outil => {
@@ -1019,10 +947,10 @@ export default function Jeune() {
     const outilsPopulaires = Object.entries(outilsComptes)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3);
-
+    
     // Taux de complétion
     const tauxCompletion = Math.round((joursValides.length / dureeJeune) * 100);
-
+    
     // Durée réelle du jeûne
     let dureeReelle = dureeJeune;
     if (dateDebutJeune) {
@@ -1030,10 +958,12 @@ export default function Jeune() {
       const fin = new Date();
       dureeReelle = Math.floor((fin - debut) / (1000*60*60*24)) + 1;
     }
-
-    // Usage mono-utilisateur : identifiant fixe
+    
+    // Récupérer le user_id dynamique depuis Supabase Auth
+    const { data: { user } } = await supabase.auth.getUser();
+    const user_id = user?.id || null;
     const bilan = {
-      user_id: 'laurelle_test_user',
+      user_id,
       date_debut: dateDebutJeune,
       date_fin: aujourdhui,
       duree_prevue: dureeJeune,
@@ -1048,32 +978,18 @@ export default function Jeune() {
       message_personnel: messagePerso || "",
       created_at: aujourdhui
     };
-
-    // === MIGRATION SUPABASE ===
-    let supabaseOk = false;
-    try {
-      const { data, error } = await supabase
-        .from('bilans_jeune')
-        .upsert([bilan], { onConflict: ['user_id', 'date_debut'] });
-      if (error) {
-        console.warn('Erreur sauvegarde bilan Supabase:', error);
-      } else {
-        supabaseOk = true;
-        console.log('✅ Bilan sauvegardé sur Supabase');
-      }
-    } catch (errSupabase) {
-      console.error('❌ Erreur sauvegarde bilan Supabase (catch):', errSupabase);
-    }
-
-    // Fallback localStorage systématique
+    
+    // Sauvegarder dans localStorage
     localStorage.setItem('bilanJeune', JSON.stringify(bilan));
-
-    // Historique multi-jeûnes local
+    
+    // === PHASE 3 : Historique multi-jeûnes ===
+    // Récupérer l'historique existant
     let historique = [];
     try {
       const historiqueStr = localStorage.getItem('historiqueBilansJeune');
       if (historiqueStr) {
         historique = JSON.parse(historiqueStr);
+        // Sécurité : s'assurer que c'est bien un array
         if (!Array.isArray(historique)) {
           historique = [];
         }
@@ -1082,11 +998,16 @@ export default function Jeune() {
       console.error('❌ Erreur lecture historique:', e);
       historique = [];
     }
+    
+    // Ajouter le bilan actuel
     historique.push(bilan);
+    
+    // Sauvegarder l'historique mis à jour
     localStorage.setItem('historiqueBilansJeune', JSON.stringify(historique));
+    
     console.log(`📚 Bilan ajouté à l'historique (total: ${historique.length})`);
-
-    // Terminer parcours en BDD
+    
+    // P0.5 : Terminer parcours en BDD
     try {
       const parcours = await ParcoursAPI.getParcoursJeuneActif();
       if (parcours) {
@@ -1096,64 +1017,60 @@ export default function Jeune() {
     } catch (error) {
       console.warn('Erreur fin parcours Supabase:', error);
     }
-
-    // Feedback utilisateur
-    if (supabaseOk) {
-      alert('✅ Bilan généré et sauvegardé sur Supabase.');
-    } else {
-      alert('✅ Bilan généré localement (sauvegarde distante en attente).');
-    }
-
+    
     return bilan;
   };
 
-  // Handler de validation de jour : synchronisation Supabase + localStorage, robustesse multi-appareil
   const validerJour = async () => {
+    // Mode archive : lecture seule
     if (jeuneConsulte) {
       alert('📖 Mode archive : ce jeûne est terminé et ne peut plus être modifié.');
       return;
     }
+
     // Vérifier que le jour affiché n'est pas dans le futur
     if (dateDebutJeune) {
       const aujourdhui = new Date();
       const debut = new Date(dateDebutJeune);
       const joursEcoules = Math.floor((aujourdhui - debut) / (1000*60*60*24)) + 1;
+      
       if (jourEnCours > joursEcoules) {
         alert(`⚠️ Tu ne peux pas valider le jour ${jourEnCours} car nous sommes seulement au jour ${joursEcoules} du jeûne.`);
         return;
       }
     }
-    // Vérification séquentielle
+    
+    // Vérification séquentielle : tous les jours précédents doivent être validés
     for (let j = 1; j < jourEnCours; j++) {
       if (!joursValides.includes(j)) {
         alert(`⚠️ Tu dois d'abord valider le jour ${j} avant de valider le jour ${jourEnCours}.\n\nUtilise les boutons "← Jour précédent" pour revenir en arrière.`);
         return;
       }
     }
+    
     if (!joursValides.includes(jourEnCours)) {
       const nv = [...joursValides, jourEnCours].sort((a, b) => a - b);
       setJoursValides(nv);
-      // Synchronisation Supabase + localStorage
-      let supabaseOk = false;
+      
+      // ✅ SAUVEGARDER DANS SUPABASE
       if (parcoursId) {
         try {
           await ParcoursAPI.updateJoursValides(parcoursId, nv);
-          supabaseOk = true;
           console.log('✅ Jour', jourEnCours, 'sauvegardé dans Supabase');
         } catch (error) {
           console.error('❌ Erreur sauvegarde Supabase:', error);
-          alert('⚠️ Erreur de sauvegarde Supabase. Le jour est validé localement mais pas synchronisé.');
+          alert('⚠️ Erreur de sauvegarde. Le jour est validé localement mais pas synchronisé.');
         }
+      } else {
+        console.warn('⚠️ Pas de parcoursId, sauvegarde locale uniquement');
       }
+      
+      // Sync localStorage comme backup
       localStorage.setItem('joursValides', JSON.stringify(nv));
+      
+      // Avancer automatiquement au jour suivant si possible
       if (jourEnCours < dureeJeune) {
         setJourEnCours(jourEnCours + 1);
-      }
-      // Feedback utilisateur
-      if (supabaseOk) {
-        alert(`✅ Jour ${jourEnCours} validé et synchronisé sur Supabase.`);
-      } else {
-        alert(`✅ Jour ${jourEnCours} validé localement (sauvegarde distante en attente).`);
       }
     }
   };
@@ -1183,13 +1100,27 @@ export default function Jeune() {
       dateFin.setDate(dateFin.getDate() + dureeJeune - 1);
       const dateFinStr = dateFin.toISOString().split('T')[0];
 
-      // NO AUTH : utiliser l'ID fixe 'laurelle_test_user'
-      const userId = 'laurelle_test_user';
+      // AUTH : utiliser le vrai user_id Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || null;
 
       let programmeSauvegarde;
-      let supabaseOk = false;
       try {
-        // Génération du programme
+        // Sauvegarde Supabase avec NO AUTH
+        programmeSauvegarde = await genererEtSauvegarderProgramme(userId, {
+          id: null,
+          duree_jours: dureeJeune,
+          date_fin: dateFinStr,
+          poids_depart: poidsDepart
+        });
+        if (!programmeSauvegarde) throw new Error("Échec de la sauvegarde du programme");
+        setProgrammeReprise(programmeSauvegarde);
+        saveState("programmeReprise", programmeSauvegarde);
+        setAlerteJ3(null);
+        alert(`✅ Programme généré et sauvegardé ! ${programmeSauvegarde.duree_reprise_jours} jours de reprise créés.`);
+      } catch (error) {
+        console.warn('Erreur sauvegarde Supabase, génération locale:', error);
+        // Génération locale en fallback
         const programme = genererProgrammeReprise({
           dureeJeune,
           poidsDepart,
@@ -1205,37 +1136,10 @@ export default function Jeune() {
           statut: 'proposition',
           plan_genere_le: new Date().toISOString()
         };
-
-        // Sauvegarde Supabase prioritaire
-        const { data, error } = await supabase
-          .from('programme_reprise')
-          .upsert([{
-            ...programmeSauvegarde,
-            user_id: userId,
-            date_debut_jeune: dateDebutJeune,
-            duree_jeune_jours: dureeJeune,
-            poids_depart: poidsDepart
-          }], { onConflict: ['user_id', 'date_debut_jeune'] });
-        if (error) {
-          console.warn('Erreur sauvegarde Supabase:', error);
-        } else {
-          supabaseOk = true;
-          console.log('✅ Programme sauvegardé sur Supabase');
-        }
-      } catch (error) {
-        console.warn('Erreur sauvegarde Supabase, génération locale:', error);
-      }
-
-      // Fallback localStorage systématique
-      setProgrammeReprise(programmeSauvegarde);
-      saveState("programmeReprise", programmeSauvegarde);
-      setAlerteJ3(null);
-
-      // Feedback utilisateur
-      if (supabaseOk) {
-        alert(`✅ Programme généré et sauvegardé sur Supabase ! ${programmeSauvegarde.duree_reprise_jours} jours de reprise créés.`);
-      } else {
-        alert(`✅ Programme généré localement ! ${programmeSauvegarde.duree_reprise_jours} jours de reprise créés (sauvegarde distante en attente).`);
+        setProgrammeReprise(programmeSauvegarde);
+        saveState("programmeReprise", programmeSauvegarde);
+        setAlerteJ3(null);
+        alert(`✅ Programme généré localement ! ${programmeSauvegarde.duree_reprise_jours} jours de reprise créés.`);
       }
     } catch (error) {
       console.error("Erreur génération:", error);
@@ -1264,7 +1168,7 @@ export default function Jeune() {
   // Archiver le jeûne actuel dans l'historique
   const archiverJeuneActuel = async () => {
     try {
-      // Lecture des données locales
+      // CORRECTION : Lire depuis localStorage (pas états React qui peuvent être vides)
       const joursValidesLS = JSON.parse(localStorage.getItem('joursValides') || '[]');
       const dureeLS = parseInt(localStorage.getItem('dureeJeune') || '5');
       const dateDebutLS = localStorage.getItem('dateDebutJeune');
@@ -1272,7 +1176,7 @@ export default function Jeune() {
       const messagePersoLS = localStorage.getItem('messagePerso') || '';
       const bilanLS = JSON.parse(localStorage.getItem('bilanJeune') || 'null');
       const programmeRepriseLS = JSON.parse(localStorage.getItem('programmeRepriseValide') || localStorage.getItem('programmeReprise') || 'null');
-
+      
       if (joursValidesLS.length === 0 || !dateDebutLS) {
         console.log('⚠️ Aucun jeûne à archiver (0 jours validés ou pas de date)');
         return;
@@ -1281,7 +1185,7 @@ export default function Jeune() {
       const idJeune = `${dateDebutLS}_${dureeLS}j`;
       const dateFinArchivage = new Date().toISOString().split('T')[0];
 
-      // Archiver données spirituelles
+      // 🆕 ARCHIVER DONNÉES SPIRITUELLES (méditations, audios, etc.)
       const { archiverDonneesSpirituellesJeune } = await import('../lib/journalSpirituelArchive');
       const donneesSpirituellesArchivees = await archiverDonneesSpirituellesJeune(
         dateDebutLS,
@@ -1301,50 +1205,28 @@ export default function Jeune() {
         programmeReprise: programmeRepriseLS,
         statut: 'termine',
         dateArchivage: new Date().toISOString(),
+        // 🆕 Métadonnées données spirituelles
         donneesSpirituellesCount: donneesSpirituellesArchivees ? 
           Object.values(donneesSpirituellesArchivees).reduce((a, b) => a + b, 0) : 0
       };
 
-      // === MIGRATION SUPABASE ===
-      let supabaseOk = false;
-      try {
-        const { data, error } = await supabase
-          .from('historique_jeunes')
-          .upsert([jeuneArchive], { onConflict: ['id'] });
-        if (error) {
-          console.error('❌ Erreur archivage Supabase:', error);
-        } else {
-          supabaseOk = true;
-          console.log('✅ Jeûne archivé sur Supabase:', jeuneArchive.id);
-        }
-      } catch (errSupabase) {
-        console.error('❌ Erreur archivage Supabase (catch):', errSupabase);
-      }
-
-      // Fallback localStorage systématique
       const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+      
+      // Vérifier si pas déjà archivé
       const dejaArchive = historiqueActuel.some(j => j.id === jeuneArchive.id);
       if (!dejaArchive) {
-        historiqueActuel.unshift(jeuneArchive);
+        historiqueActuel.unshift(jeuneArchive); // Ajouter au début (plus récent en premier)
         localStorage.setItem('historiqueJeunes', JSON.stringify(historiqueActuel));
         setHistoriqueJeunes(historiqueActuel);
-        console.log('✅ Jeûne archivé localement:', jeuneArchive.id);
+        console.log('✅ Jeûne archivé avec succès:', jeuneArchive.id);
         if (donneesSpirituellesArchivees) {
           console.log('📿 Données spirituelles archivées:', donneesSpirituellesArchivees);
         }
       } else {
-        console.log('ℹ️ Jeûne déjà archivé localement:', jeuneArchive.id);
-      }
-
-      // Feedback utilisateur
-      if (supabaseOk) {
-        alert('✅ Jeûne archivé et synchronisé sur Supabase.');
-      } else {
-        alert('✅ Jeûne archivé localement (sauvegarde distante en attente).');
+        console.log('ℹ️ Jeûne déjà archivé:', jeuneArchive.id);
       }
     } catch (error) {
       console.error('❌ Erreur archivage jeûne:', error);
-      alert('❌ Erreur lors de l’archivage du jeûne.');
     }
   };
 
