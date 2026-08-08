@@ -177,6 +177,13 @@ export default function PreparationJeune() {
       criteres: criteresMetier.filter(c => c.jalon === 7)
     }
   ];
+  const autoValidationConfig = [
+    { id: 1, label: 'Portions', seuil: 6, conseil: 'Utilise les repères visuels à chacun de tes repas aujourd’hui.' },
+    { id: 2, label: 'Féculents le soir', seuil: 5, conseil: 'Prévois ce soir un dîner sans féculents.' },
+    { id: 7, label: 'Hydratation', seuil: 5, conseil: 'Bois 2L d’eau aujourd’hui pour consolider ton rythme.' },
+    { id: 8, label: 'Pas après 19h', seuil: 5, conseil: 'Termine ton dîner avant 19h pour valider ce critère.' },
+    { id: 9, label: 'Repas ≤ 45 min', seuil: 5, conseil: 'Garde un repas simple et concentré pour rester sous 45 minutes.' }
+  ];
   const [criteres, setCriteres] = useState([]); // Liste dynamique avec statut validé
   const [progression, setProgression] = useState(0); // Nombre de critères validés
   const [messagePerso, setMessagePerso] = useState("");
@@ -496,6 +503,29 @@ const DebugPanel = () => (
     return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
   }
 
+  const criteresParId = criteres.reduce((acc, critere) => {
+    acc[critere.id] = critere;
+    return acc;
+  }, {});
+
+  const autoValidationRows = autoValidationConfig.map(config => {
+    const statut = statutsValidationAutoPrep[config.id] || { joursRespectés: 0, validé: false };
+    const critere = criteresParId[config.id] || {};
+    const reste = Math.max(0, config.seuil - (statut.joursRespectés || 0));
+
+    return {
+      ...config,
+      joursRespectes: statut.joursRespectés || 0,
+      valide: Boolean(statut.validé || critere.validé),
+      reste,
+      typeValidation: critere.typeValidation || statut.typeValidation || null
+    };
+  });
+
+  const prochainGeste = autoValidationRows
+    .filter(row => !row.valide)
+    .sort((a, b) => (b.joursRespectes - a.joursRespectes) || (a.reste - b.reste))[0];
+
   return (
     <div style={{ background: '#F5F8FA', minHeight: '100vh', paddingBottom: 40 }}>
       <Navigation />
@@ -569,6 +599,53 @@ const DebugPanel = () => (
         </div>
         {/* Progression globale */}
         <ProgressBar value={progression} max={criteresMetier.length} />
+        {preparationActive && (
+          <section style={{
+            background: 'linear-gradient(135deg, #ffffff 0%, #f4fbff 100%)',
+            borderRadius: 16,
+            padding: '20px 22px',
+            margin: '22px auto 24px auto',
+            boxShadow: '0 6px 18px rgba(79,143,255,0.08)',
+            border: '1px solid #DCEBFA',
+            maxWidth: 760
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+              <div>
+                <h3 style={{ color: '#2563EB', fontWeight: 800, fontSize: '1.1rem', margin: 0 }}>Validation auto en direct</h3>
+                <div style={{ color: '#64748B', fontSize: '0.96rem', marginTop: 4 }}>Tes repas mettent a jour automatiquement les criteres lies au suivi.</div>
+              </div>
+              <a href="/suivi" style={{ background: '#E8F3FF', color: '#2563EB', textDecoration: 'none', padding: '8px 12px', borderRadius: 999, fontWeight: 700, fontSize: 13 }}>Voir mon suivi repas</a>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, marginTop: 14 }}>
+              {autoValidationRows.map(row => (
+                <div key={row.id} style={{
+                  background: row.valide ? '#ECFDF5' : '#FFFFFF',
+                  border: `1px solid ${row.valide ? '#A7F3D0' : '#D9E7F5'}`,
+                  borderRadius: 12,
+                  padding: '12px 14px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#0F172A', fontWeight: 700, fontSize: 14 }}>{row.label}</span>
+                    <span style={{ color: row.valide ? '#059669' : '#2563EB', fontWeight: 800, fontSize: 13 }}>
+                      {row.joursRespectes}/{row.seuil}
+                    </span>
+                  </div>
+                  <div style={{ marginTop: 8, color: row.valide ? '#047857' : '#475569', fontSize: 13, fontWeight: 600 }}>
+                    {row.valide ? '✅ Auto-validé' : `⏳ Encore ${row.reste} jour${row.reste > 1 ? 's' : ''}`}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: 14, background: '#F8FAFC', border: '1px dashed #BFDBFE', borderRadius: 12, padding: '12px 14px' }}>
+              <div style={{ color: '#2563EB', fontWeight: 800, fontSize: 14, marginBottom: 4 }}>Prochain meilleur geste</div>
+              <div style={{ color: '#334155', fontSize: 14 }}>
+                {prochainGeste ? prochainGeste.conseil : 'Tous les criteres auto sont deja valides. Continue sur ce rythme.'}
+              </div>
+            </div>
+          </section>
+        )}
         {/* Phases et critères (harmonisé avec module métier) */}
         {phasesAvecCriteres.map((phase, idx) => {
           // Lire dateJeune depuis state OU localStorage en fallback
@@ -603,6 +680,19 @@ const DebugPanel = () => (
             
             datesCompactes = `Du ${jourDebut}/${moisDebut} au ${jourFin}/${moisFin}/${annee}`;
           }
+
+          const criteresPhase = (phase.criteres || []).map(criterePhase => {
+            const critereCourant = criteresParId[criterePhase.id] || {};
+            return {
+              ...criterePhase,
+              valide: Boolean(critereCourant.validé),
+              dateValidation: critereCourant.dateValidation || null,
+              typeValidation: critereCourant.typeValidation || null
+            };
+          });
+
+          const nbValidesPhase = criteresPhase.filter(c => c.valide).length;
+          const resumePhase = `${nbValidesPhase}/${criteresPhase.length} validé${nbValidesPhase > 1 ? 's' : ''}`;
           
           return (
           <div key={phase.id || phase.nom} style={{
@@ -617,9 +707,10 @@ const DebugPanel = () => (
               phase={{
                 nom: datesCompactes ? `${phase.nom}  •  ${datesCompactes}` : phase.nom,
                 explication: phase.objectif || phase.explication,
-                periode: `${phase.debut !== undefined && phase.fin !== undefined ? `J${phase.debut} à J${phase.fin}` : ''}`
+                periode: `${phase.debut !== undefined && phase.fin !== undefined ? `J${phase.debut} à J${phase.fin}` : ''}`,
+                resume: resumePhase
               }}
-              criteres={phase.criteres}
+              criteres={criteresPhase}
               onValider={preparationActive ? validerCritere : undefined}
               jCourant={jCourant}
             />
