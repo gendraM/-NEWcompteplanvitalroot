@@ -138,6 +138,7 @@ export default function PreparationJeune() {
   const [statutsValidationAutoPrep, setStatutsValidationAutoPrep] = useState({});
   const [joursFenetre7j, setJoursFenetre7j] = useState([]);
   const [repasAutoValidation, setRepasAutoValidation] = useState([]);
+  const [repasHistoriqueBrut, setRepasHistoriqueBrut] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [preparationData, setPreparationData] = useState(null);
   const [feedbackMessage, setFeedbackMessage] = useState("");
@@ -206,6 +207,7 @@ export default function PreparationJeune() {
         prep = await getPreparationJeuneSync(userId, localPrep);
       }
       if (prep && prep.startDate) {
+        setPreparationData(prep);
         const dateJeuneObj = new Date(prep.startDate);
         setDateJeune(dateJeuneObj);
         setDureeJeune(prep.duration || 'X');
@@ -213,7 +215,28 @@ export default function PreparationJeune() {
         const diff = calculerJourRelatif(prep.startDate, new Date());
         setJCourant(diff);
         setPreparationActive(true);
-        if (prep.criteres) setCriteres(prep.criteres);
+        if (Array.isArray(prep.criteres) && prep.criteres.length > 0) {
+          const criteresNormalises = prep.criteres.map(c => ({
+            ...c,
+            validé: Boolean(c.validé || c.valide),
+            valide: Boolean(c.validé || c.valide),
+          }));
+          setCriteres(criteresNormalises);
+        } else {
+          const criteresStorage = getCriteresPreparation();
+          const criteresInit = criteresMetier.map(c => {
+            const saved = criteresStorage[c.id] || {};
+            const estValide = Boolean(saved.validé || saved.valide);
+            return {
+              ...c,
+              validé: estValide,
+              valide: estValide,
+              dateValidation: saved.dateValidation || null,
+              typeValidation: saved.typeValidation || null,
+            };
+          });
+          setCriteres(criteresInit);
+        }
         if (prep.messagePerso) setMessagePerso(prep.messagePerso);
         // Mise à jour localStorage si cloud plus récent
         if (typeof window !== 'undefined') {
@@ -243,11 +266,19 @@ export default function PreparationJeune() {
           .order('created_at', { ascending: false })
           .limit(200);
         if (error) return;
+        setRepasHistoriqueBrut(repasData || []);
         const today = new Date();
+        const sourceActivation = preparationData?.createdAt || preparationData?.updatedAt || null;
+        const dateActivation = sourceActivation ? new Date(sourceActivation) : null;
+        if (dateActivation && !Number.isNaN(dateActivation.getTime())) {
+          dateActivation.setHours(0, 0, 0, 0);
+        }
         const repas7j = (repasData || []).filter(r => {
           const d = new Date(r.date);
           const diff = Math.floor((today - d) / (1000*60*60*24));
-          return diff >= 0 && diff < 7;
+          if (diff < 0 || diff >= 7) return false;
+          if (dateActivation && !Number.isNaN(dateActivation.getTime()) && d < dateActivation) return false;
+          return true;
         });
         setRepasAutoValidation(repas7j);
         // Générer la fenêtre J-6 -> J-0 pour affichage
@@ -275,7 +306,7 @@ export default function PreparationJeune() {
       }
     }
     analyserRepas7Jours();
-  }, [preparationActive, dateJeune, userId, configJeuneCritere]);
+  }, [preparationActive, dateJeune, userId, configJeuneCritere, preparationData]);
 
   // Helpers formatage période/date
   function addDays(baseDate, offset) {
@@ -370,7 +401,7 @@ export default function PreparationJeune() {
       return;
     }
     setCriteres(prev => {
-      const newCriteres = prev.map(c => c.id === id ? { ...c, valide: true, dateValidation } : c);
+      const newCriteres = prev.map(c => c.id === id ? { ...c, valide: true, validé: true, dateValidation } : c);
       console.log('[validerCritere] setCriteres (nouvel état):', newCriteres);
       return newCriteres;
     });
@@ -435,7 +466,7 @@ export default function PreparationJeune() {
     // Activation de la préparation
     setPreparationActive(true);
     // Initialisation des critères métier
-    const criteresInit = criteresMetier.map(c => ({ ...c, valide: false, dateValidation: null }));
+    const criteresInit = criteresMetier.map(c => ({ ...c, valide: false, validé: false, dateValidation: null }));
     console.log('🔍 [handleStartPreparationModal] Critères init créés, va déclencher setCriteres() qui devrait déclencher useEffect');
     setCriteres(criteresInit);
     if (typeof window !== 'undefined') {
@@ -514,6 +545,154 @@ const DebugPanel = () => (
     acc[critere.id] = critere;
     return acc;
   }, {});
+
+  function normaliserDateBilan(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }
+
+  function getDateActivationPrepa() {
+    const source = preparationData?.createdAt || preparationData?.updatedAt || null;
+    return normaliserDateBilan(source);
+  }
+
+  function filtrerRepasSurFenetre(repasList, dateMin, dateMax) {
+    if (!Array.isArray(repasList) || repasList.length === 0) return [];
+    return repasList.filter(repas => {
+      const dateRepas = normaliserDateBilan(repas?.date);
+      if (!dateRepas) return false;
+      if (dateMin && dateRepas < dateMin) return false;
+      if (dateMax && dateRepas > dateMax) return false;
+      return true;
+    });
+  }
+
+  function construireStatutsCritereParIds(repasList) {
+    const ids = [1, 2, 3, 4, 5, 7, 8, 9];
+    return ids.reduce((acc, id) => {
+      acc[id] = getStatutCritereAuto(id, repasList, referentielAliments, {
+        jeuneConfig: configJeuneCritere,
+      });
+      return acc;
+    }, {});
+  }
+
+  function construireTexteCritere(cle, statuts) {
+    if (!statuts) return null;
+    if (cle === 1) {
+      return statuts.joursRespectés > 0
+        ? `${statuts.joursRespectés} jour(s) conforme(s) sur la période`
+        : 'Aucun jour conforme sur cette période.';
+    }
+    if (cle === 2) {
+      return statuts.joursRespectés > 0
+        ? `${statuts.joursRespectés} jour(s) sans féculent le soir`
+        : 'Aucun dîner conforme sur cette période.';
+    }
+    if (cle === 3) {
+      return `${statuts.joursRespectés || 0} jour(s) conformes, ${statuts.joursNonConformes || 0} non conformes`;
+    }
+    if (cle === 4) {
+      return `${statuts.joursRespectés || 0}/${statuts.seuil || configJeuneCritere.nombreJeunes} jeûne(s) détecté(s)`;
+    }
+    if (cle === 5) {
+      return `${statuts.joursRespectés || 0} jour(s) de transition conformes`;
+    }
+    if (cle === 7) {
+      return `${statuts.joursRespectés || 0} jour(s) à 2L d’eau`;
+    }
+    if (cle === 8) {
+      return `${statuts.joursRespectés || 0} jour(s) avec dernier repas avant 19h`;
+    }
+    if (cle === 9) {
+      return `${statuts.joursRespectés || 0} jour(s) avec repas ≤ 45 min`;
+    }
+    return null;
+  }
+
+  const dateActivationPrepa = getDateActivationPrepa();
+  const dateAvantActivation = dateActivationPrepa ? new Date(dateActivationPrepa) : null;
+  if (dateAvantActivation) {
+    dateAvantActivation.setDate(dateAvantActivation.getDate() - 1);
+  }
+  const dateDebutBaseline = dateActivationPrepa ? new Date(dateActivationPrepa) : null;
+  if (dateDebutBaseline) {
+    dateDebutBaseline.setDate(dateDebutBaseline.getDate() - 7);
+  }
+
+  const repasBaseline = dateActivationPrepa
+    ? filtrerRepasSurFenetre(repasHistoriqueBrut, dateDebutBaseline, dateAvantActivation)
+    : [];
+
+  const statutsBaseline = dateActivationPrepa
+    ? construireStatutsCritereParIds(repasBaseline)
+    : {};
+
+  const bilanComparatif = (() => {
+    const ids = [1, 2, 3, 4, 5, 7, 8, 9];
+    const lignes = ids.map(id => {
+      const avant = statutsBaseline[id] || { joursRespectés: 0, validé: false, seuil: getSeuilCritereAuto(id) };
+      const apres = statutsValidationAutoPrep[id] || { joursRespectés: 0, validé: false, seuil: getSeuilCritereAuto(id) };
+      const delta = (apres.joursRespectés || 0) - (avant.joursRespectés || 0);
+      const ecartApres = Math.max(0, (apres.seuil || getSeuilCritereAuto(id)) - (apres.joursRespectés || 0));
+      return {
+        id,
+        label: criteresMetier.find(c => c.id === id)?.label || `Critère ${id}`,
+        avant,
+        apres,
+        delta,
+        ecartApres,
+        libelleAvant: construireTexteCritere(id, avant),
+        libelleApres: construireTexteCritere(id, apres),
+      };
+    });
+
+    const meilleurProgres = lignes
+      .filter(ligne => ligne.delta > 0)
+      .sort((a, b) => b.delta - a.delta || a.ecartApres - b.ecartApres)[0]
+      || lignes
+        .filter(ligne => (ligne.apres.joursRespectes || 0) > 0)
+        .sort((a, b) => (b.apres.joursRespectes || 0) - (a.apres.joursRespectes || 0))[0]
+      || null;
+
+    const axes = lignes
+      .filter(ligne => ligne.ecartApres > 0)
+      .sort((a, b) => b.ecartApres - a.ecartApres || a.delta - b.delta)
+      .slice(0, 2);
+
+    const priorite = axes[0] || meilleurProgres;
+
+    return {
+      ligneComparaison: meilleurProgres,
+      axes,
+      priorite,
+      toutRespecte: lignes.every(ligne => ligne.ecartApres === 0),
+      lignes,
+    };
+  })();
+
+  const bilanPhraseFinale = bilanComparatif.toutRespecte
+    ? 'Bravo, tu as très bien suivi ta préparation. Tu peux démarrer la phase de jeûne en confiance.'
+    : 'Même si tout n’est pas parfait, chaque préparation est un progrès. Tu pourras faire encore mieux la prochaine fois.';
+
+  function estCritereValide(critere) {
+    return Boolean(critere?.validé || critere?.valide);
+  }
+
+  const criteresBilan = criteresMetier.map(base => {
+    const local = criteresParId[base.id] || {};
+    return {
+      ...base,
+      ...local,
+      validé: estCritereValide(local),
+      valide: estCritereValide(local),
+    };
+  });
+  const criteresValidesBilan = criteresBilan.filter(c => c.validé);
+  const criteresNonValidesBilan = criteresBilan.filter(c => !c.validé);
 
   const aujourdHuiIso = formatISODate(aujourdhui);
   const repasAujourdhui = repasAutoValidation.filter(repas => repas.date === aujourdHuiIso);
@@ -1146,7 +1325,7 @@ const DebugPanel = () => (
             const critereCourant = criteresParId[criterePhase.id] || {};
             return {
               ...criterePhase,
-              valide: Boolean(critereCourant.validé),
+              valide: estCritereValide(critereCourant),
               dateValidation: critereCourant.dateValidation || null,
               typeValidation: critereCourant.typeValidation || null
             };
@@ -1330,41 +1509,60 @@ const DebugPanel = () => (
               {jCourant !== null && jCourant >= 0 ? (
               <div style={{background:'#f8fafc',border:'2px solid #38bdf8',borderRadius:12,padding:'24px 18px',maxWidth:520,margin:'0 auto 24px auto',boxShadow:'0 2px 8px 0 rgba(56,189,248,0.07)'}}>
                 <h2 style={{color:'#0ea5e9',fontWeight:800,marginBottom:12}}>🎉 Bilan de ta préparation au jeûne</h2>
-                {/* Points forts */}
+                {dateActivationPrepa && bilanComparatif.ligneComparaison && (
+                  <div style={{marginBottom:16,background:'#fff',border:'1px solid #dbeafe',borderRadius:10,padding:'12px 14px'}}>
+                    <b style={{color:'#2563eb'}}>🔎 Comparaison avant prépa / fin de prépa</b>
+                    <div style={{marginTop:8,color:'#334155',fontSize:14,lineHeight:1.45}}>
+                      <div><b>Avant :</b> {bilanComparatif.ligneComparaison.libelleAvant || 'Aucun repère analysable sur la baseline.'}</div>
+                      <div><b>Fin de prépa :</b> {bilanComparatif.ligneComparaison.libelleApres || 'Aucune donnée analysable sur la période finale.'}</div>
+                    </div>
+                  </div>
+                )}
                 <div style={{marginBottom:14}}>
-                  <b style={{color:'#22c55e'}}>✅ Points forts</b>
-                  <ul style={{textAlign:'left',margin:'8px 0 0 0',paddingLeft:22}}>
-                    {criteres.filter(c=>c.valide).length > 0 ? criteres.filter(c=>c.valide).map(c=>(
-                      <li key={c.id} style={{color:'#16a34a',fontWeight:600}}>[✔️] {c.label}</li>
-                    )) : <li style={{color:'#64748b'}}>Aucun critère validé cette fois.</li>}
-                  </ul>
+                  <b style={{color:'#22c55e'}}>✅ Point fort</b>
+                  <div style={{textAlign:'left',marginTop:8,color:'#16a34a',fontWeight:600,lineHeight:1.45}}>
+                    {bilanComparatif.ligneComparaison
+                      ? `${bilanComparatif.ligneComparaison.label} : progression de ${bilanComparatif.ligneComparaison.delta > 0 ? '+' : ''}${bilanComparatif.ligneComparaison.delta} point(s) entre le début et la fin de la préparation.`
+                      : (criteresValidesBilan.length > 0
+                        ? `${criteresValidesBilan[0].label} est bien installé.`
+                        : 'Aucun point fort net détecté sur cette période.')}
+                  </div>
                 </div>
-                {/* Axes d’amélioration */}
                 <div style={{marginBottom:14}}>
                   <b style={{color:'#f59e42'}}>⚠️ Axes d’amélioration</b>
                   <ul style={{textAlign:'left',margin:'8px 0 0 0',paddingLeft:22}}>
-                    {criteres.filter(c=>!c.valide).length > 0 ? criteres.filter(c=>!c.valide).map(c=>(
-                      <li key={c.id} style={{color:'#f59e42',fontWeight:600}}>[❌] {c.label}</li>
-                    )) : <li style={{color:'#64748b'}}>Tous les critères ont été validés, bravo !</li>}
-                  </ul>
-                </div>
-                {/* Conseils personnalisés */}
-                <div style={{marginBottom:18}}>
-                  <b style={{color:'#0ea5e9'}}>💡 Conseils personnalisés</b>
-                  <ul style={{textAlign:'left',margin:'8px 0 0 0',paddingLeft:22}}>
-                    {criteres.filter(c=>!c.valide).length > 0 ? criteres.filter(c=>!c.valide).map(c=>(
-                      <li key={c.id} style={{color:'#0ea5e9'}}>
-                        {c.label.includes('féculent') && "Essaie d’anticiper tes repas pour éviter les féculents le soir."}
-                        {c.label.includes('jeûne plein') && "Planifie un week-end pour tester le jeûne plein la prochaine fois."}
-                        {c.label.includes('sucreries') && "Remplace les desserts sucrés par des fruits ou yaourts nature."}
-                        {c.label.includes('hydratation') && "Continue à bien t’hydrater : c’est déjà acquis !"}
-                        {!c.label.includes('féculent') && !c.label.includes('jeûne plein') && !c.label.includes('sucreries') && !c.label.includes('hydratation') && "Pense à valider ce critère la prochaine fois pour progresser !"}
+                    {(bilanComparatif.axes.length > 0 ? bilanComparatif.axes : criteresNonValidesBilan.slice(0, 2)).slice(0, 2).map(c=>(
+                      <li key={c.id} style={{color:'#f59e42',fontWeight:600}}>
+                        {c.label.includes('féculent') && 'Pas de féculents le soir.'}
+                        {c.label.includes('hydratation') && 'Hydratation encore irrégulière.'}
+                        {c.label.includes('sucreries') && 'Réduire les sucreries.'}
+                        {c.label.includes('19h') && 'Finir le dîner avant 19h.'}
+                        {c.label.includes('45') && 'Stabiliser la durée des repas sous 45 minutes.'}
+                        {c.label.includes('jeûne plein') && 'Consolider les jours de jeûne plein.'}
+                        {!c.label.includes('féculent') && !c.label.includes('hydratation') && !c.label.includes('sucreries') && !c.label.includes('19h') && !c.label.includes('45') && !c.label.includes('jeûne plein') && c.label}
                       </li>
-                    )) : <li style={{color:'#0ea5e9'}}>Continue ainsi, tu es prêt(e) pour le jeûne !</li>}
+                    ))}
+                    {(bilanComparatif.axes.length === 0 && criteresNonValidesBilan.length === 0) && (
+                      <li style={{color:'#64748b'}}>Aucun axe majeur détecté.</li>
+                    )}
                   </ul>
                 </div>
-                <div style={{margin:'18px 0 0 0',fontWeight:600,color:'#0ea5e9',fontSize:'1.08em'}}>🚀 Tu peux maintenant démarrer la phase de jeûne !</div>
-                <div style={{margin:'8px 0 0 0',color:'#64748b',fontSize:'0.98em'}}>Même si tout n’est pas parfait, chaque préparation est un progrès. Tu pourras faire encore mieux la prochaine fois.</div>
+                <div style={{marginBottom:18}}>
+                  <b style={{color:'#0ea5e9'}}>🎯 Priorité</b>
+                  <div style={{textAlign:'left',marginTop:8,color:'#0ea5e9',fontWeight:600,lineHeight:1.45}}>
+                    {bilanComparatif.priorite
+                      ? (bilanComparatif.priorite.label.includes('19h')
+                        ? 'Finir le dîner avant 19h et boire régulièrement chaque jour.'
+                        : bilanComparatif.priorite.label.includes('hydratation')
+                          ? 'Boire régulièrement chaque jour pour stabiliser l’hydratation.'
+                          : bilanComparatif.priorite.label.includes('45')
+                            ? 'Garder des repas simples et courts pour rester sous 45 minutes.'
+                            : bilanComparatif.priorite.label)
+                      : 'Conserver la routine la plus stable possible.'}
+                  </div>
+                </div>
+                <div style={{margin:'18px 0 0 0',fontWeight:600,color:'#0ea5e9',fontSize:'1.08em'}}>{bilanPhraseFinale}</div>
+                <div style={{margin:'8px 0 0 0',color:'#64748b',fontSize:'0.98em'}}>Le bilan compare ton point de départ à la fin de la préparation pour t’aider à passer au jeûne avec une lecture simple et honnête.</div>
                 <button
                   style={{marginTop:'18px',background:'linear-gradient(90deg,#38bdf8 60%,#0ea5e9 100%)',color:'#fff',fontWeight:700,padding:'12px 32px',border:'none',borderRadius:8,fontSize:'1.1em',cursor:loadingJeune ? 'not-allowed' : 'pointer', opacity:loadingJeune ? 0.7 : 1}}
                   disabled={loadingJeune}
@@ -1376,11 +1574,11 @@ const DebugPanel = () => (
                       const bilan = {
                         user_id: userId || null,
                         date_fin_preparation: new Date().toISOString(),
-                        criteres_valides: criteres.filter(c=>c.valide).map(c=>c.label),
-                        criteres_non_valides: criteres.filter(c=>!c.valide).map(c=>c.label),
+                        criteres_valides: criteresValidesBilan.map(c=>c.label),
+                        criteres_non_valides: criteresNonValidesBilan.map(c=>c.label),
                         message_perso: messagePerso,
-                        axes_amelioration: criteres.filter(c=>!c.valide).map(c=>c.label),
-                        conseils: criteres.filter(c=>!c.valide).map(c=>{
+                        axes_amelioration: criteresNonValidesBilan.map(c=>c.label),
+                        conseils: criteresNonValidesBilan.map(c=>{
                           if (c.label.includes('féculent')) return "Essaie d’anticiper tes repas pour éviter les féculents le soir.";
                           if (c.label.includes('jeûne plein')) return "Planifie un week-end pour tester le jeûne plein la prochaine fois.";
                           if (c.label.includes('sucreries')) return "Remplace les desserts sucrés par des fruits ou yaourts nature.";
@@ -1396,13 +1594,13 @@ const DebugPanel = () => (
                           userId: userId || null,
                           dateDebut: dateJeune,
                           dateFin: new Date().toISOString(),
-                          tauxReussite: criteres.filter(c=>c.valide).length / criteresMetier.length * 100,
-                          nbCriteresValides: criteres.filter(c=>c.valide).length,
+                          tauxReussite: criteresValidesBilan.length / criteresMetier.length * 100,
+                          nbCriteresValides: criteresValidesBilan.length,
                           nbCriteresTotal: criteresMetier.length,
-                          criteres,
+                          criteres: criteresBilan,
                           messagePerso,
-                          axesAmelioration: criteres.filter(c=>!c.valide).map(c=>c.label),
-                          conseils: criteres.filter(c=>!c.valide).map(c=>c.conseil),
+                          axesAmelioration: criteresNonValidesBilan.map(c=>c.label),
+                          conseils: criteresNonValidesBilan.map(c=>c.conseil),
                           notesPerso: '',
                           createdAt: new Date().toISOString(),
                         };
@@ -1498,13 +1696,13 @@ const DebugPanel = () => (
                       userId: userId || null,
                       dateDebut: dateJeune,
                       dateFin: new Date().toISOString(),
-                      tauxReussite: criteres.filter(c=>c.valide).length / criteresMetier.length * 100,
-                      nbCriteresValides: criteres.filter(c=>c.valide).length,
+                      tauxReussite: criteresValidesBilan.length / criteresMetier.length * 100,
+                      nbCriteresValides: criteresValidesBilan.length,
                       nbCriteresTotal: criteresMetier.length,
-                      criteres,
+                      criteres: criteresBilan,
                       messagePerso,
-                      axesAmelioration: criteres.filter(c=>!c.valide).map(c=>c.label),
-                      conseils: criteres.filter(c=>!c.valide).map(c=>c.conseil),
+                      axesAmelioration: criteresNonValidesBilan.map(c=>c.label),
+                      conseils: criteresNonValidesBilan.map(c=>c.conseil),
                       notesPerso: '',
                       createdAt: new Date().toISOString(),
                       updatedAt: new Date().toISOString(),

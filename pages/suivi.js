@@ -902,11 +902,33 @@ export default function Suivi() {
     if (idsAutoActifs.length === 0) return;
     
     // Filtrer les repas des 7 derniers jours
+    let dateActivation = null;
+    if (typeof window !== 'undefined') {
+      try {
+        const prepDataStr = localStorage.getItem('preparationData');
+        if (prepDataStr) {
+          const prepData = JSON.parse(prepDataStr);
+          const sourceActivation = prepData?.createdAt || prepData?.updatedAt || null;
+          if (sourceActivation) {
+            const d = new Date(sourceActivation);
+            if (!Number.isNaN(d.getTime())) {
+              d.setHours(0, 0, 0, 0);
+              dateActivation = d;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[SUIVI] Lecture date activation prépa impossible:', e);
+      }
+    }
+
     const repas7j = repasSemaine.filter(r => {
       const dateRepas = new Date(r.date);
       const dateCourante = new Date(selectedDate);
       const diff = Math.floor((dateCourante - dateRepas) / (1000*60*60*24));
-      return diff >= 0 && diff < 7;
+      if (diff < 0 || diff >= 7) return false;
+      if (dateActivation && dateRepas < dateActivation) return false;
+      return true;
     });
     
     // Exécuter l'analyse automatique
