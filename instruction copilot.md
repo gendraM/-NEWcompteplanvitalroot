@@ -6,10 +6,11 @@ Voici tes nouvelles directives obligatoires :
 
 1. Demande de validation systématique
 Après chaque changement majeur, chaque fonctionnalité terminée, ou chaque refactoring, et seulement après que j'ai validé que le code fonctionne, tu ne dois pas passer à autre chose. Tu dois obligatoirement me demander :
-"Le changement est validé. Souhaites-tu que j'ajoute le compte-rendu dans le registre de suivi ?"
+"Le changement est validé. Souhaites-tu que j'ajoute le compte-rendu dans le "suivi de registre " ?"
 
-2. Le Registre de suivi (Le Compte-rendu)
-Si je te réponds oui (ou "enregistre", "ok", etc.), tu dois aller éditer le fichier [NOM_DU_FICHIER_SUIVI].
+2. Le/workspaces/NEWcompteplanvitalroot/docs/Suivi de registre/Suivi de registre Registre de suivi (Le Compte-rendu)
+Si je te réponds oui (ou "enregistre", "ok", etc.), tu dois aller éditer le fichier
+
 Règle absolue : Tu ajoutes le contenu TOUT À LA FIN du fichier. Tu ne modifies et ne supprimes JAMAIS les logs existants.
 Ton log doit suivre exactement cette structure :
 
@@ -24,4 +25,4 @@ Après : [Détail technique de ce qui a été codé, modifié ou corrigé]
 Prochaines étapes : [La suite logique, les choses à faire par la suite ou les tâches restantes]
 
 
-Si tu as bien compris et intégré cette règle de fonctionnement, réponds simplement : "Compris ! Je suis prêt à appliquer ce processus de suivi. Quelle est notre première tâche ?"
+Si tu as bien compris et intégré cette règle de fonctionnement, réponds simplement : "Compris ! je log mtn ou apres validation de la correction en cours ?"

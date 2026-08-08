@@ -1,0 +1,60 @@
+Date : 08/08/2026
+
+Action accomplie : Reprise complète du périmètre préparation jeune, unification du modèle métier partagé, correction de la synchronisation des repas utilisateur pour l’auto-validation, refonte de la logique du critère Portions par repas composé, conversion de l’hydratation via le référentiel, et ajout d’un retour visuel détaillé dans la page préparation.
+
+Avant :
+- Le contexte du projet sur le périmètre préparation/jeûne était dispersé entre plusieurs docs, audits et plans, sans document de passation consolidé.
+- `lib/preparationJeuneMetier.js` portait un ancien modèle (phases J-14/J-7/J0, 6 critères) alors que `pages/preparation-jeune.js` utilisait déjà un modèle plus riche (3 phases, 9 critères, jalons J-30/J-17/J-14/J-12/J-7).
+- `components/StartPreparationModal.js` lisait le module métier partagé ancien, ce qui créait une divergence entre la modale de démarrage et la page principale.
+- L’auto-validation de la préparation chargeait les repas sans logique claire de diagnostic utilisateur, avec un bug de filtrage utilisateur et un écart entre les noms de colonnes du code et le schéma réel de la table `repas_reels`.
+- Le critère 1 “Portions” ne pouvait pas fonctionner correctement avec la saisie réelle : il attendait des textes du type `1 poing` alors que l’UI enregistrait surtout des quantités numériques liées au référentiel.
+- Le critère hydratation reposait sur des chaînes telles que `1L` ou `2L`, alors que la saisie réelle repose sur une quantité numérique et un aliment référencé.
+- L’utilisateur ne voyait pas pourquoi un jour comptait ou non dans la validation auto, seulement un compteur global du type `0/6` ou `1/5`.
+
+Après :
+- Création d’un état des lieux complet du périmètre jeune dans `ETAT_DES_LIEUX_JEUNE.md`, avec synthèse de l’existant, identification des écarts réels, lecture des plans et roadmap de reprise.
+- Réécriture de `lib/preparationJeuneMetier.js` pour en faire la source unique de vérité du cycle préparation jeune :
+	- 3 phases alignées sur le modèle actif (`J-30 → J-18`, `J-17 → J-8`, `J-7 → J0`)
+	- 9 critères partagés
+	- fonctions `getPhasesPreparation`, `getPhaseDuJour`, `getCriteresDuJour`, `validerCriteresDuJour` alignées sur ce référentiel.
+- `pages/preparation-jeune.js` a été branchée sur ce modèle partagé au lieu de conserver des tableaux locaux dupliqués.
+- Ajout d’un test de non-régression `tests/preparationJeuneMetier.test.js` pour verrouiller la structure des 3 phases, 9 critères et jalons.
+- Vérification que `components/StartPreparationModal.js` héritait automatiquement du modèle corrigé via le module partagé, sans réintroduire de divergence fonctionnelle.
+- Correction du chargement des repas pour l’auto-validation dans `pages/preparation-jeune.js` :
+	- filtrage des repas par `user_id`
+	- prise en compte de l’utilisateur connecté
+	- correction du nom de colonne heure selon le schéma réel (`heure` en base, avec compatibilité de lecture `heureRepas || heure_repas || heure`).
+- Correction de l’enregistrement côté suivi :
+	- `pages/suivi.js` injecte désormais `user_id` lors de la sauvegarde de repas
+	- `components/RepasBloc.js` transmet correctement l’heure dans la colonne SQL réelle `heure`.
+- Refonte du critère 1 “Portions” dans `lib/validerCriterePreparation.js` :
+	- un repas est désormais défini par le couple `(date + type de repas)`
+	- chaque aliment du repas est analysé individuellement via le référentiel (`portionDefaut`, `unite`, `kcalParUnite` si pertinent)
+	- un repas est considéré conforme si au moins 80% de ses aliments analysables respectent leur portion recommandée
+	- le jour est considéré conforme si au moins 80% des repas analysables de la journée sont conformes
+	- ajout d’un fallback manuel lorsque l’aliment n’est pas analysable via le référentiel (`portion recommandée respectée ?`).
+- Refonte du critère hydratation dans `lib/validerCriterePreparation.js` :
+	- conversion du volume à partir du référentiel au lieu d’attendre des textes du type `1L`
+	- calcul à partir de la quantité numérique saisie et du volume de référence de la boisson (`ml`, `cl`, `verre`, `bouteille`, `tasse`, etc.)
+	- maintien d’un fallback texte uniquement pour compatibilité avec d’anciens repas.
+- Ajout de tests ciblés dans `tests/validerCriterePreparation.auto.test.js` pour couvrir :
+	- validation du critère Portions via quantités numériques et référentiel
+	- fallback manuel si l’aliment n’est pas au référentiel
+	- validation d’un repas composé comme une seule unité métier
+	- hydratation convertie via le référentiel.
+- Ajout d’un diagnostic visuel dans `pages/preparation-jeune.js` pour rendre la validation auto compréhensible :
+	- pour Portions : affichage du type `x/y repas conformes • a/b aliments dans la bonne portion`
+	- pour Féculents le soir : diagnostic du dîner du jour
+	- pour Hydratation : total détecté en ml sur 2000 ml
+	- pour Pas après 19h : heure du dernier repas détectée
+	- pour Repas ≤ 45 min : durée par créneau repas du jour.
+- Validation technique réalisée à chaque étape :
+	- `npx next build` OK après les refactors
+	- `tests/validerCriterePreparation.auto.test.js` OK avec couverture enrichie
+	- vérification ciblée des erreurs sur les fichiers modifiés.
+
+Prochaines étapes :
+- Vérifier en situation réelle que l’auto-validation portions/hydratation reste cohérente sur plusieurs jours d’utilisation, pas seulement sur des cas ponctuels.
+- Si besoin, affiner le référentiel des boissons hydratantes pour couvrir davantage de cas légitimes (eau, tisanes, thés, variantes d’écriture utilisateur).
+- Décider s’il faut afficher encore plus de détail par repas dans le bloc Portions (ex. détail Déjeuner/Dîner ligne par ligne) pour lever les derniers doutes utilisateurs.
+- Continuer la feuille de route du plan de conformité préparation jeune après stabilisation de cette couche métier et UX.

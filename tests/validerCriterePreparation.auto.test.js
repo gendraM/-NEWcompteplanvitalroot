@@ -8,7 +8,7 @@ function chargerModuleValidation() {
   const transformed = source
     .replace(/export function /g, 'function ')
     .replace(/export const /g, 'const ')
-    .concat('\nmodule.exports = { calculerJourRelatif, validerCriterePreparation, getCriteresPreparation, getFenetreValidation, getStatutCritere, isPeriodeActive, validerCritereAuto, getStatutCritereAuto, analyserPortions, detecterFeculents, calculerHydratation, verifierHeureRepas, calculerDureeRepas, getCritereIdFromLabel };');
+    .concat('\nmodule.exports = { calculerJourRelatif, validerCriterePreparation, getCriteresPreparation, getFenetreValidation, getStatutCritere, isPeriodeActive, validerCritereAuto, getStatutCritereAuto, analyserPortions, detecterFeculents, calculerHydratation, verifierHeureRepas, calculerDureeRepas, getCritereIdFromLabel, evaluerRespectPortionRepas };');
 
   const storage = new Map();
   const localStorage = {
@@ -126,6 +126,29 @@ describe('Auto-validation des critères de préparation', () => {
     expect(statut.validé).toBe(true);
   });
 
+  test('critère 1 : un repas composé compte comme 1 repas et non 4 lignes', () => {
+    const referentiel = [
+      { nom: 'Steak', portionDefaut: '100g', unite: 'g' },
+      { nom: 'Riz blanc / basmati', portionDefaut: '2 CS', unite: 'CS' },
+      { nom: 'Yaourt nature', portionDefaut: '1 pot', unite: 'pot' },
+      { nom: 'Eau', portionDefaut: '1 verre', unite: 'verre' },
+    ];
+    const repas = [];
+
+    for (let index = 1; index <= 6; index += 1) {
+      const date = `2026-06-0${index}`;
+      repas.push(repasBase(date, { type: 'Petit-déjeuner', aliment: 'Steak', quantite: 0.8 }));
+      repas.push(repasBase(date, { type: 'Petit-déjeuner', aliment: 'Riz blanc / basmati', quantite: 1 }));
+      repas.push(repasBase(date, { type: 'Petit-déjeuner', aliment: 'Yaourt nature', quantite: 1 }));
+      repas.push(repasBase(date, { type: 'Petit-déjeuner', aliment: 'Eau', quantite: 1 }));
+    }
+
+    const statut = api.getStatutCritereAuto(1, repas, referentiel);
+
+    expect(statut.joursRespectés).toBe(6);
+    expect(statut.validé).toBe(true);
+  });
+
   test('critère 2 : valide à 5 dîners sans féculents', () => {
     const repas = [];
     for (let index = 1; index <= 5; index += 1) {
@@ -151,20 +174,21 @@ describe('Auto-validation des critères de préparation', () => {
 
   test('critère 7 : valide à 5 jours avec 2L d eau', () => {
     const repas = [];
+    const referentiel = [{ nom: 'Eau', categorie: 'boisson', portionDefaut: '1 bouteille', unite: 'bouteille' }];
     for (let index = 1; index <= 5; index += 1) {
       repas.push(repasBase(`2026-06-0${index}`, {
-        aliment: 'eau',
+        aliment: 'Eau',
         categorie: 'boisson',
-        quantite: '2L'
+        quantite: 4
       }));
     }
     repas.push(repasBase('2026-06-06', {
-      aliment: 'eau',
+      aliment: 'Eau',
       categorie: 'boisson',
-      quantite: '1L'
+      quantite: 2
     }));
 
-    const statut = api.getStatutCritereAuto(7, repas);
+    const statut = api.getStatutCritereAuto(7, repas, referentiel);
 
     expect(statut.joursRespectés).toBe(5);
     expect(statut.validé).toBe(true);

@@ -44,7 +44,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { validerCritereAuto, getStatutCritereAuto } from '../lib/validerCriterePreparation';
 import { getCritereIdFromLabel } from '../lib/validerCriterePreparation';
-import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif, getFenetreValidation, evaluerRespectPortionRepas } from "../lib/validerCriterePreparation";
+import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif, getFenetreValidation, evaluerRespectPortionRepas, getResumePortionParJour, calculerVolumeHydratationRepas } from "../lib/validerCriterePreparation";
 import { savePreparationJeuneSupabase, getPreparationJeuneSync } from '../lib/preparationsJeune';
 import referentielAliments from '../data/referentiel';
 import HeaderPreparation from '../components/HeaderPreparation';
@@ -481,6 +481,7 @@ const DebugPanel = () => (
 
   const aujourdHuiIso = formatISODate(aujourdhui);
   const repasAujourdhui = repasAutoValidation.filter(repas => repas.date === aujourdHuiIso);
+  const resumePortionsParJour = getResumePortionParJour(repasAutoValidation, referentielAliments);
 
   function getResumeCritereDuJour(critereId) {
     if (repasAujourdhui.length === 0) {
@@ -492,13 +493,18 @@ const DebugPanel = () => (
     }
 
     if (critereId === 1) {
-      const repasAnalysables = repasAujourdhui.filter(repas => !repas.est_extra && !repas.isFastFood);
-      const repasCorrects = repasAnalysables.filter(repas => evaluerRespectPortionRepas(repas, referentielAliments) === true);
-      const repasNonAnalysables = repasAnalysables.filter(repas => evaluerRespectPortionRepas(repas, referentielAliments) === null).length;
+      const resumeJour = resumePortionsParJour[aujourdHuiIso];
+      if (!resumeJour || resumeJour.repasAnalysables === 0) {
+        return {
+          titre: 'Aujourd’hui',
+          detail: 'Aucun repas analysable aujourd’hui.',
+          ton: '#64748B'
+        };
+      }
       return {
         titre: 'Aujourd’hui',
-        detail: `${repasCorrects.length}/${repasAnalysables.length} repas avec portion conforme${repasNonAnalysables > 0 ? ` • ${repasNonAnalysables} non analysable${repasNonAnalysables > 1 ? 's' : ''}` : ''}`,
-        ton: repasCorrects.length === repasAnalysables.length && repasAnalysables.length > 0 ? '#059669' : '#475569'
+        detail: `${resumeJour.repasConformes}/${resumeJour.repasAnalysables} repas conformes • ${resumeJour.alimentsConformes}/${resumeJour.alimentsAnalysables} aliments dans la bonne portion`,
+        ton: resumeJour.repasConformes === resumeJour.repasAnalysables ? '#059669' : '#475569'
       };
     }
 
@@ -521,20 +527,7 @@ const DebugPanel = () => (
     }
 
     if (critereId === 7) {
-      const totalMl = repasAujourdhui.reduce((sum, repas) => {
-        const aliment = String(repas.aliment || '').toLowerCase();
-        const categorie = String(repas.categorie || '').toLowerCase();
-        const quantite = String(repas.quantite || '').toLowerCase();
-        const motsEau = ['eau', 'verre', 'bouteille', 'tisane', 'thé', 'the', 'infusion'];
-        if (!motsEau.some(mot => aliment.includes(mot) || categorie.includes(mot))) return sum;
-        if (quantite.includes('2l') || quantite.includes('2 l')) return sum + 2000;
-        if (quantite.includes('1.5l') || quantite.includes('1,5')) return sum + 1500;
-        if (quantite.includes('1l') || quantite.includes('1 l')) return sum + 1000;
-        if (quantite.includes('bouteille')) return sum + 500;
-        if (quantite.includes('verre')) return sum + 250;
-        if (quantite.includes('litre')) return sum + 1000;
-        return sum;
-      }, 0);
+      const totalMl = repasAujourdhui.reduce((sum, repas) => sum + calculerVolumeHydratationRepas(repas, referentielAliments), 0);
       return {
         titre: 'Aujourd’hui',
         detail: `${totalMl} ml détectés sur 2000 ml requis.`,
