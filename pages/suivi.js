@@ -472,6 +472,7 @@ export default function Suivi() {
     }
     return null;
   });
+  const [preparationActive, setPreparationActive] = useState(false);
   // Liste des critères par jalon (doit matcher la timeline métier)
   const criteresPreparation = [
     { jour: -30, label: "Respect strict des quantités à chaque repas" },
@@ -530,6 +531,39 @@ export default function Suivi() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!isMounted || typeof window === 'undefined') return;
+
+    const syncPreparationState = () => {
+      const isActive = localStorage.getItem('preparationActive') === 'true';
+      setPreparationActive(isActive);
+
+      if (!isActive) {
+        setDateJeune(null);
+        return;
+      }
+
+      let nextDateJeune = localStorage.getItem('dateJeunePrevu') || null;
+      try {
+        const prepDataStr = localStorage.getItem('preparationData');
+        if (prepDataStr) {
+          const prepData = JSON.parse(prepDataStr);
+          if (prepData?.startDate) {
+            nextDateJeune = prepData.startDate;
+          }
+        }
+      } catch (e) {
+        console.warn('[SUIVI] Lecture preparationData impossible:', e);
+      }
+
+      setDateJeune(nextDateJeune);
+    };
+
+    syncPreparationState();
+    window.addEventListener('storage', syncPreparationState);
+    return () => window.removeEventListener('storage', syncPreparationState);
+  }, [isMounted]);
 
   // ═══════════════════════════════════════════════════════════
   // DÉTECTION PHASE REPRISE ALIMENTAIRE
@@ -848,7 +882,7 @@ export default function Suivi() {
   // Analyse automatique après chaque saisie de repas
   useEffect(() => {
     // Ne rien faire si pas en phase préparation
-    if (!critereActif || !dateJeune) return;
+    if (!preparationActive || !critereActif || !dateJeune) return;
     
     // Identifier le critère actuel
     const critereIdActuel = getCritereIdFromLabel(critereActif.label);
@@ -877,7 +911,7 @@ export default function Suivi() {
     
     setStatutsValidationAuto(statuts);
     
-  }, [repasSemaine, critereActif, dateJeune, selectedDate]);
+  }, [repasSemaine, critereActif, dateJeune, selectedDate, preparationActive]);
 
   // Calcul de l'historique hebdomadaire (client only pour éviter hydration error)
   const [weeklyHistory, setWeeklyHistory] = useState([]);
@@ -1457,7 +1491,7 @@ export default function Suivi() {
       </div>
 
       {/* Mini-bandeau Préparation en cours (synthétique avec coloration contextuelle) */}
-      {isMounted && (localStorage.getItem('preparationActive') === 'true') && (
+      {isMounted && preparationActive && (
         (() => {
           // Lire date jeûne depuis preparationData (source unique de vérité)
           let dateJ0 = null;
@@ -1800,7 +1834,7 @@ export default function Suivi() {
                   <button onClick={() => setSelectedType("Autre")}>🍴 Autre</button>
                 </div>
                 {/* Bannière critère préparation si phase préparation */}
-                {critereActif && (
+                {preparationActive && critereActif && (
                   <div style={{
                     margin: '32px auto 0',
                     maxWidth: 480,
@@ -1988,7 +2022,7 @@ export default function Suivi() {
               onSave={handleSaveRepas}
               setSnackbar={setSnackbar}
               repasSemaine={repasSemaine}
-              onChangeChampsRepas={isMounted && (localStorage.getItem('preparationActive') === 'true') ? setChampsRepasEnCours : undefined}
+              onChangeChampsRepas={isMounted && preparationActive ? setChampsRepasEnCours : undefined}
             />
             {/* Bouton de validation de la semaine, affiché uniquement si showValidation est vrai */}
             {showValidation && (
