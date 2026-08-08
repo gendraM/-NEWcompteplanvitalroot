@@ -308,6 +308,19 @@ describe('Auto-validation des critères de préparation', () => {
     expect(statut.validé).toBe(true);
   });
 
+  test('critère 8 : accepte les heures non paddées (ex: 9:5) et rejette après 19h', () => {
+    const repas = [
+      repasBase('2026-06-01', { type: 'Déjeuner', heureRepas: '9:5' }),
+      repasBase('2026-06-01', { type: 'Dîner', heureRepas: '18:59' }),
+      repasBase('2026-06-02', { type: 'Dîner', heureRepas: '19:00' }),
+    ];
+
+    const statut = api.getStatutCritereAuto(8, repas);
+
+    expect(statut.joursRespectés).toBe(1);
+    expect(statut.validé).toBe(false);
+  });
+
   test('critère 9 : valide à 5 jours avec repas limités à 45 minutes', () => {
     const repas = [];
     for (let index = 1; index <= 5; index += 1) {
@@ -321,6 +334,21 @@ describe('Auto-validation des critères de préparation', () => {
 
     expect(statut.joursRespectés).toBe(5);
     expect(statut.validé).toBe(true);
+  });
+
+  test('critère 9 : une journée n’est pas conforme si un type de repas dépasse 45 min', () => {
+    const repas = [
+      repasBase('2026-06-01', { type: 'Déjeuner', heureRepas: '12:00' }),
+      repasBase('2026-06-01', { type: 'Déjeuner', heureRepas: '12:30', aliment: 'legumes' }),
+      repasBase('2026-06-01', { type: 'Dîner', heureRepas: '19:00' }),
+      repasBase('2026-06-01', { type: 'Dîner', heureRepas: '20:10', aliment: 'soupe' }),
+      repasBase('2026-06-02', { type: 'Déjeuner', heureRepas: '12:15' }),
+    ];
+
+    const statut = api.getStatutCritereAuto(9, repas);
+
+    expect(statut.joursRespectés).toBe(1);
+    expect(statut.validé).toBe(false);
   });
 
   test('la validation auto ne doit jamais écraser une validation manuelle', () => {

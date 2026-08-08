@@ -476,11 +476,11 @@ export default function Suivi() {
   const [preparationActive, setPreparationActive] = useState(false);
   // Liste des critères par jalon (doit matcher la timeline métier)
   const criteresPreparation = [
-    { jour: -30, label: "Respect strict des quantités à chaque repas" },
-    { jour: -17, label: "Pas de féculents le soir (lun-dim) + action après repas" },
-    { jour: -14, label: "Éliminer tous produits transformés et sucreries" },
-    { jour: -12, label: "2 jours de jeûne plein" },
-    { jour: -7, label: "2L d’eau/jour, pas de repas après 19h, plage 45min" },
+    { jour: -30, label: "Respect strict des quantités à chaque repas", critereIds: [1] },
+    { jour: -17, label: "Pas de féculents le soir (lun-dim) + action après repas", critereIds: [2] },
+    { jour: -14, label: "Éliminer tous produits transformés et sucreries", critereIds: [3] },
+    { jour: -12, label: "2 jours de jeûne plein", critereIds: [4] },
+    { jour: -7, label: "Phase 3 Pré-jeûne : hydratation, horaire, durée", critereIds: [7, 8, 9] },
     { jour: 0, label: "Lancement du jeûne" },
   ];
   // Calcul du critère actif du jour (en phase préparation)
@@ -494,6 +494,15 @@ export default function Suivi() {
       const next = criteresPreparation[idx+1];
       return jRelatif <= c.jour && (!next || jRelatif > next.jour);
     }) || null;
+  }
+
+  function getCritereIdsActifs(critere) {
+    if (!critere) return [];
+    if (Array.isArray(critere.critereIds) && critere.critereIds.length > 0) {
+      return critere.critereIds;
+    }
+    const id = getCritereIdFromLabel(critere.label);
+    return id ? [id] : [];
   }
   // Stockage des validations locales (clé: "prep_valid_{date}")
   const [prepValid, setPrepValid] = useState(() => {
@@ -884,13 +893,13 @@ export default function Suivi() {
   useEffect(() => {
     // Ne rien faire si pas en phase préparation
     if (!preparationActive || !critereActif || !dateJeune) return;
-    
-    // Identifier le critère actuel
-    const critereIdActuel = getCritereIdFromLabel(critereActif.label);
-    
+
+    const critereIdsActifs = getCritereIdsActifs(critereActif);
+
     // Analyser uniquement les critères auto-validables (1,2,3,4,5,7,8,9)
     const criteresAuto = [1, 2, 3, 4, 5, 7, 8, 9];
-    if (!criteresAuto.includes(critereIdActuel)) return;
+    const idsAutoActifs = critereIdsActifs.filter(id => criteresAuto.includes(id));
+    if (idsAutoActifs.length === 0) return;
     
     // Filtrer les repas des 7 derniers jours
     const repas7j = repasSemaine.filter(r => {
@@ -902,13 +911,15 @@ export default function Suivi() {
     
     // Exécuter l'analyse automatique
     const statuts = {};
-    const statutCritere = getStatutCritereAuto(critereIdActuel, repas7j);
-    statuts[critereIdActuel] = statutCritere;
-    
-    // Valider automatiquement si critère respecté
-    if (statutCritere.validé) {
-      validerCritereAuto(critereIdActuel);
-    }
+    idsAutoActifs.forEach(critereId => {
+      const statutCritere = getStatutCritereAuto(critereId, repas7j);
+      statuts[critereId] = statutCritere;
+
+      // Valider automatiquement si critère respecté
+      if (statutCritere.validé) {
+        validerCritereAuto(critereId);
+      }
+    });
     
     setStatutsValidationAuto(statuts);
     
@@ -1855,41 +1866,51 @@ export default function Suivi() {
                     
                     {/* ═══ NOUVEAU : Affichage validation auto si critère concerné ═══ */}
                     {(() => {
-                      const critereId = getCritereIdFromLabel(critereActif.label);
-                      const statutAuto = statutsValidationAuto[critereId];
-                      const isAutoValidable = [1, 2, 3, 4, 5, 7, 8, 9].includes(critereId);
-                      
-                      if (isAutoValidable && statutAuto) {
-                        const seuilAuto = getSeuilCritereAuto(critereId);
-                        const joursRestants = Math.max(0, seuilAuto - (statutAuto.joursRespectés || 0));
-                        return statutAuto.validé ? (
-                          <>
-                            <div style={{color:'#43a047', fontWeight:700, margin:'8px 0'}}>
-                              ✅ Critère validé automatiquement !
-                            </div>
-                            <div style={{fontSize: 14, color: '#555'}}>
-                              📊 {statutAuto.joursRespectés}/7 jours respectés
-                            </div>
-                            <div style={{fontSize: 13, color: '#888', marginTop: 6}}>
-                              (Détection automatique basée sur vos saisies)
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div style={{fontSize: 14, color: '#555', margin:'8px 0'}}>
-                              ⏳ Suivi automatique en cours
-                            </div>
-                            <div style={{fontSize: 15, fontWeight: 600}}>
-                              📊 {statutAuto.joursRespectés}/7 jours respectés
-                            </div>
-                            <div style={{fontSize: 13, color: '#888', marginTop: 6}}>
-                              Encore {joursRestants} jour(s) pour valider
-                            </div>
-                          </>
+                      const criteresAuto = [1, 2, 3, 4, 5, 7, 8, 9];
+                      const labelsCritere = {
+                        1: 'Portions',
+                        2: 'Féculents le soir',
+                        3: 'Transformés/sucreries',
+                        4: 'Jeûnes réalisés',
+                        5: 'Transition pré-jeûne',
+                        7: 'Hydratation 2L',
+                        8: 'Pas après 19h',
+                        9: 'Repas ≤ 45 min'
+                      };
+                      const idsActifs = getCritereIdsActifs(critereActif).filter(id => criteresAuto.includes(id));
+
+                      if (idsActifs.length > 0) {
+                        return (
+                          <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                            {idsActifs.map(id => {
+                              const statutAuto = statutsValidationAuto[id];
+                              if (!statutAuto) return null;
+                              const seuilAuto = getSeuilCritereAuto(id);
+                              const joursRestants = Math.max(0, seuilAuto - (statutAuto.joursRespectés || 0));
+
+                              return (
+                                <div key={`critere-auto-${id}`} style={{
+                                  background: '#FFFFFF',
+                                  border: `1px solid ${statutAuto.validé ? '#A5D6A7' : '#BBDEFB'}`,
+                                  borderRadius: 10,
+                                  padding: '8px 10px',
+                                  textAlign: 'left'
+                                }}>
+                                  <div style={{ fontSize: 13, color: '#0F172A', fontWeight: 700 }}>{labelsCritere[id] || `Critère ${id}`}</div>
+                                  <div style={{ fontSize: 13, color: statutAuto.validé ? '#2E7D32' : '#334155', marginTop: 2 }}>
+                                    📊 {statutAuto.joursRespectés || 0}/{seuilAuto} jours
+                                  </div>
+                                  <div style={{ fontSize: 12, color: statutAuto.validé ? '#2E7D32' : '#64748B', marginTop: 2 }}>
+                                    {statutAuto.validé ? '✅ Auto-validé' : `⏳ Encore ${joursRestants} jour(s)`}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         );
                       }
-                      
-                      // Critères non auto-validables (4, 5, 6) : validation manuelle
+
+                      // Critères non auto-validables : validation manuelle
                       return prepValid ? (
                         <div style={{color:'#43a047', fontWeight:700, margin:'8px 0'}}>✅ Critère validé pour aujourd'hui !</div>
                       ) : (

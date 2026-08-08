@@ -94,3 +94,34 @@ Après : Documentation consolidée des évolutions intermédiaires effectivement
 - Couverture test enrichie dans `tests/validerCriterePreparation.auto.test.js` (14 cas passants) pour sécuriser les règles auto et assistées.
 
 Prochaines étapes : Vérifier en usage réel que le bloc “routines déjà introduites” est compris sans ambiguïté en phase 2, puis garder le registre synchronisé entrée par entrée à chaque lot validé pour éviter tout nouveau trou de passation.
+
+Date : 08/08/2026
+
+Action accomplie : Audit et correction de la phase 3 (Pré-jeûne) avec automatisation explicite des critères 7, 8 et 9, fiabilisation du moteur, et sécurisation par tests de non-régression.
+
+Avant :
+- Le jalon J-7 dans `pages/suivi.js` était géré comme un critère combiné unique, ce qui orientait le suivi actif vers un seul ID et rendait moins explicite la lecture distincte de l’hydratation, de l’horaire du dernier repas et de la durée des repas.
+- Le calcul du critère 9 (`≤ 45 min`) pouvait produire des faux positifs journaliers : une journée pouvait être comptée conforme même si un autre type de repas du même jour dépassait 45 minutes.
+- Le critère 8 reposait sur une comparaison textuelle des heures, moins robuste sur les formats horaires hétérogènes.
+
+Après :
+- `pages/suivi.js` :
+	- découpage explicite du jalon J-7 en `critereIds: [7, 8, 9]`.
+	- ajout d’une résolution des critères actifs par ID (`getCritereIdsActifs`) pour supporter un ou plusieurs critères simultanés.
+	- adaptation de l’effet d’auto-validation pour calculer/valider chaque ID actif (et non plus un seul).
+	- mise à jour de l’UI du bandeau “Critère du jour” pour afficher les statuts auto séparés de 7, 8, 9.
+- `lib/validerCriterePreparation.js` :
+	- critère 8 : parsing horaire en minutes avec validation du format (`HH:MM` ou `H:M`) avant comparaison au seuil 19:00.
+	- critère 9 : logique journalière stricte par date ; un dépassement > 45 min sur un type de repas rend la journée non conforme.
+	- compatibilité de mapping maintenue avec l’ancien libellé combiné et ajout du nouveau libellé phase 3.
+- `tests/validerCriterePreparation.auto.test.js` :
+	- ajout d’un test sur les heures non paddées pour le critère 8.
+	- ajout d’un test de non-conformité journalière pour le critère 9 en cas de dépassement sur un type de repas.
+- Validation technique :
+	- vérification erreurs IDE sur fichiers modifiés : OK.
+	- exécution Jest ciblée : `tests/validerCriterePreparation.auto.test.js` passé à 16/16.
+
+Prochaines étapes :
+- Vérifier en usage réel (mobile/desktop) la lisibilité du bandeau phase 3 quand les trois critères progressent en parallèle.
+- Si besoin, ajouter un résumé compact “x/3 critères phase 3 validés” pour lecture instantanée.
+- Continuer la discipline de log après chaque lot validé pour conserver une traçabilité complète.
