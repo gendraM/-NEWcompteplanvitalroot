@@ -43,7 +43,7 @@ Contrairement à l'audit `docs/audit prepap jeune a jour fevrier` (Feb 2026) enc
 | **Historique avancé (statistiques, comparaison, notes perso)** | `lib/statistiquesPreparationsJeune.js`, `lib/comparePreparationsJeune.js`, `lib/notesPreparationJeune.js` sont **des fichiers vides ne contenant qu'un commentaire** `// À compléter selon le plan d'implémentation validé`. `components/DetailPreparationJeune.js` est un **stub** (`<div>{/* À implémenter */}</div>`). C'est exactement la **Phase 3** du plan de conformité de juin, non commencée. |
 | **Historique consultable uniquement en local** | `/historique-preparations-jeune.js` ne relit jamais `getHistoriquePreparationsJeuneSupabase(userId)` — donc si un utilisateur change d'appareil, il ne verra pas ses anciennes préparations bien qu'elles soient sauvegardées côté cloud. |
 | **Reprise alimentaire après jeûne** | `pages/reprise-alimentaire-apres-jeune.js` importe `supabase` mais ne l'utilise quasiment pas ; commentaire explicite dans le code : `// Sauvegarde locale (pattern simple, à adapter pour Supabase si besoin)`. Fonctionnement encore majoritairement localStorage. |
-| **Modèle métier dupliqué (Phase 1 du plan juin, en cours)** | `lib/preparationJeuneMetier.js` porte un ancien modèle plus simple que celui réellement utilisé dans `pages/preparation-jeune.js` ; `components/StartPreparationModal.js` s'appuie encore sur l'ancien modèle. Risque de divergence de dates/critères entre écrans. |
+| ~~**Modèle métier dupliqué**~~ | ✅ **Résolu le 08/08/2026** : `lib/preparationJeuneMetier.js` a été réécrit pour exposer le modèle canonique (9 critères, 3 phases J-30/J-17/J-7) ; `pages/preparation-jeune.js` et `components/StartPreparationModal.js` consomment désormais tous deux ce même module. Voir §3. |
 | **Vision long-terme (Consolidation 45j, Portes de Constance, jeûnes récurrents)** | Décrite en détail dans `docs/TODO_PARCOURS_JEUNE_PRIORITE.md` (priorités P2/P3) mais **rien n'est implémenté** (`/consolidation-45-jours.js` n'existe pas). Ce document date d'avant la création de `preparation-jeune.js` : une partie de son "P0/P1" est obsolète (déjà fait), à ne garder que pour la partie P2/P3. |
 | **Tests projet** | `npx jest` → 1 suite cassée : `tests/validation-semaine.test.js` (erreur de parsing `export` — le fichier `lib/validationSemaine.js` est en ESM alors que le test le charge via `require`). Sans lien direct avec la prépa jeûne (concerne le bilan hebdo), mais à corriger si on relance la CI. |
 
@@ -56,52 +56,46 @@ Contrairement à l'audit `docs/audit prepap jeune a jour fevrier` (Feb 2026) enc
 
 ---
 
-## 3. 🎯 Reprise de contexte — ce sur quoi vous travailliez juste avant la pause
+## 3. 🎯 Reprise de contexte — historique de la session du 08/08/2026
 
-**Preuve directe : `git status` montre 3 fichiers modifiés mais NON commités** (donc le tout dernier état de travail, jamais sauvegardé) :
+### Étape A (commit `69d1c8f "prepa jeune maj"`, déjà pushé sur origin/PREPA-JEUNE)
+Correction du bug "Validation phase 3" signalé par l'audit de février (le bouton "Valider ce critère" ne rafraîchissait pas l'UI) :
+1. **`lib/validerCriterePreparation.js`** : ajout de `typeValidation: 'manuel'` lors d'une validation manuelle ; correction de `validerCritereAuto` pour ne plus jamais écraser un critère déjà `validé`, peu importe son type.
+2. **`pages/preparation-jeune.js`** : ajout de la section UI "Validation auto en direct" (5 critères auto-détectables + bloc "Prochain meilleur geste") ; `criteresPhase` est recalculé à partir de l'état React `criteres` à chaque rendu (au lieu de `phase.criteres` statique) → le clic sur "Valider ce critère" met enfin à jour l'UI ; ajout d'un résumé par phase (`phase.resume`, ex. "3/4 validés").
+3. **`components/PhaseCard.js`** : affichage du badge `phase.resume` dans le titre de la phase.
 
-```
- M components/PhaseCard.js
- M lib/validerCriterePreparation.js
- M pages/preparation-jeune.js
-?? docs/PLAN_ACTION_MISE_EN_CONFORMITE_PREPA_JEUNE_2026-06-29.md
-?? tests/validerCriterePreparation.auto.test.js  (déjà présent, tests passent)
-```
+### Étape B (en cours, NON commitée) — Phase 1 du plan de conformité : modèle métier unique
+Suite à validation explicite de la méthode par l'utilisateur, exécution des actions 1-3 et 5 du cadrage opérationnel de la Phase 1 :
+1. **Modèle canonique extrait** de `pages/preparation-jeune.js` (9 critères avec jalons 30/17/17/14/14/12/7/7/7, 3 phases J-30→J-18 / J-17→J-8 / J-7→J0).
+2. **`lib/preparationJeuneMetier.js` réécrit** : exporte désormais `CRITERES_PREPARATION`, `PHASES_PREPARATION`, et les fonctions `getPhasesPreparation`, `getPhaseDuJour`, `getCriteresDuJour`, `validerCriteresDuJour` basées sur ce modèle unique (l'ancien modèle J-14/J-7/J0 à 6 critères a été supprimé).
+3. **`pages/preparation-jeune.js`** : les tableaux locaux `criteresMetier` et `phasesAvecCriteres` (dupliqués) ont été remplacés par des références directes au module partagé (`CRITERES_PREPARATION` et `phasesMetier = getPhasesPreparation()`).
+4. **`components/StartPreparationModal.js`** : **aucune modification de code nécessaire** — il importait déjà `getPhaseDuJour`/`getCriteresDuJour` depuis `lib/preparationJeuneMetier.js`, donc il hérite automatiquement du nouveau modèle aligné.
+5. **`pages/start-preparation.js`** : vérifié, ne dépend d'aucun des deux modèles (délègue tout à `StartPreparationModal`) — rien à faire.
+6. **Test de non-régression ajouté** : [tests/preparationJeuneMetier.test.js](tests/preparationJeuneMetier.test.js) (5 tests, vérifie les 9 critères/jalons, les 3 phases J-30→J0, la répartition sans perte, et `getPhaseDuJour`/`getCriteresDuJour`).
+7. **Vérifications faites** : `npx next build` ✅ (aucune erreur, `/preparation-jeune` et `/start-preparation` compilent), `npx jest` ✅ (12/12 tests passent sur les 3 suites valides ; la 4e suite `tests/validation-semaine.test.js` reste cassée pour une raison préexistante sans lien — absence de config Babel dans le repo, voir §2).
 
-Ceci correspond précisément au **point bloquant identifié par l'audit de février** ("Validation phase 3 : le bouton ne met pas à jour l'état React") et au lancement de la **Phase 1 du plan de conformité du 29/06/2026** ("Unifier la source de vérité métier prépa jeûne"). Concrètement, le travail en cours consiste à :
-
-1. **`lib/validerCriterePreparation.js`** :
-   - Ajout d'un champ `typeValidation: 'manuel'` lors d'une validation manuelle.
-   - **Correction d'un bug** dans `validerCritereAuto` : avant, l'auto-validation ne respectait un critère déjà validé que s'il était marqué `typeValidation === 'manuel'` (donc elle pouvait ré-écraser un critère déjà auto-validé). Correction : ne plus jamais écraser un critère `validé`, peu importe son type.
-
-2. **`pages/preparation-jeune.js`** :
-   - Ajout d'une nouvelle section UI **"Validation auto en direct"** (visible uniquement si `preparationActive`), qui affiche en temps réel les 5 critères auto-détectables (Portions, Féculents le soir, Hydratation, Pas après 19h, Repas ≤ 45 min) avec un badge `x/seuil`, un statut ✅/⏳, et un bloc **"Prochain meilleur geste"** calculé dynamiquement (le critère le plus proche d'être validé).
-   - **Correction du bug central** : `criteresPhase` est maintenant recalculé à partir de l'état React `criteres` (via `criteresParId`) à chaque rendu de phase, au lieu de passer directement `phase.criteres` (liste statique). Résultat : `PhaseCard` reçoit désormais `valide`, `dateValidation`, `typeValidation` à jour → **le clic sur "Valider ce critère" met enfin à jour visuellement l'UI**.
-   - Ajout d'un résumé par phase (`resumePhase`, ex: "3/4 validés") transmis à `PhaseCard` via une nouvelle prop `phase.resume`.
-
-3. **`components/PhaseCard.js`** :
-   - Le titre de la phase (`<h2>`) affiche maintenant un badge à droite avec `phase.resume` (ex. "3/4 validés") — changement purement visuel pour accompagner le point précédent.
-
-**Statut de ce travail : fonctionnellement terminé mais NON commité ni testé dans le navigateur.** Les tests unitaires (`tests/validerCriterePreparation.auto.test.js`) passent (6/6), mais aucune preuve de test manuel dans le navigateur n'a été trouvée (pas d'entrée récente dans `docs/Anomalie roll back` confirmant une validation UI).
+**Ce qui n'a PAS encore été fait pour clôturer entièrement la Phase 1** :
+- Test manuel dans le navigateur (`npm run dev`) du parcours complet préparation + démarrage (pas seulement `next build`).
+- Commit de `lib/preparationJeuneMetier.js`, `pages/preparation-jeune.js` et `tests/preparationJeuneMetier.test.js` (actuellement en attente, non commités).
 
 ### 👉 Tâche immédiate à reprendre en premier
 
-1. Relancer le serveur dev (`npm run dev`) et **tester manuellement dans le navigateur** la page `/preparation-jeune` : vérifier que cliquer sur "Valider ce critère" met bien à jour le badge de la phase et le statut du critère (c'était le bug initial signalé).
-2. Vérifier que le nouveau bloc "Validation auto en direct" ne casse rien visuellement (responsive, absence de `preparationActive` → section masquée correctement).
-3. Si OK : **commiter** ces 3 fichiers (actuellement en attente), avec un message du type `fix(preparation-jeune): sync état React critères + validation auto en direct`.
-4. Poursuivre la Phase 1 du plan de conformité : réconcilier `lib/preparationJeuneMetier.js` (ancien modèle) et `components/StartPreparationModal.js` avec le modèle réel de `pages/preparation-jeune.js` (3 phases, 9 critères, jalons J-30/J-17/J-14/J-12/J-7).
+1. Lancer `npm run dev`, ouvrir `/start-preparation` (vérifier que la phase du jour affichée correspond au bon jalon J-30/17/14/12/7) puis `/preparation-jeune` (vérifier que la validation d'un critère met bien à jour le badge de la phase).
+2. Si OK : commiter les 3 fichiers ci-dessus (`fix(preparation-jeune): unifie le modèle métier partagé — phase 1 plan conformité`).
+3. Passer à la **Phase 2** du plan de conformité (parcours unifié préparation → jeûne → reprise).
 
 ---
 
 ## 4. 🗺️ Roadmap structurée (à faire plus tard)
 
 ### Court terme — finir la Phase 1 du plan de conformité (en cours)
-- [ ] Valider manuellement en navigateur le fix de synchronisation React (voir §3).
-- [ ] Commiter le travail en cours.
-- [ ] Réécrire `lib/preparationJeuneMetier.js` pour qu'il expose le modèle de référence complet (3 phases, 9 critères, jalons, conseils) au lieu de l'ancien modèle simplifié.
-- [ ] Brancher `components/StartPreparationModal.js` sur ce modèle unique.
-- [ ] Vérifier `pages/start-preparation.js` (cohérence de démarrage).
-- [ ] Ajouter des tests de non-régression sur la structure phases/critères/jalons.
+- [x] Valider manuellement en navigateur le fix de synchronisation React (voir §3, commit `69d1c8f`).
+- [x] Commiter le travail en cours (commit `69d1c8f "prepa jeune maj"`, poussé sur origin/PREPA-JEUNE).
+- [x] Réécrire `lib/preparationJeuneMetier.js` pour qu'il expose le modèle de référence complet (3 phases, 9 critères, jalons, conseils) au lieu de l'ancien modèle simplifié.
+- [x] Brancher `components/StartPreparationModal.js` sur ce modèle unique (automatique, aucun changement de code nécessaire).
+- [x] Vérifier `pages/start-preparation.js` (cohérence de démarrage) — ne dépend d'aucun modèle direct, rien à faire.
+- [x] Ajouter des tests de non-régression sur la structure phases/critères/jalons ([tests/preparationJeuneMetier.test.js](tests/preparationJeuneMetier.test.js), 5 tests ✅).
+- [ ] **Reste à faire pour clore la Phase 1** : test manuel navigateur du parcours complet (au-delà de `next build`), puis commit de `lib/preparationJeuneMetier.js` + `pages/preparation-jeune.js` + `tests/preparationJeuneMetier.test.js` (actuellement en attente).
 
 ### Moyen terme — Phase 2 du plan de conformité : parcours unifié
 - [ ] Définir un statut global de parcours (préparation → jeûne → reprise).

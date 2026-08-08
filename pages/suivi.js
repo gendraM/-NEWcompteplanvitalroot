@@ -693,10 +693,15 @@ export default function Suivi() {
   // Affiche le composant avant la sélection du type de repas
   const handleSaveRepas = async (repasData) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const repasPayload = {
+        ...repasData,
+        user_id: repasData.user_id || user?.id || null,
+      };
       // Enregistrement du repas dans Supabase
       const { data, error } = await supabase
         .from("repas_reels")
-        .insert([repasData]);
+        .insert([repasPayload]);
       if (error) {
         setSnackbar({ open: true, message: "Erreur Supabase : " + error.message, type: "error" });
         return;

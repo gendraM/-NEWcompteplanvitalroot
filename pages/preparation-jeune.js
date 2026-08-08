@@ -29,8 +29,9 @@ function DebugPreparationJeune() {
 }
 // ...existing code...
 
-  // === PHASES MÉTIER PARTAGÉES ===
+  // === PHASES MÉTIER PARTAGÉES (source unique, cf. lib/preparationJeuneMetier.js) ===
   import {
+    CRITERES_PREPARATION,
     getPhasesPreparation,
     getPhaseDuJour,
     getCriteresDuJour,
@@ -43,8 +44,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { validerCritereAuto, getStatutCritereAuto } from '../lib/validerCriterePreparation';
 import { getCritereIdFromLabel } from '../lib/validerCriterePreparation';
-import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif, getFenetreValidation } from "../lib/validerCriterePreparation";
+import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif, getFenetreValidation, evaluerRespectPortionRepas } from "../lib/validerCriterePreparation";
 import { savePreparationJeuneSupabase, getPreparationJeuneSync } from '../lib/preparationsJeune';
+import referentielAliments from '../data/referentiel';
 import HeaderPreparation from '../components/HeaderPreparation';
 import TimelinePreparation from '../components/TimelinePreparation';
 import ProgressBar from '../components/ProgressBar';
@@ -135,48 +137,13 @@ export default function PreparationJeune() {
   const [preparationActive, setPreparationActive] = useState(false);
   const [statutsValidationAutoPrep, setStatutsValidationAutoPrep] = useState({});
   const [joursFenetre7j, setJoursFenetre7j] = useState([]);
+  const [repasAutoValidation, setRepasAutoValidation] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [preparationData, setPreparationData] = useState(null);
   const [feedbackMessage, setFeedbackMessage] = useState("");
-  const criteresMetier = [
-    { id: 1, label: "Respect strict des quantités à chaque repas", jalon: 30, description: "Réapprendre à ton corps ce qu'est une vraie portion", titre: "Respect strict des quantités", conseil: "Réapprendre à ton corps ce qu'est une vraie portion" },
-    { id: 2, label: "Supprimer les féculents le soir (lun-dim)", jalon: 17, description: "Alléger la digestion le soir pour préparer le jeûne", titre: "Supprimer les féculents le soir", conseil: "Alléger la digestion le soir pour préparer le jeûne" },
-    { id: 3, label: "Action immédiate après le repas (marche/ménage)", jalon: 17, description: "Activer la digestion et éviter le stockage", titre: "Action immédiate après le repas", conseil: "Activer la digestion et éviter le stockage (marche/ménage)" },
-    { id: 4, label: "Éliminer tous produits transformés", jalon: 14, description: "Limiter les toxines et l'inflammation", titre: "Éliminer tous produits transformés", conseil: "Limiter les toxines et l'inflammation" },
-    { id: 5, label: "Éliminer toutes sucreries", jalon: 14, description: "Stabiliser la glycémie et l'énergie", titre: "Éliminer toutes sucreries", conseil: "Stabiliser la glycémie et l'énergie" },
-    { id: 6, label: "2 jours de jeûne plein (préparation métabolique)", jalon: 12, description: "Tester la tolérance au jeûne", titre: "2 jours de jeûne plein", conseil: "Tester la tolérance au jeûne (préparation métabolique)" },
-    { id: 7, label: "2 litres d'eau par jour (suivi automatique)", jalon: 7, description: "Hydratation optimale avant le jeûne", titre: "2 litres d'eau par jour", conseil: "Hydratation optimale avant le jeûne (suivi automatique)" },
-    { id: 8, label: "Pas de repas après 19h00", jalon: 7, description: "Préparer le système digestif au jeûne", titre: "Pas de repas après 19h00", conseil: "Préparer le système digestif au jeûne" },
-    { id: 9, label: "Plage alimentaire limitée à 45 minutes par repas", jalon: 7, description: "Limiter le grignotage et améliorer la digestion", titre: "Plage alimentaire 45 min max", conseil: "Limiter le grignotage et améliorer la digestion" },
-  ];
-
-  // Organisation des critères par phase (selon les jalons)
-  const phasesAvecCriteres = [
-    {
-      id: 'phase1-fondation',
-      nom: 'Phase 1 : Allègement',
-      debut: -30,
-      fin: -18,
-      objectif: 'Rééquilibrer l\'alimentation et limiter les excès',
-      criteres: criteresMetier.filter(c => c.jalon === 30)
-    },
-    {
-      id: 'phase2-intensification',
-      nom: 'Phase 2 : Végétalisation',
-      debut: -17,
-      fin: -8,
-      objectif: 'Alléger la digestion et supprimer les toxines',
-      criteres: criteresMetier.filter(c => [17, 14, 12].includes(c.jalon))
-    },
-    {
-      id: 'phase3-prejeune',
-      nom: 'Phase 3 : Pré-jeûne',
-      debut: -7,
-      fin: 0,
-      objectif: 'Préparer le corps au jeûne immédiat',
-      criteres: criteresMetier.filter(c => c.jalon === 7)
-    }
-  ];
+  // Modèle unique partagé (lib/preparationJeuneMetier.js) : plus de définition locale dupliquée
+  const criteresMetier = CRITERES_PREPARATION;
+  const phasesAvecCriteres = phasesMetier;
   const autoValidationConfig = [
     { id: 1, label: 'Portions', seuil: 6, conseil: 'Utilise les repères visuels à chacun de tes repas aujourd’hui.' },
     { id: 2, label: 'Féculents le soir', seuil: 5, conseil: 'Prévois ce soir un dîner sans féculents.' },
@@ -232,11 +199,14 @@ export default function PreparationJeune() {
     async function analyserRepas7Jours() {
       try {
         if (!preparationActive) return;
-        // Charger les repas récents
+        if (!userId) return; // Pas d'utilisateur connecté : pas de repas à analyser
+        // Charger les repas récents (uniquement ceux de l'utilisateur connecté)
         const { data: repasData, error } = await supabase
           .from('repas_reels')
           .select('*')
+          .eq('user_id', userId)
           .order('date', { ascending: false })
+          .order('created_at', { ascending: false })
           .limit(200);
         if (error) return;
         const today = new Date();
@@ -245,6 +215,7 @@ export default function PreparationJeune() {
           const diff = Math.floor((today - d) / (1000*60*60*24));
           return diff >= 0 && diff < 7;
         });
+        setRepasAutoValidation(repas7j);
         // Générer la fenêtre J-6 -> J-0 pour affichage
         const jours = Array.from({ length: 7 }).map((_, i) => {
           const d = new Date(today);
@@ -257,7 +228,7 @@ export default function PreparationJeune() {
         const ids = [1, 2, 7, 8, 9];
         const statuts = {};
         ids.forEach(id => {
-          statuts[id] = getStatutCritereAuto(id, repas7j);
+          statuts[id] = getStatutCritereAuto(id, repas7j, referentielAliments);
           if (statuts[id].validé) {
             validerCritereAuto(id);
           }
@@ -268,7 +239,7 @@ export default function PreparationJeune() {
       }
     }
     analyserRepas7Jours();
-  }, [preparationActive, dateJeune]);
+  }, [preparationActive, dateJeune, userId]);
 
   // Helpers formatage période/date
   function addDays(baseDate, offset) {
@@ -508,17 +479,124 @@ const DebugPanel = () => (
     return acc;
   }, {});
 
+  const aujourdHuiIso = formatISODate(aujourdhui);
+  const repasAujourdhui = repasAutoValidation.filter(repas => repas.date === aujourdHuiIso);
+
+  function getResumeCritereDuJour(critereId) {
+    if (repasAujourdhui.length === 0) {
+      return {
+        titre: 'Aujourd’hui',
+        detail: 'Aucun repas saisi aujourd’hui.',
+        ton: '#64748B'
+      };
+    }
+
+    if (critereId === 1) {
+      const repasAnalysables = repasAujourdhui.filter(repas => !repas.est_extra && !repas.isFastFood);
+      const repasCorrects = repasAnalysables.filter(repas => evaluerRespectPortionRepas(repas, referentielAliments) === true);
+      const repasNonAnalysables = repasAnalysables.filter(repas => evaluerRespectPortionRepas(repas, referentielAliments) === null).length;
+      return {
+        titre: 'Aujourd’hui',
+        detail: `${repasCorrects.length}/${repasAnalysables.length} repas avec portion conforme${repasNonAnalysables > 0 ? ` • ${repasNonAnalysables} non analysable${repasNonAnalysables > 1 ? 's' : ''}` : ''}`,
+        ton: repasCorrects.length === repasAnalysables.length && repasAnalysables.length > 0 ? '#059669' : '#475569'
+      };
+    }
+
+    if (critereId === 2) {
+      const diners = repasAujourdhui.filter(repas => repas.type === 'Dîner' || repas.type === 'Diner');
+      if (diners.length === 0) {
+        return { titre: 'Aujourd’hui', detail: 'Aucun dîner saisi pour ce critère.', ton: '#64748B' };
+      }
+      const feculents = ['pain', 'pâtes', 'pate', 'riz', 'pomme de terre', 'pommes de terre', 'quinoa', 'boulgour', 'semoule', 'couscous', 'féculent', 'feculent'];
+      const contientFeculent = diners.some(diner => {
+        const aliment = String(diner.aliment || '').toLowerCase();
+        const categorie = String(diner.categorie || '').toLowerCase();
+        return feculents.some(fec => aliment.includes(fec) || categorie.includes(fec));
+      });
+      return {
+        titre: 'Aujourd’hui',
+        detail: contientFeculent ? 'Dîner avec féculent détecté.' : 'Dîner saisi sans féculent détecté.',
+        ton: contientFeculent ? '#B45309' : '#059669'
+      };
+    }
+
+    if (critereId === 7) {
+      const totalMl = repasAujourdhui.reduce((sum, repas) => {
+        const aliment = String(repas.aliment || '').toLowerCase();
+        const categorie = String(repas.categorie || '').toLowerCase();
+        const quantite = String(repas.quantite || '').toLowerCase();
+        const motsEau = ['eau', 'verre', 'bouteille', 'tisane', 'thé', 'the', 'infusion'];
+        if (!motsEau.some(mot => aliment.includes(mot) || categorie.includes(mot))) return sum;
+        if (quantite.includes('2l') || quantite.includes('2 l')) return sum + 2000;
+        if (quantite.includes('1.5l') || quantite.includes('1,5')) return sum + 1500;
+        if (quantite.includes('1l') || quantite.includes('1 l')) return sum + 1000;
+        if (quantite.includes('bouteille')) return sum + 500;
+        if (quantite.includes('verre')) return sum + 250;
+        if (quantite.includes('litre')) return sum + 1000;
+        return sum;
+      }, 0);
+      return {
+        titre: 'Aujourd’hui',
+        detail: `${totalMl} ml détectés sur 2000 ml requis.`,
+        ton: totalMl >= 2000 ? '#059669' : '#475569'
+      };
+    }
+
+    if (critereId === 8) {
+      const heures = repasAujourdhui.map(repas => repas.heureRepas || repas.heure_repas || repas.heure).filter(Boolean).sort();
+      if (heures.length === 0) {
+        return { titre: 'Aujourd’hui', detail: 'Aucune heure de repas détectée.', ton: '#64748B' };
+      }
+      const derniereHeure = heures[heures.length - 1];
+      return {
+        titre: 'Aujourd’hui',
+        detail: `Dernier repas détecté à ${derniereHeure}.`,
+        ton: derniereHeure < '19:00' ? '#059669' : '#B45309'
+      };
+    }
+
+    if (critereId === 9) {
+      const groupes = {};
+      repasAujourdhui.forEach(repas => {
+        const cle = repas.type || 'Repas';
+        if (!groupes[cle]) groupes[cle] = [];
+        groupes[cle].push(repas);
+      });
+      const resumes = Object.entries(groupes).map(([type, repas]) => {
+        const heures = repas.map(item => item.heureRepas || item.heure_repas || item.heure).filter(Boolean).sort();
+        if (heures.length <= 1) return `${type}: ${repas.length} saisie${repas.length > 1 ? 's' : ''} (provisoirement OK)`;
+        const [h1, m1] = heures[0].split(':').map(Number);
+        const [h2, m2] = heures[heures.length - 1].split(':').map(Number);
+        const duree = (h2 * 60 + m2) - (h1 * 60 + m1);
+        return `${type}: ${duree} min`;
+      });
+      return {
+        titre: 'Aujourd’hui',
+        detail: resumes.join(' • '),
+        ton: '#475569'
+      };
+    }
+
+    return {
+      titre: 'Aujourd’hui',
+      detail: 'Analyse du jour indisponible.',
+      ton: '#64748B'
+    };
+  }
+
   const autoValidationRows = autoValidationConfig.map(config => {
     const statut = statutsValidationAutoPrep[config.id] || { joursRespectés: 0, validé: false };
     const critere = criteresParId[config.id] || {};
     const reste = Math.max(0, config.seuil - (statut.joursRespectés || 0));
+    const resumeJour = getResumeCritereDuJour(config.id);
 
     return {
       ...config,
       joursRespectes: statut.joursRespectés || 0,
       valide: Boolean(statut.validé || critere.validé),
       reste,
-      typeValidation: critere.typeValidation || statut.typeValidation || null
+      typeValidation: critere.typeValidation || statut.typeValidation || null,
+      resumeJour
     };
   });
 
@@ -633,6 +711,10 @@ const DebugPanel = () => (
                   </div>
                   <div style={{ marginTop: 8, color: row.valide ? '#047857' : '#475569', fontSize: 13, fontWeight: 600 }}>
                     {row.valide ? '✅ Auto-validé' : `⏳ Encore ${row.reste} jour${row.reste > 1 ? 's' : ''}`}
+                  </div>
+                  <div style={{ marginTop: 8, background: '#F8FAFC', borderRadius: 10, padding: '8px 10px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ color: '#2563EB', fontWeight: 700, fontSize: 12, marginBottom: 2 }}>{row.resumeJour.titre}</div>
+                    <div style={{ color: row.resumeJour.ton, fontSize: 12, lineHeight: 1.4 }}>{row.resumeJour.detail}</div>
                   </div>
                 </div>
               ))}

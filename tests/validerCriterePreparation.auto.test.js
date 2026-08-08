@@ -91,6 +91,41 @@ describe('Auto-validation des critères de préparation', () => {
     expect(api.getCriteresPreparation()[1]).toMatchObject({ validé: true, typeValidation: 'auto' });
   });
 
+  test('critère 1 : valide aussi via le référentiel sur des quantités numériques', () => {
+    const repas = [];
+    const referentiel = [{ nom: 'Pad Thaï poulet', portionDefaut: 'bol', unite: 'bol' }];
+
+    for (let index = 1; index <= 6; index += 1) {
+      repas.push(repasBase(`2026-06-0${index}`, {
+        aliment: 'Pad Thaï poulet',
+        categorie: 'asiatique',
+        quantite: 1,
+      }));
+    }
+
+    const statut = api.getStatutCritereAuto(1, repas, referentiel);
+
+    expect(statut.joursRespectés).toBe(6);
+    expect(statut.validé).toBe(true);
+  });
+
+  test('critère 1 : utilise la confirmation manuelle si l’aliment n’est pas au référentiel', () => {
+    const repas = [];
+
+    for (let index = 1; index <= 6; index += 1) {
+      repas.push(repasBase(`2026-06-0${index}`, {
+        aliment: 'Plat maison inconnu',
+        quantite: 1,
+        regle_respectee: true,
+      }));
+    }
+
+    const statut = api.getStatutCritereAuto(1, repas, []);
+
+    expect(statut.joursRespectés).toBe(6);
+    expect(statut.validé).toBe(true);
+  });
+
   test('critère 2 : valide à 5 dîners sans féculents', () => {
     const repas = [];
     for (let index = 1; index <= 5; index += 1) {
