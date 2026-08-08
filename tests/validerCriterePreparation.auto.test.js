@@ -8,7 +8,7 @@ function chargerModuleValidation() {
   const transformed = source
     .replace(/export function /g, 'function ')
     .replace(/export const /g, 'const ')
-    .concat('\nmodule.exports = { calculerJourRelatif, validerCriterePreparation, getCriteresPreparation, getFenetreValidation, getStatutCritere, isPeriodeActive, validerCritereAuto, getStatutCritereAuto, analyserPortions, detecterFeculents, calculerHydratation, verifierHeureRepas, calculerDureeRepas, getCritereIdFromLabel, evaluerRespectPortionRepas };');
+    .concat('\nmodule.exports = { calculerJourRelatif, validerCriterePreparation, getCriteresPreparation, getFenetreValidation, getStatutCritere, isPeriodeActive, validerCritereAuto, getSeuilCritereAuto, getStatutCritereAuto, analyserPortions, detecterFeculents, calculerHydratation, verifierHeureRepas, calculerDureeRepas, detecterJoursJeunePlein, detecterTransitionPreJeune, getCritereIdFromLabel, evaluerRespectPortionRepas };');
 
   const storage = new Map();
   const localStorage = {
@@ -170,6 +170,101 @@ describe('Auto-validation des critères de préparation', () => {
 
     expect(statut.joursRespectés).toBe(5);
     expect(statut.validé).toBe(true);
+  });
+
+  test('critère 3 : valide à 5 jours conformes sans produits transformés ni sucreries', () => {
+    const repas = [];
+
+    for (let index = 1; index <= 5; index += 1) {
+      repas.push(repasBase(`2026-06-0${index}`, {
+        aliment: 'salade verte',
+        categorie: 'legumes'
+      }));
+    }
+
+    repas.push(repasBase('2026-06-06', {
+      aliment: 'bonbons gélifiés',
+      categorie: 'confiserie'
+    }));
+
+    const statut = api.getStatutCritereAuto(3, repas);
+
+    expect(statut.joursRespectés).toBe(5);
+    expect(statut.joursNonConformes).toBe(1);
+    expect(statut.validé).toBe(true);
+  });
+
+  test('critère 3 : un jour ambigu n’est pas compté comme conforme', () => {
+    const repas = [];
+
+    for (let index = 1; index <= 4; index += 1) {
+      repas.push(repasBase(`2026-06-0${index}`, {
+        aliment: 'poisson grillé',
+        categorie: 'proteines'
+      }));
+    }
+
+    repas.push(repasBase('2026-06-05', {
+      aliment: '',
+      categorie: '',
+      note: ''
+    }));
+
+    const statut = api.getStatutCritereAuto(3, repas);
+
+    expect(statut.joursRespectés).toBe(4);
+    expect(statut.joursAmbigus).toBe(1);
+    expect(statut.validé).toBe(false);
+  });
+
+  test('critère 4 : compte 2 jours de jeûne plein sur catégorie Jeûne', () => {
+    const repas = [
+      repasBase('2026-06-01', { categorie: 'Jeûne', aliment: '', quantite: null, kcal: null }),
+      repasBase('2026-06-02', { categorie: 'Jeûne', aliment: '', quantite: null, kcal: null }),
+      repasBase('2026-06-03', { categorie: 'legumes', aliment: 'salade verte', quantite: '1 poing' })
+    ];
+
+    const statut = api.getStatutCritereAuto(4, repas);
+
+    expect(statut.joursRespectés).toBe(2);
+    expect(statut.seuil).toBe(2);
+    expect(statut.validé).toBe(true);
+  });
+
+  test('critère 5 : transition pré-jeûne invalide si snack sucré détecté', () => {
+    const repas = [];
+
+    for (let index = 1; index <= 5; index += 1) {
+      repas.push(repasBase(`2026-06-0${index}`, {
+        aliment: 'poisson vapeur',
+        categorie: 'proteines'
+      }));
+    }
+
+    repas.push(repasBase('2026-06-06', {
+      aliment: 'cookies chocolat',
+      categorie: 'snack'
+    }));
+
+    const statut = api.getStatutCritereAuto(5, repas);
+
+    expect(statut.joursRespectés).toBe(5);
+    expect(statut.joursNonConformes).toBe(1);
+    expect(statut.validé).toBe(true);
+  });
+
+  test('critère 6 : mode assisté propose la validation sans auto-valider', () => {
+    const repas = [
+      repasBase('2026-06-01', { categorie: 'Jeûne', aliment: '', quantite: null, kcal: null }),
+      repasBase('2026-06-02', { categorie: 'Jeûne', aliment: '', quantite: null, kcal: null }),
+      repasBase('2026-06-03', { categorie: 'legumes', aliment: 'salade verte', quantite: '1 poing' })
+    ];
+
+    const statut = api.getStatutCritereAuto(6, repas);
+
+    expect(statut.validationAssisteeRequise).toBe(true);
+    expect(statut.eligibleValidationAssistee).toBe(true);
+    expect(statut.validé).toBe(false);
   });
 
   test('critère 7 : valide à 5 jours avec 2L d eau', () => {

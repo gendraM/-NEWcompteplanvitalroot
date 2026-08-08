@@ -44,7 +44,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { validerCritereAuto, getStatutCritereAuto } from '../lib/validerCriterePreparation';
 import { getCritereIdFromLabel } from '../lib/validerCriterePreparation';
-import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif, getFenetreValidation, evaluerRespectPortionRepas, getResumePortionParJour, calculerVolumeHydratationRepas } from "../lib/validerCriterePreparation";
+import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif, getFenetreValidation, evaluerRespectPortionRepas, getResumePortionParJour, calculerVolumeHydratationRepas, getSeuilCritereAuto } from "../lib/validerCriterePreparation";
 import { savePreparationJeuneSupabase, getPreparationJeuneSync } from '../lib/preparationsJeune';
 import referentielAliments from '../data/referentiel';
 import HeaderPreparation from '../components/HeaderPreparation';
@@ -87,7 +87,7 @@ export default function PreparationJeune() {
 
   // Handler pour toggler l’état d’une phase
   const togglePhase = idx => {
-    setPhasesOuvertes(prev => prev.map((open, i) => i === idx ? !open : open));
+    setPhasesOuvertes(prev => prev.map((open, i) => (i === idx ? !open : false)));
   };
 
   // === HOOKS & VARIABLES (ordre strict) ===
@@ -141,15 +141,24 @@ export default function PreparationJeune() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [preparationData, setPreparationData] = useState(null);
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [suiviPreparationOuvert, setSuiviPreparationOuvert] = useState(true);
+  const [configJeuneCritere, setConfigJeuneCritere] = useState({
+    nombreJeunes: 2,
+    dureeHeures: 24,
+    option: 'A'
+  });
   // Modèle unique partagé (lib/preparationJeuneMetier.js) : plus de définition locale dupliquée
   const criteresMetier = CRITERES_PREPARATION;
   const phasesAvecCriteres = phasesMetier;
   const autoValidationConfig = [
-    { id: 1, label: 'Portions', seuil: 6, conseil: 'Utilise les repères visuels à chacun de tes repas aujourd’hui.' },
-    { id: 2, label: 'Féculents le soir', seuil: 5, conseil: 'Prévois ce soir un dîner sans féculents.' },
-    { id: 7, label: 'Hydratation', seuil: 5, conseil: 'Bois 2L d’eau aujourd’hui pour consolider ton rythme.' },
-    { id: 8, label: 'Pas après 19h', seuil: 5, conseil: 'Termine ton dîner avant 19h pour valider ce critère.' },
-    { id: 9, label: 'Repas ≤ 45 min', seuil: 5, conseil: 'Garde un repas simple et concentré pour rester sous 45 minutes.' }
+    { id: 1, label: 'Portions', mode: 'auto', conseil: 'Utilise les repères visuels à chacun de tes repas aujourd’hui.' },
+    { id: 2, label: 'Féculents le soir', mode: 'auto', conseil: 'Prévois ce soir un dîner sans féculents.' },
+    { id: 3, label: 'Transformés & sucreries', mode: 'auto', conseil: 'Remplace les produits transformés/sucrés par des alternatives brutes aujourd’hui.' },
+    { id: 4, label: `Jeûnes réalisés (${configJeuneCritere.nombreJeunes} x ${configJeuneCritere.dureeHeures}h)`, mode: 'auto', conseil: 'Suis le réalisé selon ta configuration validée (catégorie Jeûne).' },
+    { id: 5, label: 'Transition pré-jeûne', mode: 'auto', conseil: 'Reste sur des catégories de transition (brut, léger, sans ultra-transformé).' },
+    { id: 7, label: 'Hydratation', mode: 'auto', conseil: 'Bois 2L d’eau aujourd’hui pour consolider ton rythme.' },
+    { id: 8, label: 'Pas après 19h', mode: 'auto', conseil: 'Termine ton dîner avant 19h pour valider ce critère.' },
+    { id: 9, label: 'Repas ≤ 45 min', mode: 'auto', conseil: 'Garde un repas simple et concentré pour rester sous 45 minutes.' }
   ];
   const [criteres, setCriteres] = useState([]); // Liste dynamique avec statut validé
   const [progression, setProgression] = useState(0); // Nombre de critères validés
@@ -157,6 +166,31 @@ export default function PreparationJeune() {
   const [syntheseVisible, setSyntheseVisible] = useState(false);
 
   // === INITIALISATION (ordre strict) ===
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncConfigJeuneCritere = () => {
+      try {
+        const raw = localStorage.getItem('critere6Config');
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        const nombreJeunes = Number.parseInt(parsed?.nombreJeunes, 10);
+        const dureeHeures = Number.parseInt(parsed?.dureeHeures, 10);
+        setConfigJeuneCritere({
+          nombreJeunes: Number.isFinite(nombreJeunes) && nombreJeunes > 0 ? nombreJeunes : 2,
+          dureeHeures: Number.isFinite(dureeHeures) && dureeHeures > 0 ? dureeHeures : 24,
+          option: parsed?.option || 'A'
+        });
+      } catch (e) {
+        console.warn('[Préparation] Lecture critere6Config impossible:', e);
+      }
+    };
+
+    syncConfigJeuneCritere();
+    window.addEventListener('storage', syncConfigJeuneCritere);
+    return () => window.removeEventListener('storage', syncConfigJeuneCritere);
+  }, []);
+
   useEffect(() => {
     // Synchronisation cloud/local à l’ouverture (si connecté)
     async function syncPreparation() {
@@ -225,11 +259,13 @@ export default function PreparationJeune() {
         });
         setJoursFenetre7j(jours);
 
-        const ids = [1, 2, 7, 8, 9];
+        const ids = [1, 2, 3, 4, 5, 6, 7, 8, 9];
         const statuts = {};
         ids.forEach(id => {
-          statuts[id] = getStatutCritereAuto(id, repas7j, referentielAliments);
-          if (statuts[id].validé) {
+          statuts[id] = getStatutCritereAuto(id, repas7j, referentielAliments, {
+            jeuneConfig: configJeuneCritere,
+          });
+          if (id !== 6 && statuts[id].validé) {
             validerCritereAuto(id);
           }
         });
@@ -239,7 +275,7 @@ export default function PreparationJeune() {
       }
     }
     analyserRepas7Jours();
-  }, [preparationActive, dateJeune, userId]);
+  }, [preparationActive, dateJeune, userId, configJeuneCritere]);
 
   // Helpers formatage période/date
   function addDays(baseDate, offset) {
@@ -526,6 +562,93 @@ const DebugPanel = () => (
       };
     }
 
+    if (critereId === 3) {
+      const statut3 = statutsValidationAutoPrep[3];
+      if (!statut3) {
+        return { titre: 'Aujourd’hui', detail: 'Analyse transformés/sucreries en attente.', ton: '#64748B' };
+      }
+      const nonConformes = statut3.joursNonConformes || 0;
+      const ambigus = statut3.joursAmbigus || 0;
+      if (nonConformes > 0) {
+        return {
+          titre: 'Fenêtre 7 jours',
+          detail: `${nonConformes} jour(s) non conforme(s) détecté(s) (transformés/sucreries).`,
+          ton: '#B45309'
+        };
+      }
+      if (ambigus > 0) {
+        return {
+          titre: 'Fenêtre 7 jours',
+          detail: `${ambigus} jour(s) ambigus à confirmer (données incomplètes).`,
+          ton: '#64748B'
+        };
+      }
+      return {
+        titre: 'Fenêtre 7 jours',
+        detail: 'Aucun jour non conforme détecté sur produits transformés/sucreries.',
+        ton: '#059669'
+      };
+    }
+
+    if (critereId === 4) {
+      const statut4 = statutsValidationAutoPrep[4];
+      if (!statut4) {
+        return { titre: 'Fenêtre 7 jours', detail: 'Analyse des jeûnes réalisés en attente.', ton: '#64748B' };
+      }
+      if ((statut4.joursAmbigus || 0) > 0) {
+        return {
+          titre: 'Fenêtre 7 jours',
+          detail: `${statut4.joursAmbigus} jour(s) ambigus (données incomplètes).`,
+          ton: '#64748B'
+        };
+      }
+      return {
+        titre: 'Fenêtre 7 jours',
+        detail: `${statut4.joursRespectés || 0}/${statut4.seuil || configJeuneCritere.nombreJeunes} jeûne(s) détecté(s) selon ta configuration.`,
+        ton: '#059669'
+      };
+    }
+
+    if (critereId === 5) {
+      const statut5 = statutsValidationAutoPrep[5];
+      if (!statut5) {
+        return { titre: 'Fenêtre 7 jours', detail: 'Analyse de transition pré-jeûne en attente.', ton: '#64748B' };
+      }
+      if ((statut5.joursNonConformes || 0) > 0) {
+        return {
+          titre: 'Fenêtre 7 jours',
+          detail: `${statut5.joursNonConformes} jour(s) non conforme(s) dans la transition.`,
+          ton: '#B45309'
+        };
+      }
+      if ((statut5.joursAmbigus || 0) > 0) {
+        return {
+          titre: 'Fenêtre 7 jours',
+          detail: `${statut5.joursAmbigus} jour(s) ambigus à confirmer.`,
+          ton: '#64748B'
+        };
+      }
+      return {
+        titre: 'Fenêtre 7 jours',
+        detail: `Transition conforme sur ${statut5.joursRespectés || 0} jour(s).`,
+        ton: '#059669'
+      };
+    }
+
+    if (critereId === 6) {
+      const statut6 = statutsValidationAutoPrep[6];
+      if (!statut6) {
+        return { titre: 'Assistance', detail: 'Pré-analyse de validation assistée en attente.', ton: '#64748B' };
+      }
+      return {
+        titre: 'Assistance',
+        detail: statut6.eligibleValidationAssistee
+          ? '2 jours détectés: critère prêt pour validation assistée.'
+          : `${statut6.joursRespectés || 0}/2 jours détectés pour activer la validation assistée.`,
+        ton: statut6.eligibleValidationAssistee ? '#059669' : '#475569'
+      };
+    }
+
     if (critereId === 7) {
       const totalMl = repasAujourdhui.reduce((sum, repas) => sum + calculerVolumeHydratationRepas(repas, referentielAliments), 0);
       return {
@@ -578,20 +701,90 @@ const DebugPanel = () => (
   }
 
   const autoValidationRows = autoValidationConfig.map(config => {
-    const statut = statutsValidationAutoPrep[config.id] || { joursRespectés: 0, validé: false };
-    const critere = criteresParId[config.id] || {};
-    const reste = Math.max(0, config.seuil - (statut.joursRespectés || 0));
+    const statut = statutsValidationAutoPrep[config.id] || { joursRespectés: 0, validé: false, seuil: getSeuilCritereAuto(config.id) };
+    const critereMetier = criteresMetier.find(c => c.id === config.id) || null;
+    const phaseOrigine = critereMetier
+      ? phasesMetier.find(phase => (phase.jalons || []).includes(critereMetier.jalon))
+      : null;
+    const seuil = statut.seuil || getSeuilCritereAuto(config.id);
+    const reste = Math.max(0, seuil - (statut.joursRespectés || 0));
     const resumeJour = getResumeCritereDuJour(config.id);
 
     return {
       ...config,
+      jalon: critereMetier?.jalon || null,
+      phaseOrigineNom: phaseOrigine?.nom || 'Phase non déterminée',
+      seuil,
       joursRespectes: statut.joursRespectés || 0,
-      valide: Boolean(statut.validé || critere.validé),
+      valide: Boolean(statut.validé),
       reste,
-      typeValidation: critere.typeValidation || statut.typeValidation || null,
+      typeValidation: statut.typeValidation || null,
+      joursAmbigus: statut.joursAmbigus || 0,
+      joursNonConformes: statut.joursNonConformes || 0,
+      validationAssisteeRequise: Boolean(statut.validationAssisteeRequise),
+      eligibleValidationAssistee: Boolean(statut.eligibleValidationAssistee),
       resumeJour
     };
   });
+
+  function getEtatGuidage(row) {
+    if ((row.joursNonConformes || 0) > 0 || (row.joursAmbigus || 0) > 0) {
+      return { label: 'Point de vigilance', color: '#B45309', bg: '#FFF7ED' };
+    }
+    if (row.valide || row.joursRespectes > 0) {
+      return { label: 'En bonne voie', color: '#047857', bg: '#ECFDF5' };
+    }
+    return { label: 'A faire aujourd’hui', color: '#1D4ED8', bg: '#EFF6FF' };
+  }
+
+  const phaseActive = typeof jCourant === 'number' ? getPhaseDuJour(jCourant) : null;
+  const jalonsPhaseActive = new Set(phaseActive?.jalons || []);
+  const rowsPhaseActive = autoValidationRows.filter(row => row.jalon && jalonsPhaseActive.has(row.jalon));
+  const rowsHorsPhaseActive = autoValidationRows.filter(row => !row.jalon || !jalonsPhaseActive.has(row.jalon));
+  const autoValidationRowsAffichees = rowsPhaseActive.length > 0 ? rowsPhaseActive : autoValidationRows;
+
+  const rowsAutresPhasesPassees = rowsHorsPhaseActive.filter(row => {
+    if (typeof jCourant !== 'number') return false;
+    const phaseOrigine = phasesMetier.find(phase => phase.nom === row.phaseOrigineNom);
+    if (!phaseOrigine || typeof phaseOrigine.fin !== 'number') return false;
+    return phaseOrigine.fin < jCourant;
+  });
+
+  const rowsAutresPhasesFutures = rowsHorsPhaseActive.filter(row => {
+    if (typeof jCourant !== 'number') return false;
+    const phaseOrigine = phasesMetier.find(phase => phase.nom === row.phaseOrigineNom);
+    if (!phaseOrigine || typeof phaseOrigine.debut !== 'number') return false;
+    return phaseOrigine.debut > jCourant;
+  });
+
+  function getPeriodeLabelPhase(phase) {
+    if (!phase) return 'Période non définie';
+    if (dateJeune && typeof phase.debut === 'number' && typeof phase.fin === 'number') {
+      return formatPeriodePhase(dateJeune, phase.debut, phase.fin);
+    }
+    return `J${phase.debut} à J${phase.fin}`;
+  }
+
+  const phaseActivePeriode = getPeriodeLabelPhase(phaseActive);
+
+  const phaseActiveIndex = phasesAvecCriteres.findIndex(phase => phase.id === phaseActive?.id);
+  const prochainePhase = typeof jCourant === 'number'
+    ? phasesAvecCriteres
+      .filter(phase => typeof phase.debut === 'number' && phase.debut > jCourant)
+      .sort((a, b) => a.debut - b.debut)[0]
+    : null;
+  const joursAvantProchainePhase = prochainePhase && typeof jCourant === 'number'
+    ? Math.max(0, prochainePhase.debut - jCourant)
+    : null;
+  const afficherApercuProchainePhase = Number.isFinite(joursAvantProchainePhase) && joursAvantProchainePhase > 0 && joursAvantProchainePhase <= 5;
+
+  useEffect(() => {
+    if (phaseActiveIndex < 0) return;
+    setPhasesOuvertes(prev => {
+      if (prev.some(Boolean)) return prev;
+      return prev.map((_, i) => i === phaseActiveIndex);
+    });
+  }, [phaseActiveIndex]);
 
   const prochainGeste = autoValidationRows
     .filter(row => !row.valide)
@@ -682,36 +875,196 @@ const DebugPanel = () => (
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
               <div>
-                <h3 style={{ color: '#2563EB', fontWeight: 800, fontSize: '1.1rem', margin: 0 }}>Validation auto en direct</h3>
-                <div style={{ color: '#64748B', fontSize: '0.96rem', marginTop: 4 }}>Tes repas mettent a jour automatiquement les criteres lies au suivi.</div>
+                <h3 style={{ color: '#2563EB', fontWeight: 800, fontSize: '1.1rem', margin: 0 }}>Suivi préparation jeûne</h3>
+                <div style={{ color: '#64748B', fontSize: '0.96rem', marginTop: 4 }}>
+                  {phaseActive
+                    ? `Phase active : ${phaseActive.nom} • ${phaseActivePeriode}`
+                    : 'Tes repas mettent a jour automatiquement les criteres lies au suivi.'}
+                </div>
               </div>
-              <a href="/suivi" style={{ background: '#E8F3FF', color: '#2563EB', textDecoration: 'none', padding: '8px 12px', borderRadius: 999, fontWeight: 700, fontSize: 13 }}>Voir mon suivi repas</a>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setSuiviPreparationOuvert(v => !v)}
+                  style={{
+                    background: '#2563EB',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 999,
+                    padding: '8px 12px',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {suiviPreparationOuvert ? 'Replier le suivi' : 'Déplier le suivi'}
+                </button>
+                <a href="/suivi" style={{ background: '#E8F3FF', color: '#2563EB', textDecoration: 'none', padding: '8px 12px', borderRadius: 999, fontWeight: 700, fontSize: 13 }}>Voir mon suivi repas</a>
+              </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, marginTop: 14 }}>
-              {autoValidationRows.map(row => (
-                <div key={row.id} style={{
-                  background: row.valide ? '#ECFDF5' : '#FFFFFF',
-                  border: `1px solid ${row.valide ? '#A7F3D0' : '#D9E7F5'}`,
-                  borderRadius: 12,
-                  padding: '12px 14px'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-                    <span style={{ color: '#0F172A', fontWeight: 700, fontSize: 14 }}>{row.label}</span>
-                    <span style={{ color: row.valide ? '#059669' : '#2563EB', fontWeight: 800, fontSize: 13 }}>
-                      {row.joursRespectes}/{row.seuil}
-                    </span>
-                  </div>
-                  <div style={{ marginTop: 8, color: row.valide ? '#047857' : '#475569', fontSize: 13, fontWeight: 600 }}>
-                    {row.valide ? '✅ Auto-validé' : `⏳ Encore ${row.reste} jour${row.reste > 1 ? 's' : ''}`}
-                  </div>
-                  <div style={{ marginTop: 8, background: '#F8FAFC', borderRadius: 10, padding: '8px 10px', border: '1px solid #E2E8F0' }}>
-                    <div style={{ color: '#2563EB', fontWeight: 700, fontSize: 12, marginBottom: 2 }}>{row.resumeJour.titre}</div>
-                    <div style={{ color: row.resumeJour.ton, fontSize: 12, lineHeight: 1.4 }}>{row.resumeJour.detail}</div>
-                  </div>
+            {suiviPreparationOuvert && (
+              <>
+
+            {phaseActive?.id === 'phase2-intensification' ? (
+              <div style={{ marginTop: 14, display: 'grid', gap: 12 }}>
+                {[
+                  { id: 'bloc-soir', titre: '1) Alimentation du soir', ids: [2] },
+                  { id: 'bloc-qualite', titre: '2) Qualité alimentaire', ids: [3, 5] },
+                  { id: 'bloc-jeune', titre: '3) Jeûne d\'entraînement (config validée)', ids: [4] },
+                ].map(bloc => {
+                  const rowsBloc = autoValidationRowsAffichees.filter(row => bloc.ids.includes(row.id));
+                  if (rowsBloc.length === 0) return null;
+                  return (
+                    <div key={bloc.id} style={{ background: '#FFFFFF', border: '1px solid #D9E7F5', borderRadius: 12, padding: '12px 14px' }}>
+                      <div style={{ color: '#1E40AF', fontWeight: 800, fontSize: 14, marginBottom: 10 }}>{bloc.titre}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+                        {rowsBloc.map(row => {
+                          const etat = getEtatGuidage(row);
+                          return (
+                            <div key={row.id} style={{
+                              background: row.valide ? '#ECFDF5' : '#FFFFFF',
+                              border: `1px solid ${row.valide ? '#A7F3D0' : '#D9E7F5'}`,
+                              borderRadius: 12,
+                              padding: '12px 14px'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                                <span style={{ color: '#0F172A', fontWeight: 700, fontSize: 14 }}>{row.label}</span>
+                                <span style={{ color: row.valide ? '#059669' : '#2563EB', fontWeight: 800, fontSize: 13 }}>
+                                  {row.joursRespectes}/{row.seuil}
+                                </span>
+                              </div>
+                              <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', padding: '3px 8px', borderRadius: 999, fontSize: 12, fontWeight: 700, color: etat.color, background: etat.bg }}>
+                                {etat.label}
+                              </div>
+                              <div style={{ marginTop: 8, color: row.valide ? '#047857' : '#475569', fontSize: 13, fontWeight: 600 }}>
+                                {row.valide ? '✅ Auto-validé' : `⏳ Encore ${row.reste} jour${row.reste > 1 ? 's' : ''}`}
+                              </div>
+                              <div style={{ marginTop: 8, background: '#F8FAFC', borderRadius: 10, padding: '8px 10px', border: '1px solid #E2E8F0' }}>
+                                <div style={{ color: '#2563EB', fontWeight: 700, fontSize: 12, marginBottom: 2 }}>{row.resumeJour.titre}</div>
+                                <div style={{ color: row.resumeJour.ton, fontSize: 12, lineHeight: 1.4 }}>{row.resumeJour.detail}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, marginTop: 14 }}>
+                {autoValidationRowsAffichees.map(row => {
+                  const etat = getEtatGuidage(row);
+                  return (
+                    <div key={row.id} style={{
+                      background: row.valide ? '#ECFDF5' : '#FFFFFF',
+                      border: `1px solid ${row.valide ? '#A7F3D0' : '#D9E7F5'}`,
+                      borderRadius: 12,
+                      padding: '12px 14px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                        <span style={{ color: '#0F172A', fontWeight: 700, fontSize: 14 }}>{row.label}</span>
+                        <span style={{ color: row.valide ? '#059669' : '#2563EB', fontWeight: 800, fontSize: 13 }}>
+                          {row.joursRespectes}/{row.seuil}
+                        </span>
+                      </div>
+                      <div style={{ marginTop: 6, color: '#475569', fontSize: 12, fontWeight: 700 }}>
+                        {row.phaseOrigineNom}
+                      </div>
+                      <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', padding: '3px 8px', borderRadius: 999, fontSize: 12, fontWeight: 700, color: etat.color, background: etat.bg }}>
+                        {etat.label}
+                      </div>
+                      <div style={{ marginTop: 8, color: row.valide ? '#047857' : '#475569', fontSize: 13, fontWeight: 600 }}>
+                        {row.valide ? '✅ Auto-validé' : `⏳ Encore ${row.reste} jour${row.reste > 1 ? 's' : ''}`}
+                      </div>
+                      <div style={{ marginTop: 8, background: '#F8FAFC', borderRadius: 10, padding: '8px 10px', border: '1px solid #E2E8F0' }}>
+                        <div style={{ color: '#2563EB', fontWeight: 700, fontSize: 12, marginBottom: 2 }}>{row.resumeJour.titre}</div>
+                        <div style={{ color: row.resumeJour.ton, fontSize: 12, lineHeight: 1.4 }}>{row.resumeJour.detail}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {rowsAutresPhasesPassees.length > 0 && rowsPhaseActive.length > 0 && (
+              <details style={{ marginTop: 12 }}>
+                <summary style={{ cursor: 'pointer', color: '#2563EB', fontWeight: 700, fontSize: 13 }}>
+                  Voir aussi les routines déjà introduites ({rowsAutresPhasesPassees.length})
+                </summary>
+                <div style={{ marginTop: 8, color: '#64748B', fontSize: 12, lineHeight: 1.5 }}>
+                  Ce bloc montre uniquement les critères auto des phases déjà passées.
+                  En phase 2, cela correspond principalement aux routines de la phase 1.
+                  Les critères auto de la phase active restent au-dessus, et ceux des phases futures restent masqués jusqu'à J-5.
                 </div>
-              ))}
-            </div>
+                <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+                  {rowsAutresPhasesPassees.map(row => {
+                    const phaseOrigineMeta = phasesMetier.find(phase => phase.nom === row.phaseOrigineNom) || null;
+                    const phaseOriginePeriode = getPeriodeLabelPhase(phaseOrigineMeta);
+                    const routineMaintenue = Boolean(row.valide || (row.joursRespectes || 0) > 0);
+                    return (
+                    <div key={`autre-phase-${row.id}`} style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #D9E7F5',
+                      borderRadius: 12,
+                      padding: '12px 14px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                        <span style={{ color: '#0F172A', fontWeight: 700, fontSize: 14 }}>{row.label}</span>
+                        <span style={{ color: row.valide ? '#059669' : '#2563EB', fontWeight: 800, fontSize: 13 }}>
+                          {row.joursRespectes}/{row.seuil}
+                        </span>
+                      </div>
+                      <div style={{ marginTop: 6, color: '#475569', fontSize: 12, fontWeight: 700 }}>
+                        {row.phaseOrigineNom}
+                      </div>
+                      <div style={{ marginTop: 2, color: '#94A3B8', fontSize: 12, fontWeight: 600 }}>
+                        {phaseOriginePeriode}
+                      </div>
+                      {routineMaintenue ? (
+                        <div style={{ marginTop: 8 }}>
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            background: '#ECFDF5',
+                            color: '#047857',
+                            border: '1px solid #A7F3D0',
+                            borderRadius: 999,
+                            padding: '3px 8px',
+                            fontSize: 11,
+                            fontWeight: 800
+                          }}>
+                            Routine maintenue
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={{ marginTop: 8 }}>
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            background: '#FFF7ED',
+                            color: '#B45309',
+                            border: '1px solid #FCD34D',
+                            borderRadius: 999,
+                            padding: '3px 8px',
+                            fontSize: 11,
+                            fontWeight: 800
+                          }}>
+                            Routine à relancer
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )})}
+                </div>
+              </details>
+            )}
+
+            {rowsAutresPhasesFutures.length > 0 && !afficherApercuProchainePhase && (
+              <div style={{ marginTop: 10, color: '#64748B', fontSize: 12 }}>
+                Les critères des phases à venir restent masqués pour préserver le focus. Ils apparaîtront à J-5.
+              </div>
+            )}
 
             <div style={{ marginTop: 14, background: '#F8FAFC', border: '1px dashed #BFDBFE', borderRadius: 12, padding: '12px 14px' }}>
               <div style={{ color: '#2563EB', fontWeight: 800, fontSize: 14, marginBottom: 4 }}>Prochain meilleur geste</div>
@@ -719,6 +1072,39 @@ const DebugPanel = () => (
                 {prochainGeste ? prochainGeste.conseil : 'Tous les criteres auto sont deja valides. Continue sur ce rythme.'}
               </div>
             </div>
+
+            {afficherApercuProchainePhase && prochainePhase && (
+              <div style={{ marginTop: 12, background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 12, padding: '12px 14px' }}>
+                <div style={{ color: '#9A3412', fontWeight: 800, fontSize: 14, marginBottom: 4 }}>
+                  Vision phase à venir (J-{joursAvantProchainePhase})
+                </div>
+                <div style={{ color: '#7C2D12', fontSize: 14, marginBottom: 8 }}>
+                  {prochainePhase.nom} • {getPeriodeLabelPhase(prochainePhase)} démarre bientôt. Prépare-toi progressivement sans perdre le focus sur aujourd'hui.
+                </div>
+                <button
+                  onClick={() => {
+                    const idx = phasesAvecCriteres.findIndex(p => p.id === prochainePhase.id);
+                    if (idx >= 0) {
+                      setPhasesOuvertes(prev => prev.map((_, i) => i === idx));
+                    }
+                  }}
+                  style={{
+                    background: '#EA580C',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '8px 12px',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Ouvrir la phase à venir
+                </button>
+              </div>
+            )}
+              </>
+            )}
           </section>
         )}
         {/* Phases et critères (harmonisé avec module métier) */}
@@ -768,6 +1154,23 @@ const DebugPanel = () => (
 
           const nbValidesPhase = criteresPhase.filter(c => c.valide).length;
           const resumePhase = `${nbValidesPhase}/${criteresPhase.length} validé${nbValidesPhase > 1 ? 's' : ''}`;
+
+          let etatPhase = 'À venir';
+          let couleurEtat = '#64748B';
+          let fondEtat = '#F1F5F9';
+          if (typeof jCourant === 'number') {
+            if (jCourant > phase.fin) {
+              etatPhase = 'Passée';
+              couleurEtat = '#7C2D12';
+              fondEtat = '#FFEDD5';
+            } else if (jCourant >= phase.debut && jCourant <= phase.fin) {
+              etatPhase = 'Active';
+              couleurEtat = '#065F46';
+              fondEtat = '#D1FAE5';
+            }
+          }
+
+          const isOpen = Boolean(phasesOuvertes[idx]);
           
           return (
           <div key={phase.id || phase.nom} style={{
@@ -778,42 +1181,95 @@ const DebugPanel = () => (
             border: '1px solid #E3EAF2',
             overflow: 'hidden'
           }}>
-            <PhaseCard
-              phase={{
-                nom: datesCompactes ? `${phase.nom}  •  ${datesCompactes}` : phase.nom,
-                explication: phase.objectif || phase.explication,
-                periode: `${phase.debut !== undefined && phase.fin !== undefined ? `J${phase.debut} à J${phase.fin}` : ''}`,
-                resume: resumePhase
+            <button
+              onClick={() => togglePhase(idx)}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                border: 'none',
+                background: '#F8FAFC',
+                padding: '14px 16px',
+                cursor: 'pointer',
+                borderBottom: isOpen ? '1px solid #E3EAF2' : 'none'
               }}
-              criteres={criteresPhase}
-              onValider={preparationActive ? validerCritere : undefined}
-              jCourant={jCourant}
-            />
-            {/* Bouton "Période & critères" en bas de la carte */}
-            <div style={{padding:'8px 16px',background:'#FAFBFC',borderTop:'1px solid #E3EAF2'}}>
-              <details style={{marginLeft:'auto',width:'100%'}}>
-                <summary style={{cursor:'pointer',background:'#4F8FFF',color:'#fff',border:'none',borderRadius:8,padding:'8px 12px',fontWeight:700,fontSize:13,textAlign:'center'}}>Critères détaillés</summary>
-                <div style={{marginTop:10,padding:10,background:'#f9fafb',borderRadius:8}}>
-                  {(phase.criteres || []).map((c, i) => {
-                    const id = getCritereIdFromLabel(c?.label);
-                    const s = criteres?.[id] || {};
-                    const etat = s.validé ? '✅ Validé' : '⏳ En cours';
-                    const quand = s.validé && s.dateValidation ? ` • Validé ${formatDateHeureFR(s.dateValidation)} (${s.typeValidation||'auto'})` : '';
-                    return (
-                      <div key={c?.label||i} style={{display:'flex',justifyContent:'space-between',fontSize:14,margin:'6px 0',padding:'6px 8px',background:'#fff',borderRadius:6}}>
-                        <span>{c?.label || `Critère ${id}`}</span>
-                        <span style={{fontWeight:600}}>{etat}{quand}</span>
-                      </div>
-                    );
-                  })}
-                  {hasValidDates && (
-                    <div style={{marginTop:12,display:'flex',gap:8}}>
-                      <a href={`/suivi?from=${formatISODate(addDays(dateJeuneLocal, phase.debut))}&to=${formatISODate(addDays(dateJeuneLocal, phase.fin))}`} style={{background:'#10B981',color:'#fff',textDecoration:'none',padding:'8px 12px',borderRadius:8,fontSize:13,fontWeight:700}}>Voir mes repas (semaine)</a>
-                    </div>
-                  )}
+              aria-expanded={isOpen}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ color: '#1D4ED8', fontWeight: 800, fontSize: 16 }}>
+                  {datesCompactes ? `${phase.nom} • ${datesCompactes}` : phase.nom}
                 </div>
-              </details>
-            </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{
+                    background: fondEtat,
+                    color: couleurEtat,
+                    borderRadius: 999,
+                    padding: '4px 10px',
+                    fontSize: 12,
+                    fontWeight: 800
+                  }}>
+                    {etatPhase}
+                  </span>
+                  <span style={{
+                    background: '#EEF6FF',
+                    color: '#2563EB',
+                    border: '1px solid #BFDBFE',
+                    borderRadius: 999,
+                    padding: '4px 10px',
+                    fontSize: 12,
+                    fontWeight: 800
+                  }}>
+                    {resumePhase}
+                  </span>
+                </div>
+              </div>
+              <div style={{ color: '#64748B', fontSize: 13, marginTop: 6 }}>
+                {phase.objectif || phase.explication}
+              </div>
+              <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 4 }}>
+                {isOpen ? 'Masquer le détail de la phase' : 'Afficher le détail de la phase'}
+              </div>
+            </button>
+
+            {isOpen && (
+              <>
+                <PhaseCard
+                  phase={{
+                    nom: datesCompactes ? `${phase.nom}  •  ${datesCompactes}` : phase.nom,
+                    explication: phase.objectif || phase.explication,
+                    periode: `${phase.debut !== undefined && phase.fin !== undefined ? `J${phase.debut} à J${phase.fin}` : ''}`,
+                    resume: resumePhase
+                  }}
+                  criteres={criteresPhase}
+                  onValider={preparationActive ? validerCritere : undefined}
+                  jCourant={jCourant}
+                />
+                {/* Bouton "Période & critères" en bas de la carte */}
+                <div style={{padding:'8px 16px',background:'#FAFBFC',borderTop:'1px solid #E3EAF2'}}>
+                  <details style={{marginLeft:'auto',width:'100%'}}>
+                    <summary style={{cursor:'pointer',background:'#4F8FFF',color:'#fff',border:'none',borderRadius:8,padding:'8px 12px',fontWeight:700,fontSize:13,textAlign:'center'}}>Critères détaillés</summary>
+                    <div style={{marginTop:10,padding:10,background:'#f9fafb',borderRadius:8}}>
+                      {(phase.criteres || []).map((c, i) => {
+                        const id = getCritereIdFromLabel(c?.label);
+                        const s = criteres?.[id] || {};
+                        const etat = s.validé ? '✅ Validé' : '⏳ En cours';
+                        const quand = s.validé && s.dateValidation ? ` • Validé ${formatDateHeureFR(s.dateValidation)} (${s.typeValidation||'auto'})` : '';
+                        return (
+                          <div key={c?.label||i} style={{display:'flex',justifyContent:'space-between',fontSize:14,margin:'6px 0',padding:'6px 8px',background:'#fff',borderRadius:6}}>
+                            <span>{c?.label || `Critère ${id}`}</span>
+                            <span style={{fontWeight:600}}>{etat}{quand}</span>
+                          </div>
+                        );
+                      })}
+                      {hasValidDates && (
+                        <div style={{marginTop:12,display:'flex',gap:8}}>
+                          <a href={`/suivi?from=${formatISODate(addDays(dateJeuneLocal, phase.debut))}&to=${formatISODate(addDays(dateJeuneLocal, phase.fin))}`} style={{background:'#10B981',color:'#fff',textDecoration:'none',padding:'8px 12px',borderRadius:8,fontSize:13,fontWeight:700}}>Voir mes repas (semaine)</a>
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                </div>
+              </>
+            )}
           </div>
           );
         })}

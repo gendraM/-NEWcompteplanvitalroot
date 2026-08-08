@@ -57,6 +57,7 @@ import {
   validerCriterePreparation,
   validerCritereAuto,
   getStatutCritereAuto,
+  getSeuilCritereAuto,
   analyserPortions,
   detecterFeculents,
   calculerHydratation,
@@ -887,8 +888,8 @@ export default function Suivi() {
     // Identifier le critère actuel
     const critereIdActuel = getCritereIdFromLabel(critereActif.label);
     
-    // Analyser uniquement les critères auto-validables (1,2,7,8,9)
-    const criteresAuto = [1, 2, 7, 8, 9];
+    // Analyser uniquement les critères auto-validables (1,2,3,4,5,7,8,9)
+    const criteresAuto = [1, 2, 3, 4, 5, 7, 8, 9];
     if (!criteresAuto.includes(critereIdActuel)) return;
     
     // Filtrer les repas des 7 derniers jours
@@ -1856,9 +1857,11 @@ export default function Suivi() {
                     {(() => {
                       const critereId = getCritereIdFromLabel(critereActif.label);
                       const statutAuto = statutsValidationAuto[critereId];
-                      const isAutoValidable = [1, 2, 7, 8, 9].includes(critereId);
+                      const isAutoValidable = [1, 2, 3, 4, 5, 7, 8, 9].includes(critereId);
                       
                       if (isAutoValidable && statutAuto) {
+                        const seuilAuto = getSeuilCritereAuto(critereId);
+                        const joursRestants = Math.max(0, seuilAuto - (statutAuto.joursRespectés || 0));
                         return statutAuto.validé ? (
                           <>
                             <div style={{color:'#43a047', fontWeight:700, margin:'8px 0'}}>
@@ -1880,13 +1883,13 @@ export default function Suivi() {
                               📊 {statutAuto.joursRespectés}/7 jours respectés
                             </div>
                             <div style={{fontSize: 13, color: '#888', marginTop: 6}}>
-                              Encore {(critereId === 1 ? 6 : 5) - statutAuto.joursRespectés} jour(s) pour valider
+                              Encore {joursRestants} jour(s) pour valider
                             </div>
                           </>
                         );
                       }
                       
-                      // Critères non auto-validables (3, 4, 5, 6) : validation manuelle
+                      // Critères non auto-validables (4, 5, 6) : validation manuelle
                       return prepValid ? (
                         <div style={{color:'#43a047', fontWeight:700, margin:'8px 0'}}>✅ Critère validé pour aujourd'hui !</div>
                       ) : (

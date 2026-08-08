@@ -1055,7 +1055,12 @@ export default function PhaseCard({ phase, criteres = [], onValider, jCourant })
                       <span style={{ marginRight: 6 }}>🛠️</span> COMMENT FAIRE ?
                     </h4>
                     <div style={{ color: '#6B778C', fontSize: '0.93em', lineHeight: 1.6 }}>
-                      {Array.isArray(guidancesCriteres[critere.id].comment) ? (
+                      {critere.id === 6 ? (
+                        <div>
+                          <div>Le detail de configuration du jeûne se fait dans la section dédiée en bas de page.</div>
+                          <div style={{ marginTop: 6 }}>Ici, cette carte sert uniquement à comprendre le critère et suivre son statut.</div>
+                        </div>
+                      ) : Array.isArray(guidancesCriteres[critere.id].comment) ? (
                         guidancesCriteres[critere.id].comment.map((ligne, i) => (
                           <div key={i} style={{ marginBottom: ligne === '' ? 8 : 2 }}>
                             {ligne}
@@ -1073,7 +1078,9 @@ export default function PhaseCard({ phase, criteres = [], onValider, jCourant })
                       <span style={{ marginRight: 6 }}>📊</span> SUIVI QUOTIDIEN
                     </h4>
                     <p style={{ color: '#6B778C', fontSize: '0.93em', lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>
-                      {guidancesCriteres[critere.id].suivi}
+                      {critere.id === 6
+                        ? 'Suivi du jeûne plein: vérifie dans la section dédiée si un jeûne a été effectué (oui/non) et son état de validation.'
+                        : guidancesCriteres[critere.id].suivi}
                     </p>
                   </div>
                 </div>

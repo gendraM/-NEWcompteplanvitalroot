@@ -58,3 +58,39 @@ Prochaines étapes :
 - Si besoin, affiner le référentiel des boissons hydratantes pour couvrir davantage de cas légitimes (eau, tisanes, thés, variantes d’écriture utilisateur).
 - Décider s’il faut afficher encore plus de détail par repas dans le bloc Portions (ex. détail Déjeuner/Dîner ligne par ligne) pour lever les derniers doutes utilisateurs.
 - Continuer la feuille de route du plan de conformité préparation jeune après stabilisation de cette couche métier et UX.
+
+Date : 08/08/2026
+
+Action accomplie : Clarification de l’interface sur l’affichage des routines passées pendant la phase 2 de préparation jeune.
+
+Avant : Le bloc "Voir aussi les routines déjà introduites" pouvait être interprété comme incomplet en phase 2, car l’utilisateur y voyait principalement "Portions" sans indication explicite que ce critère correspond à la phase 1 (phase passée à ce moment du parcours).
+
+Après : Le texte d’aide du bloc a été complété dans la page préparation pour préciser explicitement qu’en phase 2, ce bloc montre principalement les routines de la phase 1. Le message rappelle aussi que les critères de la phase active restent affichés au-dessus et que les phases futures restent masquées jusqu’à J-5, afin de préserver le focus.
+
+Prochaines étapes : Valider visuellement avec l’utilisateur (mobile et desktop) que la distinction phase active / phases passées est désormais immédiate, puis harmoniser si nécessaire le wording des statuts sur les cartes de phase.
+
+Date : 08/08/2026
+
+Action accomplie : Rattrapage de traçabilité des changements réalisés sur l’automatisation phase 2 prépa jeune, le gating suivi, la restitution UX par phase, et la continuité des routines passées.
+
+Avant : Entre le log de reprise technique et la dernière correction de wording, plusieurs changements fonctionnels et UX ont été livrés sans entrée dédiée dans le registre, ce qui créait un trou de traçabilité sur la compréhension phase 1/phase 2 et sur les évolutions du moteur d’auto-validation.
+
+Après : Documentation consolidée des évolutions intermédiaires effectivement réalisées :
+- Plan d’action créé puis mis à jour dans `docs/PLAN_ACTION_AUTOMATISATION_PHASE_2_PREPA_JEUNE.md` avec avancement Lot A + critères 3/4/5 + 6 assisté.
+- Verrouillage du gate préparation dans `pages/suivi.js` : logique prépa conditionnée à l’activation, absence d’affichage et d’auto-validation prépa quand inactive.
+- Extension du moteur dans `lib/validerCriterePreparation.js` :
+	- critère 3 (transformés/sucreries) auto,
+	- critère 4 (jours de jeûne réalisés) auto selon configuration,
+	- critère 5 (transition pré-jeûne) auto,
+	- critère 6 en mode assisté (éligibilité sans auto-validation directe).
+- Refonte de restitution dans `pages/preparation-jeune.js` :
+	- focus phase active,
+	- panneau suivi repliable,
+	- séparation phases passées / phase active / phases futures,
+	- aperçu phase suivante limité à J-5,
+	- accordéon des phases,
+	- badges de continuité “Routine maintenue” / “Routine à relancer”.
+- Ajustement d’affichage critère 6 dans `components/PhaseCard.js` pour limiter la confusion avec le suivi des jeûnes réalisés.
+- Couverture test enrichie dans `tests/validerCriterePreparation.auto.test.js` (14 cas passants) pour sécuriser les règles auto et assistées.
+
+Prochaines étapes : Vérifier en usage réel que le bloc “routines déjà introduites” est compris sans ambiguïté en phase 2, puis garder le registre synchronisé entrée par entrée à chaque lot validé pour éviter tout nouveau trou de passation.

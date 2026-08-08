@@ -2,7 +2,17 @@
 
 Date: 08/08/2026
 Scope: Preparation jeune - Phase 2 (complements d'automatisation)
-Statut: A executer
+Statut: En cours (Lot A + criteres 3/4/5 + critere 6 assiste implementes)
+
+## Avancement
+
+- Lot A (verrouillage activation prepa dans suivi): Termine
+- Critere 3 (auto-validation transformes/sucreries): Termine
+- Critere 4 (suivi jours de jeune plein): Termine
+- Critere 5 (transition pre-jeune): Termine
+- Critere 6 (validation assistee): Termine
+- Tests unitaires moteur auto (criteres 1 a 9 + assist): Termines
+- Prochaine etape: Harmonisation finale d'affichage (fin de plan)
 
 ## Objectif global
 
