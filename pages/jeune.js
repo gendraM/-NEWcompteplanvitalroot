@@ -1030,10 +1030,12 @@ export default function Jeune() {
       const fin = new Date();
       dureeReelle = Math.floor((fin - debut) / (1000*60*60*24)) + 1;
     }
-
-    // Usage mono-utilisateur : identifiant fixe
+    
+    // Récupérer le user_id dynamique depuis Supabase Auth
+    const { data: { user } } = await supabase.auth.getUser();
+    const user_id = user?.id || null;
     const bilan = {
-      user_id: 'laurelle_test_user',
+      user_id,
       date_debut: dateDebutJeune,
       date_fin: aujourdhui,
       duree_prevue: dureeJeune,
@@ -1183,8 +1185,9 @@ export default function Jeune() {
       dateFin.setDate(dateFin.getDate() + dureeJeune - 1);
       const dateFinStr = dateFin.toISOString().split('T')[0];
 
-      // NO AUTH : utiliser l'ID fixe 'laurelle_test_user'
-      const userId = 'laurelle_test_user';
+      // AUTH : utiliser le vrai user_id Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || null;
 
       let programmeSauvegarde;
       let supabaseOk = false;

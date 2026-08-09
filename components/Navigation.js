@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import { generateUUID } from '../lib/preparationsJeune';
 import DefisEnCoursBanner from './DefisEnCoursBanner';
 import StartPreparationModal from './StartPreparationModal';
 
@@ -18,15 +19,22 @@ const Navigation = () => {
     const [showModal, setShowModal] = useState(false);
     const router = useRouter();
 
-    // Handler pour la validation de la modale
+    // Handler pour la validation de la modale - IDENTIQUE à celui de pages/preparation-jeune.js
     const handleStartPreparation = (data) => {
-        // Redirection avec passage des infos en query string (simple)
-        const params = new URLSearchParams({
-            startDate: data.startDate,
-            duration: data.duration,
-            goal: data.goal,
-        });
-        router.push(`/preparation-jeune.js?${params.toString()}`);
+        // Générer un ID pour cette préparation si absent (UUID)
+        const prepId = data.id || generateUUID();
+        const dataWithId = { ...data, id: prepId };
+        
+        // Sauvegarde des données de préparation (IDENTIQUE au bouton du bas)
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('preparationData', JSON.stringify(dataWithId));
+            localStorage.setItem('preparationActive', 'true');
+            localStorage.setItem('dateJeune', data.startDate);
+            localStorage.setItem('dureeJeune', data.duration);
+        }
+        
+        // Redirection vers la page (elle lira les données dans localStorage)
+        router.push(`/preparation-jeune`);
     };
 
     return (

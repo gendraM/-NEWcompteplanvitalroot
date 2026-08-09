@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { SupabaseProvider, supabase } from '../lib/supabaseClient';
+import { AuthProvider } from '../contexts/AuthContext';
 import { DefisProvider } from '../components/DefisContext';
 import BandeauCompletionProfil from '../components/BandeauCompletionProfil';
 
@@ -39,10 +40,12 @@ function MyApp({ Component, pageProps }) {
 
   return (
     <SupabaseProvider>
-      <DefisProvider>
-        {profilVerifie && afficherBandeau && <BandeauCompletionProfil onClose={masquerBandeau} />}
-        <Component {...pageProps} />
-      </DefisProvider>
+      <AuthProvider>
+        <DefisProvider>
+          {profilVerifie && afficherBandeau && <BandeauCompletionProfil onClose={masquerBandeau} />}
+          <Component {...pageProps} />
+        </DefisProvider>
+      </AuthProvider>
     </SupabaseProvider>
   );
 }
