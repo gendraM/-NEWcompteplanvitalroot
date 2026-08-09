@@ -42,11 +42,7 @@ import {
   addDays,
   formatDate,
   calculerTendance7j,
-  calculerRepartitionExtrasTemporelle,
-  calculerRepartitionJours,
-  calculerImpactJours,
-  calculerEvolutionExtras,
-  analyserFragilites
+  calculerRepartitionExtrasTemporelle
 } from '../lib/validationSemaine';
 import { estDerniereValidationDuMois, getMoisAnneeValidation } from '../lib/detectionFinMois';
 import { calculerRepartitionTypes, calculerRepartitionMoments } from '../lib/repartitionExtras';
@@ -57,7 +53,6 @@ import {
   validerCriterePreparation,
   validerCritereAuto,
   getStatutCritereAuto,
-  getSeuilCritereAuto,
   analyserPortions,
   detecterFeculents,
   calculerHydratation,
@@ -473,14 +468,13 @@ export default function Suivi() {
     }
     return null;
   });
-  const [preparationActive, setPreparationActive] = useState(false);
   // Liste des critères par jalon (doit matcher la timeline métier)
   const criteresPreparation = [
-    { jour: -30, label: "Respect strict des quantités à chaque repas", critereIds: [1] },
-    { jour: -17, label: "Pas de féculents le soir (lun-dim) + action après repas", critereIds: [2] },
-    { jour: -14, label: "Éliminer tous produits transformés et sucreries", critereIds: [3] },
-    { jour: -12, label: "2 jours de jeûne plein", critereIds: [4] },
-    { jour: -7, label: "Phase 3 Pré-jeûne : hydratation, horaire, durée", critereIds: [7, 8, 9] },
+    { jour: -30, label: "Respect strict des quantités à chaque repas" },
+    { jour: -17, label: "Pas de féculents le soir (lun-dim) + action après repas" },
+    { jour: -14, label: "Éliminer tous produits transformés et sucreries" },
+    { jour: -12, label: "2 jours de jeûne plein" },
+    { jour: -7, label: "2L d’eau/jour, pas de repas après 19h, plage 45min" },
     { jour: 0, label: "Lancement du jeûne" },
   ];
   // Calcul du critère actif du jour (en phase préparation)
@@ -494,15 +488,6 @@ export default function Suivi() {
       const next = criteresPreparation[idx+1];
       return jRelatif <= c.jour && (!next || jRelatif > next.jour);
     }) || null;
-  }
-
-  function getCritereIdsActifs(critere) {
-    if (!critere) return [];
-    if (Array.isArray(critere.critereIds) && critere.critereIds.length > 0) {
-      return critere.critereIds;
-    }
-    const id = getCritereIdFromLabel(critere.label);
-    return id ? [id] : [];
   }
   // Stockage des validations locales (clé: "prep_valid_{date}")
   const [prepValid, setPrepValid] = useState(() => {
@@ -541,39 +526,6 @@ export default function Suivi() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!isMounted || typeof window === 'undefined') return;
-
-    const syncPreparationState = () => {
-      const isActive = localStorage.getItem('preparationActive') === 'true';
-      setPreparationActive(isActive);
-
-      if (!isActive) {
-        setDateJeune(null);
-        return;
-      }
-
-      let nextDateJeune = localStorage.getItem('dateJeunePrevu') || null;
-      try {
-        const prepDataStr = localStorage.getItem('preparationData');
-        if (prepDataStr) {
-          const prepData = JSON.parse(prepDataStr);
-          if (prepData?.startDate) {
-            nextDateJeune = prepData.startDate;
-          }
-        }
-      } catch (e) {
-        console.warn('[SUIVI] Lecture preparationData impossible:', e);
-      }
-
-      setDateJeune(nextDateJeune);
-    };
-
-    syncPreparationState();
-    window.addEventListener('storage', syncPreparationState);
-    return () => window.removeEventListener('storage', syncPreparationState);
-  }, [isMounted]);
 
   // ═══════════════════════════════════════════════════════════
   // DÉTECTION PHASE REPRISE ALIMENTAIRE
@@ -737,15 +689,10 @@ export default function Suivi() {
   // Affiche le composant avant la sélection du type de repas
   const handleSaveRepas = async (repasData) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const repasPayload = {
-        ...repasData,
-        user_id: repasData.user_id || user?.id || null,
-      };
       // Enregistrement du repas dans Supabase
       const { data, error } = await supabase
         .from("repas_reels")
-        .insert([repasPayload]);
+        .insert([repasData]);
       if (error) {
         setSnackbar({ open: true, message: "Erreur Supabase : " + error.message, type: "error" });
         return;
@@ -892,60 +839,36 @@ export default function Suivi() {
   // Analyse automatique après chaque saisie de repas
   useEffect(() => {
     // Ne rien faire si pas en phase préparation
-    if (!preparationActive || !critereActif || !dateJeune) return;
-
-    const critereIdsActifs = getCritereIdsActifs(critereActif);
-
-    // Analyser uniquement les critères auto-validables (1,2,3,4,5,7,8,9)
-    const criteresAuto = [1, 2, 3, 4, 5, 7, 8, 9];
-    const idsAutoActifs = critereIdsActifs.filter(id => criteresAuto.includes(id));
-    if (idsAutoActifs.length === 0) return;
+    if (!critereActif || !dateJeune) return;
+    
+    // Identifier le critère actuel
+    const critereIdActuel = getCritereIdFromLabel(critereActif.label);
+    
+    // Analyser uniquement les critères auto-validables (1,2,7,8,9)
+    const criteresAuto = [1, 2, 7, 8, 9];
+    if (!criteresAuto.includes(critereIdActuel)) return;
     
     // Filtrer les repas des 7 derniers jours
-    let dateActivation = null;
-    if (typeof window !== 'undefined') {
-      try {
-        const prepDataStr = localStorage.getItem('preparationData');
-        if (prepDataStr) {
-          const prepData = JSON.parse(prepDataStr);
-          const sourceActivation = prepData?.createdAt || prepData?.updatedAt || null;
-          if (sourceActivation) {
-            const d = new Date(sourceActivation);
-            if (!Number.isNaN(d.getTime())) {
-              d.setHours(0, 0, 0, 0);
-              dateActivation = d;
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('[SUIVI] Lecture date activation prépa impossible:', e);
-      }
-    }
-
     const repas7j = repasSemaine.filter(r => {
       const dateRepas = new Date(r.date);
       const dateCourante = new Date(selectedDate);
       const diff = Math.floor((dateCourante - dateRepas) / (1000*60*60*24));
-      if (diff < 0 || diff >= 7) return false;
-      if (dateActivation && dateRepas < dateActivation) return false;
-      return true;
+      return diff >= 0 && diff < 7;
     });
     
     // Exécuter l'analyse automatique
     const statuts = {};
-    idsAutoActifs.forEach(critereId => {
-      const statutCritere = getStatutCritereAuto(critereId, repas7j);
-      statuts[critereId] = statutCritere;
-
-      // Valider automatiquement si critère respecté
-      if (statutCritere.validé) {
-        validerCritereAuto(critereId);
-      }
-    });
+    const statutCritere = getStatutCritereAuto(critereIdActuel, repas7j);
+    statuts[critereIdActuel] = statutCritere;
+    
+    // Valider automatiquement si critère respecté
+    if (statutCritere.validé) {
+      validerCritereAuto(critereIdActuel);
+    }
     
     setStatutsValidationAuto(statuts);
     
-  }, [repasSemaine, critereActif, dateJeune, selectedDate, preparationActive]);
+  }, [repasSemaine, critereActif, dateJeune, selectedDate]);
 
   // Calcul de l'historique hebdomadaire (client only pour éviter hydration error)
   const [weeklyHistory, setWeeklyHistory] = useState([]);
@@ -1270,80 +1193,6 @@ export default function Suivi() {
       const nbRepasSatiete = repasAvecSatiete.length;
       const nbRepasRessenti = repasAvecRessenti.length;
       
-      // ═══════════════════════════════════════════════════════════
-      // PHASE 2 - CALCULS LECTURES A, B, C + ENRICHISSEMENTS
-      // ═══════════════════════════════════════════════════════════
-      
-      // 📊 LECTURE A : Répartition des jours + Streaks
-      console.log('[BILAN ABC] Calcul Lecture A - Répartition jours...');
-      const lectureA = calculerRepartitionJours(repasData, selectedWeekStart, objectifHebdo);
-      console.log('[BILAN ABC] Lecture A résultat:', {
-        objectifJournalier: lectureA.objectifJournalier,
-        joursCategories: lectureA.joursCategories,
-        joursIncomplets: lectureA.joursIncomplets,
-        longestStreak: lectureA.longestStreak,
-        streaks: lectureA.streaks
-      });
-      
-      // 🎯 LECTURE B : Impact des jours sur le surplus
-      console.log('[BILAN ABC] Calcul Lecture B - Impact jours...');
-      const lectureB = calculerImpactJours(lectureA.detailsJours);
-      console.log('[BILAN ABC] Lecture B résultat:', lectureB ? {
-        surplusTotal: lectureB.surplusTotal,
-        jourPlusLourd: lectureB.jourPlusLourd,
-        repartition: lectureB.repartition
-      } : 'null (pas de surplus - tous les jours conformes)');
-      
-      // 📈 LECTURE C : Évolution extras N vs N-1
-      console.log('[BILAN ABC] Calcul Lecture C - Évolution extras N vs N-1...');
-      // Compléter fetch N-1 pour récupérer extras_details
-      let extrasKcalN1 = null;
-      let extrasNbN1 = null;
-      if (semainesPrecedentes && semainesPrecedentes.length > 0) {
-        const weekStartN1 = semainesPrecedentes[0].weekStart;
-        const { data: semaineN1Complete } = await supabase
-          .from('semaines_validees')
-          .select('extras_details')
-          .eq('weekStart', weekStartN1)
-          .single();
-        
-        if (semaineN1Complete && semaineN1Complete.extras_details) {
-          try {
-            const detailsN1 = JSON.parse(semaineN1Complete.extras_details);
-            extrasKcalN1 = detailsN1.reduce((sum, extra) => sum + (Number(extra.kcal) || 0), 0);
-            extrasNbN1 = detailsN1.length;
-            console.log('[BILAN ABC] Semaine N-1 détectée:', { weekStartN1, extrasKcalN1, extrasNbN1 });
-          } catch (parseError) {
-            console.warn('[BILAN ABC] Erreur parsing extras_details N-1:', parseError);
-          }
-        }
-      } else {
-        console.log('[BILAN ABC] Aucune semaine N-1 validée trouvée');
-      }
-      
-      const extrasKcalN = extrasInfo.details.reduce((sum, extra) => sum + (Number(extra.kcal) || 0), 0);
-      const extrasNbN = extrasInfo.count;
-      
-      const lectureC = calculerEvolutionExtras(extrasKcalN, extrasNbN, extrasKcalN1, extrasNbN1);
-      console.log('[BILAN ABC] Lecture C résultat:', lectureC);
-      
-      // 🔍 ENRICHISSEMENT : Analyse des fragilités
-      console.log('[BILAN ABC] Calcul Fragilités...');
-      const fragilites = analyserFragilites(lectureA.detailsJours, repasData);
-      console.log('[BILAN ABC] Fragilités résultat:', fragilites);
-
-      // Fusion hybride: conserver la fiabilite de semaine en plus des champs Laurelle
-      const joursObservesSet = new Set(
-        repasData
-          .map((r) => r?.date)
-          .filter((d) => typeof d === 'string' && d.length > 0)
-      );
-      const joursObserves = Math.min(7, joursObservesSet.size);
-      const joursEstimes = Math.max(0, 7 - joursObserves);
-      const fiabilitePourcent = Math.round((joursObserves / 7) * 100);
-      
-      // ═══════════════════════════════════════════════════════════
-      
       let insertOk = false;
       const bilanToInsert = {
         weekStart: selectedWeekStart,
@@ -1354,32 +1203,12 @@ export default function Suivi() {
         extras_details: JSON.stringify(extrasInfo.details),
         message_feedback: messageFeedback,
         variation,
-        // Metriques de fiabilite hebdomadaire conservees
-        jours_observes: joursObserves,
-        jours_estimes: joursEstimes,
-        fiabilite_pourcent: fiabilitePourcent,
         // Nouvelles colonnes Section 2
         tendance_7j: tendance.type,
         ecart_hebdo: tendance.ecart,
         apports_totaux: Math.round(apportsTotaux),
         objectif_hebdo: objectifHebdo,
-        projection_poids: tendance.projection_poids,
-        // Données extras
-        kcal_extras: Math.round(kcalExtras),
-        budget_extras: Math.round(budgetExtras),
-        // Données ressenti (Section 7)
-        satiete_moyenne: satieteMoyenne ? parseFloat(satieteMoyenne) : null,
-        humeur_dominante: humeurDominante || null,
-        note_utilisateur: noteUtilisateur || null,
-        nb_repas_satiete: nbRepasSatiete || 0,
-        nb_repas_ressenti: nbRepasRessenti || 0,
-        // PHASE 2 - Données ABC (Lectures A, B, C + Fragilités)
-        bilan_abc: {
-          lectureA: lectureA || null,
-          lectureB: lectureB || null,
-          lectureC: lectureC || null,
-          fragilites: fragilites || null
-        }
+        projection_poids: tendance.projection_poids
       };
       
       // LOG DEBUG : Vérifier chaque valeur
@@ -1426,13 +1255,6 @@ export default function Suivi() {
           nbRepasSatiete,
           nbRepasRessenti,
           extrasHorsRepas: repartitionTemporelle,
-          // PHASE 2 - Lectures A, B, C + Enrichissements (depuis bilan_abc)
-          bilan_abc: {
-            lectureA: lectureA || null,
-            lectureB: lectureB || null,
-            lectureC: lectureC || null,
-            fragilites: fragilites || null
-          }
         });
         setShowBilanModal(true);
         
@@ -1539,7 +1361,7 @@ export default function Suivi() {
       </div>
 
       {/* Mini-bandeau Préparation en cours (synthétique avec coloration contextuelle) */}
-      {isMounted && preparationActive && (
+      {isMounted && (localStorage.getItem('preparationActive') === 'true') && (
         (() => {
           // Lire date jeûne depuis preparationData (source unique de vérité)
           let dateJ0 = null;
@@ -1882,7 +1704,7 @@ export default function Suivi() {
                   <button onClick={() => setSelectedType("Autre")}>🍴 Autre</button>
                 </div>
                 {/* Bannière critère préparation si phase préparation */}
-                {preparationActive && critereActif && (
+                {critereActif && (
                   <div style={{
                     margin: '32px auto 0',
                     maxWidth: 480,
@@ -1902,51 +1724,39 @@ export default function Suivi() {
                     
                     {/* ═══ NOUVEAU : Affichage validation auto si critère concerné ═══ */}
                     {(() => {
-                      const criteresAuto = [1, 2, 3, 4, 5, 7, 8, 9];
-                      const labelsCritere = {
-                        1: 'Portions',
-                        2: 'Féculents le soir',
-                        3: 'Transformés/sucreries',
-                        4: 'Jeûnes réalisés',
-                        5: 'Transition pré-jeûne',
-                        7: 'Hydratation 2L',
-                        8: 'Pas après 19h',
-                        9: 'Repas ≤ 45 min'
-                      };
-                      const idsActifs = getCritereIdsActifs(critereActif).filter(id => criteresAuto.includes(id));
-
-                      if (idsActifs.length > 0) {
-                        return (
-                          <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-                            {idsActifs.map(id => {
-                              const statutAuto = statutsValidationAuto[id];
-                              if (!statutAuto) return null;
-                              const seuilAuto = getSeuilCritereAuto(id);
-                              const joursRestants = Math.max(0, seuilAuto - (statutAuto.joursRespectés || 0));
-
-                              return (
-                                <div key={`critere-auto-${id}`} style={{
-                                  background: '#FFFFFF',
-                                  border: `1px solid ${statutAuto.validé ? '#A5D6A7' : '#BBDEFB'}`,
-                                  borderRadius: 10,
-                                  padding: '8px 10px',
-                                  textAlign: 'left'
-                                }}>
-                                  <div style={{ fontSize: 13, color: '#0F172A', fontWeight: 700 }}>{labelsCritere[id] || `Critère ${id}`}</div>
-                                  <div style={{ fontSize: 13, color: statutAuto.validé ? '#2E7D32' : '#334155', marginTop: 2 }}>
-                                    📊 {statutAuto.joursRespectés || 0}/{seuilAuto} jours
-                                  </div>
-                                  <div style={{ fontSize: 12, color: statutAuto.validé ? '#2E7D32' : '#64748B', marginTop: 2 }}>
-                                    {statutAuto.validé ? '✅ Auto-validé' : `⏳ Encore ${joursRestants} jour(s)`}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                      const critereId = getCritereIdFromLabel(critereActif.label);
+                      const statutAuto = statutsValidationAuto[critereId];
+                      const isAutoValidable = [1, 2, 7, 8, 9].includes(critereId);
+                      
+                      if (isAutoValidable && statutAuto) {
+                        return statutAuto.validé ? (
+                          <>
+                            <div style={{color:'#43a047', fontWeight:700, margin:'8px 0'}}>
+                              ✅ Critère validé automatiquement !
+                            </div>
+                            <div style={{fontSize: 14, color: '#555'}}>
+                              📊 {statutAuto.joursRespectés}/7 jours respectés
+                            </div>
+                            <div style={{fontSize: 13, color: '#888', marginTop: 6}}>
+                              (Détection automatique basée sur vos saisies)
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{fontSize: 14, color: '#555', margin:'8px 0'}}>
+                              ⏳ Suivi automatique en cours
+                            </div>
+                            <div style={{fontSize: 15, fontWeight: 600}}>
+                              📊 {statutAuto.joursRespectés}/7 jours respectés
+                            </div>
+                            <div style={{fontSize: 13, color: '#888', marginTop: 6}}>
+                              Encore {(critereId === 1 ? 6 : 5) - statutAuto.joursRespectés} jour(s) pour valider
+                            </div>
+                          </>
                         );
                       }
-
-                      // Critères non auto-validables : validation manuelle
+                      
+                      // Critères non auto-validables (3, 4, 5, 6) : validation manuelle
                       return prepValid ? (
                         <div style={{color:'#43a047', fontWeight:700, margin:'8px 0'}}>✅ Critère validé pour aujourd'hui !</div>
                       ) : (
@@ -2082,7 +1892,7 @@ export default function Suivi() {
               onSave={handleSaveRepas}
               setSnackbar={setSnackbar}
               repasSemaine={repasSemaine}
-              onChangeChampsRepas={isMounted && preparationActive ? setChampsRepasEnCours : undefined}
+              onChangeChampsRepas={isMounted && (localStorage.getItem('preparationActive') === 'true') ? setChampsRepasEnCours : undefined}
             />
             {/* Bouton de validation de la semaine, affiché uniquement si showValidation est vrai */}
             {showValidation && (

@@ -10,6 +10,7 @@ import {
   getCriteresDuJour,
   validerCriteresDuJour
 } from '../lib/preparationJeuneMetier';
+import { generateUUID } from '../lib/preparationsJeune';
 import styles from './StartPreparationModal.module.css';
 
 
@@ -90,7 +91,22 @@ const StartPreparationModal = ({ isOpen, onClose, onSave, analyseComportement = 
       alert('Veuillez remplir tous les champs obligatoires (date, durée du jeûne, objectif).');
       return;
     }
-    onSave({ startDate, duration: dureeJeune, goal, msgType, msgTexte, msgAudio, projType, projTexte, projAudio });
+    // ✅ Générer un ID unique pour la préparation
+    const id = generateUUID();
+    onSave({ 
+      id, 
+      startDate, 
+      duration: dureeJeune, 
+      goal, 
+      msgType, 
+      msgTexte, 
+      msgAudio, 
+      projType, 
+      projTexte, 
+      projAudio,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
     onClose();
   };
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import BilanHebdoModal from "../components/BilanHebdoModal";
@@ -10,74 +11,40 @@ export default function HistoriqueBilans() {
 
   useEffect(() => {
     async function fetchBilans() {
+      // Récupérer toutes les semaines validées avec tous les champs bilan
       const { data: semaines } = await supabase
         .from("semaines_validees")
         .select("*")
-        .not("bilan_abc", "is", null)  // Filtrer uniquement bilans avec données ABC
-        .not("weekStart", "is", null)   // Filtrer uniquement nouveau schéma
         .order("weekStart", { ascending: false });
-      
-      console.log('[HISTORIQUE] Semaines récupérées:', semaines?.length || 0);
+      // Tolérance sur le champ validee (true, "true", 1, etc.)
       setSemainesValidees((semaines || []).filter(s => s.validee === true || s.validee === 1 || s.validee === "true"));
     }
     fetchBilans();
   }, []);
 
+  // Handler pour ouvrir la modale bilan
   const handleOpenBilan = (bilan) => {
     if (!bilan) return;
-    
-    // Recalculer kcalExtras depuis extras_details si non présent (anciens bilans)
-    let kcalExtras = bilan.kcal_extras || 0;
-    let budgetExtras = bilan.budget_extras || 0;
-    
-    if (!kcalExtras && bilan.extras_details) {
-      try {
-        const details = JSON.parse(bilan.extras_details);
-        kcalExtras = details.reduce((sum, extra) => sum + (Number(extra.kcal) || 0), 0);
-        console.log('[HISTORIQUE] kcalExtras recalculé depuis extras_details:', kcalExtras);
-      } catch (e) {
-        console.warn('[HISTORIQUE] Erreur parsing extras_details:', e);
-      }
-    }
-    
-    console.log('[HISTORIQUE] Ouverture bilan:', {
-      weekStart: bilan.weekStart,
-      hasBilanABC: !!bilan.bilan_abc,
-      extras_count: bilan.extras_count,
-      kcalExtras,
-      budgetExtras
-    });
-    
+    // Calcul période métier (lundi-dimanche)
     const debut = getMonday(bilan.weekStart);
     const fin = addDays(debut, 6);
-    
     setBilanData({
-      weekStart: bilan.weekStart,
       periode: `${formatDate(debut, 'd MMMM yyyy')} au ${formatDate(fin, 'd MMMM yyyy')}`,
       titre: "Bilan de ta semaine alimentaire",
       sousTitre: `Semaine du ${formatDate(debut, 'dd/MM/yyyy')} au ${formatDate(fin, 'dd/MM/yyyy')}`,
-      apportsTotaux: bilan.apports_totaux || null,
-      objectifHebdo: bilan.objectif_hebdo || null,
-      kcalExtras: kcalExtras,
-      budgetExtras: budgetExtras,
-      extras: bilan.extras_count || 0,
-      variation: bilan.variation || null,
-      tendance_7j: bilan.tendance_7j || null,
-      ecart_hebdo: bilan.ecart_hebdo || null,
-      projection_poids: bilan.projection_poids || null,
-      // Section 7 - Données ressenti
-      satieteMoyenne: bilan.satiete_moyenne || null,
-      humeurDominante: bilan.humeur_dominante || null,
-      noteUtilisateur: bilan.note_utilisateur || null,
-      nbRepasSatiete: bilan.nb_repas_satiete || 0,
-      nbRepasRessenti: bilan.nb_repas_ressenti || 0,
-      bilan_abc: bilan.bilan_abc || null,
       verbatim: bilan.verbatim || "Ton corps évolue dans le temps. Ce bilan te montre la trajectoire, pas un jugement.",
-      message_feedback: bilan.message_feedback || null,
-      motDoux: bilan.mot_doux || "Cette semaine a été riche, mais pas de panique : ton corps a besoin de temps pour intégrer de nouvelles habitudes. L'important, c'est la régularité. Tu es sur la bonne voie !",
+      extras: bilan.extras_count,
+      budget: bilan.budget_utilise,
+      calories: bilan.calories_totales,
+      objectifCalories: bilan.objectif_calorique,
+      joursRespectes: bilan.jours_respectes,
+      tendance: bilan.tendance_mensuelle,
+      pointsForts: bilan.points_forts,
+      axesAmelioration: bilan.axes_amelioration,
+      motDoux: bilan.mot_doux || "Cette semaine a été riche, mais pas de panique : ton corps a besoin de temps pour intégrer de nouvelles habitudes. L’important, c’est la régularité. Tu es sur la bonne voie !",
+      feedbackDetaille: bilan.feedback_detaille,
       ...bilan
     });
-    
     setBilanModalOpen(true);
   };
 
@@ -88,11 +55,12 @@ export default function HistoriqueBilans() {
       </h1>
       <ul style={{listStyle:'none',padding:0}}>
         {semainesValidees.length === 0 && (
-          <li style={{color:'#888',textAlign:'center',margin:'2rem 0'}}>Aucun bilan hebdomadaire validé pour l'instant.</li>
+          <li style={{color:'#888',textAlign:'center',margin:'2rem 0'}}>Aucun bilan hebdomadaire validé pour l’instant.</li>
         )}
         {semainesValidees.map((bilan) => {
           const debut = getMonday(bilan.weekStart);
           const fin = addDays(debut, 6);
+          // Format UX : Semaine du 05/01/2026 au 11/01/2026
           function fmt(d) {
             const pad = n => String(n).padStart(2, '0');
             return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;

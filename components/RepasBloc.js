@@ -7,6 +7,7 @@ import { TYPES_EXTRAS, detecterTypeExtra, getOptionsExtras } from '../lib/extras
 import useUserReferentiel from '../lib/useUserReferentiel';
 import FormAjoutAliment from './FormAjoutAliment';
 // import foodsUser from '../data/foods_user';
+import { evaluerRespectPortionRepas } from '../lib/validerCriterePreparation';
 // import FlipNumbers from 'react-flip-numbers'
 
 // 🐛 DEBUG: Vérifier le référentiel chargé
@@ -97,9 +98,7 @@ export default function RepasBloc({
   const [categorie, setCategorie] = useState('');
   const [quantite, setQuantite] = useState('');
   const [kcal, setKcal] = useState('');
-  // --- DEBUG: log avant render (hors JSX)
-  // (ce log sera exécuté à chaque render, avant le return)
-  console.log('[DEBUG] Avant render champ Kcal :', kcal);
+  const [portionRespectee, setPortionRespectee] = useState('');
   // Champ Note pour analyse comportementale
   const [note, setNote] = useState('');
   // Auto-remplissage conditionnel des champs si repas conforme au planning ET données planifiées valides
@@ -364,6 +363,13 @@ function getSuggestionsFromNotes(repasList) {
     }
   }, [aliment])
 
+  useEffect(() => {
+    const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase())
+    if (found) {
+      setPortionRespectee('');
+    }
+  }, [aliment])
+
   // Calcul automatique des kcal selon la quantité et l'aliment (référentiel complet : global + custom)
   useEffect(() => {
     const found = referentielComplet.find(a => a.nom.toLowerCase() === aliment.toLowerCase())
@@ -473,6 +479,20 @@ function getSuggestionsFromNotes(repasList) {
         alert("Merci de remplir manuellement les champs manquants (aliment, catégorie, quantité, kcal) pour assurer le suivi.");
         return;
       }
+      const regleRespectee = isJeune
+        ? null
+        : evaluerRespectPortionRepas(
+            {
+              aliment: alimentFinal,
+              quantite: quantiteFinal,
+              regle_respectee: portionRespectee === 'oui' ? true : portionRespectee === 'non' ? false : undefined,
+            },
+            referentielAliments
+          );
+      if (!isJeune && regleRespectee === null) {
+        alert("Impossible d'analyser automatiquement la portion pour cet aliment. Merci d'indiquer si la portion recommandée a été respectée.");
+        return;
+      }
       // Si Jeûne, on autorise l'enregistrement même si les champs sont vides
       import('../lib/supabaseClient').then(({ supabase }) => {
         supabase.auth.getUser().then(({ data: userData }) => {
@@ -482,11 +502,13 @@ function getSuggestionsFromNotes(repasList) {
               user_id,
               date,
               type,
+              heure: heureRepas || null,
               aliment: isJeune ? '' : alimentFinal,
               categorie: isJeune ? 'Jeûne' : (isFastFood ? 'fast-food' : categorieFinal),
               quantite: isJeune ? null : (quantiteFinal === '' ? null : isNaN(Number(quantiteFinal)) ? quantiteFinal : Number(quantiteFinal)),
               kcal: isJeune ? null : (kcalFinal === '' ? null : isNaN(Number(kcalFinal)) ? kcalFinal : Number(kcalFinal)),
               est_extra: false,
+              regle_respectee: regleRespectee,
               satiete,
               pourquoi,
               ressenti,
@@ -509,6 +531,7 @@ function getSuggestionsFromNotes(repasList) {
       setCategorie('');
       setQuantite('');
       setKcal('');
+      setPortionRespectee('');
       setEstExtra(false);
       setTypeExtra('');
       setSatiete('');
@@ -519,15 +542,31 @@ function getSuggestionsFromNotes(repasList) {
       return;
     }
     // Enregistrement du repas classique
+    const regleRespectee = categorie === 'Jeûne'
+      ? null
+      : evaluerRespectPortionRepas(
+          {
+            aliment,
+            quantite,
+            regle_respectee: portionRespectee === 'oui' ? true : portionRespectee === 'non' ? false : undefined,
+          },
+          referentielAliments
+        );
+    if (categorie !== 'Jeûne' && regleRespectee === null) {
+      alert("Impossible d'analyser automatiquement la portion pour cet aliment. Merci d'indiquer si la portion recommandée a été respectée.");
+      return;
+    }
     onSave && onSave({
       // Correction : si Jeûne, envoyer null pour quantite/kcal et '' pour aliment
       type,
       date,
+      heure: heureRepas || null,
       aliment: categorie === 'Jeûne' ? '' : aliment,
       categorie: categorie === 'Jeûne' ? 'Jeûne' : (isFastFood ? 'fast-food' : categorie),
       quantite: categorie === 'Jeûne' ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite)),
       kcal: categorie === 'Jeûne' ? null : (kcal === '' ? null : isNaN(Number(kcal)) ? kcal : Number(kcal)),
       est_extra: estExtra,
+      regle_respectee: regleRespectee,
       satiete,
       pourquoi,
       ressenti,
@@ -546,6 +585,7 @@ function getSuggestionsFromNotes(repasList) {
     setCategorie('');
     setQuantite('');
     setKcal('');
+    setPortionRespectee('');
     setEstExtra(false);
     setTypeExtra('');
     setSatiete('');
@@ -930,6 +970,21 @@ function getSuggestionsFromNotes(repasList) {
         {categorie !== 'Jeûne' && (
           <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 2, marginBottom: 8 }}>
             ⚠️ Utilisez un <strong>point</strong> pour les décimales (ex: 0.5 et non 0,5)
+          </div>
+        )}
+        {aliment && categorie !== 'Jeûne' && referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase()) && (
+          <div style={{ fontSize: 12, color: '#4caf50', marginTop: -2, marginBottom: 8 }}>
+            ✨ Portion analysée automatiquement via le référentiel de l'aliment
+          </div>
+        )}
+        {aliment && quantite && categorie !== 'Jeûne' && !referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase()) && (
+          <div style={{ marginBottom: 8 }}>
+            <label>Portion recommandée respectée ?</label>
+            <select value={portionRespectee} onChange={e => setPortionRespectee(e.target.value)}>
+              <option value="">Choisir…</option>
+              <option value="oui">Oui</option>
+              <option value="non">Non</option>
+            </select>
           </div>
         )}
 

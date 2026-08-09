@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
 
-const CheckIn = () => {
+export default function CheckIn() {
     const [mood, setMood] = useState('');
     const [submitted, setSubmitted] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Logic to handle mood submission (e.g., save to database)
         setSubmitted(true);
     };
 
     return (
-        <div>
+        <div style={{maxWidth:600,margin:'0 auto',padding:'2rem'}}>
             <h1>Humeur du jour</h1>
             {submitted ? (
                 <p>Merci d'avoir partagé votre humeur !</p>
@@ -24,13 +23,14 @@ const CheckIn = () => {
                             value={mood}
                             onChange={(e) => setMood(e.target.value)}
                             required
+                            style={{display:'block',marginTop:'0.5rem',padding:'0.5rem',width:'100%'}}
                         />
                     </label>
-                    <button type="submit">Soumettre</button>
+                    <button type="submit" style={{marginTop:'1rem',padding:'0.5rem 1rem'}}>
+                        Soumettre
+                    </button>
                 </form>
             )}
         </div>
     );
-};
-
-export default CheckIn;
+}
