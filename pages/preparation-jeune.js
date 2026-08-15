@@ -480,7 +480,13 @@ export default function PreparationJeune() {
           jeuneId: parcours.id
         };
 
-        await savePreparationJeuneSupabase(userId, preparationEnrichie);
+        const preparationSauvegardee = await savePreparationJeuneSupabase(
+          userId,
+          preparationEnrichie
+        );
+        if (preparationSauvegardee?.id) {
+          preparationEnrichie.id = preparationSauvegardee.id;
+        }
 
         if (typeof window !== 'undefined') {
           localStorage.setItem('parcoursJeuneActifId', parcours.id);
@@ -1631,7 +1637,16 @@ const DebugPanel = () => (
                         const { ajouterPreparationHistorique, savePreparationJeuneSupabase } = await import('../lib/preparationsJeune');
                         // Construction de la préparation archivée (historique)
                         const preparationArchivee = {
+                          id: preparationData?.id || undefined,
                           userId: userId || null,
+                          parcoursId: preparationData?.parcoursId
+                            || (typeof window !== 'undefined'
+                              ? localStorage.getItem('parcoursJeuneActifId')
+                              : null),
+                          jeuneId: preparationData?.parcoursId
+                            || (typeof window !== 'undefined'
+                              ? localStorage.getItem('parcoursJeuneActifId')
+                              : null),
                           dateDebut: dateJeune,
                           dateFin: new Date().toISOString(),
                           tauxReussite: criteresValidesBilan.length / criteresMetier.length * 100,
