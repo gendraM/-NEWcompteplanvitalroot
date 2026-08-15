@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import styles from '../styles/AudioPlayer.module.css';
 
-export default function AudioPlayer({ audioBlob, titre, duree }) {
+export default function AudioPlayer({ audioBlob, audioUrl = null, titre, duree }) {
   const [enLecture, setEnLecture] = useState(false);
   const [progression, setProgression] = useState(0);
   const [tempsActuel, setTempsActuel] = useState(0);
@@ -13,16 +13,18 @@ export default function AudioPlayer({ audioBlob, titre, duree }) {
 
   // Créer URL audio
   useEffect(() => {
-    if (audioBlob) {
+    if (audioUrl) {
+      audioUrlRef.current = audioUrl;
+    } else if (audioBlob) {
       audioUrlRef.current = URL.createObjectURL(audioBlob);
     }
 
     return () => {
-      if (audioUrlRef.current) {
+      if (!audioUrl && audioUrlRef.current) {
         URL.revokeObjectURL(audioUrlRef.current);
       }
     };
-  }, [audioBlob]);
+  }, [audioBlob, audioUrl]);
 
   // Play/Pause
   const toggleLecture = () => {
@@ -113,7 +115,7 @@ export default function AudioPlayer({ audioBlob, titre, duree }) {
     <div className={styles.playerContainer}>
       <audio
         ref={audioRef}
-        src={audioUrlRef.current}
+        src={audioUrl || audioUrlRef.current || undefined}
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
       />

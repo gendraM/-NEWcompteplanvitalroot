@@ -8,6 +8,13 @@ import {
   calculerEspaceUtilise,
   exporterAudio
 } from '../lib/audioStorage';
+import {
+  getAudios as getAudiosSupabase,
+  uploadAudio as uploadAudioSupabase,
+  getAudioUrl as getAudioUrlSupabase,
+  downloadAudio as downloadAudioSupabase,
+  deleteAudio as deleteAudioSupabase
+} from '../lib/journalSpirituelAPI';
 import styles from '../styles/OngletAudios.module.css';
 
 export default function OngletAudios({ jourJeune, userId = null }) {
@@ -38,11 +45,38 @@ export default function OngletAudios({ jourJeune, userId = null }) {
   // Charger audios
   useEffect(() => {
     chargerAudios();
-  }, []);
+  }, [userId]);
 
   const chargerAudios = async () => {
     setChargement(true);
-    const liste = await recupererTousLesAudios(userId);
+    let liste = [];
+
+    if (userId) {
+      try {
+        const audiosCloud = await getAudiosSupabase(userId);
+        liste = await Promise.all(audiosCloud.map(async (audio) => ({
+          ...audio,
+          jourJeune: audio.jour_jeune,
+          dateFormatee: new Date(audio.date).toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          audioUrl: audio.storage_path
+            ? await getAudioUrlSupabase(audio.storage_path)
+            : null,
+          source: 'supabase'
+        })));
+      } catch (error) {
+        console.warn('Audios Supabase indisponibles, fallback IndexedDB:', error);
+      }
+    }
+
+    if (liste.length === 0) {
+      liste = await recupererTousLesAudios(userId);
+    }
     setAudios(liste.sort((a, b) => new Date(b.date) - new Date(a.date)));
     
     const stats = await calculerEspaceUtilise(userId);
@@ -74,7 +108,7 @@ export default function OngletAudios({ jourJeune, userId = null }) {
     }
 
     try {
-      await sauvegarderAudio({
+      const audioData = {
         blob: audioEnCours.blob,
         duree: audioEnCours.duree,
         type: typeAudio,
@@ -82,9 +116,24 @@ export default function OngletAudios({ jourJeune, userId = null }) {
         note: note,
         tags: tags.split(',').map(t => t.trim()).filter(t => t),
         jourJeune: jourJeune
-      }, userId);
+      };
 
-      alert('✅ Audio sauvegardé !');
+      let sauvegardeCloudReussie = false;
+      if (userId) {
+        try {
+          await uploadAudioSupabase(audioData.blob, audioData, userId);
+          sauvegardeCloudReussie = true;
+        } catch (error) {
+          console.warn('Sauvegarde audio Supabase indisponible, conservation locale:', error);
+        }
+      }
+
+      // IndexedDB reste le cache local et le fallback hors ligne.
+      await sauvegarderAudio(audioData, userId);
+
+      alert(sauvegardeCloudReussie || !userId
+        ? '✅ Audio sauvegardé !'
+        : '⚠️ Audio conservé sur cet appareil, mais pas encore synchronisé avec Supabase.');
       
       // Reset
       setModeSauvegarde(false);
@@ -114,10 +163,20 @@ export default function OngletAudios({ jourJeune, userId = null }) {
   };
 
   // Supprimer audio
-  const handleSupprimerAudio = async (id) => {
+  const handleSupprimerAudio = async (audio) => {
     if (!confirm('Supprimer cet audio définitivement ?')) return;
 
-    const success = await supprimerAudio(id, userId);
+    let success = false;
+    if (audio.source === 'supabase' && userId) {
+      try {
+        await deleteAudioSupabase(audio.id, audio.storage_path, userId);
+        success = true;
+      } catch (error) {
+        console.error('Erreur suppression audio Supabase:', error);
+      }
+    } else {
+      success = await supprimerAudio(audio.id, userId);
+    }
     if (success) {
       alert('✅ Audio supprimé');
       chargerAudios();
@@ -125,8 +184,18 @@ export default function OngletAudios({ jourJeune, userId = null }) {
   };
 
   // Exporter audio
-  const handleExporterAudio = async (id) => {
-    const success = await exporterAudio(id, userId);
+  const handleExporterAudio = async (audio) => {
+    let success = false;
+    try {
+      if (audio.source === 'supabase' && audio.storage_path) {
+        await downloadAudioSupabase(audio.storage_path, audio.titre);
+        success = true;
+      } else {
+        success = await exporterAudio(audio.id, userId);
+      }
+    } catch (error) {
+      console.error('Erreur téléchargement audio:', error);
+    }
     if (success) {
       alert('✅ Audio téléchargé !');
     } else {
@@ -314,14 +383,14 @@ export default function OngletAudios({ jourJeune, userId = null }) {
                     </div>
                     <div className={styles.audioActions}>
                       <button
-                        onClick={() => handleExporterAudio(audio.id)}
+                        onClick={() => handleExporterAudio(audio)}
                         className={styles.btnAction}
                         title="Télécharger"
                       >
                         ⬇️
                       </button>
                       <button
-                        onClick={() => handleSupprimerAudio(audio.id)}
+                        onClick={() => handleSupprimerAudio(audio)}
                         className={styles.btnAction}
                         title="Supprimer"
                       >
@@ -345,6 +414,7 @@ export default function OngletAudios({ jourJeune, userId = null }) {
                   <div className={styles.playerWrapper}>
                     <AudioPlayer
                       audioBlob={audio.blob}
+                      audioUrl={audio.audioUrl}
                       titre={null}
                       duree={audio.duree}
                     />
