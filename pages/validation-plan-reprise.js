@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import alimentsRepriseJeune from '../data/alimentsRepriseJeune'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { supabase } from '../lib/supabaseClient'
+import { validerProgrammeReprise } from '../lib/jeuneUtils'
 
 export default function ValidationPlanReprise() {
   // ============================================
@@ -68,40 +70,38 @@ export default function ValidationPlanReprise() {
   // ============================================
   // HANDLERS / FONCTIONS
   // ============================================
-  const handleValider = () => {
+  const handleValider = async () => {
     if (!peutValider) return;
     setValidating(true);
-    // Log visuel et alerte pour debug
-    console.log('[DEBUG] Bouton validation cliqué');
-    alert('Validation du plan : handler appelé');
-    // Vérifier que le plan existe bien
+    setError(null);
+
     if (!programme) {
-      setError("Aucun plan à valider. Merci de régénérer le plan.");
+      setError('Aucun plan à valider. Merci de régénérer le plan.');
       setValidating(false);
       return;
     }
-    // DEBUG: log avant validation
-    console.debug('[DEBUG] Validation plan - programme:', programme);
+
     try {
-      localStorage.setItem('programmeRepriseValide', JSON.stringify(programme));
-      const check = localStorage.getItem('programmeRepriseValide');
-      console.debug('[DEBUG] programmeRepriseValide enregistré:', check);
+      let programmeValide = { ...programme, statut: 'plan_valide' };
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user?.id && programme.id) {
+        const resultat = await validerProgrammeReprise(programme.id, user.id);
+        if (!resultat.success) throw new Error(resultat.message);
+        programmeValide = resultat.programme;
+      }
+
+      localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeValide));
       localStorage.removeItem('programmeReprise');
-      // Afficher un message de confirmation fort
-      setMessage('✅ Programme validé ! Tu t’es engagé à suivre ce plan pour fortifier ton pouvoir de volonté. Redirection en cours...');
-      // Attendre 2 secondes avant de rediriger
+      setProgramme(programmeValide);
+      setMessage('✅ Programme validé ! Il reste lié au même parcours et ta copie locale est conservée.');
+
       setTimeout(() => {
-        // Vérifier que la sauvegarde a bien fonctionné avant de rediriger
-        const verif = localStorage.getItem('programmeRepriseValide');
-        if (verif) {
-          router.push('/reprise-alimentaire-apres-jeune');
-        } else {
-          setError("Erreur lors de la sauvegarde du plan. Merci de réessayer.");
-          setValidating(false);
-        }
-      }, 2000);
+        router.push('/reprise-alimentaire-apres-jeune');
+      }, 1200);
     } catch (e) {
-      setError("Erreur lors de la sauvegarde du plan. Merci de réessayer.");
+      console.error('Erreur validation du programme:', e);
+      setError(e.message || 'Erreur lors de la sauvegarde du plan.');
       setValidating(false);
     }
   }
