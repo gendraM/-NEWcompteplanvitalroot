@@ -106,6 +106,7 @@ La fin du jeûne et la fin du cycle ne sont plus confondues.
 
 Ajouts :
 
+- retour de la ligne enregistrée avec son identifiant Supabase pour éviter les doublons lors de l’archivage ;
 - conversion `parcoursId ↔ parcours_id` ;
 - autorisation de `parcours_id` dans les colonnes synchronisées.
 
@@ -270,7 +271,9 @@ Tester également que les données locales restent visibles après chaque actual
 - `a0dbd02` — transmission du parcours depuis la page jeûne ;
 - `66347ad` — ouverture de la consolidation ;
 - `8a18505` — validation Supabase du plan ;
-- `7856ccd` — synchronisation de la reprise.
+- `7856ccd` — synchronisation de la reprise ;
+- `668157b` — retour de l’identifiant Supabase de la préparation ;
+- `f8a24f2` — conservation du même identifiant pendant l’archivage.
 
 ---
 
