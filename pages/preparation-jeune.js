@@ -46,6 +46,7 @@ import { validerCritereAuto, getStatutCritereAuto } from '../lib/validerCritereP
 import { getCritereIdFromLabel } from '../lib/validerCriterePreparation';
 import { getCriteresPreparation, isPeriodeActive, validerCriterePreparation, calculerJourRelatif, getFenetreValidation, evaluerRespectPortionRepas, getResumePortionParJour, calculerVolumeHydratationRepas, getSeuilCritereAuto } from "../lib/validerCriterePreparation";
 import { savePreparationJeuneSupabase, getPreparationJeuneSync } from '../lib/preparationsJeune';
+import { createParcoursJeune, demarrerPhaseJeune } from '../lib/parcoursJeuneAPI';
 import referentielAliments from '../data/referentiel';
 import HeaderPreparation from '../components/HeaderPreparation';
 import TimelinePreparation from '../components/TimelinePreparation';
@@ -452,29 +453,68 @@ export default function PreparationJeune() {
   }
 
   // Handler pour validation de la modale et activation complète du workflow
-  function handleStartPreparationModal(data) {
+  async function handleStartPreparationModal(data) {
     console.log('🔍 [handleStartPreparationModal] Données reçues de la modale:', data);
-    console.log('🔍 [handleStartPreparationModal] data.id exist?', data.id);
-    // Sauvegarde des données de préparation
-    setPreparationData(data);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('preparationData', JSON.stringify(data));
-      localStorage.setItem('preparationActive', 'true');
-      localStorage.setItem('dateJeune', data.startDate);
-      localStorage.setItem('dureeJeune', data.duration);
+
+    let preparationEnrichie = { ...data };
+
+    // Le parcours central est créé dès le début de la préparation.
+    // En cas d'indisponibilité Supabase, la préparation locale reste utilisable
+    // et aucune donnée locale n'est effacée.
+    if (userId) {
+      try {
+        const dateDebutPreparation = new Date().toISOString().slice(0, 10);
+        const parcours = await createParcoursJeune({
+          type: 'preparation',
+          date_debut: dateDebutPreparation,
+          date_debut_preparation: dateDebutPreparation,
+          date_debut_jeune: data.startDate || null,
+          duree_jours: Number(data.duration) || null,
+          statut: 'en_cours',
+          progression: { source: 'preparation-jeune' }
+        }, userId);
+
+        preparationEnrichie = {
+          ...preparationEnrichie,
+          parcoursId: parcours.id,
+          jeuneId: parcours.id
+        };
+
+        await savePreparationJeuneSupabase(userId, preparationEnrichie);
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('parcoursJeuneActifId', parcours.id);
+        }
+      } catch (error) {
+        console.error('[Préparation] Création du parcours central impossible:', error);
+        setFeedbackMessage(
+          '⚠️ La préparation reste enregistrée localement, mais la synchronisation du parcours a échoué.'
+        );
+      }
     }
-    // Activation de la préparation
+
+    setPreparationData(preparationEnrichie);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('preparationData', JSON.stringify(preparationEnrichie));
+      localStorage.setItem('preparationActive', 'true');
+      localStorage.setItem('dateJeune', preparationEnrichie.startDate);
+      localStorage.setItem('dureeJeune', preparationEnrichie.duration);
+    }
+
     setPreparationActive(true);
-    // Initialisation des critères métier
-    const criteresInit = criteresMetier.map(c => ({ ...c, valide: false, validé: false, dateValidation: null }));
-    console.log('🔍 [handleStartPreparationModal] Critères init créés, va déclencher setCriteres() qui devrait déclencher useEffect');
+    const criteresInit = criteresMetier.map(c => ({
+      ...c,
+      valide: false,
+      validé: false,
+      dateValidation: null
+    }));
     setCriteres(criteresInit);
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('criteresPreparation', JSON.stringify(criteresInit));
     }
-    setFeedbackMessage("✅ Préparation activée ! Suivi et critères disponibles.");
-    // Feedback visuel (console)
-    console.log('Préparation activée, critères initialisés, timeline affichée. Source : action utilisateur, validation modale.');
+
+    setFeedbackMessage('✅ Préparation activée ! Suivi et critères disponibles.');
   }
 
   // Handler pour réinitialiser toute la préparation
@@ -1615,25 +1655,57 @@ const DebugPanel = () => (
                         console.warn('Erreur lors de l’archivage de la préparation :', err);
                         setFeedbackMessage('❌ Erreur lors de l’archivage de la préparation : ' + err.message);
                       }
-                      // Démarrage du jeûne (Supabase ou localStorage)
+                      // Démarrage du jeûne sur le même parcours central.
                       try {
-                        if (userId) {
-                          const debutJeune = {
-                            user_id: userId,
-                            date_debut: new Date().toISOString(),
-                            statut: 'en_cours'
-                          };
-                          const { error: jeuneError } = await supabase.from('jeune').insert([debutJeune]);
-                          if (jeuneError) throw new Error('Erreur lors du démarrage du jeûne : ' + jeuneError.message);
+                        const parcoursId = preparationData?.parcoursId
+                          || preparationArchivee.parcoursId
+                          || (typeof window !== 'undefined'
+                            ? localStorage.getItem('parcoursJeuneActifId')
+                            : null);
+
+                        if (userId && !parcoursId) {
+                          throw new Error(
+                            'Aucun parcours central associé à cette préparation. Relance la préparation avant de démarrer le jeûne.'
+                          );
                         }
+
+                        const dateDebutJeune = new Date().toISOString().slice(0, 10);
+
+                        if (userId && parcoursId) {
+                          await demarrerPhaseJeune(parcoursId, userId, {
+                            date_debut_jeune: dateDebutJeune,
+                            date_fin_preparation: dateDebutJeune,
+                            duree_jours: Number(
+                              preparationData?.duration
+                                || localStorage.getItem('dureeJeune')
+                            ) || null,
+                            message_perso: messagePerso
+                          });
+                        }
+
+                        const preparationLiee = {
+                          ...preparationArchivee,
+                          parcoursId: parcoursId || null,
+                          jeuneId: parcoursId || null
+                        };
+
+                        if (userId && parcoursId) {
+                          await savePreparationJeuneSupabase(userId, preparationLiee);
+                        }
+
                         if (typeof window !== 'undefined') {
                           localStorage.setItem('phaseJeuneCommencee', 'true');
                           localStorage.setItem('dateDebutJeune', new Date().toISOString());
-                          localStorage.setItem('bilanPreparationJeune', JSON.stringify(preparationArchivee));
+                          localStorage.setItem('bilanPreparationJeune', JSON.stringify(preparationLiee));
+                          if (parcoursId) {
+                            localStorage.setItem('parcoursJeuneActifId', parcoursId);
+                          }
                         }
+
                         setFeedbackMessage('✅ Bilan enregistré et jeûne démarré ! Redirection...');
                       } catch (err) {
                         setFeedbackMessage('❌ ' + err.message);
+                        return;
                       }
                       setTimeout(() => {
                         window.location.href = '/jeune';
