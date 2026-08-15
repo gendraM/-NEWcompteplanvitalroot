@@ -922,7 +922,8 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
                         console.warn('[NAVIGATION] Aucun id valide trouvé', { currentIdealId, planData, ideaux });
                       }
                       if ((typeof id === 'string' && id.length > 0) || (typeof id === 'number' && id > 0)) {
-                        const url = `/plan-action?id=${id}`;
+                        const normalizedId = String(id).trim();
+                        const url = `/plan-action?id=${encodeURIComponent(normalizedId)}`;
                         console.log('[NAVIGATION] Redirection vers :', url, { idSource: id, currentIdealId, planData, ideaux });
                         window.location.href = url;
                       } else {

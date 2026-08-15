@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabaseClient';
 
 export default function PlanActionPage() {
   const router = useRouter();
-  const { id } = router.query;
+  const rawId = router.query.id;
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
 
   const [ideal, setIdeal] = useState(null);
   const [planData, setPlanData] = useState(null);
@@ -14,15 +15,25 @@ export default function PlanActionPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
+  function isValidIdealId(value) {
+    return (typeof value === 'string' && value.trim().length > 0) || (typeof value === 'number' && value > 0);
+  }
+
   // Charger l'idéal et son plan depuis Supabase
   useEffect(() => {
-    if (!id) return;
+    if (!router.isReady) return;
+    if (!isValidIdealId(id)) {
+      console.warn('[DEBUG] id manquant ou invalide dans plan-action', { rawId, id });
+      setMessage('❌ Identifiant du plan manquant ou invalide.');
+      setLoading(false);
+      return;
+    }
     loadIdeal();
-  }, [id]);
+  }, [id, rawId, router.isReady]);
 
   async function loadIdeal() {
     try {
-      console.log('[DEBUG] id reçu dans plan-action:', id, 'type:', typeof id);
+      console.log('[DEBUG] id reçu dans plan-action:', id, 'type:', typeof id, 'rawId:', rawId);
       const { data, error } = await supabase
         .from('ideaux')
         .select('*')
@@ -114,7 +125,7 @@ export default function PlanActionPage() {
 
   // Sauvegarder une séance réalisée
   async function handleSaveSeanceReelle(semIdx, actIdx, fait, duree, distanceKm, vitesse) {
-    if (!id || !planData) return;
+    if (!isValidIdealId(id) || !planData) return;
 
     const nbSemaines = 4;
     let semaines = [];
