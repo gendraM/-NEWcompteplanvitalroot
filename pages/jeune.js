@@ -529,6 +529,29 @@ function saveState(key, val, userId) {
   localStorage.setItem(wrappedKey, JSON.stringify(val));
 }
 
+function parcoursSupabaseVersArchive(parcours) {
+  const archive = parcours?.progression?.archive || {};
+  return {
+    id: parcours.id,
+    dateDebut: parcours.date_debut,
+    dateFin: parcours.date_fin,
+    duree: parcours.duree_jours,
+    joursValides: parcours.jours_valides || [],
+    outils: parcours.outils_actives || {},
+    messagePerso: parcours.message_perso || '',
+    bilan: archive.bilan || null,
+    programmeReprise: archive.programmeReprise || null,
+    messagesPersoJour: archive.messagesPersoJour || {},
+    statut: parcours.statut,
+    dateArchivage: archive.dateArchivage || parcours.updated_at,
+    dateSuppression: parcours.statut === 'supprime' ? parcours.updated_at : null,
+    donneesSpirituellesCount: archive.donneesSpirituellesCount || 0
+  };
+}
+
+const estUuidSupabase = (value) => typeof value === 'string'
+  && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
 export default function Jeune() {
   // Méthodologie : hooks d'état en premier
   const router = useRouter();
@@ -556,6 +579,7 @@ export default function Jeune() {
   const [bilanJeune, setBilanJeune] = useState(null);
   const [showBilan, setShowBilan] = useState(false);
   const [parcoursId, setParcoursId] = useState(null); // ID du parcours Supabase
+  const [parcoursHydrate, setParcoursHydrate] = useState(false);
 
   // Hooks pour données Supabase réelles
   const [repasRecentsSupabase, setRepasRecentsSupabase] = useState([]);
@@ -602,12 +626,21 @@ export default function Jeune() {
           // Parcours existe en BDD, synchroniser avec localStorage
           setParcoursId(parcours.id); // STOCKER L'ID
           setJoursValides(parcours.jours_valides || []);
+          setOutils(parcours.outils_actives || {});
+          setDateDebutJeune(parcours.date_debut || null);
+          setDureeJeune(parcours.duree_jours || 5);
+          setMessagePersoJour(parcours.progression?.messagesPersoJour || {});
+          setConseilsActivation(parcours.progression?.conseilsActivation || {});
+          setBilanJeune(parcours.progression?.bilan || null);
           // Sync localStorage comme cache
           localStorage.setItem(getStorageKey('joursValides', userId), JSON.stringify(parcours.jours_valides || []));
           if (parcours.message_perso) {
             setMessagePerso(parcours.message_perso);
             localStorage.setItem(getStorageKey('messagePerso', userId), parcours.message_perso);
           }
+          localStorage.setItem(getStorageKey('outilsJeune', userId), JSON.stringify(parcours.outils_actives || {}));
+          localStorage.setItem(getStorageKey('dateDebutJeune', userId), parcours.date_debut || '');
+          localStorage.setItem(getStorageKey('dureeJeune', userId), JSON.stringify(parcours.duree_jours || 5));
         } else {
           // Créer nouveau parcours si preparationData existe
           const prepDataStr = localStorage.getItem("preparationData");
@@ -637,6 +670,8 @@ export default function Jeune() {
         // Fallback sur localStorage existant
         const joursValidesLocal = loadState("joursValides", []);
         setJoursValides(joursValidesLocal);
+      } finally {
+        setParcoursHydrate(true);
       }
     };
     
@@ -645,18 +680,20 @@ export default function Jeune() {
 
   // === CHARGEMENT HISTORIQUE JEÛNES AU MONTAGE ===
   useEffect(() => {
-    if (!isClient) return;
-    
-    try {
+    if (!isClient || authLoading) return;
+
+    const chargerHistorique = async () => {
+      try {
       // Charger historique
       const historiqueStr = localStorage.getItem(getStorageKey('historiqueJeunes', userId));
+      const historiqueLocal = historiqueStr ? JSON.parse(historiqueStr) : [];
       if (historiqueStr) {
-        const historique = JSON.parse(historiqueStr);
-        setHistoriqueJeunes(Array.isArray(historique) ? historique : []);
+        setHistoriqueJeunes(Array.isArray(historiqueLocal) ? historiqueLocal : []);
       }
 
       // Charger corbeille
       const corbeilleStr = localStorage.getItem(getStorageKey('jeunesSupprimés', userId));
+      const corbeilleLocale = corbeilleStr ? JSON.parse(corbeilleStr) : [];
       if (corbeilleStr) {
         const corbeille = JSON.parse(corbeilleStr);
         setJeunesSupprimés(Array.isArray(corbeille) ? corbeille : []);
@@ -664,12 +701,25 @@ export default function Jeune() {
 
       // Nettoyage automatique corbeille (>30 jours)
       nettoyerCorbeilleAuto();
+
+      if (userId) {
+        const parcoursCloud = await ParcoursAPI.getHistoriqueParcoursJeune(userId);
+        const archivesCloud = parcoursCloud.map(parcoursSupabaseVersArchive);
+        const historiqueCloud = archivesCloud.filter(jeune => jeune.statut === 'termine');
+        const corbeilleCloud = archivesCloud.filter(jeune => jeune.statut === 'supprime');
+        setHistoriqueJeunes(historiqueCloud);
+        setJeunesSupprimés(corbeilleCloud);
+        localStorage.setItem(getStorageKey('historiqueJeunes', userId), JSON.stringify(historiqueCloud));
+        localStorage.setItem(getStorageKey('jeunesSupprimés', userId), JSON.stringify(corbeilleCloud));
+      }
       
       // Note : Migration automatique jeûne terminé gérée dans useEffect principal (ligne ~712)
-    } catch (error) {
+      } catch (error) {
       console.error('❌ Erreur chargement historique jeûnes:', error);
-    }
-  }, [isClient]);
+      }
+    };
+    chargerHistorique();
+  }, [isClient, authLoading, userId]);
 
   // === VARIABLES CALCULÉES ===
   const repasRecents = repasRecentsSupabase.length > 0 ? repasRecentsSupabase : repasFallback;
@@ -869,6 +919,43 @@ export default function Jeune() {
   useEffect(() => { if (isClient) saveState("messagePerso", messagePerso, userId); }, [messagePerso, isClient, userId]);
   useEffect(() => { if (isClient) saveState("outilsJeune", outils, userId); }, [outils, isClient, userId]);
   useEffect(() => { if (isClient) saveState("dateDebutJeune", dateDebutJeune, userId); }, [dateDebutJeune, isClient, userId]);
+
+  // Supabase est la source principale ; les effets ci-dessus conservent le cache local.
+  useEffect(() => {
+    if (!parcoursHydrate || !parcoursId || !userId) return;
+    const timer = setTimeout(async () => {
+      try {
+        await ParcoursAPI.updateEtatParcours(parcoursId, userId, {
+          joursValides,
+          outils,
+          messagePerso,
+          progression: {
+            duree_totale: dureeJeune,
+            jour_en_cours: jourEnCours,
+            messagesPersoJour: messagePersoJour,
+            conseilsActivation,
+            bilan: bilanJeune || null,
+            derniere_synchronisation: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        console.warn('Synchronisation du jeûne vers Supabase en attente:', error);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [
+    parcoursHydrate,
+    parcoursId,
+    userId,
+    joursValides,
+    outils,
+    messagePerso,
+    messagePersoJour,
+    conseilsActivation,
+    bilanJeune,
+    dureeJeune,
+    jourEnCours
+  ]);
 
   // Chargement des données Supabase au montage (mono-utilisateur)
   useEffect(() => {
@@ -1305,7 +1392,7 @@ saveState('bilanJeune', bilan, userId);
         return;
       }
 
-      const idJeune = `${dateDebutLS}_${dureeLS}j`;
+      const idJeune = parcoursId || `${dateDebutLS}_${dureeLS}j`;
       const dateFinArchivage = new Date().toISOString().split('T')[0];
 
       // 🆕 ARCHIVER DONNÉES SPIRITUELLES (méditations, audios, etc.)
@@ -1333,6 +1420,25 @@ saveState('bilanJeune', bilan, userId);
         donneesSpirituellesCount: donneesSpirituellesArchivees ? 
           Object.values(donneesSpirituellesArchivees).reduce((a, b) => a + b, 0) : 0
       };
+
+      if (parcoursId && userId) {
+        await ParcoursAPI.archiverParcoursJeune(parcoursId, userId, {
+          dateFin: dateFinArchivage,
+          joursValides: joursValidesLS,
+          outils: outilsLS,
+          messagePerso: messagePersoLS,
+          bilan: bilanLS,
+          programmeReprise: programmeRepriseLS,
+          messagesPersoJour,
+          donneesSpirituellesCount: jeuneArchive.donneesSpirituellesCount,
+          dateArchivage: jeuneArchive.dateArchivage,
+          progression: {
+            duree_totale: dureeLS,
+            jour_en_cours: joursValidesLS.length,
+            conseilsActivation
+          }
+        });
+      }
 
 const historiqueActuel = JSON.parse(localStorage.getItem(getStorageKey('historiqueJeunes', userId)) || '[]');
       
@@ -1394,8 +1500,11 @@ const historiqueActuel = JSON.parse(localStorage.getItem(getStorageKey('historiq
   };
 
   // Supprimer un jeûne (soft delete → corbeille)
-  const supprimerJeune = (jeuneId) => {
+  const supprimerJeune = async (jeuneId) => {
     try {
+      if (userId && estUuidSupabase(jeuneId)) {
+        await ParcoursAPI.supprimerParcoursJeune(jeuneId, userId);
+      }
       const historiqueActuel = JSON.parse(localStorage.getItem(getStorageKey('historiqueJeunes', userId)) || '[]');
       const jeuneIndex = historiqueActuel.findIndex(j => j.id === jeuneId);
       
@@ -1426,8 +1535,11 @@ const historiqueActuel = JSON.parse(localStorage.getItem(getStorageKey('historiq
   };
 
   // Restaurer un jeûne depuis la corbeille
-  const restaurerJeune = (jeuneId) => {
+  const restaurerJeune = async (jeuneId) => {
     try {
+      if (userId && estUuidSupabase(jeuneId)) {
+        await ParcoursAPI.restaurerParcoursJeune(jeuneId, userId);
+      }
       const corbeilleActuelle = JSON.parse(localStorage.getItem(getStorageKey('jeunesSupprimés', userId)) || '[]');
       const jeuneIndex = corbeilleActuelle.findIndex(j => j.id === jeuneId);
       
@@ -1461,6 +1573,9 @@ const historiqueActuel = JSON.parse(localStorage.getItem(getStorageKey('historiq
   // Suppression définitive (hard delete)
   const supprimerDefinitivement = async (jeuneId) => {
     try {
+      if (userId && estUuidSupabase(jeuneId)) {
+        await ParcoursAPI.supprimerParcoursJeuneDefinitivement(jeuneId, userId);
+      }
       const corbeilleActuelle = JSON.parse(localStorage.getItem(getStorageKey('jeunesSupprimés', userId)) || '[]');
       const nouvelleCorbeille = corbeilleActuelle.filter(j => j.id !== jeuneId);
       
