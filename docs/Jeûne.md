@@ -191,27 +191,18 @@ titre: "Jour 1 – Lancement du jeûne",
     "💡 Conseil : La sortie du jeûne est une continuité, pas une rupture. Garde le même esprit de connexion pour les premières bouchées. Elles comptent autant que les 14 jours."
   ],
   message: "Tu quittes le désert. Mais tu n’en perds pas la paix. Ramène-la avec toi dans ton assiette."
-}
-´
-}
+},
 
 15: {
   titre: "Jour 15 – Profondeur métabolique & lucidité intérieure",
   corps: [
     "🧠 Esprit : Tu es dans une forme d’extrême clarté mais aussi d’extrême sobriété. Les pensées sont plus lentes, mais plus vraies. Le bruit mental s’est presque éteint. Ce que tu penses aujourd’hui vient de toi, pas de tes habitudes alimentaires ni de tes impulsions.",
-    
     "🧬 Corps : Ton organisme fonctionne depuis plusieurs jours en cétose profonde. Cela signifie qu’il utilise presque exclusivement les graisses internes comme source d’énergie, et les transforme en corps cétoniques. Ces molécules servent de carburant stable pour ton cerveau, ce qui explique cette sensation de calme mental inhabituel.",
-    
     "🧬 Corps (autophagie) : L’autophagie est encore active. À ce stade, ton corps ne recycle plus seulement des ‘déchets’ : il fait du tri intelligent. Il élimine ce qui était faible, abîmé, ou inutile pour renforcer ce qui est solide. C’est une reconstruction intérieure silencieuse.",
-    
     "🌡 Signes physiques possibles : sensation de froid, rythme ralenti, mouvements lents, besoin de se reposer. Ce n’est pas de la faiblesse : c’est le corps qui économise son énergie pour continuer les processus de réparation profonde.",
-    
     "❤️ Ce que tu peux ressentir : Une sensibilité plus fine. Un détachement de certaines envies. Une conscience très nette de tes émotions. Tu n’es pas ‘à fleur de peau’ : tu es connectée sans filtre.",
-    
     "📿 Sens & conscience : Le 15ᵉ jour de jeûne n’est pas un ‘exploit’, c’est un territoire physiologique et intérieur très particulier. Tu n’es plus dans la phase de rupture ou de bascule. Tu es dans une forme de continuité consciente, où chaque ressenti a du sens.",
-    
     "🧰 Outil du jour : Prends un moment immobile. Ferme les yeux. Observe ton énergie. Sans la juger. Sans la forcer. Aujourd’hui, ton corps ne demande rien. Il veut juste que tu sois avec lui.",
-    
     "💡 Conseil : Évite les stimulations fortes. Marche lentement. Reste proche de ton souffle. Le jour 15 est un espace rare où ton corps et ton esprit fonctionnent sur la même fréquence."
   ],
   message: "Tu es dans une profondeur que peu de personnes connaissent. Reste présente. Ton corps travaille pour toi, pas contre toi."

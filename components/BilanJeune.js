@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMeditations, useVersets, useQuestions, useIntentions, useEcrits } from '../lib/useJournalSpirituel';
 
-export default function BilanJeune({ bilan, outils, onClose, onAccederReprise }) {
+export default function BilanJeune({ bilan, outils, onClose, onAccederReprise, userId = null }) {
   if (!bilan) return null;
 
   // États pour la saisie du poids
@@ -10,11 +10,11 @@ export default function BilanJeune({ bilan, outils, onClose, onAccederReprise })
   const [messageConfirmation, setMessageConfirmation] = useState('');
 
   // Hooks pour données spirituelles
-  const { meditations, loading: loadingMed } = useMeditations();
-  const { versets, loading: loadingVers } = useVersets();
-  const { questions, loading: loadingQuest } = useQuestions();
-  const { intentions, loading: loadingInt } = useIntentions();
-  const { ecrits, loading: loadingEcr } = useEcrits();
+  const { meditations, loading: loadingMed } = useMeditations(false, null, userId);
+  const { versets, loading: loadingVers } = useVersets(userId);
+  const { questions, loading: loadingQuest } = useQuestions(userId);
+  const { intentions, loading: loadingInt } = useIntentions(userId);
+  const { ecrits, loading: loadingEcr } = useEcrits(userId);
 
   // Filtrer données spirituelles sur période du jeûne
   const dateDebut = bilanActuel.date_debut ? new Date(bilanActuel.date_debut) : null;

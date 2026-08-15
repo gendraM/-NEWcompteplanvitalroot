@@ -1,5 +1,52 @@
 ## Restauration depuis branch-main-etat-des-lieux
 
+# 🧭 RÉFLEXION MÉTIER — TYPES DE JEÛNE (à prévoir plus tard)
+
+## Principe directeur
+Le jeûne actuel reste la référence maître. Cette réflexion ne remplace rien dans l'existant : elle prépare une future évolution où l'utilisateur choisirait, au démarrage de la préparation, le type de jeûne qu'il souhaite suivre. L'interface s'adapterait ensuite à ce choix (contenu, consignes, durée, reprise, alertes).
+
+## Grandes familles de jeûne à considérer
+
+1. **Jeûnes sans prise alimentaire**
+  - Jeûne sec
+  - Jeûne hydrique
+  - Jeûne prolongé strict
+
+2. **Jeûnes à fenêtre horaire**
+  - Jeûne intermittent
+  - Jeûne par créneaux horaires
+
+3. **Jeûnes modifiés**
+  - Jeûne modifié
+  - Jeûne partiel
+  - Monodiète
+
+4. **Jeûnes spirituels ou religieux**
+  - Jeûne religieux
+  - Jeûne spirituel
+
+5. **Jeûnes encadrés médicalement**
+  - Jeûne thérapeutique
+  - Jeûne supervisé
+
+## Regroupement métier conseillé pour l'application
+Pour éviter une interface trop lourde, les modes utilisateur pourraient être regroupés en catégories simples :
+- **Hydrique**
+- **Sec**
+- **Intermittent / créneaux horaires**
+- **Modifié**
+- **Spirituel / religieux**
+- **Supervisé**
+
+## Impact produit attendu plus tard
+- L'utilisateur choisit son type de jeûne avant de commencer.
+- La page de préparation adapte ses messages, ses critères et ses alertes.
+- La page jeune adapte sa durée, ses conseils, ses risques et sa reprise.
+- Le même parcours reste lisible, mais avec une logique plus personnalisée.
+
+## Point de vigilance
+Cette réflexion doit rester séparée des backlogs alimentation, référentiel et bilan hebdomadaire. Elle concerne uniquement la logique métier du jeûne.
+
 # 🆕 À PRÉVOIR — Bilan hebdomadaire alimentaire (ajouts futurs)
 
 ## Message doux personnalisé Section 7 "Comment tu manges"
@@ -195,6 +242,28 @@ Guider l’utilisateur pour choisir la bonne catégorie et sous-catégorie lors 
 - Sauvegarde de la composition (repas favori)
 - Suggestion dans la planification
 - Analyse d'équilibre et compatibilité avec l'objectif
+
+### 12.1 Réflexion à prévoir — ajout d'aliment absent + repas composé
+
+**Objectif :**
+Permettre à l'utilisateur, lorsqu'un aliment n'existe pas dans le référentiel, de l'ajouter dans le même style que les aliments déjà présents afin d'enrichir le référentiel interne. En parallèle, permettre la composition d'une assiette ou d'un repas complet avec plusieurs aliments, afin de générer une analyse globale puis de réutiliser cette composition dans la planification des repas.
+
+**Fonctionnalités à prévoir plus tard :**
+- Détection d'un aliment absent lors de la saisie.
+- Proposition d'ajout rapide depuis l'autocomplete.
+- Formulaire simple pour créer l'aliment dans le style du référentiel existant.
+- Sauvegarde de l'aliment dans un espace d'enrichissement interne.
+- Composition multi-aliments pour créer une assiette ou un repas complet.
+- Analyse globale de la composition (kcal, QN moyen, équilibre).
+- Proposition de ces compositions dans la planification des repas.
+
+**Bénéfices attendus :**
+- Référentiel enrichi sans perte de fluidité pour l'utilisateur.
+- Moins de frustration quand un aliment manque.
+- Saisie plus réaliste des repas composés.
+- Base plus riche pour les suggestions futures.
+
+**Statut :** À faire plus tard
 
 # 🔧 AMÉLIORATIONS CONTINUES - DÉVELOPPEMENT APP
 

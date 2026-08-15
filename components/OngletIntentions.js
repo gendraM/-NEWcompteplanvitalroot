@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useIntentions } from '../lib/useJournalSpirituel';
 import styles from '../styles/OngletIntentions.module.css';
 
-export default function OngletIntentions({ jourJeune }) {
+export default function OngletIntentions({ jourJeune, userId = null }) {
   // Hook Supabase avec fallback localStorage
-  const { intentions, loading, mode, ajouter, modifier, supprimer } = useIntentions();
+  const { intentions, loading, mode, ajouter, modifier, supprimer } = useIntentions(userId);
   
   // États locaux pour le formulaire
   const [nouvelleIntention, setNouvelleIntention] = useState('');

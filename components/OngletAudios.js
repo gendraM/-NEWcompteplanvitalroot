@@ -10,7 +10,7 @@ import {
 } from '../lib/audioStorage';
 import styles from '../styles/OngletAudios.module.css';
 
-export default function OngletAudios({ jourJeune }) {
+export default function OngletAudios({ jourJeune, userId = null }) {
   const [modeEnregistrement, setModeEnregistrement] = useState(false);
   const [audioEnCours, setAudioEnCours] = useState(null);
   const [modeSauvegarde, setModeSauvegarde] = useState(false);
@@ -42,10 +42,10 @@ export default function OngletAudios({ jourJeune }) {
 
   const chargerAudios = async () => {
     setChargement(true);
-    const liste = await recupererTousLesAudios();
+    const liste = await recupererTousLesAudios(userId);
     setAudios(liste.sort((a, b) => new Date(b.date) - new Date(a.date)));
     
-    const stats = await calculerEspaceUtilise();
+    const stats = await calculerEspaceUtilise(userId);
     setEspace(stats);
     
     setChargement(false);
@@ -82,7 +82,7 @@ export default function OngletAudios({ jourJeune }) {
         note: note,
         tags: tags.split(',').map(t => t.trim()).filter(t => t),
         jourJeune: jourJeune
-      });
+      }, userId);
 
       alert('✅ Audio sauvegardé !');
       
@@ -117,7 +117,7 @@ export default function OngletAudios({ jourJeune }) {
   const handleSupprimerAudio = async (id) => {
     if (!confirm('Supprimer cet audio définitivement ?')) return;
 
-    const success = await supprimerAudio(id);
+    const success = await supprimerAudio(id, userId);
     if (success) {
       alert('✅ Audio supprimé');
       chargerAudios();
@@ -126,7 +126,7 @@ export default function OngletAudios({ jourJeune }) {
 
   // Exporter audio
   const handleExporterAudio = async (id) => {
-    const success = await exporterAudio(id);
+    const success = await exporterAudio(id, userId);
     if (success) {
       alert('✅ Audio téléchargé !');
     } else {

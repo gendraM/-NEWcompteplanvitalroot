@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useQuestions } from '../lib/useJournalSpirituel';
 import styles from '../styles/OngletQuestions.module.css';
 
-export default function OngletQuestions({ jourJeune }) {
+export default function OngletQuestions({ jourJeune, userId = null }) {
   // Hook Supabase avec fallback localStorage
-  const { questions: reponsesStockees, loading, mode, ajouter, modifier, supprimer } = useQuestions();
+  const { questions: reponsesStockees, loading, mode, ajouter, modifier, supprimer } = useQuestions(userId);
   
   // États locaux pour le formulaire
   const [questionActive, setQuestionActive] = useState(null);
@@ -18,7 +18,7 @@ export default function OngletQuestions({ jourJeune }) {
     return <div style={{ padding: 20, textAlign: 'center' }}>Chargement des questions...</div>;
   }
 
-  // Questions guidées par jour (8 questions rotatives sur J1-J14)
+  // Questions guidées par jour (8 questions rotatives sur J1-J15)
   const questionsGuidees = [
     // J1, J8
     { 
@@ -66,7 +66,7 @@ export default function OngletQuestions({ jourJeune }) {
     { 
       id: 'q8', 
       question: "Aujourd'hui, qu'ai-je appris sur moi-même ? Quelle petite victoire puis-je célébrer ?",
-      jours: Array.from({length: 14}, (_, i) => i + 1)
+      jours: Array.from({length: 15}, (_, i) => i + 1)
     }
   ];
 

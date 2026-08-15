@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 import { genererProgrammeReprise } from "../lib/genererProgrammeReprise";
 import { genererEtSauvegarderProgramme } from "../lib/jeuneUtils";
 import * as ParcoursAPI from "../lib/parcoursJeuneAPI";
+import { useAuth } from "../contexts/AuthContext";
 import ChecklistConseilsActivation from "../components/ChecklistConseilsActivation";
 import MessageSoutien from "../components/MessageSoutien";
 import AnalyseComportementale from "../components/AnalyseComportementale";
@@ -296,7 +297,7 @@ const JEUNE_DAYS_CONTENT = {
       ]
     }
   },
-  13: {
+  14: {
     titre: "Jour 14 – Zone sacrée & sortie maîtrisée",
     corps: [
       "🧠 Esprit : Tu peux ressentir une forme de paix que tu ne ressens pas souvent. Ce n'est pas un miracle : c'est le résultat de 14 jours sans surcharge, sans pics glycémiques, sans digestion continue.",
@@ -308,6 +309,30 @@ const JEUNE_DAYS_CONTENT = {
       "💡 Conseil : La sortie du jeûne est une continuité, pas une rupture. Garde le même esprit de connexion pour les premières bouchées. Elles comptent autant que les 14 jours."
     ],
     message: "Tu quittes le désert. Mais tu n'en perds pas la paix. Ramène-la avec toi dans ton assiette.",
+    conseilsActivation: {
+      titre: "💪 Conseils d'activation (booste les bénéfices)",
+      items: [
+        { id: 1, conseil: "Bien dormir 2 à 3 nuits de suite", benefice: "↘ cortisol, ↗ déstockage", actif: true },
+        { id: 2, conseil: "Boire 2 à 3 L d'eau pure par jour", benefice: "↘ rétention, ↘ inflammation", actif: true },
+        { id: 3, conseil: "Éviter le stress / drames / tensions", benefice: "↘ stockage ventre", actif: true },
+        { id: 4, conseil: "Faire 45 min de marche douce par jour", benefice: "↗ lipolyse, ↗ énergie", actif: true },
+        { id: 5, conseil: "Continuer encore 1-2 jours de jeûne", benefice: "↗ transition vers déstockage profond", actif: true }
+      ]
+    }
+  },
+  15: {
+    titre: "Jour 15 – Profondeur métabolique & lucidité intérieure",
+    corps: [
+      "🧠 Esprit : Tu es dans une forme d’extrême clarté mais aussi d’extrême sobriété. Les pensées sont plus lentes, mais plus vraies. Le bruit mental s’est presque éteint. Ce que tu penses aujourd’hui vient de toi, pas de tes habitudes alimentaires ni de tes impulsions.",
+      "🧬 Corps : Ton organisme fonctionne depuis plusieurs jours en cétose profonde. Cela signifie qu’il utilise presque exclusivement les graisses internes comme source d’énergie, et les transforme en corps cétoniques. Ces molécules servent de carburant stable pour ton cerveau, ce qui explique cette sensation de calme mental inhabituel.",
+      "🧬 Corps (autophagie) : L’autophagie est encore active. À ce stade, ton corps ne recycle plus seulement des déchets : il fait du tri intelligent. Il élimine ce qui était faible, abîmé, ou inutile pour renforcer ce qui est solide. C’est une reconstruction intérieure silencieuse.",
+      "🌡 Signes physiques possibles : sensation de froid, rythme ralenti, mouvements lents, besoin de se reposer. Ce n’est pas de la faiblesse : c’est le corps qui économise son énergie pour continuer les processus de réparation profonde.",
+      "❤️ Ce que tu peux ressentir : Une sensibilité plus fine. Un détachement de certaines envies. Une conscience très nette de tes émotions. Tu n’es pas à fleur de peau : tu es connectée sans filtre.",
+      "📿 Sens & conscience : Le 15ᵉ jour de jeûne n’est pas un exploit, c’est un territoire physiologique et intérieur très particulier. Tu n’es plus dans la phase de rupture ou de bascule. Tu es dans une forme de continuité consciente, où chaque ressenti a du sens.",
+      "🧰 Outil du jour : Prends un moment immobile. Ferme les yeux. Observe ton énergie. Sans la juger. Sans la forcer. Aujourd’hui, ton corps ne demande rien. Il veut juste que tu sois avec lui.",
+      "💡 Conseil : Évite les stimulations fortes. Marche lentement. Reste proche de ton souffle. Le jour 15 est un espace rare où ton corps et ton esprit fonctionnent sur la même fréquence."
+    ],
+    message: "Tu es dans une profondeur que peu de personnes connaissent. Reste présente. Ton corps travaille pour toi, pas contre toi.",
     conseilsActivation: {
       titre: "💪 Conseils d'activation (booste les bénéfices)",
       items: [
@@ -485,23 +510,30 @@ async function getDernierRepas() {
   }
 }
 
-function loadState(key, def) {
+function getStorageKey(key, userId) {
+  return userId ? `${key}_${userId}` : key;
+}
+function loadState(key, def, userId) {
   if (typeof window === "undefined") return def;
   try {
-    const val = localStorage.getItem(key);
+    const wrappedKey = getStorageKey(key, userId);
+    const val = localStorage.getItem(wrappedKey);
     return val ? JSON.parse(val) : def;
   } catch {
     return def;
   }
 }
-function saveState(key, val) {
+function saveState(key, val, userId) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(key, JSON.stringify(val));
+  const wrappedKey = getStorageKey(key, userId);
+  localStorage.setItem(wrappedKey, JSON.stringify(val));
 }
 
 export default function Jeune() {
   // Méthodologie : hooks d'état en premier
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const userId = user?.id || null;
   // === HOOKS D'ÉTAT (INITIALISATION EN PREMIER) ===
   // Initialisation avec valeurs par défaut (pas localStorage pour éviter hydration error)
   const [dureeJeune, setDureeJeune] = useState(5);
@@ -559,20 +591,22 @@ export default function Jeune() {
 
   // P0.5 : Initialiser ou récupérer parcours jeûne depuis Supabase
   useEffect(() => {
+    if (authLoading) return;
+
     const initParcours = async () => {
       try {
         // Récupérer parcours actif depuis Supabase
-        const parcours = await ParcoursAPI.getParcoursJeuneActif();
+        const parcours = await ParcoursAPI.getParcoursJeuneActif(userId);
         
         if (parcours) {
           // Parcours existe en BDD, synchroniser avec localStorage
           setParcoursId(parcours.id); // STOCKER L'ID
           setJoursValides(parcours.jours_valides || []);
           // Sync localStorage comme cache
-          localStorage.setItem('joursValides', JSON.stringify(parcours.jours_valides || []));
+          localStorage.setItem(getStorageKey('joursValides', userId), JSON.stringify(parcours.jours_valides || []));
           if (parcours.message_perso) {
             setMessagePerso(parcours.message_perso);
-            localStorage.setItem('messagePerso', parcours.message_perso);
+            localStorage.setItem(getStorageKey('messagePerso', userId), parcours.message_perso);
           }
         } else {
           // Créer nouveau parcours si preparationData existe
@@ -590,7 +624,7 @@ export default function Jeune() {
                   duree_totale: prepData.duration,
                   date_creation: new Date().toISOString()
                 }
-              });
+              }, userId);
               console.log('✅ Nouveau parcours jeûne créé:', nouveauParcours.id);
               setParcoursId(nouveauParcours.id); // STOCKER L'ID
             } catch (createError) {
@@ -607,7 +641,7 @@ export default function Jeune() {
     };
     
     initParcours();
-  }, []);
+  }, [authLoading, userId]);
 
   // === CHARGEMENT HISTORIQUE JEÛNES AU MONTAGE ===
   useEffect(() => {
@@ -615,14 +649,14 @@ export default function Jeune() {
     
     try {
       // Charger historique
-      const historiqueStr = localStorage.getItem('historiqueJeunes');
+      const historiqueStr = localStorage.getItem(getStorageKey('historiqueJeunes', userId));
       if (historiqueStr) {
         const historique = JSON.parse(historiqueStr);
         setHistoriqueJeunes(Array.isArray(historique) ? historique : []);
       }
 
       // Charger corbeille
-      const corbeilleStr = localStorage.getItem('jeunesSupprimés');
+      const corbeilleStr = localStorage.getItem(getStorageKey('jeunesSupprimés', userId));
       if (corbeilleStr) {
         const corbeille = JSON.parse(corbeilleStr);
         setJeunesSupprimés(Array.isArray(corbeille) ? corbeille : []);
@@ -672,7 +706,7 @@ export default function Jeune() {
       console.error("⚠️ preparationData corrompu lors lecture durée :", e);
     }
     
-    setDureeJeune(loadState("dureeJeune", dureeFiable));
+    setDureeJeune(loadState("dureeJeune", dureeFiable, userId));
     
     // Lire la date depuis preparationData.startDate (source fiable)
     let dateDebut = null;
@@ -690,7 +724,7 @@ export default function Jeune() {
     
     // Priorité 2 : dateDebutJeune dans localStorage
     if (!dateDebut && typeof window !== "undefined") {
-      const dateFromStorage = localStorage.getItem("dateDebutJeune");
+      const dateFromStorage = localStorage.getItem(getStorageKey("dateDebutJeune", userId));
       if (dateFromStorage) {
         let dateClean = dateFromStorage.replace(/^"|"$/g, '');
         dateDebut = dateClean.split('T')[0];
@@ -703,18 +737,18 @@ export default function Jeune() {
     if (dateDebut) {
       const diffMs = Date.now() - new Date(dateDebut).getTime();
       const diffJours = Math.floor(diffMs / (1000*60*60*24)) + 1;
-      const duree = loadState("dureeJeune", dureeFiable); // Utiliser la durée déjà calculée
+      const duree = loadState("dureeJeune", dureeFiable, userId); // Utiliser la durée déjà calculée
       const jourCalcule = Math.max(1, Math.min(diffJours, duree));
       setJourEnCours(jourCalcule);
     } else {
-      setJourEnCours(loadState("jourEnCours", 1));
+      setJourEnCours(loadState("jourEnCours", 1, userId));
     }
     
     // CORRECTION: Vérifier si c'est une nouvelle préparation (reset nécessaire)
-    let joursValidesActuels = loadState("joursValides", []);
+    let joursValidesActuels = loadState("joursValides", [], userId);
     try {
       const prepDataStr = localStorage.getItem("preparationData");
-      const dernierePrepStr = localStorage.getItem("dernierePreparationId");
+      const dernierePrepStr = localStorage.getItem(getStorageKey("dernierePreparationId", userId));
       
       if (prepDataStr) {
         const prepData = JSON.parse(prepDataStr);
@@ -727,7 +761,7 @@ export default function Jeune() {
           if (!jeuneTermine) {
             console.log("🔄 Nouvelle préparation détectée, réinitialisation des jours validés");
             joursValidesActuels = [];
-            localStorage.setItem("joursValides", JSON.stringify([]));
+            localStorage.setItem(getStorageKey("joursValides", userId), JSON.stringify([]));
           } else {
             console.log("✅ Jeûne terminé conservé malgré nouvelle préparation détectée");
             // Archiver IMMÉDIATEMENT le jeûne terminé (pas setTimeout)
@@ -736,12 +770,12 @@ export default function Jeune() {
               console.log("✅ Jeûne archivé automatiquement lors nouvelle préparation");
               // Reset joursValides pour nouveau jeûne APRÈS archivage
               joursValidesActuels = [];
-              localStorage.setItem("joursValides", JSON.stringify([]));
+              localStorage.setItem(getStorageKey("joursValides", userId), JSON.stringify([]));
             } catch (error) {
               console.error('❌ Erreur archivage auto lors nouvelle prep:', error);
             }
           }
-          localStorage.setItem("dernierePreparationId", prepId);
+          localStorage.setItem(getStorageKey("dernierePreparationId", userId), prepId);
         }
       }
     } catch (e) {
@@ -753,15 +787,15 @@ export default function Jeune() {
     if (joursValidesNettoyes.length !== joursValidesActuels.length) {
       console.log(`🧹 Nettoyage: ${joursValidesActuels.length - joursValidesNettoyes.length} jours invalides supprimés`);
       joursValidesActuels = joursValidesNettoyes;
-      localStorage.setItem("joursValides", JSON.stringify(joursValidesNettoyes));
+      localStorage.setItem(getStorageKey("joursValides", userId), JSON.stringify(joursValidesNettoyes));
     }
     
     // ARCHIVAGE SYSTEMATIQUE : Si jeûne terminé ET pas encore archivé, archiver maintenant
     if (joursValidesActuels.length >= dureeFiable && joursValidesActuels.length > 0) {
       try {
-        const dateDebutActuel = localStorage.getItem("dateDebutJeune");
+        const dateDebutActuel = localStorage.getItem(getStorageKey("dateDebutJeune", userId));
         if (dateDebutActuel) {
-          const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+          const historiqueActuel = JSON.parse(localStorage.getItem(getStorageKey('historiqueJeunes', userId)) || '[]');
           const jeuneId = `${dateDebutActuel}_${dureeFiable}j`;
           const dejaArchive = historiqueActuel.some(j => j.id === jeuneId);
           
@@ -781,24 +815,24 @@ export default function Jeune() {
     // setJoursValides(joursValidesActuels); // COMMENTÉ - géré par useEffect P0.5
     console.log(`📊 Initialisation localStorage: ${joursValidesActuels.length} jours validés sur ${dureeFiable} jours total (sera écrasé par Supabase)`);
     
-    setPoidsInitial(loadState("poidsDepart", bilanPrepa?.poids_depart || 0));
+    setPoidsInitial(loadState("poidsDepart", bilanPrepa?.poids_depart || 0, userId));
     
     // Récupération du message personnel depuis le bilan de préparation
-    const msgPerso = bilanPrepa?.messagePerso || loadState("messagePerso", "");
+    const msgPerso = bilanPrepa?.messagePerso || loadState("messagePerso", "", userId);
     setMessagePerso(msgPerso);
     
-    setOutils(loadState("outilsJeune", {}));
-    const savedProgramme = loadState("programmeReprise", null);
+    setOutils(loadState("outilsJeune", {}, userId));
+    const savedProgramme = loadState("programmeReprise", null, userId);
     if (savedProgramme) setProgrammeReprise(savedProgramme);
     // Lire le plan validé si présent et vérifier la cohérence
     try {
-      const planValide = localStorage.getItem("programmeRepriseValide");
+      const planValide = loadState("programmeRepriseValide", null, userId);
       if (planValide) {
-        const parsed = JSON.parse(planValide);
+        const parsed = planValide;
         setPlanRepriseValide(parsed);
         // Vérification stricte de cohérence (dates et durée)
-        const jeuneDuree = loadState("dureeJeune", 5);
-        const jeuneDebut = loadState("dateDebutJeune", null);
+        const jeuneDuree = loadState("dureeJeune", 5, userId);
+        const jeuneDebut = loadState("dateDebutJeune", null, userId);
         if (
           parsed &&
           parsed.duree_jeune_jours === jeuneDuree &&
@@ -807,7 +841,7 @@ export default function Jeune() {
           setPlanValideCoherent(true);
         } else {
           // Purge si incohérent
-          localStorage.removeItem("programmeRepriseValide");
+          localStorage.removeItem(getStorageKey("programmeRepriseValide", userId));
           setPlanRepriseValide(null);
           setPlanValideCoherent(false);
         }
@@ -828,13 +862,13 @@ export default function Jeune() {
   }, [router.isReady, router.query.validation]);
 
   // Sauvegarder dans localStorage quand les valeurs changent
-  useEffect(() => { if (isClient) saveState("dureeJeune", dureeJeune); }, [dureeJeune, isClient]);
-  useEffect(() => { if (isClient) saveState("jourEnCours", jourEnCours); }, [jourEnCours, isClient]);
-  useEffect(() => { if (isClient) saveState("joursValides", joursValides); }, [joursValides, isClient]);
-  useEffect(() => { if (isClient) saveState("poidsDepart", poidsDepart); }, [poidsDepart, isClient]);
-  useEffect(() => { if (isClient) saveState("messagePerso", messagePerso); }, [messagePerso, isClient]);
-  useEffect(() => { if (isClient) saveState("outilsJeune", outils); }, [outils, isClient]);
-  useEffect(() => { if (isClient) saveState("dateDebutJeune", dateDebutJeune); }, [dateDebutJeune, isClient]);
+  useEffect(() => { if (isClient) saveState("dureeJeune", dureeJeune, userId); }, [dureeJeune, isClient, userId]);
+  useEffect(() => { if (isClient) saveState("jourEnCours", jourEnCours, userId); }, [jourEnCours, isClient, userId]);
+  useEffect(() => { if (isClient) saveState("joursValides", joursValides, userId); }, [joursValides, isClient, userId]);
+  useEffect(() => { if (isClient) saveState("poidsDepart", poidsDepart, userId); }, [poidsDepart, isClient, userId]);
+  useEffect(() => { if (isClient) saveState("messagePerso", messagePerso, userId); }, [messagePerso, isClient, userId]);
+  useEffect(() => { if (isClient) saveState("outilsJeune", outils, userId); }, [outils, isClient, userId]);
+  useEffect(() => { if (isClient) saveState("dateDebutJeune", dateDebutJeune, userId); }, [dateDebutJeune, isClient, userId]);
 
   // Chargement des données Supabase au montage (mono-utilisateur)
   useEffect(() => {
@@ -925,7 +959,7 @@ export default function Jeune() {
   // Charger les conseils d'activation depuis localStorage
   useEffect(() => {
     if (isClient) {
-      const conseils = loadState('conseilsActivationJeune', {});
+      const conseils = loadState('conseilsActivationJeune', {}, userId);
       setConseilsActivation(conseils);
     }
   }, [isClient]);
@@ -933,14 +967,14 @@ export default function Jeune() {
   // Sauvegarder les conseils d'activation
   useEffect(() => {
     if (isClient && Object.keys(conseilsActivation).length > 0) {
-      saveState('conseilsActivationJeune', conseilsActivation);
+      saveState('conseilsActivationJeune', conseilsActivation, userId);
     }
   }, [conseilsActivation, isClient]);
 
   // Charger les messages personnalisés
   useEffect(() => {
     if (isClient) {
-      const messages = loadState('messagesPersoJeune', {});
+      const messages = loadState('messagesPersoJeune', {}, userId);
       setMessagePersoJour(messages);
     }
   }, [isClient]);
@@ -948,7 +982,7 @@ export default function Jeune() {
   // Sauvegarder les messages personnalisés
   useEffect(() => {
     if (isClient && Object.keys(messagePersoJour).length > 0) {
-      saveState('messagesPersoJeune', messagePersoJour);
+      saveState('messagesPersoJeune', messagePersoJour, userId);
     }
   }, [messagePersoJour, isClient]);
 
@@ -973,7 +1007,7 @@ export default function Jeune() {
     let pertePoids = null;
     let poidsActuel = null;
     if (typeof window !== 'undefined') {
-      const savedPoidsFinal = localStorage.getItem(`poids_jour_${dureeJeune}`);
+      const savedPoidsFinal = loadState(`poids_jour_${dureeJeune}`, null, userId);
       if (savedPoidsFinal && poidsInitial > 0) {
         poidsActuel = parseFloat(savedPoidsFinal);
         pertePoids = poidsInitial - poidsActuel;
@@ -1039,13 +1073,13 @@ export default function Jeune() {
     }
 
     // Sauvegarder dans localStorage
-    localStorage.setItem('bilanJeune', JSON.stringify(bilan));
+saveState('bilanJeune', bilan, userId);
     
     // === PHASE 3 : Historique multi-jeûnes ===
     // Récupérer l'historique existant
     let historique = [];
     try {
-      const historiqueStr = localStorage.getItem('historiqueBilansJeune');
+      const historiqueStr = loadState('historiqueBilansJeune', null, userId);
       if (historiqueStr) {
         historique = JSON.parse(historiqueStr);
         // Sécurité : s'assurer que c'est bien un array
@@ -1062,13 +1096,13 @@ export default function Jeune() {
     historique.push(bilan);
     
     // Sauvegarder l'historique mis à jour
-    localStorage.setItem('historiqueBilansJeune', JSON.stringify(historique));
+    saveState('historiqueBilansJeune', historique, userId);
     
     console.log(`📚 Bilan ajouté à l'historique (total: ${historique.length})`);
     
     // P0.5 : Terminer parcours en BDD
     try {
-      const parcours = await ParcoursAPI.getParcoursJeuneActif();
+      const parcours = await ParcoursAPI.getParcoursJeuneActif(userId);
       if (parcours) {
         await ParcoursAPI.terminerParcoursJeune(parcours.id, aujourdhui);
         console.log('✅ Parcours jeûne terminé en BDD');
@@ -1131,13 +1165,37 @@ export default function Jeune() {
       }
       
       // Sync localStorage comme backup
-      localStorage.setItem('joursValides', JSON.stringify(nv));
+      localStorage.setItem(getStorageKey('joursValides', userId), JSON.stringify(nv));
       
       // Avancer automatiquement au jour suivant si possible
       if (jourEnCours < dureeJeune) {
         setJourEnCours(jourEnCours + 1);
       }
     }
+  };
+
+  const allerAValidationPlan = () => {
+    router.push('/validation-plan-reprise');
+  };
+
+  const enregistrerPlanRepriseValide = (programme) => {
+    if (!programme) return;
+    try {
+      saveState('programmeRepriseValide', programme, userId);
+      setPlanRepriseValide(programme);
+      setPlanValideCoherent(true);
+    } catch (error) {
+      console.error('Erreur lors de l’enregistrement du plan validé :', error);
+    }
+  };
+
+  const allerARepriseAlimentaire = (programme) => {
+    if (!programme) {
+      alert('Aucun programme de reprise valide à afficher. Génère ou valide ton plan d\'abord.');
+      return;
+    }
+    enregistrerPlanRepriseValide(programme);
+    router.push('/reprise-alimentaire-apres-jeune');
   };
 
   const ajouterOutil = () => {
@@ -1225,7 +1283,7 @@ export default function Jeune() {
     setDateDebutJeune(null);
     setProgrammeReprise(null);
     setAlerteJ3(null);
-    localStorage.removeItem("programmeReprise");
+    localStorage.removeItem(getStorageKey("programmeReprise", userId));
   };
 
   // === HANDLERS HISTORIQUE JEÛNES ===
@@ -1234,13 +1292,13 @@ export default function Jeune() {
   const archiverJeuneActuel = async () => {
     try {
       // CORRECTION : Lire depuis localStorage (pas états React qui peuvent être vides)
-      const joursValidesLS = JSON.parse(localStorage.getItem('joursValides') || '[]');
-      const dureeLS = parseInt(localStorage.getItem('dureeJeune') || '5');
-      const dateDebutLS = localStorage.getItem('dateDebutJeune');
-      const outilsLS = JSON.parse(localStorage.getItem('outilsJeune') || '{}');
-      const messagePersoLS = localStorage.getItem('messagePerso') || '';
-      const bilanLS = JSON.parse(localStorage.getItem('bilanJeune') || 'null');
-      const programmeRepriseLS = JSON.parse(localStorage.getItem('programmeRepriseValide') || localStorage.getItem('programmeReprise') || 'null');
+      const joursValidesLS = JSON.parse(localStorage.getItem(getStorageKey('joursValides', userId)) || '[]');
+      const dureeLS = parseInt(localStorage.getItem(getStorageKey('dureeJeune', userId)) || '5');
+      const dateDebutLS = localStorage.getItem(getStorageKey('dateDebutJeune', userId));
+      const outilsLS = JSON.parse(localStorage.getItem(getStorageKey('outilsJeune', userId)) || '{}');
+      const messagePersoLS = localStorage.getItem(getStorageKey('messagePerso', userId)) || '';
+      const bilanLS = JSON.parse(localStorage.getItem(getStorageKey('bilanJeune', userId)) || 'null');
+      const programmeRepriseLS = JSON.parse(localStorage.getItem(getStorageKey('programmeRepriseValide', userId)) || localStorage.getItem(getStorageKey('programmeReprise', userId)) || 'null');
       
       if (joursValidesLS.length === 0 || !dateDebutLS) {
         console.log('⚠️ Aucun jeûne à archiver (0 jours validés ou pas de date)');
@@ -1255,7 +1313,8 @@ export default function Jeune() {
       const donneesSpirituellesArchivees = await archiverDonneesSpirituellesJeune(
         dateDebutLS,
         dateFinArchivage,
-        idJeune
+        idJeune,
+        userId
       );
 
       const jeuneArchive = {
@@ -1275,13 +1334,13 @@ export default function Jeune() {
           Object.values(donneesSpirituellesArchivees).reduce((a, b) => a + b, 0) : 0
       };
 
-      const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+const historiqueActuel = JSON.parse(localStorage.getItem(getStorageKey('historiqueJeunes', userId)) || '[]');
       
       // Vérifier si pas déjà archivé
       const dejaArchive = historiqueActuel.some(j => j.id === jeuneArchive.id);
       if (!dejaArchive) {
         historiqueActuel.unshift(jeuneArchive); // Ajouter au début (plus récent en premier)
-        localStorage.setItem('historiqueJeunes', JSON.stringify(historiqueActuel));
+        localStorage.setItem(getStorageKey('historiqueJeunes', userId), JSON.stringify(historiqueActuel));
         setHistoriqueJeunes(historiqueActuel);
         console.log('✅ Jeûne archivé avec succès:', jeuneArchive.id);
         if (donneesSpirituellesArchivees) {
@@ -1298,13 +1357,13 @@ export default function Jeune() {
   // Charger un jeûne archivé pour consultation (mode read-only)
   const chargerJeuneArchive = (jeuneId) => {
     try {
-      const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+      const historiqueActuel = JSON.parse(localStorage.getItem(getStorageKey('historiqueJeunes', userId)) || '[]');
       const jeune = historiqueActuel.find(j => j.id === jeuneId);
       
       if (jeune) {
         setJeuneConsulte(jeune);
         // 🆕 Stocker dans localStorage pour que journal-spirituel.js puisse détecter
-        localStorage.setItem('jeuneConsulte', JSON.stringify(jeune));
+        localStorage.setItem(getStorageKey('jeuneConsulte', userId), JSON.stringify(jeune));
         setShowHistoriqueModal(false);
         console.log('📖 Jeûne archivé chargé pour consultation:', jeuneId);
       } else {
@@ -1320,7 +1379,7 @@ export default function Jeune() {
   const retourJeuneActif = () => {
     setJeuneConsulte(null);
     // 🆕 Nettoyer localStorage
-    localStorage.removeItem('jeuneConsulte');
+    localStorage.removeItem(getStorageKey('jeuneConsulte', userId));
     console.log('🔄 Retour au jeûne actif');
   };
 
@@ -1337,7 +1396,7 @@ export default function Jeune() {
   // Supprimer un jeûne (soft delete → corbeille)
   const supprimerJeune = (jeuneId) => {
     try {
-      const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+      const historiqueActuel = JSON.parse(localStorage.getItem(getStorageKey('historiqueJeunes', userId)) || '[]');
       const jeuneIndex = historiqueActuel.findIndex(j => j.id === jeuneId);
       
       if (jeuneIndex === -1) {
@@ -1350,13 +1409,13 @@ export default function Jeune() {
       
       // Retirer de l'historique
       historiqueActuel.splice(jeuneIndex, 1);
-      localStorage.setItem('historiqueJeunes', JSON.stringify(historiqueActuel));
+      localStorage.setItem(getStorageKey('historiqueJeunes', userId), JSON.stringify(historiqueActuel));
       setHistoriqueJeunes(historiqueActuel);
 
       // Ajouter à la corbeille
-      const corbeilleActuelle = JSON.parse(localStorage.getItem('jeunesSupprimés') || '[]');
+      const corbeilleActuelle = JSON.parse(localStorage.getItem(getStorageKey('jeunesSupprimés', userId)) || '[]');
       corbeilleActuelle.unshift(jeuneASupprimer);
-      localStorage.setItem('jeunesSupprimés', JSON.stringify(corbeilleActuelle));
+      localStorage.setItem(getStorageKey('jeunesSupprimés', userId), JSON.stringify(corbeilleActuelle));
       setJeunesSupprimés(corbeilleActuelle);
 
       console.log('🗑️ Jeûne déplacé vers corbeille:', jeuneId);
@@ -1369,7 +1428,7 @@ export default function Jeune() {
   // Restaurer un jeûne depuis la corbeille
   const restaurerJeune = (jeuneId) => {
     try {
-      const corbeilleActuelle = JSON.parse(localStorage.getItem('jeunesSupprimés') || '[]');
+      const corbeilleActuelle = JSON.parse(localStorage.getItem(getStorageKey('jeunesSupprimés', userId)) || '[]');
       const jeuneIndex = corbeilleActuelle.findIndex(j => j.id === jeuneId);
       
       if (jeuneIndex === -1) {
@@ -1382,13 +1441,13 @@ export default function Jeune() {
 
       // Retirer de la corbeille
       corbeilleActuelle.splice(jeuneIndex, 1);
-      localStorage.setItem('jeunesSupprimés', JSON.stringify(corbeilleActuelle));
+      localStorage.setItem(getStorageKey('jeunesSupprimés', userId), JSON.stringify(corbeilleActuelle));
       setJeunesSupprimés(corbeilleActuelle);
 
       // Remettre dans l'historique
-      const historiqueActuel = JSON.parse(localStorage.getItem('historiqueJeunes') || '[]');
+      const historiqueActuel = JSON.parse(localStorage.getItem(getStorageKey('historiqueJeunes', userId)) || '[]');
       historiqueActuel.unshift(jeuneARestaurer);
-      localStorage.setItem('historiqueJeunes', JSON.stringify(historiqueActuel));
+      localStorage.setItem(getStorageKey('historiqueJeunes', userId), JSON.stringify(historiqueActuel));
       setHistoriqueJeunes(historiqueActuel);
 
       console.log('♻️ Jeûne restauré:', jeuneId);
@@ -1402,15 +1461,15 @@ export default function Jeune() {
   // Suppression définitive (hard delete)
   const supprimerDefinitivement = async (jeuneId) => {
     try {
-      const corbeilleActuelle = JSON.parse(localStorage.getItem('jeunesSupprimés') || '[]');
+      const corbeilleActuelle = JSON.parse(localStorage.getItem(getStorageKey('jeunesSupprimés', userId)) || '[]');
       const nouvelleCorbeille = corbeilleActuelle.filter(j => j.id !== jeuneId);
       
-      localStorage.setItem('jeunesSupprimés', JSON.stringify(nouvelleCorbeille));
+      localStorage.setItem(getStorageKey('jeunesSupprimés', userId), JSON.stringify(nouvelleCorbeille));
       setJeunesSupprimés(nouvelleCorbeille);
 
       // 🆕 SUPPRIMER DONNÉES SPIRITUELLES ASSOCIÉES
       const { supprimerDonneesSpirituellesArchivees } = await import('../lib/journalSpirituelArchive');
-      const resultat = supprimerDonneesSpirituellesArchivees(jeuneId);
+      const resultat = supprimerDonneesSpirituellesArchivees(jeuneId, userId);
       
       console.log('⚠️ Jeûne supprimé définitivement:', jeuneId);
       if (resultat) {
@@ -1426,7 +1485,7 @@ export default function Jeune() {
   // Nettoyage automatique corbeille (>30 jours)
   const nettoyerCorbeilleAuto = () => {
     try {
-      const corbeilleActuelle = JSON.parse(localStorage.getItem('jeunesSupprimés') || '[]');
+      const corbeilleActuelle = JSON.parse(localStorage.getItem(getStorageKey('jeunesSupprimés', userId)) || '[]');
       const maintenant = new Date();
       const DUREE_CONSERVATION = 30 * 24 * 60 * 60 * 1000; // 30 jours en ms
 
@@ -1439,7 +1498,7 @@ export default function Jeune() {
 
       if (corbeilleNettoyee.length < corbeilleActuelle.length) {
         const nbSupprimes = corbeilleActuelle.length - corbeilleNettoyee.length;
-        localStorage.setItem('jeunesSupprimés', JSON.stringify(corbeilleNettoyee));
+        localStorage.setItem(getStorageKey('jeunesSupprimés', userId), JSON.stringify(corbeilleNettoyee));
         setJeunesSupprimés(corbeilleNettoyee);
         console.log(`🧹 Nettoyage automatique: ${nbSupprimes} jeûne(s) supprimé(s) de la corbeille (>30 jours)`);
       }
@@ -1679,7 +1738,7 @@ export default function Jeune() {
           
           // Priorité 2 : dateDebutJeune directe
           if (!dateDebut && typeof window !== "undefined") {
-            const dateFromStorage = localStorage.getItem("dateDebutJeune");
+            const dateFromStorage = localStorage.getItem(getStorageKey("dateDebutJeune", userId));
             if (dateFromStorage) {
               let dateClean = dateFromStorage.replace(/^"|"$/g, '');
               dateDebut = dateClean.split('T')[0];
@@ -1772,11 +1831,7 @@ export default function Jeune() {
               {programmeReprise.duree_reprise_jours} jours de reprise<br />
               Du {programmeReprise.date_debut_reprise} au {programmeReprise.date_fin_reprise}<br />
               <button
-                onClick={() => {
-                  // Sauvegarder le plan validé dans localStorage (clé dédiée)
-                  localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeReprise));
-                  window.location.href = '/reprise alimentaire après jeûne';
-                }}
+                onClick={() => allerARepriseAlimentaire(programmeReprise)}
                 style={{
                   marginTop: 8,
                   background: "#1976d2",
@@ -2088,7 +2143,7 @@ export default function Jeune() {
                   saveState("programmeReprise", programmeSauvegarde);
                   setAlerteJ3(null);
                   alert(`✅ Programme généré ! ${programmeSauvegarde.duree_reprise_jours} jours de reprise créés.`);
-                  window.location.href = "/validation-plan-reprise";
+                  allerAValidationPlan();
                 } catch (err) {
                   alert("❌ Erreur inattendue : " + err.message);
                 } finally {
@@ -2125,9 +2180,7 @@ export default function Jeune() {
               cursor: 'pointer',
               boxShadow: '0 2px 8px rgba(67,206,162,0.08)'
             }}
-            onClick={() => {
-              window.location.href = '/reprise-alimentaire-apres-jeune';
-            }}
+            onClick={() => allerARepriseAlimentaire(planRepriseValide)}
           >
             👀 Visualiser mon plan validé
           </button>
@@ -2157,7 +2210,7 @@ export default function Jeune() {
                 }}
                 onClick={() => {
                   setShowValidationModal(false);
-                  window.location.href = '/reprise-alimentaire-apres-jeune';
+                  allerARepriseAlimentaire(planRepriseValide);
                 }}
               >
                 👀 Visualiser mon plan validé
@@ -2185,12 +2238,12 @@ export default function Jeune() {
             setShowBilan(false);
             const programme = programmeReprise || planRepriseValide;
             if (programme) {
-              localStorage.setItem('programmeRepriseValide', JSON.stringify(programme));
-              window.location.href = '/reprise-alimentaire-apres-jeune';
+              allerARepriseAlimentaire(programme);
             } else {
               alert('⚠️ Tu dois d\'abord générer et valider ton programme de reprise.');
             }
           }}
+          userId={userId}
         />
       )}
 
@@ -2223,15 +2276,7 @@ export default function Jeune() {
                 color: 'white', border: 'none', borderRadius: 8,
                 padding: '12px 24px', fontWeight: 600, cursor: 'pointer'
               }}
-              onClick={() => {
-                const programme = programmeReprise || planRepriseValide;
-                if (programme) {
-                  localStorage.setItem('programmeRepriseValide', JSON.stringify(programme));
-                  window.location.href = '/reprise-alimentaire-apres-jeune';
-                } else {
-                  alert('⚠️ Tu dois d\'abord générer et valider ton programme de reprise.\n\nRemonte en haut de page et clique sur "Générer mon plan de reprise".');
-                }
-              }}
+              onClick={() => allerARepriseAlimentaire(programmeReprise || planRepriseValide)}
             >
               👀 Accéder à ma reprise alimentaire
             </button>

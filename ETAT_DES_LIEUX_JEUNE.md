@@ -162,3 +162,16 @@ Ce fichier (3385 lignes) journalise les incidents passés. Motifs qui reviennent
 ---
 
 *Document généré automatiquement par analyse du code et des docs existants. Aucune information n'a été inventée : chaque affirmation ci-dessus est reliée à un fichier ou une commande vérifiable.*
+
+---
+
+## 7. Plan d'action associé
+
+Le plan d'action détaillé pour corriger les écarts identifiés sur la phase jeune est disponible ici :
+[docs/PLAN_ACTION_AMELIORATION_PHASE_JEUNE_2026-08-09.md](docs/PLAN_ACTION_AMELIORATION_PHASE_JEUNE_2026-08-09.md).
+
+Il priorise :
+- la cohérence du contenu jour par jour,
+- la sécurisation des transitions fin de jeûne / reprise,
+- la réduction des fallbacks locaux,
+- l'alignement entre code, docs et persistance Supabase.

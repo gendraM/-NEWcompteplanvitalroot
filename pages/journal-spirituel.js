@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/JournalSpirituel.module.css';
 import OngletMeditation from '../components/OngletMeditation';
 import OngletVersets from '../components/OngletVersets';
@@ -13,6 +14,8 @@ export default function JournalSpirituel() {
   // 1. HOOKS (tous en haut du composant)
   // ==========================================
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const userId = user?.id || null;
   const [ongletActif, setOngletActif] = useState('meditation');
   const [jourJeune, setJourJeune] = useState(null);
   const [modeArchive, setModeArchive] = useState(false);
@@ -20,46 +23,50 @@ export default function JournalSpirituel() {
 
   // useEffect pour récupérer le jour du jeûne depuis localStorage
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Vérifier si on consulte un jeûne archivé
-      const jeuneConsulte = localStorage.getItem('jeuneConsulte');
-      if (jeuneConsulte) {
-        try {
-          const jeune = JSON.parse(jeuneConsulte);
-          setModeArchive(true);
-          setIdJeuneArchive(jeune.id);
-          // Calculer jour à partir du jeûne archivé
-          const jourActuel = parseInt(localStorage.getItem('jourEnCours')) || 1;
-          setJourJeune(jourActuel);
-          console.log('📿 Mode archive restauration spirituelle:', jeune.id);
-          return;
-        } catch (error) {
-          console.error('Erreur parsing jeûne consulté:', error);
-        }
-      }
+    if (authLoading || typeof window === 'undefined') {
+      return;
+    }
 
-      // Mode normal : jeûne actif
-      const dateJeuneStr = localStorage.getItem('dateJeune');
-      if (dateJeuneStr) {
-        try {
-          const dateJeune = new Date(dateJeuneStr);
-          const aujourdhui = new Date();
-          aujourdhui.setHours(0, 0, 0, 0);
-          dateJeune.setHours(0, 0, 0, 0);
-          
-          const diffTime = aujourdhui - dateJeune;
-          const diffJours = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-          
-          // Si le jeûne a commencé (différence >= 0)
-          if (diffJours >= 0) {
-            setJourJeune(diffJours + 1); // J1, J2, J3...
-          }
-        } catch (error) {
-          console.error('Erreur calcul jour jeûne:', error);
-        }
+    const getKey = (key) => (userId ? `${key}_${userId}` : key);
+
+    // Vérifier si on consulte un jeûne archivé
+    const jeuneConsulte = localStorage.getItem(getKey('jeuneConsulte'));
+    if (jeuneConsulte) {
+      try {
+        const jeune = JSON.parse(jeuneConsulte);
+        setModeArchive(true);
+        setIdJeuneArchive(jeune.id);
+        // Calculer jour à partir du jeûne archivé
+        const jourActuel = parseInt(localStorage.getItem(getKey('jourEnCours'))) || 1;
+        setJourJeune(jourActuel);
+        console.log('📿 Mode archive restauration spirituelle:', jeune.id);
+        return;
+      } catch (error) {
+        console.error('Erreur parsing jeûne consulté:', error);
       }
     }
-  }, []);
+
+    // Mode normal : jeûne actif
+    const dateJeuneStr = localStorage.getItem(getKey('dateDebutJeune')) || localStorage.getItem('dateJeune');
+    if (dateJeuneStr) {
+      try {
+        const dateJeune = new Date(dateJeuneStr);
+        const aujourdhui = new Date();
+        aujourdhui.setHours(0, 0, 0, 0);
+        dateJeune.setHours(0, 0, 0, 0);
+        
+        const diffTime = aujourdhui - dateJeune;
+        const diffJours = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Si le jeûne a commencé (différence >= 0)
+        if (diffJours >= 0) {
+          setJourJeune(diffJours + 1); // J1, J2, J3...
+        }
+      } catch (error) {
+        console.error('Erreur calcul jour jeûne:', error);
+      }
+    }
+  }, [authLoading, userId]);
 
   // ==========================================
   // 2. HANDLERS (fonctions événements)
@@ -247,7 +254,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-meditation"
             className={styles.panel}
           >
-            <OngletMeditation jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} />
+            <OngletMeditation jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} userId={userId} />
           </div>
         )}
 
@@ -258,7 +265,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-versets"
             className={styles.panel}
           >
-            <OngletVersets jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} />
+            <OngletVersets jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} userId={userId} />
           </div>
         )}
 
@@ -269,7 +276,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-questions"
             className={styles.panel}
           >
-            <OngletQuestions jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} />
+            <OngletQuestions jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} userId={userId} />
           </div>
         )}
 
@@ -280,7 +287,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-intentions"
             className={styles.panel}
           >
-            <OngletIntentions jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} />
+            <OngletIntentions jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} userId={userId} />
           </div>
         )}
 
@@ -291,7 +298,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-audios"
             className={styles.panel}
           >
-            <OngletAudios jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} />
+            <OngletAudios jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} userId={userId} />
           </div>
         )}
 
@@ -302,7 +309,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-ecriture"
             className={styles.panel}
           >
-            <OngletEcriture jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} />
+            <OngletEcriture jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} userId={userId} />
           </div>
         )}
       </main>

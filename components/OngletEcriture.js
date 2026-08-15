@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useEcrits } from '../lib/useJournalSpirituel';
 import styles from '../styles/OngletEcriture.module.css';
 
-export default function OngletEcriture({ jourJeune }) {
+export default function OngletEcriture({ jourJeune, userId = null }) {
   // ==========================================
   // 1. HOOKS (tous en haut du composant)
   // ==========================================
   
   // Hook Supabase avec fallback localStorage
-  const { ecrits, loading, mode, ajouter, modifier, supprimer } = useEcrits();
+  const { ecrits, loading, mode, ajouter, modifier, supprimer } = useEcrits(userId);
   
   // États locaux pour le formulaire
   const [texte, setTexte] = useState('');
