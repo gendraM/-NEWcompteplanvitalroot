@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import CartePreparationJeune from './CartePreparationJeune';
+import DetailPreparationJeune from './DetailPreparationJeune';
 
 import { supprimerPreparationHistorique } from '../lib/preparationsJeune';
 
 export default function HistoriquePreparationsModal({
   historiquePreparations = [],
   preparationsSupprimees = [],
+  userId = null,
   onRestaurer,
   onSupprimerDefinitivement,
+  onHistoriqueChange,
   onFermer
 }) {
     // Suppression d'une préparation (soft delete)
@@ -17,8 +20,7 @@ export default function HistoriquePreparationsModal({
       if (ongletActif === 'historique') {
         setPrepaDetail(null);
       }
-      // On force le parent à recharger via onFermer puis réouverture, ou on peut lever un event custom si besoin
-      window.location.reload(); // Solution simple pour garantir la synchro UI/LS
+      if (onHistoriqueChange) onHistoriqueChange();
     };
   const [ongletActif, setOngletActif] = useState('historique');
   const [preparationASupprimer, setPreparationASupprimer] = useState(null);
@@ -504,6 +506,14 @@ export default function HistoriquePreparationsModal({
             >✕</button>
             <div style={{ padding: 24 }}>
               <CartePreparationJeune preparation={prepaDetail} onDelete={handleSupprimer} />
+              <div style={{ marginTop: 16 }}>
+                <DetailPreparationJeune
+                  preparation={prepaDetail}
+                  historiquePreparations={historiquePreparations}
+                  userId={userId}
+                  onNotesUpdated={onHistoriqueChange}
+                />
+              </div>
             </div>
           </div>
         </div>
