@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { demarrerReprise } from '../lib/jeuneUtils';
+import * as ParcoursAPI from '../lib/parcoursJeuneAPI';
 import Link from 'next/link';
 import NotificationsPhase1 from '../components/NotificationsPhase1';
 import NotificationsPhase2 from '../components/NotificationsPhase2';
@@ -359,6 +361,36 @@ export default function RepriseAlimentaireApresJeune() {
           }
         }
         
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          const aujourdHui = new Date().toISOString().slice(0, 10);
+          const dateDebutReprise = parsed.date_debut_reprise?.slice(0, 10);
+          const parcoursId = parsed.parcours_id
+            || localStorage.getItem('parcoursJeuneActifId');
+
+          if (user?.id && parsed.id && dateDebutReprise
+              && aujourdHui >= dateDebutReprise
+              && parsed.statut === 'plan_valide') {
+            const resultat = await demarrerReprise(parsed.id, user.id);
+            if (resultat.success) Object.assign(parsed, resultat.programme);
+          }
+
+          if (user?.id && parcoursId && dateDebutReprise
+              && aujourdHui >= dateDebutReprise) {
+            await ParcoursAPI.demarrerPhaseReprise(parcoursId, user.id, {
+              date_fin_jeune: parsed.date_fin_jeune || dateDebutReprise,
+              date_debut_reprise: dateDebutReprise,
+              duree_reprise_jours: parsed.duree_reprise_jours
+            });
+            parsed.parcours_id = parcoursId;
+          }
+
+          localStorage.setItem('programmeRepriseValide', JSON.stringify(parsed));
+        } catch (syncError) {
+          // Une erreur distante ne doit jamais effacer la copie locale.
+          console.warn('[REPRISE] Synchronisation du parcours différée:', syncError);
+        }
+
         setProgramme(parsed);
         setJours(parsed.jours_detailles || []);
         setDateAuj(new Date().toISOString().split('T')[0]);
@@ -705,6 +737,38 @@ export default function RepriseAlimentaireApresJeune() {
           bilan_reprise: bilanReprise
         };
         localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeMAJ));
+
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          const parcoursId = programme.parcours_id
+            || localStorage.getItem('parcoursJeuneActifId');
+          const dateFinReprise = new Date().toISOString().slice(0, 10);
+
+          if (user?.id && programme.id) {
+            const { error: repriseError } = await supabase
+              .from('reprises_alimentaires')
+              .update({
+                statut: 'termine',
+                reprise_terminee_le: new Date().toISOString()
+              })
+              .eq('id', programme.id)
+              .eq('user_id', user.id);
+            if (repriseError) throw repriseError;
+          }
+
+          if (user?.id && parcoursId) {
+            await ParcoursAPI.terminerPhaseReprise(parcoursId, user.id, {
+              date_fin_reprise: dateFinReprise,
+              date_debut_consolidation: dateFinReprise,
+              progression: {
+                bilan_reprise: bilanReprise,
+                reprise_id: programme.id || null
+              }
+            });
+          }
+        } catch (syncError) {
+          console.warn('[REPRISE] Fin locale conservée, synchronisation différée:', syncError);
+        }
 
         setMessageValidation({ 
           type: 'success', 
