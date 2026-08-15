@@ -199,3 +199,59 @@ Pour tout risque ou anomalie détecté :
 - Historique d’avancement enrichi
 - Aucune étape du template n’a été omise
 - Prêt pour validation utilisateur
+## 🔵 PLAN D'ACTION — CONNEXION COMPLÈTE PHASE JEÛNE À SUPABASE (SANS ANOMALIE)
+
+### Objectif
+Connecter toute la phase jeûne à Supabase de façon progressive, en conservant le comportement déjà fonctionnel actuel comme référence de stabilité.
+
+### Référence fonctionnelle à préserver (baseline)
+- `pages/jeune.js` : validation des jours, génération bilan, navigation vers reprise.
+- `lib/parcoursJeuneAPI.js` : persistance `parcours_jeune` déjà en place.
+- `pages/preparation-jeune.js` + `lib/preparationsJeune.js` : logique sync locale/cloud déjà active côté préparation.
+
+### Périmètre à connecter complètement
+- Parcours jeûne actif (déjà branché partiellement).
+- Message personnel et outils du jour (encore majoritairement local).
+- Bilan de fin de jeûne (`bilans_jeune`) avec cohérence user/date.
+- Historique des jeûnes + corbeille (actuellement localStorage).
+- Consultation d'archives et restauration/suppression avec persistance cloud.
+
+### Plan d'exécution progressif (anti-régression)
+- [ ] **Étape 0 — Audit de cohérence schéma/code**
+  - Vérifier l’alignement exact des colonnes utilisées (`user_id`, `created_at`, `updated_at`, etc.).
+  - Vérifier les fonctions appelées vs signatures réelles (`ParcoursAPI` / pages).
+- [ ] **Étape 1 — Stabiliser le parcours actif**
+  - Finaliser l’usage de `parcours_jeune` comme source prioritaire.
+  - Conserver localStorage en cache/fallback uniquement.
+- [ ] **Étape 2 — Connecter les écritures manquantes**
+  - Brancher la sauvegarde Supabase du message perso et des outils utilisés.
+  - Garantir que chaque action UI conserve le comportement actuel visible.
+- [ ] **Étape 3 — Fiabiliser le bilan de fin**
+  - Uniformiser la persistance du bilan (`bilans_jeune`) sans casser l’affichage actuel.
+  - Garder la génération locale si indisponibilité réseau.
+- [ ] **Étape 4 — Migrer historique + corbeille**
+  - Déplacer `historiqueJeunes` et `jeunesSupprimés` vers Supabase.
+  - Garder les actions existantes (consulter, restaurer, supprimer) à l’identique côté UX.
+- [ ] **Étape 5 — Synchronisation et convergence**
+  - Priorité lecture cloud quand disponible, local en secours.
+  - Stratégie de conflit simple et traçable basée sur date de mise à jour.
+
+### Garde-fous obligatoires (zéro anomalie)
+- [ ] Aucune suppression destructrice de logique stable existante.
+- [ ] Petits changements isolés, testés et validés étape par étape.
+- [ ] Fallback local conservé tant que la migration n’est pas totalement validée.
+- [ ] Journalisation claire des erreurs (sans bloquer le parcours utilisateur).
+- [ ] Aucune modification simultanée de plusieurs blocs critiques sans validation intermédiaire.
+
+### Validation par étape (comportement déjà fonctionnel d'abord)
+- [ ] Le parcours jeûne reste utilisable en offline/local.
+- [ ] Les validations quotidiennes restent inchangées côté utilisateur.
+- [ ] Le bilan de fin affiche les mêmes données qu’avant migration.
+- [ ] L’historique ne perd aucune entrée lors de la bascule local → cloud.
+- [ ] La reprise alimentaire reçoit les mêmes données de sortie qu’avant.
+
+### Critères de fin (Done)
+- [ ] Toute la phase jeûne est persistée sur Supabase.
+- [ ] Le localStorage n’est plus qu’un cache/fallback.
+- [ ] Aucun comportement métier visible n’a régressé.
+- [ ] Les flux critiques (validation jour, bilan, archivage, reprise) sont validés.
