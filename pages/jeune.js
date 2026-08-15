@@ -1191,8 +1191,14 @@ saveState('bilanJeune', bilan, userId);
     try {
       const parcours = await ParcoursAPI.getParcoursJeuneActif(userId);
       if (parcours) {
-        await ParcoursAPI.terminerParcoursJeune(parcours.id, aujourdhui);
-        console.log('✅ Parcours jeûne terminé en BDD');
+        await ParcoursAPI.terminerPhaseJeune(parcours.id, userId, {
+          date_fin_jeune: aujourdhui,
+          progression: {
+            ...(parcours.progression || {}),
+            bilan_jeune_genere: true
+          }
+        });
+        console.log('✅ Phase de jeûne clôturée en BDD, cycle conservé actif');
       }
     } catch (error) {
       console.warn('Erreur fin parcours Supabase:', error);
@@ -1318,8 +1324,16 @@ saveState('bilanJeune', bilan, userId);
       try {
         // Sauvegarde Supabase avec NO AUTH
         programmeSauvegarde = await genererEtSauvegarderProgramme(userId, {
-          id: null,
+          id: parcoursId
+            || (typeof window !== 'undefined'
+              ? localStorage.getItem('parcoursJeuneActifId')
+              : null),
+          parcours_id: parcoursId
+            || (typeof window !== 'undefined'
+              ? localStorage.getItem('parcoursJeuneActifId')
+              : null),
           duree_jours: dureeJeune,
+          date_debut: dateDebutJeune,
           date_fin: dateFinStr,
           poids_depart: poidsDepart
         });
