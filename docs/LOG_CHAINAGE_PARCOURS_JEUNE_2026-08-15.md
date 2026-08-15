@@ -214,7 +214,29 @@ Fin reprise : parcours.type = consolidation
 
 ---
 
-## 7. Tests manuels à effectuer
+## 7. Vérification de compilation
+
+Build de production exécuté le 15 août 2026 sur la branche `finalisation-jeune-chatgpt` :
+
+```text
+npm ci
+npm run build
+```
+
+Résultat :
+
+- compilation Next.js réussie ;
+- vérification des types réussie ;
+- 37 pages statiques générées ;
+- pages `/preparation-jeune`, `/jeune`, `/validation-plan-reprise` et `/reprise-alimentaire-apres-jeune` compilées ;
+- code de sortie : `0` ;
+- aucune erreur de compilation détectée.
+
+Le dépôt ne contient pas de workflow GitHub Actions pour automatiser ce build. Le test fonctionnel connecté à Supabase reste distinct du test de compilation.
+
+---
+
+## 8. Tests manuels à effectuer
 
 1. Se connecter avec le compte de test.
 2. Créer une nouvelle préparation.
@@ -235,7 +257,7 @@ Tester également que les données locales restent visibles après chaque actual
 
 ---
 
-## 8. Reste à faire
+## 9. Reste à faire
 
 ### Priorité immédiate
 
@@ -260,7 +282,7 @@ Tester également que les données locales restent visibles après chaque actual
 
 ---
 
-## 9. Commits principaux
+## 10. Commits principaux
 
 - `6829225` — migration SQL de structure ;
 - `f351ecb` — transitions du parcours central ;
@@ -277,7 +299,7 @@ Tester également que les données locales restent visibles après chaque actual
 
 ---
 
-## 10. Règle pour toute reprise du chantier
+## 11. Règle pour toute reprise du chantier
 
 Ne pas recréer un parcours à chaque phase.
 
