@@ -3,8 +3,8 @@ import { useMeditations } from '../lib/useJournalSpirituel';
 import TimerMeditation from './TimerMeditation';
 import styles from '../styles/OngletMeditation.module.css';
 
-export default function OngletMeditation({ jourJeune, modeArchive = false, idJeuneArchive = null, userId = null }) {
-  const { meditations: historique, chargement, modeSupabase, ajouter, supprimer } = useMeditations(modeArchive, idJeuneArchive, userId);
+export default function OngletMeditation({ jourJeune, modeArchive = false, idJeuneArchive = null, periodeArchive = null, userId = null }) {
+  const { meditations: historique, chargement, modeSupabase, ajouter, supprimer } = useMeditations(modeArchive, idJeuneArchive, userId, periodeArchive);
   const [dureeSelectionnee, setDureeSelectionnee] = useState(5);
   const [typeMeditation, setTypeMeditation] = useState('priere');
   const [meditationEnCours, setMeditationEnCours] = useState(false);

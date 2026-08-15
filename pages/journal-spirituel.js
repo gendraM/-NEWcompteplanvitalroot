@@ -20,6 +20,7 @@ export default function JournalSpirituel() {
   const [jourJeune, setJourJeune] = useState(null);
   const [modeArchive, setModeArchive] = useState(false);
   const [idJeuneArchive, setIdJeuneArchive] = useState(null);
+  const [periodeArchive, setPeriodeArchive] = useState(null);
 
   // useEffect pour récupérer le jour du jeûne depuis localStorage
   useEffect(() => {
@@ -36,6 +37,10 @@ export default function JournalSpirituel() {
         const jeune = JSON.parse(jeuneConsulte);
         setModeArchive(true);
         setIdJeuneArchive(jeune.id);
+        setPeriodeArchive({
+          dateDebut: jeune.dateDebut || jeune.date_debut,
+          dateFin: jeune.dateFin || jeune.date_fin
+        });
         // Calculer jour à partir du jeûne archivé
         const jourActuel = parseInt(localStorage.getItem(getKey('jourEnCours'))) || 1;
         setJourJeune(jourActuel);
@@ -254,7 +259,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-meditation"
             className={styles.panel}
           >
-            <OngletMeditation jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} userId={userId} />
+            <OngletMeditation jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} periodeArchive={periodeArchive} userId={userId} />
           </div>
         )}
 
@@ -265,7 +270,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-versets"
             className={styles.panel}
           >
-            <OngletVersets jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} userId={userId} />
+            <OngletVersets jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} periodeArchive={periodeArchive} userId={userId} />
           </div>
         )}
 
@@ -276,7 +281,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-questions"
             className={styles.panel}
           >
-            <OngletQuestions jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} userId={userId} />
+            <OngletQuestions jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} periodeArchive={periodeArchive} userId={userId} />
           </div>
         )}
 
@@ -287,7 +292,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-intentions"
             className={styles.panel}
           >
-            <OngletIntentions jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} userId={userId} />
+            <OngletIntentions jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} periodeArchive={periodeArchive} userId={userId} />
           </div>
         )}
 
@@ -298,7 +303,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-audios"
             className={styles.panel}
           >
-            <OngletAudios jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} userId={userId} />
+            <OngletAudios jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} periodeArchive={periodeArchive} userId={userId} />
           </div>
         )}
 
@@ -309,7 +314,7 @@ export default function JournalSpirituel() {
             aria-labelledby="tab-ecriture"
             className={styles.panel}
           >
-            <OngletEcriture jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} userId={userId} />
+            <OngletEcriture jourJeune={jourJeune} modeArchive={modeArchive} idJeuneArchive={idJeuneArchive} periodeArchive={periodeArchive} userId={userId} />
           </div>
         )}
       </main>

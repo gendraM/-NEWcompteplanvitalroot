@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useEcrits } from '../lib/useJournalSpirituel';
 import styles from '../styles/OngletEcriture.module.css';
 
-export default function OngletEcriture({ jourJeune, userId = null }) {
+export default function OngletEcriture({ jourJeune, modeArchive = false, idJeuneArchive = null, periodeArchive = null, userId = null }) {
   // ==========================================
   // 1. HOOKS (tous en haut du composant)
   // ==========================================
   
   // Hook Supabase avec fallback localStorage
-  const { ecrits, loading, mode, ajouter, modifier, supprimer } = useEcrits(userId);
+  const { ecrits, loading, mode, ajouter, modifier, supprimer } = useEcrits(userId, modeArchive, idJeuneArchive, periodeArchive);
   
   // États locaux pour le formulaire
   const [texte, setTexte] = useState('');
@@ -96,7 +96,7 @@ export default function OngletEcriture({ jourJeune, userId = null }) {
       </h1>
       
       {/* Formulaire de saisie */}
-      <div className={styles.formulaire}>
+      {!modeArchive && <div className={styles.formulaire}>
         <div className={styles.formHeader}>
           <h2 className={styles.formTitre}>
             {modeEdition ? '✏️ Modifier l\'écrit' : '📝 Nouvel écrit'}
@@ -141,7 +141,7 @@ export default function OngletEcriture({ jourJeune, userId = null }) {
         <button onClick={sauvegarderEcrit} className={styles.btnSauvegarder}>
           {modeEdition ? '💾 Enregistrer les modifications' : '💾 Sauvegarder'}
         </button>
-      </div>
+      </div>}
 
       {/* Historique des écrits */}
       <div className={styles.historiqueSection}>

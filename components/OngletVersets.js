@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useVersets } from '../lib/useJournalSpirituel';
 import styles from '../styles/OngletVersets.module.css';
 
-export default function OngletVersets({ jourJeune, userId = null }) {
+export default function OngletVersets({ jourJeune, modeArchive = false, idJeuneArchive = null, periodeArchive = null, userId = null }) {
   // Hook Supabase avec fallback localStorage
-  const { versets, loading, mode, ajouter, modifier, supprimer } = useVersets(userId);
+  const { versets, loading, mode, ajouter, modifier, supprimer } = useVersets(userId, modeArchive, idJeuneArchive, periodeArchive);
   
   // États locaux pour le formulaire
   const [modeEdition, setModeEdition] = useState(false);
@@ -131,7 +131,7 @@ export default function OngletVersets({ jourJeune, userId = null }) {
       </h2>
       
       {/* Bouton ajouter */}
-      {!modeEdition && (
+      {!modeArchive && !modeEdition && (
         <button
           onClick={() => setModeEdition(true)}
           className={styles.btnAjouter}

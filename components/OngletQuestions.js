@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useQuestions } from '../lib/useJournalSpirituel';
 import styles from '../styles/OngletQuestions.module.css';
 
-export default function OngletQuestions({ jourJeune, userId = null }) {
+export default function OngletQuestions({ jourJeune, modeArchive = false, idJeuneArchive = null, periodeArchive = null, userId = null }) {
   // Hook Supabase avec fallback localStorage
-  const { questions: reponsesStockees, loading, mode, ajouter, modifier, supprimer } = useQuestions(userId);
+  const { questions: reponsesStockees, loading, mode, ajouter, modifier, supprimer } = useQuestions(userId, modeArchive, idJeuneArchive, periodeArchive);
   
   // États locaux pour le formulaire
   const [questionActive, setQuestionActive] = useState(null);

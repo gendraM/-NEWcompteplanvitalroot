@@ -6,7 +6,8 @@ import {
   recupererTousLesAudios,
   supprimerAudio,
   calculerEspaceUtilise,
-  exporterAudio
+  exporterAudio,
+  recupererAudiosArchives
 } from '../lib/audioStorage';
 import {
   getAudios as getAudiosSupabase,
@@ -17,7 +18,7 @@ import {
 } from '../lib/journalSpirituelAPI';
 import styles from '../styles/OngletAudios.module.css';
 
-export default function OngletAudios({ jourJeune, userId = null }) {
+export default function OngletAudios({ jourJeune, modeArchive = false, idJeuneArchive = null, periodeArchive = null, userId = null }) {
   const [modeEnregistrement, setModeEnregistrement] = useState(false);
   const [audioEnCours, setAudioEnCours] = useState(null);
   const [modeSauvegarde, setModeSauvegarde] = useState(false);
@@ -45,7 +46,7 @@ export default function OngletAudios({ jourJeune, userId = null }) {
   // Charger audios
   useEffect(() => {
     chargerAudios();
-  }, [userId]);
+  }, [userId, modeArchive, periodeArchive?.dateDebut, periodeArchive?.dateFin]);
 
   const chargerAudios = async () => {
     setChargement(true);
@@ -53,7 +54,10 @@ export default function OngletAudios({ jourJeune, userId = null }) {
 
     if (userId) {
       try {
-        const audiosCloud = await getAudiosSupabase(userId);
+        if (modeArchive && (!periodeArchive?.dateDebut || !periodeArchive?.dateFin)) {
+          throw new Error('Période du jeûne archivé incomplète');
+        }
+        const audiosCloud = await getAudiosSupabase(userId, modeArchive ? periodeArchive : null);
         liste = await Promise.all(audiosCloud.map(async (audio) => ({
           ...audio,
           jourJeune: audio.jour_jeune,
@@ -75,7 +79,9 @@ export default function OngletAudios({ jourJeune, userId = null }) {
     }
 
     if (liste.length === 0) {
-      liste = await recupererTousLesAudios(userId);
+      liste = modeArchive && idJeuneArchive
+        ? await recupererAudiosArchives(idJeuneArchive, userId)
+        : await recupererTousLesAudios(userId);
     }
     setAudios(liste.sort((a, b) => new Date(b.date) - new Date(a.date)));
     
@@ -227,12 +233,12 @@ export default function OngletAudios({ jourJeune, userId = null }) {
       <h2 className={styles.title}>🎤 Mes Audios</h2>
 
       {/* Mode enregistrement */}
-      {modeEnregistrement ? (
+      {modeEnregistrement && !modeArchive ? (
         <AudioRecorder
           onSave={handleEnregistrementTermine}
           onCancel={handleAnnulerEnregistrement}
         />
-      ) : modeSauvegarde ? (
+      ) : modeSauvegarde && !modeArchive ? (
         /* Mode sauvegarde */
         <div className={styles.formulaireSauvegarde}>
           <h3 className={styles.formTitre}>💾 Sauvegarder l'audio</h3>
@@ -313,12 +319,12 @@ export default function OngletAudios({ jourJeune, userId = null }) {
       ) : (
         <>
           {/* Bouton enregistrer */}
-          <button
+          {!modeArchive && <button
             onClick={() => setModeEnregistrement(true)}
             className={styles.btnEnregistrer}
           >
             🎙️ Nouvel enregistrement vocal
-          </button>
+          </button>}
 
           {/* Statistiques */}
           {espace && (
@@ -389,13 +395,13 @@ export default function OngletAudios({ jourJeune, userId = null }) {
                       >
                         ⬇️
                       </button>
-                      <button
+                      {!modeArchive && <button
                         onClick={() => handleSupprimerAudio(audio)}
                         className={styles.btnAction}
                         title="Supprimer"
                       >
                         🗑️
-                      </button>
+                      </button>}
                     </div>
                   </div>
 
