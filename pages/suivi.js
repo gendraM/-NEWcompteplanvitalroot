@@ -1867,6 +1867,7 @@ export default function Suivi() {
               phaseReprise={phaseReprise}
               jourReprise={jourReprise}
               programmeReprise={programmeReprise}
+              dateRepas={selectedDate}
             />
           ) : defiAlimentaireActif ? (
             <SaisieDefiAlimentaire />
