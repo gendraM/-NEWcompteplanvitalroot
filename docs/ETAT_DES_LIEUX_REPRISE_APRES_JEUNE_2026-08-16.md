@@ -2,7 +2,7 @@
 
 **Date : 16 août 2026**  
 **Branche : `finalisation-reprise-jeune-alimentaire-chatgpt`**  
-**Statut : audit reconstitué et vérifié sur le code de la branche**
+**Statut : audit reconstitué, décisions métier actualisées et vérifiées sur le code de la branche**
 
 ## 1. Objet du document
 
@@ -93,7 +93,7 @@ Objectif : réintroduire progressivement une alimentation plus complète.
 
 Contenu attendu selon la fiche métier principale : œufs, poisson blanc, poulet ou dinde, féculents doux, petites crudités digestes et matières grasses contrôlées.
 
-**Contradiction documentaire à arbitrer :** le générateur actuel nomme cette phase « Féculents doux » et ses messages la présentent principalement comme la réintroduction des glucides. La fiche métier détaillée la définit plus largement comme la réintroduction des protéines animales légères et des crudités douces. Aucun changement de contenu ne doit être fait avant arbitrage explicite.
+**Décision métier du 16 août 2026 :** cette phase ne doit pas être supprimée ni réduite à une simple phase « Féculents doux ». Elle correspond à la réintroduction progressive des protéines animales légères et des crudités douces. Les aliments, recettes, conseils et messages actuels doivent être réalignés sur cette définition.
 
 #### Phase 5 — Alimentation normale contrôlée
 
@@ -233,6 +233,32 @@ Restent principalement dans le `localStorage` :
 
 Conséquence : sur un autre appareil, l'utilisatrice peut retrouver le programme principal et les journées stockées en base, mais pas l'intégralité de ses repas et observations détaillées.
 
+### 5.3 Deux sources alimentaires actuellement mal raccordées
+
+Le code contient deux sources ayant des responsabilités différentes :
+
+- `/data/referentiel.js` est le catalogue alimentaire général de l'application. Il fournit notamment le nom, la catégorie, les calories, la portion usuelle et la qualité nutritionnelle ;
+- `/data/alimentsRepriseJeune.js` contient les aliments et règles propres à la reprise : phase d'introduction, portion de reprise, conseil et conditions particulières.
+
+La conception métier initiale prévoyait de conserver ces deux responsabilités séparées :
+
+1. le référentiel général reconnaît l'aliment et fournit ses données nutritionnelles ;
+2. la règle de reprise détermine à partir de quelle phase il peut être réintroduit et dans quelles conditions ;
+3. pendant une reprise active, la page `Suivi` remplace la saisie normale `RepasBloc` par le composant spécialisé `SaisieRepriseJeune` ;
+4. les aliments déjà disponibles doivent être proposés en priorité ;
+5. un aliment consommé hors recommandation reste enregistrable, mais il est signalé comme un écart afin de préserver la réalité du suivi.
+
+L'implémentation actuelle ne respecte que partiellement cette architecture :
+
+- le programme, le bandeau et les fenêtres « Voir les aliments » utilisent les données spécifiques de reprise ;
+- `SaisieRepriseJeune.js` recherche en revanche les aliments uniquement dans le référentiel général ;
+- le référentiel général ne contient pas de champ `phase` ;
+- lorsqu'aucune phase n'est trouvée, le formulaire considère actuellement l'aliment comme autorisé.
+
+La conséquence est importante : l'application sait afficher des recommandations par phase, mais elle ne sait pas encore les appliquer correctement au repas réellement saisi.
+
+La cible retenue n'est pas de fusionner les deux fichiers ni de dupliquer tous les aliments. Le référentiel général reste la source alimentaire commune ; les données de reprise deviennent une couche de règles reliée sans ambiguïté aux aliments généraux.
+
 ## 6. Écarts confirmés
 
 ### 6.1 Saisie rétrospective imparfaite
@@ -280,13 +306,34 @@ Dans la logique métier retenue, cela ne doit pas bloquer la clôture. En revanc
 
 Le taux de validation utilise le nombre de jours validés rapporté à la durée totale et le taux de conformité utilise les repas locaux. Une reprise peu renseignée peut donc recevoir un faible taux sans distinguer manque de données et réel écart.
 
-### 6.9 Contradiction sur la phase 4
+### 6.9 Contenu des phases 3 à 5 non aligné sur la décision métier
 
-La fiche métier principale et le générateur actuel ne donnent pas le même périmètre à la phase 4. Cette contradiction doit être arbitrée avant toute harmonisation des aliments, recettes, conseils et notifications.
+Le code actuel suit encore une ancienne organisation dans laquelle la phase 3 contient déjà plusieurs protéines animales et la phase 4 est principalement consacrée aux féculents doux.
+
+La répartition retenue est désormais :
+
+- phase 3 : solides légers, protéines végétales et lipides doux ;
+- phase 4 : protéines animales légères et crudités douces ;
+- phase 5 : retour progressif à une alimentation complète et contrôlée.
+
+Les listes d'aliments, recettes, portions, messages et notifications doivent être corrigées ensemble afin de ne pas afficher plusieurs définitions contradictoires.
 
 ### 6.10 Recettes et notifications partiellement intégrées
 
 Plusieurs composants ou contenus existent, mais tous les boutons, mappings ou notifications ne sont pas reliés de manière cohérente à la page principale. Les notifications affichées dans l'application ne sont pas toutes de véritables notifications système.
+
+### 6.11 Contrôle de phase inopérant dans la saisie réelle
+
+`SaisieRepriseJeune.js` prévoit quatre observations : phase, horaire, quantité et qualité nutritionnelle. Cependant, le contrôle de phase repose sur un éventuel champ `phase` du référentiel général. Ce champ n'existant pas, le formulaire produit actuellement le message « aliment autorisé, phase non spécifiée » au lieu d'interroger les règles de reprise.
+
+Un aliment général absent des règles de reprise ne doit plus être automatiquement déclaré conforme. Il devra être qualifié comme :
+
+- autorisé, si sa phase d'introduction est atteinte ;
+- prévu plus tard, si sa phase d'introduction est future ;
+- non référencé pour la reprise, si aucune règle n'a été validée ;
+- non recommandé pendant la reprise, si une exclusion explicite existe.
+
+Dans tous les cas, la saisie réelle doit rester enregistrable et l'observation doit être conservée dans le bilan.
 
 ## 7. Exemple utilisateur cible pour le lot C
 
@@ -306,14 +353,24 @@ Le bilan doit alors distinguer un jour 3 renseigné après coup d'un jour jamais
 
 ## 8. Plan d'action de mise en conformité
 
-### Lot A — Arbitrages métier
+### Lot A — Arbitrages métier — PARTIELLEMENT TERMINÉ
 
-À décider avant modification des contenus :
+Décisions actées le 16 août 2026 :
 
-- définition officielle de la phase 4 ;
-- vocabulaire de l'interface : recommandations, observations, écarts et couverture ;
-- définition exacte des indicateurs comparables entre deux reprises ;
-- traitement des saisies rétrospectives dans les statistiques.
+- les cinq phases sont conservées ;
+- la durée de référence dépend de la durée du jeûne ;
+- le vécu peut conduire à ralentir, prolonger ou réduire les quantités sans supprimer une phase ;
+- la phase 3 porte les solides légers, protéines végétales et lipides doux ;
+- la phase 4 porte les protéines animales légères et crudités douces ;
+- la phase 5 organise le retour progressif à une alimentation complète et contrôlée ;
+- la saisie reste non bloquante et les écarts servent au bilan ;
+- le référentiel général et les règles de reprise doivent être raccordés, sans fusionner leurs responsabilités.
+
+Restent à préciser ultérieurement :
+
+- les indicateurs exactement comparables entre deux reprises ;
+- l'influence détaillée du vécu sur la prolongation d'une phase ;
+- les règles statistiques définitives applicables aux saisies rétrospectives.
 
 ### Lot B — Compatibilité Supabase de la phase 5 — TERMINÉ
 
@@ -363,14 +420,60 @@ Critères de réussite :
 
 La synchronisation Supabase des repas reste volontairement réservée au lot E.
 
-### Lot D — Harmoniser les règles et contenus des cinq phases
+### Lot D — Raccorder le référentiel général aux règles de reprise et harmoniser les phases
 
-Après arbitrage du lot A :
+#### Lot D1 — Stabiliser les responsabilités
 
-- aligner référentiel, générateur, messages, horaires, portions et conseils ;
-- contrôler les recommandations propres à un jour précis ;
-- conserver les repas hors recommandation en produisant une observation pédagogique ;
-- relier correctement toutes les recettes et notifications utiles.
+- conserver `/data/referentiel.js` comme catalogue alimentaire général ;
+- conserver une couche distincte de règles de reprise ;
+- relier chaque règle à un aliment général de manière non ambiguë ;
+- recenser les règles sans correspondance, les doublons et les différences de nom ;
+- ne plus considérer automatiquement comme autorisé un aliment sans règle de reprise.
+
+#### Lot D2 — Centraliser l'évaluation de la reprise
+
+Créer une logique métier unique capable de déterminer :
+
+- si l'aliment existe dans le catalogue général ;
+- s'il possède une règle de reprise ;
+- sa première phase d'introduction ;
+- sa disponibilité dans la phase courante ;
+- sa portion de reprise ;
+- ses restrictions de jour ou d'horaire ;
+- son statut : autorisé, prévu plus tard, non référencé ou non recommandé.
+
+La phase portée par une règle représente la première phase d'introduction. Un aliment introduit lors d'une phase antérieure reste disponible ensuite, sauf restriction explicite.
+
+#### Lot D3 — Corriger les aliments des phases 3, 4 et 5
+
+- déplacer les règles de phase, pas les aliments du catalogue général ;
+- aligner la phase 3 sur les protéines végétales et lipides doux ;
+- aligner la phase 4 sur les protéines animales légères et crudités douces ;
+- aligner la phase 5 sur l'alimentation complète et contrôlée ;
+- corriger simultanément portions, recettes, messages, conseils et notifications.
+
+#### Lot D4 — Corriger la saisie dans `Suivi`
+
+- conserver `SaisieRepriseJeune` comme formulaire spécialisé lorsque la reprise est active ;
+- proposer en priorité les aliments déjà disponibles ;
+- utiliser le référentiel général pour les calories et données nutritionnelles ;
+- utiliser les règles de reprise pour l'observation de conformité ;
+- permettre la saisie d'un aliment hors recommandation afin de tracer la réalité ;
+- enregistrer le résultat détaillé de l'évaluation sans bloquer l'utilisatrice.
+
+#### Lot D5 — Harmoniser tous les écrans consommateurs
+
+Faire utiliser la même logique par :
+
+- le bandeau de reprise dans `Suivi` ;
+- le plan avant validation ;
+- la consultation quotidienne ;
+- les fenêtres « Voir les aliments » ;
+- la liste de courses ;
+- les messages et notifications ;
+- le bilan final.
+
+Les écrans devront distinguer les aliments nouvellement introduits pendant une phase de l'ensemble des aliments déjà disponibles à cette date.
 
 ### Lot E — Synchroniser les repas et observations
 
@@ -423,11 +526,12 @@ Scénarios à vérifier :
 
 1. Lot B : terminé et vérifié dans Supabase.
 2. Lot C : implémenté, à confirmer lors du test fonctionnel complet.
-3. Lot A : arbitrage de la phase 4 avant toute modification de contenu.
-4. Lot D : alignement des cinq phases.
-5. Lot E : synchronisation multi-appareils des repas.
-6. Lots F et G : historique, progression, bilan et comparaison.
-7. Lot H : validation complète du parcours réel.
+3. Lot A : décisions principales prises ; précisions statistiques reportées aux lots F et G.
+4. Lot D1 puis D2 : raccordement fiable des deux sources alimentaires.
+5. Lot D3 à D5 : correction des phases 3 à 5, de la saisie et des écrans associés.
+6. Lot E : synchronisation multi-appareils des repas.
+7. Lots F et G : historique, progression, bilan et comparaison.
+8. Lot H : validation complète du parcours réel.
 
 ## 10. Point d'arrêt reconstitué
 
@@ -439,6 +543,9 @@ Au 16 août 2026 :
 - la logique métier non bloquante est actée ;
 - la saisie rétrospective attendue est définie ;
 - le lot C est implémenté dans le code et reste à confirmer en test fonctionnel ;
+- la répartition métier des phases 3, 4 et 5 est désormais arbitrée ;
+- l'existence des deux sources alimentaires et leur mauvais raccordement sont confirmés ;
+- la saisie spécialisée dans `Suivi` est conservée, mais son contrôle de phase doit être relié aux règles de reprise ;
 - aucune modification du fonctionnement interne de la cristallisation n'est prévue dans ce chantier.
 
-La prochaine action est la vérification technique du lot C, puis l'arbitrage métier du lot A avant toute modification du contenu des phases.
+La prochaine action de développement est le lot D1 : établir le raccordement exact entre les aliments du référentiel général et les règles de reprise. Le lot C devra parallèlement être confirmé lors du test fonctionnel complet. Aucun lot D ne doit être déclaré terminé tant que la saisie réelle, les écrans du programme et le bilan n'utilisent pas la même logique.
