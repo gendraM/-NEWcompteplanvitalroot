@@ -329,7 +329,7 @@ Objectif : autoriser `phase5` dans la contrainte de `reprises_jours_valides.phas
 
 La modification n'a supprimé ni transformé aucune donnée. Un test fonctionnel ultérieur devra confirmer qu'un programme réel insère et recharge effectivement ses jours de phase 5.
 
-### Lot C — Fiabiliser le suivi quotidien non bloquant — PROCHAINE ÉTAPE
+### Lot C — Fiabiliser le suivi quotidien non bloquant — IMPLÉMENTÉ
 
 Objectifs :
 
@@ -350,6 +350,18 @@ Critères de réussite :
 - une journée vide ne vaut pas non-conformité ;
 - aucun repas ni écart ne bloque le parcours ;
 - les indicateurs sont recalculés après une saisie rétrospective.
+
+**Implémentation réalisée :**
+
+- navigation par journées corrigée ;
+- date sélectionnée transmise à la saisie du repas ;
+- date du repas, heure du repas et date de création conservées séparément ;
+- saisie après coup identifiée techniquement sans ajouter de statut visible inutile ;
+- message des deux repas minimum remplacé par le nombre factuel de repas enregistrés ;
+- journées sans repas exclues de l'évaluation de conformité ;
+- bilan complété avec le nombre de journées comportant des repas et un message précisant que les journées sans information ne sont pas des écarts.
+
+La synchronisation Supabase des repas reste volontairement réservée au lot E.
 
 ### Lot D — Harmoniser les règles et contenus des cinq phases
 
@@ -410,7 +422,7 @@ Scénarios à vérifier :
 ## 9. Ordre recommandé à partir du point d'arrêt
 
 1. Lot B : terminé et vérifié dans Supabase.
-2. Lot C : prochaine intervention à développer.
+2. Lot C : implémenté, à confirmer lors du test fonctionnel complet.
 3. Lot A : arbitrage de la phase 4 avant toute modification de contenu.
 4. Lot D : alignement des cinq phases.
 5. Lot E : synchronisation multi-appareils des repas.
@@ -426,7 +438,7 @@ Au 16 août 2026 :
 - le lot B est validé dans Supabase ;
 - la logique métier non bloquante est actée ;
 - la saisie rétrospective attendue est définie ;
-- le lot C n'a pas encore été développé ;
+- le lot C est implémenté dans le code et reste à confirmer en test fonctionnel ;
 - aucune modification du fonctionnement interne de la cristallisation n'est prévue dans ce chantier.
 
-La prochaine action autorisée est donc le développement du lot C sur la branche `finalisation-reprise-jeune-alimentaire-chatgpt`.
+La prochaine action est la vérification technique du lot C, puis l'arbitrage métier du lot A avant toute modification du contenu des phases.
