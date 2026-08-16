@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import referentielAliments from '../data/referentiel';
 
-export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programmeReprise }) {
+export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programmeReprise, dateRepas }) {
     console.log('[SaisieRepriseJeune] Props reçues:', { phaseReprise, jourReprise, programmeReprise });
     
     const repasTypes = ["Petit-déjeuner", "Déjeuner", "Collation", "Dîner", "Autre"];
@@ -31,7 +31,7 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
     
     // États du formulaire
     const [type, setType] = useState('Déjeuner');
-    const [date, setDate] = useState(new Date().toISOString().slice(0,10));
+    const [date, setDate] = useState(dateRepas || new Date().toISOString().slice(0,10));
     const [heure, setHeure] = useState(getDefaultHeure());
     const [aliment, setAliment] = useState('');
     const [categorie, setCategorie] = useState('');
@@ -41,6 +41,12 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
     const [ressenti, setRessenti] = useState('');
     const [message, setMessage] = useState('');
     const [erreur, setErreur] = useState('');
+
+    // La date sélectionnée dans le suivi est la date réelle du repas.
+    // Elle peut correspondre à une journée passée que l'utilisatrice complète après coup.
+    useEffect(() => {
+        if (dateRepas) setDate(dateRepas);
+    }, [dateRepas]);
 
     // Remise à zéro automatique des champs non requis si catégorie = Jeûne
     useEffect(() => {
@@ -207,7 +213,15 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
         // Enregistrement dans localStorage
         const alimentToSend = isJeune ? '' : aliment;
         const quantiteToSend = isJeune ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite));
-        const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+        const dateSaisie = new Date();
+        const dateSaisieISO = dateSaisie.toISOString();
+        const dateSaisieJour = [
+            dateSaisie.getFullYear(),
+            String(dateSaisie.getMonth() + 1).padStart(2, '0'),
+            String(dateSaisie.getDate()).padStart(2, '0')
+        ].join('-');
+        const dateRepasEffective = date || dateRepas || dateSaisieJour;
+        const saisieRetroactive = dateRepasEffective < dateSaisieJour;
         
         const repasPayload = {
             id: Date.now().toString(),
@@ -216,7 +230,12 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
             jour_reprise: jourReprise, // Pour compatibilité avec page reprise
             phase: phaseReprise,
             phase_reprise: phaseReprise, // Pour compatibilité avec page reprise
-            date: today, // Date du jour pour filtrage
+            // `date` est conservé pour compatibilité avec les écrans existants.
+            date: dateRepasEffective,
+            date_repas: dateRepasEffective,
+            heure: heure,
+            heure_repas: heure,
+            saisie_retroactive: saisieRetroactive,
             moment: type,
             aliment_nom: alimentToSend,
             quantite: quantiteToSend,
@@ -231,8 +250,8 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
                 qn_ok: criteresValidés.some(c => c.includes('QN') || c.includes('Qualité')),
                 message: messageFinal
             },
-            consomme_le: new Date().toISOString(),
-            created_at: new Date().toISOString()
+            consomme_le: `${dateRepasEffective}T${heure || '00:00'}:00`,
+            created_at: dateSaisieISO
         };
 
         try {
@@ -431,14 +450,16 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
                         <input 
                             type="date" 
                             value={date} 
-                            onChange={e => setDate(e.target.value)} 
+                            readOnly
+                            title="Cette date correspond à la journée sélectionnée dans le suivi"
                             style={{
                                 width: '100%',
                                 padding: '10px 12px',
                                 borderRadius: 8,
                                 border: '2px solid #e5e7eb',
                                 fontSize: 14,
-                                outline: 'none'
+                                outline: 'none',
+                                background: '#f8fafc'
                             }}
                             onFocus={(e) => e.target.style.borderColor = '#667eea'}
                             onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
