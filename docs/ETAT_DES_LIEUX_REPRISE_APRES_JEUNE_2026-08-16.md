@@ -340,7 +340,7 @@ Objectifs :
 5. conserver l'heure choisie ;
 6. ajouter l'indicateur de saisie rétrospective ;
 7. remplacer le message des deux repas minimum par un compteur descriptif ;
-8. distinguer journée renseignée, partiellement renseignée et non renseignée ;
+8. afficher uniquement le nombre factuel de repas enregistrés pour chaque journée ;
 9. maintenir l'absence de blocage pour continuer ou clôturer.
 
 Critères de réussite :
