@@ -596,20 +596,38 @@ export default function RepriseAlimentaireApresJeune() {
       // 4️⃣ Vérifier si c'est le dernier jour de la reprise
       let tauxConformite = 0;
       let tauxValidation = 0;
+      let totalRepas = 0;
       if (jourData.jour_numero === programme.duree_reprise_jours) {
         // 🆕 CALCULER LE BILAN COMPLET DE LA REPRISE
         const cleRepas = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
-        const tousRepasReprise = JSON.parse(localStorage.getItem(cleRepas) || '[]');
+        const repasStockesReprise = JSON.parse(localStorage.getItem(cleRepas) || '[]');
+        const tousRepasReprise = repasStockesReprise.filter(repas => {
+          if (programme.id && repas.reprise_id) return repas.reprise_id === programme.id;
+          return Number(repas.jour_reprise || repas.jour_numero) >= 1
+            && Number(repas.jour_reprise || repas.jour_numero) <= programme.duree_reprise_jours;
+        });
         const joursValidesReprise = JSON.parse(localStorage.getItem('joursReprisesValides') || '[]');
         // Statistiques de conformité
-        const totalRepas = tousRepasReprise.length;
+        totalRepas = tousRepasReprise.length;
         const repasConformes = tousRepasReprise.filter(r => r.conforme === true).length;
         tauxConformite = totalRepas > 0 ? Math.round((repasConformes / totalRepas) * 100) : 0;
         const nbJoursValides = joursValidesReprise.length;
         tauxValidation = Math.round((nbJoursValides / programme.duree_reprise_jours) * 100);
 
+        // Couverture factuelle : une journée sans repas n'est pas un échec.
+        const joursAvecRepas = new Set(
+          tousRepasReprise
+            .map(r => Number(r.jour_reprise || r.jour_numero))
+            .filter(jour => jour >= 1 && jour <= programme.duree_reprise_jours)
+        );
+        const nbJoursAvecRepas = joursAvecRepas.size;
+        const nbJoursSansInformation = Math.max(0, programme.duree_reprise_jours - nbJoursAvecRepas);
+        const tauxDonneesDisponibles = programme.duree_reprise_jours > 0
+          ? Math.round((nbJoursAvecRepas / programme.duree_reprise_jours) * 100)
+          : 0;
+
         // 🆕 Détection fin de reprise non optimale
-        if (tauxConformite < 70 || tauxValidation < 80) {
+        if (totalRepas > 0 && tauxConformite < 70) {
           setShowModalDifficultes(true);
         }
         
@@ -639,11 +657,17 @@ export default function RepriseAlimentaireApresJeune() {
           taux_conformite: tauxConformite,
           jours_valides: nbJoursValides,
           taux_validation: tauxValidation,
+          jours_avec_repas: nbJoursAvecRepas,
+          jours_sans_information: nbJoursSansInformation,
+          taux_donnees_disponibles: tauxDonneesDisponibles,
+          bilan_base_sur_donnees_saisies: true,
           
           // Validation
           statut: 'termine',
           termine_le: new Date().toISOString(),
-          reprise_reussie: tauxConformite >= 70 && tauxValidation >= 80 // Critères succès
+          // Compatibilité temporaire avec l'ancien affichage. L'absence de saisie
+          // n'entre plus dans cette valeur.
+          reprise_reussie: totalRepas > 0 ? tauxConformite >= 70 : null
         };
         
         // Sauvegarder le bilan
@@ -782,7 +806,7 @@ export default function RepriseAlimentaireApresJeune() {
       }
 
       // 5️⃣ Recharger les données UNIQUEMENT si le modal de difficultés n'est pas affiché
-      if (!(tauxConformite < 70 || tauxValidation < 80)) {
+      if (!(tauxConformite < 70 && totalRepas > 0)) {
         setTimeout(() => {
           window.location.reload();
         }, 2000);
@@ -1284,11 +1308,11 @@ export default function RepriseAlimentaireApresJeune() {
             <div style={{display:'flex', gap:8, marginBottom:18, flexWrap:'wrap'}}>
               {jours.map((jour, idx) => {
                 const accessible = idx < maxJourAccessible;
-                const isSelected = idx === (selectedJourIdx + (jours.length - joursAAfficher.length));
+                const isSelected = idx === selectedJourIdx;
                 return (
                   <button
                     key={idx}
-                    onClick={() => accessible && setSelectedJourIdx(idx - (jours.length - joursAAfficher.length))}
+                    onClick={() => accessible && setSelectedJourIdx(idx)}
                     disabled={!accessible}
                     style={{
                       minWidth:36,
@@ -1497,9 +1521,9 @@ export default function RepriseAlimentaireApresJeune() {
                         color: '#6a1b9a',
                         fontWeight: 500
                       }}>
-                        {repasJour.length >= 2 
-                          ? '✅ Au moins 2 repas enregistrés, tu peux valider ce jour' 
-                          : `⏳ Enregistre encore ${2 - repasJour.length} repas pour pouvoir valider ce jour`}
+                        {repasJour.length === 1
+                          ? '1 repas enregistré pour cette journée.'
+                          : `${repasJour.length} repas enregistrés pour cette journée.`}
                       </div>
                     </div>
                   );
@@ -1764,98 +1788,20 @@ export default function RepriseAlimentaireApresJeune() {
                       </strong> ({programme.bilan_reprise.repas_conformes}/{programme.bilan_reprise.total_repas_saisis} repas)
                     </div>
                     <div style={{marginBottom: 8}}>
-                      ✔️ Jours validés : <strong style={{color: programme.bilan_reprise.taux_validation >= 80 ? '#43a047' : '#f57c00'}}>
-                        {programme.bilan_reprise.taux_validation}%
-                      </strong> ({programme.bilan_reprise.jours_valides}/{programme.duree_reprise_jours} jours)
+                      📝 Repas enregistrés sur <strong>
+                        {programme.bilan_reprise.jours_avec_repas ?? 0} journée(s) sur {programme.duree_reprise_jours}
+                      </strong>
                     </div>
-                    {/* 🆕 ANALYSE DÉTAILLÉE AVEC FEEDBACK PERSONNALISÉ */}
                     <div style={{
                       marginTop: 16,
                       padding: '12px 16px',
-                      background: programme.bilan_reprise.reprise_reussie ? '#e8f5e9' : '#fff3e0',
+                      background: '#f5f7fa',
                       borderRadius: 8,
-                      border: `2px solid ${programme.bilan_reprise.reprise_reussie ? '#4caf50' : '#ff9800'}`
+                      border: '1px solid #dfe3e8',
+                      color: '#455a64'
                     }}>
-                      {programme.bilan_reprise.reprise_reussie ? (
-                        <>
-                          <div style={{color: '#2e7d32', fontWeight: 700, fontSize: '1.05rem', marginBottom: 8}}>
-                            🏆 Reprise réussie ! Tu es prêt·e pour la cristallisation
-                          </div>
-                          
-                          {/* Points forts */}
-                          <div style={{color: '#2e7d32', fontSize: '0.95rem', marginTop: 8}}>
-                            <strong>💪 Tes points forts :</strong>
-                            <ul style={{marginLeft: 20, marginTop: 4, marginBottom: 8}}>
-                              {programme.bilan_reprise.taux_conformite >= 85 && (
-                                <li>Excellente conformité alimentaire ({programme.bilan_reprise.taux_conformite}%)</li>
-                              )}
-                              {programme.bilan_reprise.taux_validation >= 90 && (
-                                <li>Régularité exemplaire ({programme.bilan_reprise.taux_validation}% des jours validés)</li>
-                              )}
-                              <li>Tu as respecté {programme.bilan_reprise.repas_conformes} repas sur {programme.bilan_reprise.total_repas_saisis} !</li>
-                            </ul>
-                          </div>
-                          
-                          {/* Conseils pour cristallisation */}
-                          <div style={{color: '#5d4037', fontSize: '0.92rem', marginTop: 10, padding: '8px 10px', background: 'rgba(255,255,255,0.6)', borderRadius: 6}}>
-                            <strong>🎯 Pour la cristallisation (45 jours) :</strong>
-                            <ul style={{marginLeft: 20, marginTop: 4, marginBottom: 0}}>
-                              <li>Continue les bonnes habitudes que tu as prises</li>
-                              <li>Envisage 1 jeûne ponctuel par semaine (optionnel)</li>
-                              <li>Reste à l'écoute de ton corps et de tes sensations</li>
-                            </ul>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div style={{color: '#e65100', fontWeight: 700, fontSize: '1.05rem', marginBottom: 8}}>
-                            ⚠️ Reprise terminée - Points d'amélioration identifiés
-                          </div>
-                          
-                          {/* Points à améliorer */}
-                          <div style={{color: '#5d4037', fontSize: '0.95rem', marginTop: 8}}>
-                            <strong>📋 Analyse de ta reprise :</strong>
-                            <ul style={{marginLeft: 20, marginTop: 4, marginBottom: 8}}>
-                              {programme.bilan_reprise.taux_conformite < 70 && (
-                                <li>Conformité des repas : {programme.bilan_reprise.taux_conformite}% (objectif : ≥70%)</li>
-                              )}
-                              {programme.bilan_reprise.taux_validation < 80 && (
-                                <li>Régularité : {programme.bilan_reprise.taux_validation}% (objectif : ≥80%)</li>
-                              )}
-                              {programme.bilan_reprise.evolution_poids && parseFloat(programme.bilan_reprise.evolution_poids) > 2 && (
-                                <li>Évolution du poids : +{programme.bilan_reprise.evolution_poids} kg (surveiller)</li>
-                              )}
-                            </ul>
-                          </div>
-                          
-                          {/* Points positifs malgré tout */}
-                          {(programme.bilan_reprise.taux_conformite >= 50 || programme.bilan_reprise.taux_validation >= 60) && (
-                            <div style={{color: '#2e7d32', fontSize: '0.95rem', marginTop: 8}}>
-                              <strong>💚 Points positifs :</strong>
-                              <ul style={{marginLeft: 20, marginTop: 4, marginBottom: 8}}>
-                                {programme.bilan_reprise.taux_conformite >= 50 && (
-                                  <li>Tu as quand même maintenu {programme.bilan_reprise.taux_conformite}% de conformité</li>
-                                )}
-                                {programme.bilan_reprise.taux_validation >= 60 && (
-                                  <li>Tu as validé {programme.bilan_reprise.jours_valides}/{programme.duree_reprise_jours} jours</li>
-                                )}
-                                <li>Tu es allé·e au bout de ta reprise ! 🎉</li>
-                              </ul>
-                            </div>
-                          )}
-                          
-                          {/* Conseils pour cristallisation */}
-                          <div style={{color: '#5d4037', fontSize: '0.92rem', marginTop: 10, padding: '8px 10px', background: 'rgba(255,255,255,0.6)', borderRadius: 6}}>
-                            <strong>🎯 Conseils pour la cristallisation :</strong>
-                            <ul style={{marginLeft: 20, marginTop: 4, marginBottom: 0}}>
-                              <li>Fixe-toi des objectifs réalistes (1 jour à la fois)</li>
-                              <li>La cristallisation est l'occasion de consolider tes acquis</li>
-                              <li>Surveille ton poids chaque semaine (max +2kg)</li>
-                              <li>N'hésite pas à demander du soutien si besoin</li>
-                            </ul>
-                          </div>
-                        </>
-                      )}
+                      Ce bilan repose uniquement sur les informations enregistrées.
+                      Les journées sans information ne sont pas considérées comme des écarts.
                     </div>
                   </>
                 )}
@@ -1948,7 +1894,10 @@ export default function RepriseAlimentaireApresJeune() {
                   onClick={() => {
                     // Remettre l'état à avant la validation du jour pour permettre le questionnaire
                     // On force l'affichage du modal si critères non atteints
-                    if (programme?.bilan_reprise?.taux_conformite < 70 || programme?.bilan_reprise?.taux_validation < 80) {
+                    if (
+                      programme?.bilan_reprise?.total_repas_saisis > 0
+                      && programme?.bilan_reprise?.taux_conformite < 70
+                    ) {
                       setShowModalDifficultes(true);
                     } else {
                       window.location.href = '/consolidation-45-jours';
