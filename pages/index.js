@@ -145,6 +145,22 @@ export default function Home() {
               ? "📝 Accéder à ma préparation"
               : "🧘‍♂️ Me préparer à jeûner"}
         </button>
+        <Link
+          href="/test-reprise"
+          style={{
+            display: 'inline-block',
+            padding: '0.75rem 1.5rem',
+            backgroundColor: '#f59e0b',
+            color: '#fff',
+            borderRadius: '5px',
+            textDecoration: 'none',
+            fontWeight: 'bold',
+            marginLeft: '1rem',
+            marginBottom: '1rem'
+          }}
+        >
+          🧪 Mode test parcours jeûne
+        </Link>
       </p>
     </div>
   );

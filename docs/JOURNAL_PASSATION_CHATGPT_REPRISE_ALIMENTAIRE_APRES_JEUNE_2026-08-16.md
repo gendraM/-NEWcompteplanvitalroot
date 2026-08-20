@@ -594,3 +594,35 @@ dans `liste_courses` pour compatibilité.
 L'impression et le partage ne sont pas activés dans ce lot. Ils restent une
 amélioration ultérieure après validation fonctionnelle de la gestion des états,
 des substitutions et des périodes successives.
+
+## 20 août 2026 — Mode test du parcours jeûne
+
+### Demande validée
+
+Rendre visible depuis la page d’accueil un accès nommé « Mode test parcours jeûne » permettant de tester le parcours sans attendre les dates réelles.
+
+### Modification réalisée
+
+- ajout sur `pages/index.js` d’un lien visible « 🧪 Mode test parcours jeûne » ;
+- ce lien ouvre la route technique existante `/test-reprise` ;
+- aucune règle de durée, de date, de phase ou de validation du parcours réel n’a été modifiée ;
+- aucune donnée locale ou Supabase n’est créée ou modifiée par le lien lui-même.
+
+### Périmètre corrigé et implémenté
+
+La route `/test-reprise` devient le contrôleur du parcours testable de la préparation jusqu’à la fin de la reprise. La cristallisation reste hors périmètre.
+
+Le contrôleur :
+
+- ouvre les véritables écrans de préparation, de jeûne, de validation et de reprise ;
+- permet de positionner la préparation entre J-30 et J0 ;
+- permet de positionner immédiatement le suivi sur un jour choisi du jeûne ;
+- permet de positionner immédiatement le programme sur un jour choisi de la reprise ;
+- valide automatiquement les jours antérieurs lors d’un saut temporel ;
+- décale les dates locales et celles des enregistrements Supabase déjà créés ;
+- ne recrée pas le générateur du programme de reprise ;
+- ne bloque aucune lecture ou écriture Supabase ;
+- n’ajoute aucun marquage particulier aux données ;
+- ne supprime aucune donnée, y compris lors de la désactivation du mode test.
+
+Le mode test sert uniquement à accélérer le calendrier. Les données créées et les synchronisations restent celles du parcours réel ; leur éventuelle suppression reste une action manuelle de l’utilisatrice.
