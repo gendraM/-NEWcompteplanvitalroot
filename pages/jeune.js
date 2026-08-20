@@ -11,6 +11,7 @@ import AnalyseComportementale from "../components/AnalyseComportementale";
 import PertePoidsEstimee from "../components/PertePoidsEstimee";
 import BilanJeune from "../components/BilanJeune";
 import HistoriqueJeunesModal from "../components/HistoriqueJeunesModal";
+import { getDateMetier, getDateMetierISO } from '../lib/modeTestClock';
 
 // --- Données statiques pour chaque jour de jeûne (exemple jusqu'à 10 jours, à compléter si besoin) ---
 const JEUNE_DAYS_CONTENT = {
@@ -785,7 +786,7 @@ export default function Jeune() {
     
     // Calcul du jour en cours depuis la date réelle de début
     if (dateDebut) {
-      const diffMs = Date.now() - new Date(dateDebut).getTime();
+      const diffMs = getDateMetier().getTime() - new Date(dateDebut).getTime();
       const diffJours = Math.floor(diffMs / (1000*60*60*24)) + 1;
       const duree = loadState("dureeJeune", dureeFiable, userId); // Utiliser la durée déjà calculée
       const jourCalcule = Math.max(1, Math.min(diffJours, duree));
@@ -1005,7 +1006,7 @@ export default function Jeune() {
     const hasPreparationDate = prepDataStr && JSON.parse(prepDataStr)?.startDate;
     
     if (!dateDebutJeune && jourEnCours === 1 && !hasPreparationDate) {
-      const aujourdhui = new Date().toISOString().split('T')[0];
+      const aujourdhui = getDateMetierISO();
       setDateDebutJeune(aujourdhui);
     }
   }, [dateDebutJeune, jourEnCours]);
@@ -1019,7 +1020,7 @@ export default function Jeune() {
     dateFin.setDate(dateFin.getDate() + dureeJeune - 1);
     const dateFinStr = dateFin.toISOString().split('T')[0];
 
-    const aujourdhui = new Date();
+    const aujourdhui = getDateMetier();
     aujourdhui.setHours(0, 0, 0, 0);
     const fin = new Date(dateFinStr);
     fin.setHours(0, 0, 0, 0);
@@ -1088,7 +1089,7 @@ export default function Jeune() {
 
   // Générer le bilan détaillé du jeûne
   const genererBilanJeune = async () => {
-    const aujourdhui = new Date().toISOString().split('T')[0];
+    const aujourdhui = getDateMetierISO();
     
     // Calculer perte de poids (si poids final renseigné)
     let pertePoids = null;
@@ -1117,7 +1118,7 @@ export default function Jeune() {
     let dureeReelle = dureeJeune;
     if (dateDebutJeune) {
       const debut = new Date(dateDebutJeune);
-      const fin = new Date();
+      const fin = getDateMetier();
       dureeReelle = Math.floor((fin - debut) / (1000*60*60*24)) + 1;
     }
     
@@ -1222,7 +1223,7 @@ saveState('bilanJeune', bilan, userId);
 
     // Vérifier que le jour affiché n'est pas dans le futur
     if (dateDebutJeune) {
-      const aujourdhui = new Date();
+      const aujourdhui = getDateMetier();
       const debut = new Date(dateDebutJeune);
       const joursEcoules = Math.floor((aujourdhui - debut) / (1000*60*60*24)) + 1;
       
@@ -1407,7 +1408,7 @@ saveState('bilanJeune', bilan, userId);
       }
 
       const idJeune = parcoursId || `${dateDebutLS}_${dureeLS}j`;
-      const dateFinArchivage = new Date().toISOString().split('T')[0];
+      const dateFinArchivage = getDateMetierISO();
 
       // 🆕 ARCHIVER DONNÉES SPIRITUELLES (méditations, audios, etc.)
       const { archiverDonneesSpirituellesJeune } = await import('../lib/journalSpirituelArchive');
@@ -1889,7 +1890,7 @@ const historiqueActuel = JSON.parse(localStorage.getItem(getStorageKey('historiq
                 })}
               </div>
               <div style={{ fontSize: 13, color: "#64b5f6" }}>
-                Aujourd'hui : {new Date().toLocaleDateString('fr-FR', { 
+                Aujourd'hui : {getDateMetier().toLocaleDateString('fr-FR', {
                   weekday: 'long',
                   day: 'numeric', 
                   month: 'long'

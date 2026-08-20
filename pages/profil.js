@@ -462,6 +462,7 @@ export default function ProfilPage() {
             }}
             onClick={() => {
               localStorage.setItem('modeTestParcoursJeune', 'true');
+              localStorage.setItem('modeTestDateVirtuelle', new Date().toISOString().slice(0, 10));
               localStorage.removeItem('test_modeRepriseActif');
               localStorage.setItem('repriseMode', 'normal');
               window.location.href = '/preparation-jeune?modeTest=1';

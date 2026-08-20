@@ -17,6 +17,7 @@ import ListeCoursesPratique from '../components/ListeCoursesPratique';
 import PreparationPeriodeCourses from '../components/PreparationPeriodeCourses';
 import { initialiserEtatsListeCourses } from '../lib/listeCoursesReprise';
 import { getAlimentsDisponiblesPhase, harmoniserJoursProgramme } from '../lib/repriseJeuneMetier';
+import { getDateMetier, getDateMetierISO } from '../lib/modeTestClock';
 
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
@@ -69,7 +70,7 @@ function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
       const progStr = localStorage.getItem('programmeRepriseValide');
       if (progStr) {
         const prog = JSON.parse(progStr);
-        prog.date_debut_reprise = new Date().toISOString();
+        prog.date_debut_reprise = getDateMetierISO();
         localStorage.setItem('programmeRepriseValide', JSON.stringify(prog));
         window.location.reload();
       }
@@ -368,7 +369,7 @@ export default function RepriseAlimentaireApresJeune() {
         
         try {
           const { data: { user } } = await supabase.auth.getUser();
-          const aujourdHui = new Date().toISOString().slice(0, 10);
+          const aujourdHui = getDateMetierISO();
           const dateDebutReprise = parsed.date_debut_reprise?.slice(0, 10);
           const parcoursId = parsed.parcours_id
             || localStorage.getItem('parcoursJeuneActifId');
@@ -401,7 +402,7 @@ export default function RepriseAlimentaireApresJeune() {
         localStorage.setItem('programmeRepriseValide', JSON.stringify(parsed));
         setProgramme(parsed);
         setJours(joursHarmonises);
-        setDateAuj(new Date().toISOString().split('T')[0]);
+        setDateAuj(getDateMetierISO());
         
         // Réutiliser exactement la liste enregistrée avec le programme.
         const listeInitialisee = initialiserEtatsListeCourses(parsed.liste_courses);
@@ -471,7 +472,7 @@ export default function RepriseAlimentaireApresJeune() {
   let jourReprise = null;
   if (programme && programme.date_debut_reprise) {
     const debut = new Date(programme.date_debut_reprise);
-    const auj = new Date();
+    const auj = getDateMetier();
     const diff = Math.floor((auj - debut) / (1000 * 60 * 60 * 24));
     jourReprise = diff + 1;
   }
@@ -609,7 +610,7 @@ export default function RepriseAlimentaireApresJeune() {
     try {
       // 1️⃣ Vérifier que c'est la bonne date
       const dateJour = new Date(jourData.date);
-      const aujourdhui = new Date();
+      const aujourdhui = getDateMetier();
       aujourdhui.setHours(0, 0, 0, 0);
       dateJour.setHours(0, 0, 0, 0);
 
@@ -696,7 +697,7 @@ export default function RepriseAlimentaireApresJeune() {
           duree_jeune_jours: programme.duree_jeune_jours,
           duree_reprise_jours: programme.duree_reprise_jours,
           date_debut_reprise: programme.date_debut_reprise,
-          date_fin_reprise: new Date().toISOString().split('T')[0],
+          date_fin_reprise: getDateMetierISO(),
           
           // Poids
           poids_debut_reprise: programme.poids_fin_jeune,
@@ -772,7 +773,7 @@ export default function RepriseAlimentaireApresJeune() {
             console.log('⚠️ Aucune reprise à archiver (0 jours validés ou pas de date)');
           } else {
             const idReprise = `${dateDebutLS}_${dureeLS}j`;
-            const dateFinArchivage = new Date().toISOString().split('T')[0];
+            const dateFinArchivage = getDateMetierISO();
 
             // Objet archive (adapté du pattern jeuneArchive)
             const repriseArchive = {
@@ -820,7 +821,7 @@ export default function RepriseAlimentaireApresJeune() {
           const { data: { user } } = await supabase.auth.getUser();
           const parcoursId = programme.parcours_id
             || localStorage.getItem('parcoursJeuneActifId');
-          const dateFinReprise = new Date().toISOString().slice(0, 10);
+          const dateFinReprise = getDateMetierISO();
 
           if (user?.id && programme.id) {
             const { error: repriseError } = await supabase
@@ -1044,7 +1045,7 @@ export default function RepriseAlimentaireApresJeune() {
           <div>
             <span style={{fontSize: '0.85rem', color: '#1565c0', fontWeight: 500, marginRight: 8}}>Aujourd'hui :</span>
             <span style={{fontSize: '1rem', fontWeight: 600, color: '#0d47a1'}}>
-              {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+              {getDateMetier().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
             </span>
           </div>
         </div>
@@ -1457,7 +1458,7 @@ export default function RepriseAlimentaireApresJeune() {
                 {!isPreview && joursAAfficher[selectedJourIdx] && (() => {
                   const cleRepas = repriseMode === 'test' ? 'test_reprises_repas_consommes' : 'reprises_repas_consommes';
                   const repasStockes = JSON.parse(localStorage.getItem(cleRepas) || '[]');
-                  const todayStr = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+                  const todayStr = getDateMetierISO(); // Format YYYY-MM-DD
                   
                   // Debug
                   console.log('🔍 DEBUG Critères du jour:', {
@@ -1616,12 +1617,12 @@ export default function RepriseAlimentaireApresJeune() {
                       <>
                         <button
                           onClick={() => validerJour(joursAAfficher[selectedJourIdx])}
-                          disabled={validationEnCours || (!forceSuivi && new Date(joursAAfficher[selectedJourIdx].date) > new Date())}
+                          disabled={validationEnCours || (!forceSuivi && new Date(joursAAfficher[selectedJourIdx].date) > getDateMetier())}
                           style={{
-                            background: (!forceSuivi && new Date(joursAAfficher[selectedJourIdx].date) > new Date()) 
+                            background: (!forceSuivi && new Date(joursAAfficher[selectedJourIdx].date) > getDateMetier())
                               ? '#e0e0e0' 
                               : 'linear-gradient(135deg, #43cea2 0%, #185a9d 100%)',
-                            color: (!forceSuivi && new Date(joursAAfficher[selectedJourIdx].date) > new Date()) 
+                            color: (!forceSuivi && new Date(joursAAfficher[selectedJourIdx].date) > getDateMetier())
                               ? '#9e9e9e' 
                               : 'white',
                             border: 'none',
@@ -1629,10 +1630,10 @@ export default function RepriseAlimentaireApresJeune() {
                             padding: '0.9rem 1.8rem',
                             fontWeight: 700,
                             fontSize: '1.1rem',
-                            cursor: new Date(joursAAfficher[selectedJourIdx].date) > new Date() || validationEnCours 
+                            cursor: new Date(joursAAfficher[selectedJourIdx].date) > getDateMetier() || validationEnCours
                               ? 'not-allowed' 
                               : 'pointer',
-                            boxShadow: new Date(joursAAfficher[selectedJourIdx].date) > new Date() 
+                            boxShadow: new Date(joursAAfficher[selectedJourIdx].date) > getDateMetier()
                               ? 'none' 
                               : '0 4px 12px rgba(67,206,162,0.2)',
                             width: '100%',
@@ -1642,7 +1643,7 @@ export default function RepriseAlimentaireApresJeune() {
                           {validationEnCours ? '⏳ Validation...' : '✅ Valider ce jour'}
                         </button>
                         
-                        {!forceSuivi && new Date(joursAAfficher[selectedJourIdx].date) > new Date() && (
+                        {!forceSuivi && new Date(joursAAfficher[selectedJourIdx].date) > getDateMetier() && (
                           <div style={{
                             marginTop: 12,
                             fontSize: '0.95rem',

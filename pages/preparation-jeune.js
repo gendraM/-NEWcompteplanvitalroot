@@ -57,6 +57,7 @@ import Feedback from '../components/Feedback';
 import Navigation from '../components/Navigation';
 import StartPreparationModal from '../components/StartPreparationModal';
 import { useSupabase } from '../lib/supabaseClient';
+import { getDateMetier, getDateMetierISO } from '../lib/modeTestClock';
 // ...existing code...
 
 export default function PreparationJeune() {
@@ -69,22 +70,13 @@ export default function PreparationJeune() {
   useEffect(() => {
     let ignore = false;
     async function fetchUser() {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      let user = sessionData?.session?.user || null;
-      let error = sessionError;
-
-      if (!user && !sessionError) {
-        const userResult = await supabase.auth.getUser();
-        user = userResult.data?.user || null;
-        error = userResult.error;
-      }
-
+      const { data, error } = await supabase.auth.getUser();
       if (!ignore) {
-        if (error || !user) {
+        if (error || !data?.user) {
           setUserId(null);
           setAuthError("Vous devez être connecté pour démarrer la préparation et voir l'analyse des repas.");
         } else {
-          setUserId(user.id);
+          setUserId(data.user.id);
           setAuthError(null);
         }
       }
@@ -104,7 +96,7 @@ export default function PreparationJeune() {
   // Date du jeûne, durée, jour courant
   const [dateJeune, setDateJeune] = useState(null);
   const [dureeJeune, setDureeJeune] = useState(null);
-  const [aujourdhui, setAujourdhui] = useState(new Date());
+  const [aujourdhui, setAujourdhui] = useState(getDateMetier());
   const [jCourant, setJCourant] = useState(null);
   const [isMounted, setIsMounted] = useState(false);
   
@@ -112,16 +104,16 @@ export default function PreparationJeune() {
     setIsMounted(true);
     
     // Mettre à jour la date du jour à minuit (pour recalculer jCourant automatiquement)
-    const now = new Date();
+    const now = getDateMetier();
     const tomorrow = new Date(now);
     tomorrow.setHours(24, 0, 0, 0); // Minuit suivant
     const msUntilMidnight = tomorrow - now;
     
     const timer = setTimeout(() => {
-      setAujourdhui(new Date());
+      setAujourdhui(getDateMetier());
       // Relancer le timer pour le jour suivant
       const updateDaily = setInterval(() => {
-        setAujourdhui(new Date());
+        setAujourdhui(getDateMetier());
       }, 24 * 60 * 60 * 1000);
       return () => clearInterval(updateDaily);
     }, msUntilMidnight);
@@ -221,8 +213,8 @@ export default function PreparationJeune() {
         const dateJeuneObj = new Date(prep.startDate);
         setDateJeune(dateJeuneObj);
         setDureeJeune(prep.duration || 'X');
-        setAujourdhui(new Date());
-        const diff = calculerJourRelatif(prep.startDate, new Date());
+        setAujourdhui(getDateMetier());
+        const diff = calculerJourRelatif(prep.startDate, getDateMetier());
         setJCourant(diff);
         setPreparationActive(true);
         if (Array.isArray(prep.criteres) && prep.criteres.length > 0) {
@@ -277,7 +269,7 @@ export default function PreparationJeune() {
           .limit(200);
         if (error) return;
         setRepasHistoriqueBrut(repasData || []);
-        const today = new Date();
+        const today = getDateMetier();
         const sourceActivation = preparationData?.createdAt || preparationData?.updatedAt || null;
         const dateActivation = sourceActivation ? new Date(sourceActivation) : null;
         if (dateActivation && !Number.isNaN(dateActivation.getTime())) {
@@ -472,7 +464,7 @@ export default function PreparationJeune() {
     // et aucune donnée locale n'est effacée.
     if (userId) {
       try {
-        const dateDebutPreparation = new Date().toISOString().slice(0, 10);
+        const dateDebutPreparation = getDateMetierISO();
         const parcours = await createParcoursJeune({
           type: 'preparation',
           date_debut: dateDebutPreparation,
@@ -1693,7 +1685,7 @@ const DebugPanel = () => (
                           );
                         }
 
-                        const dateDebutJeune = new Date().toISOString().slice(0, 10);
+                        const dateDebutJeune = getDateMetierISO();
 
                         if (userId && parcoursId) {
                           await demarrerPhaseJeune(parcoursId, userId, {
@@ -1719,7 +1711,7 @@ const DebugPanel = () => (
 
                         if (typeof window !== 'undefined') {
                           localStorage.setItem('phaseJeuneCommencee', 'true');
-                          localStorage.setItem('dateDebutJeune', new Date().toISOString());
+                          localStorage.setItem('dateDebutJeune', getDateMetierISO());
                           localStorage.setItem('bilanPreparationJeune', JSON.stringify(preparationLiee));
                           if (parcoursId) {
                             localStorage.setItem('parcoursJeuneActifId', parcoursId);

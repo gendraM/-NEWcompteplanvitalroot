@@ -607,7 +607,6 @@ Rendre visible depuis la page d’accueil un accès nommé « Mode test parcours
 - un clic active immédiatement le mode test et ouvre le véritable écran de préparation avec `?modeTest=1` ;
 - la route et l’écran intermédiaires `/test-reprise` sont entièrement supprimés ;
 - l’ancien lien ajouté sur `pages/index.js`, qui ne correspond pas à l’accueil utilisé après connexion, est supprimé ;
-- la préparation recherche d’abord la session Supabase déjà ouverte avec `getSession()`, puis utilise `getUser()` en repli, afin de reconnaître correctement une utilisatrice connectée ;
 - aucune règle de durée, de date, de phase ou de validation du parcours réel n’a été modifiée.
 
 ### Parcours utilisateur finalement validé
@@ -621,7 +620,7 @@ Le fonctionnement retenu est désormais le suivant :
 3. les écrans normaux restent utilisés dans leur ordre naturel : préparation, jeûne, génération et validation du programme, liste de courses, puis reprise ;
 4. un bandeau permanent « Mode test actif » apparaît au-dessus des écrans ;
 5. sur les écrans quotidiens, l’unique action de simulation est « Passer au jour suivant » ;
-6. cette action décale automatiquement d’un jour les dates locales et Supabase du parcours en cours, puis recharge l’écran ;
+6. cette action avance uniquement l’horloge virtuelle du mode test d’un jour, puis recharge l’écran ;
 7. « Quitter le mode test » désactive le bandeau et ramène au profil sans supprimer de donnée.
 
 Il n’existe plus de sélection manuelle de phase, de jour de jeûne ou de jour de reprise. Le programme de reprise n’est pas dupliqué : sa génération reste celle du parcours existant. Supabase continue de fonctionner normalement et aucune suppression automatique n’est ajoutée. La cristallisation reste hors périmètre.
@@ -629,3 +628,36 @@ Il n’existe plus de sélection manuelle de phase, de jour de jeûne ou de jour
 ### Correction du point d’entrée visible après connexion
 
 Le premier ajout avait placé le lien dans `pages/index.js`, puis un autre accès en bas de `pages/profil.js`. Ces emplacements n’étaient pas conformes au parcours demandé. Ils sont supprimés. Il ne reste qu’un point d’entrée : le bouton directement intégré au bloc « Bienvenue sur ton espace forme » qui présente le dernier profil et les actions principales.
+
+### Correction du passage de la préparation au jeûne en mode test
+
+Le mode test doit accélérer le parcours sans modifier le comportement normal des écrans. La modification de détection de session précédemment ajoutée dans `pages/preparation-jeune.js` est donc retirée : cette page retrouve strictement son fonctionnement antérieur.
+
+La transition accélérée est désormais prise en charge uniquement par `components/ModeTestParcoursJeune.js` :
+
+- tant que la date simulée de début du jeûne n’est pas atteinte, le bandeau permet d’avancer d’un jour ;
+- lorsque cette date est atteinte, le bandeau affiche « Démarrer le jeûne (test) » ;
+- cette action utilise la session et les tables Supabase réelles ;
+- elle récupère le parcours central ou le crée s’il manque, puis le fait passer en phase de jeûne ;
+- elle initialise les données locales nécessaires au véritable écran `/jeune` et ouvre cet écran ;
+- aucune base Supabase de test, aucun marquage spécial et aucune copie des écrans normaux ne sont ajoutés ;
+- hors mode test, cette transition supplémentaire n’est ni affichée ni exécutée.
+
+### Horloge virtuelle retenue
+
+La première accélération reculait les dates prévues du programme afin de les rapprocher de la date réelle. Ce comportement ne correspondait pas au besoin et est supprimé.
+
+Le mode test utilise maintenant `lib/modeTestClock.js` :
+
+- l’activation initialise une date virtuelle à la date réelle du jour ;
+- « Passer au jour suivant » avance uniquement cette date virtuelle ;
+- la date prévue du jeûne et les dates du programme restent inchangées ;
+- le bandeau affiche en permanence la date simulée ;
+- les calculs métier de la préparation, du jeûne et de la reprise consultent cette date seulement lorsque `modeTestParcoursJeune` est actif ;
+- les horodatages techniques (`created_at`, `updated_at`, dates de synchronisation) restent réels ;
+- lorsque le mode test est inactif, `getDateMetier()` retourne directement la date réelle : le parcours normal conserve donc son fonctionnement habituel ;
+- quitter le mode test supprime l’horloge virtuelle et rétablit immédiatement la date réelle.
+
+Exemple validé : si la date réelle est le 21 août et que le jeûne est prévu le 30 août, neuf actions « Passer au jour suivant » amènent la simulation au 30 août sans déplacer la date prévue. Le démarrage du jeûne utilise alors le 30 août simulé.
+
+Contrôles : 53 tests réussis, dont 4 tests propres à l’horloge virtuelle, `git diff --check` sans erreur et build Next.js réussi avec 36 pages.
