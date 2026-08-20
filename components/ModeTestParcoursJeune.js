@@ -23,10 +23,12 @@ export default function ModeTestParcoursJeune() {
   const [erreur, setErreur] = useState('');
 
   useEffect(() => {
-    setActif(localStorage.getItem('modeTestParcoursJeune') === 'true');
-  }, [router.asPath]);
+    const actifDansUrl = router.query.modeTest === '1';
+    if (actifDansUrl) localStorage.setItem('modeTestParcoursJeune', 'true');
+    setActif(actifDansUrl || localStorage.getItem('modeTestParcoursJeune') === 'true');
+  }, [router.asPath, router.query.modeTest]);
 
-  if (!actif || router.pathname === '/test-reprise') return null;
+  if (!actif) return null;
 
   const estPreparation = router.pathname === '/preparation-jeune';
   const estJeune = router.pathname === '/jeune';

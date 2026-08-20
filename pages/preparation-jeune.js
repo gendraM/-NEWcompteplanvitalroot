@@ -69,13 +69,22 @@ export default function PreparationJeune() {
   useEffect(() => {
     let ignore = false;
     async function fetchUser() {
-      const { data, error } = await supabase.auth.getUser();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      let user = sessionData?.session?.user || null;
+      let error = sessionError;
+
+      if (!user && !sessionError) {
+        const userResult = await supabase.auth.getUser();
+        user = userResult.data?.user || null;
+        error = userResult.error;
+      }
+
       if (!ignore) {
-        if (error || !data?.user) {
+        if (error || !user) {
           setUserId(null);
           setAuthError("Vous devez être connecté pour démarrer la préparation et voir l'analyse des repas.");
         } else {
-          setUserId(data.user.id);
+          setUserId(user.id);
           setAuthError(null);
         }
       }

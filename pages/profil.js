@@ -455,6 +455,20 @@ export default function ProfilPage() {
           <button style={styles.suivreButton} onClick={goToSuivi}>
             Commencer mon suivi
           </button>
+          <button
+            style={{
+              background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8,
+              padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginLeft: 12
+            }}
+            onClick={() => {
+              localStorage.setItem('modeTestParcoursJeune', 'true');
+              localStorage.removeItem('test_modeRepriseActif');
+              localStorage.setItem('repriseMode', 'normal');
+              window.location.href = '/preparation-jeune?modeTest=1';
+            }}
+          >
+            🧪 Mode test parcours jeûne
+          </button>
         </div>
       )}
 
@@ -472,14 +486,6 @@ export default function ProfilPage() {
           padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer"
         }}>
           Me préparer à jeûner
-        </button>
-      </Link>
-      <Link href="/test-reprise">
-        <button style={{
-          background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8,
-          padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginLeft: 12
-        }}>
-          🧪 Mode test parcours jeûne
         </button>
       </Link>
     </div>

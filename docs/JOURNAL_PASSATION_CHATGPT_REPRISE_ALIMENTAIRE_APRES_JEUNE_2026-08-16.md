@@ -603,10 +603,12 @@ Rendre visible depuis la page d’accueil un accès nommé « Mode test parcours
 
 ### Modification réalisée
 
-- ajout sur `pages/index.js` d’un lien visible « 🧪 Mode test parcours jeûne » ;
-- ce lien ouvre la route technique existante `/test-reprise` ;
-- aucune règle de durée, de date, de phase ou de validation du parcours réel n’a été modifiée ;
-- aucune donnée locale ou Supabase n’est créée ou modifiée par le lien lui-même.
+- le bouton « 🧪 Mode test parcours jeûne » est placé directement dans le bloc du dernier profil de `pages/profil.js`, avec « Modifier mon profil » et « Commencer mon suivi » ;
+- un clic active immédiatement le mode test et ouvre le véritable écran de préparation avec `?modeTest=1` ;
+- la route et l’écran intermédiaires `/test-reprise` sont entièrement supprimés ;
+- l’ancien lien ajouté sur `pages/index.js`, qui ne correspond pas à l’accueil utilisé après connexion, est supprimé ;
+- la préparation recherche d’abord la session Supabase déjà ouverte avec `getSession()`, puis utilise `getUser()` en repli, afin de reconnaître correctement une utilisatrice connectée ;
+- aucune règle de durée, de date, de phase ou de validation du parcours réel n’a été modifiée.
 
 ### Parcours utilisateur finalement validé
 
@@ -614,8 +616,8 @@ La première interface technique demandait de choisir manuellement une étape et
 
 Le fonctionnement retenu est désormais le suivant :
 
-1. l’utilisatrice clique une seule fois sur « Mode test parcours jeûne » depuis son profil ;
-2. `/test-reprise` active le mode puis redirige immédiatement vers le véritable écran de préparation ;
+1. l’utilisatrice clique une seule fois sur « Mode test parcours jeûne » dans le bloc de son dernier profil ;
+2. le bouton active le mode et ouvre directement le véritable écran de préparation ;
 3. les écrans normaux restent utilisés dans leur ordre naturel : préparation, jeûne, génération et validation du programme, liste de courses, puis reprise ;
 4. un bandeau permanent « Mode test actif » apparaît au-dessus des écrans ;
 5. sur les écrans quotidiens, l’unique action de simulation est « Passer au jour suivant » ;
@@ -626,6 +628,4 @@ Il n’existe plus de sélection manuelle de phase, de jour de jeûne ou de jour
 
 ### Correction du point d’entrée visible après connexion
 
-Le premier ajout avait placé le lien dans `pages/index.js`. Or l’écran effectivement utilisé comme accueil après connexion, reconnaissable aux actions « Modifier mon profil », « Commencer mon suivi », « Commencer un jeûne » et « Me préparer à jeûner », est rendu par `pages/profil.js`.
-
-Le lien « 🧪 Mode test parcours jeûne » est donc également ajouté dans `pages/profil.js`, à côté des accès au jeûne et à sa préparation.
+Le premier ajout avait placé le lien dans `pages/index.js`, puis un autre accès en bas de `pages/profil.js`. Ces emplacements n’étaient pas conformes au parcours demandé. Ils sont supprimés. Il ne reste qu’un point d’entrée : le bouton directement intégré au bloc « Bienvenue sur ton espace forme » qui présente le dernier profil et les actions principales.
