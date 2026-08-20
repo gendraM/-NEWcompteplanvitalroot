@@ -1,10 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import alimentsRepriseJeune from '../data/alimentsRepriseJeune'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabaseClient'
 import { validerProgrammeReprise } from '../lib/jeuneUtils'
-import { grouperListeCoursesReprise } from '../lib/listeCoursesReprise'
+import {
+  choixCoursesComplets,
+  creerConfigurationCoursesReprise,
+  genererListeCoursesPersonnalisee,
+  grouperListeCoursesReprise
+} from '../lib/listeCoursesReprise'
 
 export default function ValidationPlanReprise() {
   // ============================================
@@ -19,6 +24,7 @@ export default function ValidationPlanReprise() {
   const [checkboxEngage, setCheckboxEngage] = useState(false)
   const [validating, setValidating] = useState(false)
   const [message, setMessage] = useState('')
+  const [choixCourses, setChoixCourses] = useState({})
 
   // ============================================
   // USEEFFECT - CHARGEMENT PROGRAMME
@@ -71,13 +77,52 @@ export default function ValidationPlanReprise() {
   // ============================================
   // VARIABLES CALCULÉES
   // ============================================
-  const peutValider = checkboxLu && checkboxEngage && !validating
-  
-  const listeCoursesGroupee = grouperListeCoursesReprise(programme?.liste_courses)
+  const configurationCourses = useMemo(
+    () => programme ? creerConfigurationCoursesReprise(programme) : { periode: null, indispensables: [], groupes: [] },
+    [programme]
+  )
+  const choixComplets = choixCoursesComplets(configurationCourses, choixCourses)
+  const listeCoursesPersonnalisee = useMemo(
+    () => programme ? genererListeCoursesPersonnalisee(programme, choixCourses) : [],
+    [programme, choixCourses]
+  )
+  const listeCoursesGroupee = grouperListeCoursesReprise(listeCoursesPersonnalisee)
+  const peutValider = checkboxLu && checkboxEngage && choixComplets && !validating
+
+  useEffect(() => {
+    if (!programme) return
+    setChoixCourses(programme.options?.choix_courses || {})
+  }, [programme?.id, programme?.statut])
 
   // ============================================
   // HANDLERS / FONCTIONS
   // ============================================
+  const basculerChoixCourse = (groupeId, nom) => {
+    setChoixCourses(choixActuels => {
+      const groupe = choixActuels[groupeId] || []
+      const prochainsChoix = {
+        ...choixActuels,
+        [groupeId]: groupe.includes(nom)
+          ? groupe.filter(item => item !== nom)
+          : [...groupe, nom]
+      }
+      if (programme) {
+        const programmeAvecChoix = {
+          ...programme,
+          liste_courses: genererListeCoursesPersonnalisee(programme, prochainsChoix),
+          options: {
+            ...(programme.options || {}),
+            choix_courses: prochainsChoix,
+            liste_courses_personnalisee: false,
+            periode_liste_courses: configurationCourses.periode
+          }
+        }
+        localStorage.setItem('programmeReprise', JSON.stringify(programmeAvecChoix))
+      }
+      return prochainsChoix
+    })
+  }
+
   const handleValider = async () => {
     if (!peutValider) return;
     setValidating(true);
@@ -90,13 +135,33 @@ export default function ValidationPlanReprise() {
     }
 
     try {
-      let programmeValide = { ...programme, statut: 'plan_valide' };
+      const optionsPersonnalisees = {
+        ...(programme.options || {}),
+        choix_courses: choixCourses,
+        liste_courses_personnalisee: true,
+        periode_liste_courses: configurationCourses.periode
+      };
+      let programmeValide = {
+        ...programme,
+        statut: 'plan_valide',
+        liste_courses: listeCoursesPersonnalisee,
+        options: optionsPersonnalisees
+      };
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user?.id && programme.id) {
-        const resultat = await validerProgrammeReprise(programme.id, user.id);
+        const resultat = await validerProgrammeReprise(programme.id, user.id, {
+          listeCourses: listeCoursesPersonnalisee,
+          choixCourses,
+          periode: configurationCourses.periode,
+          optionsExistantes: programme.options
+        });
         if (!resultat.success) throw new Error(resultat.message);
-        programmeValide = resultat.programme;
+        programmeValide = {
+          ...programmeValide,
+          ...resultat.programme,
+          jours_detailles: programme.jours_detailles || programme.jours || []
+        };
       }
 
       localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeValide));
@@ -206,9 +271,9 @@ export default function ValidationPlanReprise() {
           const exemplesMenu = [
             ["Bouillon de légumes clair", "Eau citronnée", "Jus de carotte dilué"],
             ["Purée de courgette", "Compote maison", "Carottes vapeur"],
-            ["Œuf mollet", "Avocat écrasé", "Légumes vapeur"],
-            ["Riz complet", "Patate douce", "Flocons d'avoine", "Légumes cuits"],
-            ["Pain complet bio", "Lentilles vertes", "Fromage chèvre", "Pomme bio", "Saumon vapeur"]
+            ["Lentilles corail", "Riz basmati", "Légumes vapeur", "Œuf mollet en fin de phase"],
+            ["Poulet ou dinde vapeur", "Poisson blanc en papillote", "Féculent doux", "Petite crudité à partir du 2e jour"],
+            ["Saumon vapeur", "Pain complet au levain", "Lentilles vertes", "Fruit frais"]
           ]
           // Semaine-type par phase (rappel explicite de la phase)
           const semainesType = [
@@ -234,22 +299,22 @@ export default function ValidationPlanReprise() {
               "Lundi : Légumes + œuf mollet, compote",
               "Mardi : Légumes vapeur, riz, œuf",
               "Mercredi : Légumes + avocat, bouillon",
-              "Jeudi : Riz + légumes, poisson blanc vapeur",
+              "Jeudi : Riz + légumes, œuf poché en fin de phase",
               "Vendredi : Légumes, céréales douces, fruits cuits",
               "Samedi : Légumes, œuf, compote",
               "Dimanche : Riz, légumes, fruits cuits"
             ],
             [
-              "Lundi : Riz complet, légumes cuits, fruits cuits",
-              "Mardi : Patate douce, légumes vapeur, compote",
-              "Mercredi : Flocons d’avoine, légumes, œuf",
-              "Jeudi : Riz + légumes, poisson blanc vapeur",
-              "Vendredi : Légumes, céréales douces, fruits cuits",
-              "Samedi : Légumes, œuf, compote",
-              "Dimanche : Riz, légumes, fruits cuits"
+              "Lundi : Poulet vapeur, légumes cuits",
+              "Mardi : Poisson blanc en papillote, concombre épluché",
+              "Mercredi : Dinde vapeur, carotte très finement râpée",
+              "Jeudi : Poisson blanc, riz complet",
+              "Vendredi : Poulet, patate douce, tomate pelée",
+              "Samedi : Dinde, légumes cuits",
+              "Dimanche : Poisson blanc, quinoa"
             ],
             [
-              "Lundi : Pain complet, lentilles vertes, légumes vapeur",
+              "Lundi : Pain complet au levain, lentilles vertes, légumes vapeur",
               "Mardi : Pâtes complètes, saumon vapeur, salade verte",
               "Mercredi : Fromage chèvre, sarrasin, légumes cuits",
               "Jeudi : Pois chiches, légumes, pomme bio",
@@ -355,40 +420,106 @@ export default function ValidationPlanReprise() {
 
       {/* SEMAINE-TYPE déplacé dans chaque phase pour cohérence */}
 
-      {/* LISTE DE COURSES PHASES 1-2 */}
-      {Object.keys(listeCoursesGroupee).length > 0 && (
-        <div style={{ 
-          background: 'white',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          marginBottom: '2rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.3rem', color: '#333' }}>
-            🛒 Liste de courses (7 premiers jours)
-          </h2>
-          
-          {Object.entries(listeCoursesGroupee).map(([categorie, aliments]) => (
-            <div key={categorie} style={{ marginBottom: '1rem' }}>
-              <h3 style={{ 
-                margin: '0 0 0.5rem 0', 
-                fontSize: '1rem', 
-                color: '#667eea',
-                textTransform: 'capitalize'
-              }}>
-                {categorie}
-              </h3>
-              <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
-                {aliments.map((aliment, idx) => (
-                  <li key={`${aliment.nom}-${idx}`} style={{ marginBottom: '0.25rem', fontSize: '0.95rem' }}>
-                    {aliment.nom}{aliment.quantite ? ` — ${aliment.quantite}` : ''}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* PERSONNALISATION DE LA LISTE DE COURSES */}
+      <div style={{
+        background: 'white',
+        padding: '1.5rem',
+        borderRadius: '12px',
+        marginBottom: '2rem',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+      }}>
+        <h2 style={{ margin: '0 0 0.5rem 0', fontSize: '1.3rem', color: '#333' }}>
+          🛒 Préparons tes courses — {configurationCourses.periode?.libelle}
+        </h2>
+        <p style={{ margin: '0 0 1.25rem 0', color: '#555', lineHeight: 1.5 }}>
+          Les indispensables sont ajoutés automatiquement. Pour les autres familles,
+          choisis seulement les aliments que tu comptes réellement utiliser.
+        </p>
+
+        {configurationCourses.indispensables.length > 0 && (
+          <div style={{ background: '#eefbf3', border: '1px solid #86d9a4', borderRadius: 10, padding: '1rem', marginBottom: '1rem' }}>
+            <h3 style={{ margin: '0 0 0.65rem 0', color: '#176b3a', fontSize: '1.05rem' }}>
+              Indispensable pour démarrer
+            </h3>
+            {configurationCourses.indispensables.map(article => (
+              <div key={`${article.phase}-${article.nom}`} style={{ marginBottom: 6, color: '#234b34' }}>
+                ✓ <strong>{article.nom}</strong> — {article.quantite}
+                {article.preparation && <span style={{ color: '#5d7466' }}> · {article.preparation}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {configurationCourses.groupes.map(groupe => {
+          const selection = choixCourses[groupe.id] || []
+          const groupeComplet = selection.length >= groupe.minimum
+          return (
+            <fieldset key={`${groupe.phase}-${groupe.id}`} style={{
+              border: `1px solid ${groupeComplet ? '#b9c2d0' : '#f0a6a6'}`,
+              borderRadius: 10,
+              padding: '1rem',
+              marginBottom: '1rem'
+            }}>
+              <legend style={{ fontWeight: 700, color: '#39435a', padding: '0 6px' }}>
+                Phase {groupe.phase} — {groupe.titre}
+              </legend>
+              <div style={{ fontSize: '0.85rem', color: groupeComplet ? '#55705f' : '#a13b3b', marginBottom: 10 }}>
+                {groupeComplet ? `${selection.length} choix retenu${selection.length > 1 ? 's' : ''}` : `Choisis au moins ${groupe.minimum} option`}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8 }}>
+                {groupe.options.map(option => {
+                  const estSelectionnee = selection.includes(option.nom)
+                  return (
+                    <label key={option.nom} style={{
+                      display: 'flex',
+                      gap: 9,
+                      alignItems: 'flex-start',
+                      padding: '10px 12px',
+                      borderRadius: 8,
+                      border: `1px solid ${estSelectionnee ? '#667eea' : '#d8dde7'}`,
+                      background: estSelectionnee ? '#eef0ff' : '#fff',
+                      cursor: 'pointer'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={estSelectionnee}
+                        onChange={() => basculerChoixCourse(groupe.id, option.nom)}
+                        style={{ marginTop: 3, width: 18, height: 18 }}
+                      />
+                      <span>
+                        <strong style={{ color: '#30384b' }}>{option.nom}</strong>
+                        {option.preparation && <span style={{ display: 'block', fontSize: '0.82rem', color: '#667085', marginTop: 3 }}>{option.preparation}</span>}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </fieldset>
+          )
+        })}
+
+        {Object.keys(listeCoursesGroupee).length > 0 && (
+          <div style={{ background: '#fff9e8', border: '1px solid #f1cf71', borderRadius: 10, padding: '1rem', marginTop: '1.25rem' }}>
+            <h3 style={{ margin: '0 0 0.8rem 0', color: '#7d5a00' }}>Aperçu de ta liste personnalisée</h3>
+            {Object.entries(listeCoursesGroupee).map(([categorie, aliments]) => (
+              <div key={categorie} style={{ marginBottom: '0.8rem' }}>
+                <strong style={{ textTransform: 'capitalize', color: '#66501c' }}>{categorie}</strong>
+                <ul style={{ margin: '0.35rem 0 0 1.25rem', padding: 0 }}>
+                  {aliments.map((aliment, idx) => (
+                    <li key={`${aliment.nom}-${idx}`} style={{ marginBottom: 5 }}>
+                      {aliment.nom} — <strong>{aliment.quantite}</strong>
+                      {aliment.preparation && <span style={{ color: '#6c6c6c' }}> · {aliment.preparation}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            <p style={{ margin: '0.8rem 0 0 0', color: '#756328', fontSize: '0.85rem' }}>
+              Quantités estimées selon les portions de reprise et les jours concernés.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* CHECKBOXES DE VALIDATION */}
       <div style={{ 
@@ -423,7 +554,7 @@ export default function ValidationPlanReprise() {
           />
           <span>
             J'ai lu et compris le programme de reprise alimentaire sur {programme.duree_reprise_jours} jours, 
-            avec ses 4 phases progressives.
+            avec ses 5 phases progressives.
           </span>
         </label>
 

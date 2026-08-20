@@ -7,7 +7,7 @@ function chargerModule() {
   const source = fs.readFileSync(filePath, 'utf8');
   const transformed = source
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { normaliserListeCoursesReprise, grouperListeCoursesReprise };');
+    .concat('\nmodule.exports = { normaliserListeCoursesReprise, grouperListeCoursesReprise, creerConfigurationCoursesReprise, choixCoursesComplets, genererListeCoursesPersonnalisee };');
 
   const context = { module: { exports: {} }, exports: {} };
   vm.createContext(context);
@@ -17,8 +17,22 @@ function chargerModule() {
 
 const {
   normaliserListeCoursesReprise,
-  grouperListeCoursesReprise
+  grouperListeCoursesReprise,
+  creerConfigurationCoursesReprise,
+  choixCoursesComplets,
+  genererListeCoursesPersonnalisee
 } = chargerModule();
+
+const programmeSixJours = {
+  duree_reprise_jours: 6,
+  phases: {
+    phase1: { debut: 1, fin: 1 },
+    phase2: { debut: 2, fin: 2 },
+    phase3: { debut: 3, fin: 3 },
+    phase4: { debut: 4, fin: 5 },
+    phase5: { debut: 6, fin: 6 }
+  }
+};
 
 describe('Liste de courses canonique de la reprise', () => {
   test('conserve le tableau généré et ses quantités', () => {
@@ -26,7 +40,7 @@ describe('Liste de courses canonique de la reprise', () => {
       { nom: 'Bouillon', quantite: '1L', categorie: 'liquide', phase: 1, priorite: 'haute' }
     ]);
 
-    expect(resultat).toEqual([
+    expect(resultat).toMatchObject([
       { nom: 'Bouillon', quantite: '1L', categorie: 'liquide', phase: 1, priorite: 'haute' }
     ]);
   });
@@ -59,5 +73,41 @@ describe('Liste de courses canonique de la reprise', () => {
   test('ignore proprement les données absentes ou invalides', () => {
     expect(normaliserListeCoursesReprise(null)).toEqual([]);
     expect(normaliserListeCoursesReprise([null, {}, { nom: 'Infusion' }])).toHaveLength(1);
+  });
+
+  test('ne propose que les groupes réellement accessibles sur la période', () => {
+    const configuration = creerConfigurationCoursesReprise(programmeSixJours);
+    expect(configuration.periode.libelle).toBe('J1 à J6');
+    expect(configuration.indispensables.map(item => item.nom)).toContain('Légumes pour bouillon clair');
+    expect(configuration.groupes.map(groupe => groupe.id)).not.toContain('texture-lisse');
+    expect(configuration.groupes.map(groupe => groupe.id)).toContain('crudite-douce');
+  });
+
+  test('exige un choix dans chaque groupe visible', () => {
+    const configuration = creerConfigurationCoursesReprise(programmeSixJours);
+    expect(choixCoursesComplets(configuration, {})).toBe(false);
+    const choix = Object.fromEntries(configuration.groupes.map(groupe => [groupe.id, [groupe.options[0].nom]]));
+    expect(choixCoursesComplets(configuration, choix)).toBe(true);
+  });
+
+  test('génère uniquement les indispensables et alternatives retenues', () => {
+    const configuration = creerConfigurationCoursesReprise(programmeSixJours);
+    const choix = Object.fromEntries(configuration.groupes.map(groupe => [groupe.id, [groupe.options[0].nom]]));
+    const liste = genererListeCoursesPersonnalisee(programmeSixJours, choix);
+    expect(liste.some(item => item.type === 'indispensable')).toBe(true);
+    expect(liste.some(item => item.nom === 'Infusion menthe')).toBe(false);
+    expect(liste.some(item => item.nom === 'Poulet' && item.preparation.includes('80 à 120 g'))).toBe(true);
+    expect(liste.every(item => item.quantite && item.phase)).toBe(true);
+  });
+
+  test('répartit les utilisations lorsque plusieurs alternatives sont choisies', () => {
+    const choix = {
+      'proteine-animale': ['Poulet', 'Dinde']
+    };
+    const liste = genererListeCoursesPersonnalisee(programmeSixJours, choix);
+    const poulet = liste.find(item => item.nom === 'Poulet');
+    const dinde = liste.find(item => item.nom === 'Dinde');
+    expect(poulet.quantite).toBe('100 g');
+    expect(dinde.quantite).toBe('100 g');
   });
 });

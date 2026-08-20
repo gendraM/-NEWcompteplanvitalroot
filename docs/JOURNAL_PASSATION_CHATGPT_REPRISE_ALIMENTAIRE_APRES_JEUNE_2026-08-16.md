@@ -445,3 +445,57 @@ Après chaque lot de modifications :
    le SHA et les fichiers réellement présents sur la branche distante ;
 6. ne jamais annoncer un lot comme sauvegardé ou livré avant cette vérification
    distante.
+
+---
+
+## 14. Décision métier validée — Liste de courses personnalisée
+
+La liste de courses de reprise couvre les sept premiers jours, ou toute la
+reprise lorsqu'elle dure moins de sept jours. Elle ne doit plus transformer
+tous les aliments autorisés en achats obligatoires.
+
+Le parcours validé distingue :
+
+- les achats indispensables pour démarrer, présélectionnés par l'application ;
+- les groupes d'alternatives compatibles avec les phases réellement présentes
+  pendant la période ;
+- les préférences choisies par l'utilisatrice avant validation du programme.
+
+La sélection reste volontairement plus légère qu'une planification complète de
+menus. Les aliments autorisés servent de garde-fou métier, tandis que seuls les
+indispensables et les alternatives retenues alimentent la liste définitive.
+
+La liste validée doit contenir la période couverte, les quantités estimées, la
+phase d'introduction et les indications de préparation utiles. Elle est ensuite
+sauvegardée avec le programme et réutilisée sans recalcul parallèle sur les
+écrans de validation et de suivi.
+
+Les usages pratiques (acheté, déjà disponible, substitution après validation,
+impression ou partage) restent réservés à l'étape suivante.
+
+### Implémentation locale
+
+- configuration des indispensables et alternatives par phase dans
+  `lib/listeCoursesReprise.js` ;
+- affichage uniquement des groupes correspondant aux phases présentes dans la
+  période réellement couverte ;
+- respect des introductions différées, notamment textures de phase 1 et
+  crudités de phase 4 à partir du deuxième jour ;
+- sélection multiple possible, avec au moins une option obligatoire par groupe
+  visible ;
+- aperçu immédiat de la liste, des quantités estimées et des préparations ;
+- conservation locale des choix avant validation ;
+- enregistrement de la liste définitive et des choix dans
+  `reprises_alimentaires.liste_courses` et `options` lors de la validation ;
+- préservation des journées détaillées dans la copie locale après la réponse
+  Supabase ;
+- réutilisation de la liste enregistrée dans le suivi, sans second calcul.
+
+### Contrôles de cette étape
+
+- 20 tests ciblés réussis sur 20 ;
+- compatibilité avec l'ancien format de liste conservée ;
+- `git diff --check` sans erreur ;
+- build Next.js réussi ;
+- 37 pages statiques générées ;
+- aucun commit ni push effectué à ce stade.
