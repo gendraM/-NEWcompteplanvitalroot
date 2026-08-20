@@ -661,3 +661,18 @@ Le mode test utilise maintenant `lib/modeTestClock.js` :
 Exemple validé : si la date réelle est le 21 août et que le jeûne est prévu le 30 août, neuf actions « Passer au jour suivant » amènent la simulation au 30 août sans déplacer la date prévue. Le démarrage du jeûne utilise alors le 30 août simulé.
 
 Contrôles : 53 tests réussis, dont 4 tests propres à l’horloge virtuelle, `git diff --check` sans erreur et build Next.js réussi avec 36 pages.
+
+### Déverrouillage effectif des validations quotidiennes en mode test
+
+Le premier raccordement de l’horloge virtuelle laissait subsister un blocage : après la validation du jour 1 du jeûne, l’écran affichait le jour 2 mais l’horloge restait positionnée au jour 1. Le contrôle chronologique normal refusait alors la validation du jour 2.
+
+Correction appliquée uniquement lorsque le mode test est actif :
+
+- la validation réussie d’un jour du jeûne avance automatiquement l’horloge virtuelle avant d’afficher le jour suivant ;
+- si des jours avaient déjà été validés avant le correctif, l’horloge se recale au chargement sur le premier jour restant, sans jamais revenir en arrière ;
+- le bandeau actualise immédiatement la date simulée ;
+- le contrôle interdisant la validation d’un jour futur est neutralisé uniquement en mode test, tandis que l’ordre séquentiel des jours reste obligatoire ;
+- la reprise reconnaît directement le mode test global et réactive son déverrouillage `forceSuivi`, sans imposer l’ancien paramètre manuel `?test=1` ;
+- hors mode test, les contrôles de date du jeûne et de la reprise restent strictement inchangés.
+
+Contrôles après correction : 55 tests réussis, dont 6 tests propres à l’horloge et à son activation conditionnelle, `git diff --check` sans erreur et build Next.js réussi avec 36 pages.

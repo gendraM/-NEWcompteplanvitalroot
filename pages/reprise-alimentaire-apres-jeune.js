@@ -17,7 +17,7 @@ import ListeCoursesPratique from '../components/ListeCoursesPratique';
 import PreparationPeriodeCourses from '../components/PreparationPeriodeCourses';
 import { initialiserEtatsListeCourses } from '../lib/listeCoursesReprise';
 import { getAlimentsDisponiblesPhase, harmoniserJoursProgramme } from '../lib/repriseJeuneMetier';
-import { getDateMetier, getDateMetierISO } from '../lib/modeTestClock';
+import { estModeTestActif, getDateMetier, getDateMetierISO } from '../lib/modeTestClock';
 
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
@@ -284,7 +284,7 @@ export default function RepriseAlimentaireApresJeune() {
 
 
   useEffect(() => {
-    if (router && router.query && router.query.test === '1') {
+    if ((router && router.query && router.query.test === '1') || estModeTestActif()) {
       setForceSuivi(true);
     }
   }, [router.query]);

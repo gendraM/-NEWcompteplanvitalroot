@@ -25,6 +25,12 @@ export default function ModeTestParcoursJeune() {
     if (modeActif) setDateVirtuelle(initialiserDateModeTest());
   }, [router.asPath, router.query.modeTest]);
 
+  useEffect(() => {
+    const actualiserDate = () => setDateVirtuelle(initialiserDateModeTest());
+    window.addEventListener('mode-test-date-change', actualiserDate);
+    return () => window.removeEventListener('mode-test-date-change', actualiserDate);
+  }, []);
+
   if (!actif) return null;
 
   const estPreparation = router.pathname === '/preparation-jeune';

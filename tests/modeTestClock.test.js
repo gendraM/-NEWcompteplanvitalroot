@@ -5,7 +5,7 @@ const vm = require('vm');
 function chargerHorloge() {
   const source = fs.readFileSync(path.join(__dirname, '../lib/modeTestClock.js'), 'utf8')
     .replace(/export const /g, 'const ')
-    .concat('\nmodule.exports={avancerDateModeTest,estModeTestActif,getDateMetier,getDateMetierISO,initialiserDateModeTest};');
+    .concat('\nmodule.exports={avancerDateModeTest,estModeTestActif,getDateMetier,getDateMetierISO,initialiserDateModeTest,positionnerDateModeTestMinimum};');
   const context = {
     module: { exports: {} }, exports: {}, Map, Date,
     window: global.window, localStorage: global.localStorage
@@ -56,9 +56,24 @@ describe('Horloge virtuelle du mode test', () => {
     expect(localStorage.getItem('modeTestDateVirtuelle')).toBe('2026-08-30');
   });
 
+  test('conserve les contrôles normaux hors test et identifie le mode test actif', () => {
+    const { estModeTestActif } = chargerHorloge();
+    expect(estModeTestActif()).toBe(false);
+    localStorage.setItem('modeTestParcoursJeune', 'true');
+    expect(chargerHorloge().estModeTestActif()).toBe(true);
+  });
+
   test('initialise une seule fois la date virtuelle', () => {
     const { initialiserDateModeTest } = chargerHorloge();
     localStorage.setItem('modeTestDateVirtuelle', '2026-08-30');
     expect(initialiserDateModeTest()).toBe('2026-08-30');
+  });
+
+  test('rattrape un jour déjà validé sans jamais faire reculer la simulation', () => {
+    const { positionnerDateModeTestMinimum } = chargerHorloge();
+    localStorage.setItem('modeTestParcoursJeune', 'true');
+    localStorage.setItem('modeTestDateVirtuelle', '2026-08-21');
+    expect(positionnerDateModeTestMinimum('2026-08-22')).toBe('2026-08-22');
+    expect(positionnerDateModeTestMinimum('2026-08-20')).toBe('2026-08-22');
   });
 });

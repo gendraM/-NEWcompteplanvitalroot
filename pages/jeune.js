@@ -11,7 +11,7 @@ import AnalyseComportementale from "../components/AnalyseComportementale";
 import PertePoidsEstimee from "../components/PertePoidsEstimee";
 import BilanJeune from "../components/BilanJeune";
 import HistoriqueJeunesModal from "../components/HistoriqueJeunesModal";
-import { getDateMetier, getDateMetierISO } from '../lib/modeTestClock';
+import { avancerDateModeTest, estModeTestActif, getDateMetier, getDateMetierISO, positionnerDateModeTestMinimum } from '../lib/modeTestClock';
 
 // --- Données statiques pour chaque jour de jeûne (exemple jusqu'à 10 jours, à compléter si besoin) ---
 const JEUNE_DAYS_CONTENT = {
@@ -916,6 +916,14 @@ export default function Jeune() {
   useEffect(() => { if (isClient) saveState("dureeJeune", dureeJeune, userId); }, [dureeJeune, isClient, userId]);
   useEffect(() => { if (isClient) saveState("jourEnCours", jourEnCours, userId); }, [jourEnCours, isClient, userId]);
   useEffect(() => { if (isClient) saveState("joursValides", joursValides, userId); }, [joursValides, isClient, userId]);
+
+  useEffect(() => {
+    if (!isClient || !estModeTestActif() || !dateDebutJeune) return;
+    const dateMinimum = new Date(dateDebutJeune);
+    dateMinimum.setHours(12, 0, 0, 0);
+    dateMinimum.setDate(dateMinimum.getDate() + joursValides.length);
+    positionnerDateModeTestMinimum(dateMinimum.toISOString().slice(0, 10));
+  }, [dateDebutJeune, isClient, joursValides.length]);
   useEffect(() => { if (isClient) saveState("poidsDepart", poidsDepart, userId); }, [poidsDepart, isClient, userId]);
   useEffect(() => { if (isClient) saveState("messagePerso", messagePerso, userId); }, [messagePerso, isClient, userId]);
   useEffect(() => { if (isClient) saveState("outilsJeune", outils, userId); }, [outils, isClient, userId]);
@@ -1116,7 +1124,7 @@ export default function Jeune() {
     
     // Durée réelle du jeûne
     let dureeReelle = dureeJeune;
-    if (dateDebutJeune) {
+    if (dateDebutJeune && !estModeTestActif()) {
       const debut = new Date(dateDebutJeune);
       const fin = getDateMetier();
       dureeReelle = Math.floor((fin - debut) / (1000*60*60*24)) + 1;
@@ -1263,6 +1271,7 @@ saveState('bilanJeune', bilan, userId);
       
       // Avancer automatiquement au jour suivant si possible
       if (jourEnCours < dureeJeune) {
+        if (estModeTestActif()) avancerDateModeTest();
         setJourEnCours(jourEnCours + 1);
       }
     }
