@@ -508,6 +508,12 @@ export default function ValidationPlanReprise() {
                   {aliments.map((aliment, idx) => (
                     <li key={`${aliment.nom}-${idx}`} style={{ marginBottom: 5 }}>
                       {aliment.nom} — <strong>{aliment.quantite}</strong>
+                      {aliment.utilisations_estimees && aliment.portion_par_utilisation && (
+                        <span style={{ color: '#6c6c6c' }}>
+                          {' '}· environ {aliment.utilisations_estimees} utilisation{aliment.utilisations_estimees > 1 ? 's' : ''}
+                          {' '}de {aliment.portion_par_utilisation} {aliment.unite_portion}
+                        </span>
+                      )}
                       {aliment.preparation && <span style={{ color: '#6c6c6c' }}> · {aliment.preparation}</span>}
                     </li>
                   ))}

@@ -109,5 +109,48 @@ describe('Liste de courses canonique de la reprise', () => {
     const dinde = liste.find(item => item.nom === 'Dinde');
     expect(poulet.quantite).toBe('100 g');
     expect(dinde.quantite).toBe('100 g');
+    expect(poulet).toMatchObject({
+      utilisations_estimees: 1,
+      portion_par_utilisation: 100,
+      unite_portion: 'g',
+      quantite_valeur: 100,
+      quantite_unite: 'g'
+    });
+  });
+
+  test('calcule la quantité depuis la portion et les utilisations couvertes', () => {
+    const programme = {
+      duree_reprise_jours: 7,
+      phases: { phase4: { debut: 1, fin: 7 } }
+    };
+    const liste = genererListeCoursesPersonnalisee(programme, {
+      'proteine-animale': ['Poulet'],
+      'feculent-doux': ['Patates douces'],
+      'crudite-douce': ['Tomates']
+    });
+
+    expect(liste.find(item => item.nom === 'Poulet')).toMatchObject({
+      quantite: '700 g',
+      utilisations_estimees: 7,
+      portion_par_utilisation: 100
+    });
+    expect(liste.find(item => item.nom === 'Tomates')).toMatchObject({
+      quantite: '6 unités',
+      utilisations_estimees: 6
+    });
+  });
+
+  test('affiche les grands totaux dans une unité d’achat lisible', () => {
+    const programme = {
+      duree_reprise_jours: 7,
+      phases: { phase4: { debut: 1, fin: 7 } }
+    };
+    const liste = genererListeCoursesPersonnalisee(programme, {
+      'proteine-animale': ['Poulet'],
+      'feculent-doux': ['Patates douces'],
+      'crudite-douce': ['Carottes']
+    });
+
+    expect(liste.find(item => item.nom === 'Patates douces').quantite).toBe('1.05 kg');
   });
 });

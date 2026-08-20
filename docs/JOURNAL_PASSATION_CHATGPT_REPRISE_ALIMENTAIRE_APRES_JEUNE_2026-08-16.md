@@ -499,3 +499,49 @@ impression ou partage) restent réservés à l'étape suivante.
 - build Next.js réussi ;
 - 37 pages statiques générées ;
 - aucun commit ni push effectué à ce stade.
+
+---
+
+## 15. Lot 3 — Quantités cohérentes de la liste de courses
+
+Le calcul des quantités est désormais explicite et traçable. Pour chaque
+article sélectionné, la liste conserve :
+
+- la portion prévue pour une utilisation ;
+- le nombre d'utilisations estimées pendant la période couverte ;
+- la quantité numérique totale et son unité ;
+- la quantité d'achat affichée à l'utilisatrice.
+
+Lorsqu'une utilisatrice sélectionne plusieurs alternatives d'un même groupe,
+les jours éligibles sont répartis entre ces choix. Les introductions différées
+continuent d'être respectées : une crudité de phase 4 n'est donc comptée qu'à
+partir du deuxième jour de cette phase. Les articles identiques peuvent être
+agrégés uniquement lorsque leur préparation et leur unité sont identiques ; une
+carotte destinée au jus ne doit pas être confondue avec une carotte destinée à
+être râpée.
+
+L'affichage utilise des unités d'achat lisibles : unités entières pour les
+fruits et légumes achetés à la pièce, grammes ou millilitres pour les petites
+quantités, puis kilogrammes ou litres à partir de 1 000 g/ml. Les quantités
+fixes comme une bouteille ou une boîte restent inchangées.
+
+L'aperçu de validation montre également le nombre d'utilisations et la portion
+correspondante. Ces métadonnées sont conservées dans le JSONB `liste_courses`
+du programme : la quantité sauvegardée et celle réutilisée dans les autres
+écrans restent donc identiques, sans recalcul parallèle.
+
+### Contrôles du lot 3
+
+- 16 tests ciblés réussis sur 16 ;
+- calcul vérifié sur les portions, les utilisations, les introductions
+  différées et les conversions en unités d'achat ;
+- `git diff --check` sans erreur ;
+- build Next.js réussi ;
+- 37 pages statiques générées.
+
+### Prochaine étape validée dans le plan d'action
+
+Le lot 4 portera sur l'utilisation pratique de la liste sauvegardée : états
+« acheté » et « déjà disponible », modification ou substitution après
+validation, puis définition du besoin d'impression ou de partage. Ces états ne
+devront pas provoquer un recalcul concurrent de la liste métier enregistrée.
