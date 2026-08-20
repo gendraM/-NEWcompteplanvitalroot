@@ -302,3 +302,59 @@ Au moment de cette passation :
 - aucun commit ni push ne doit être effectué sans autorisation explicite.
 
 La prochaine action exacte est le lot D1 : produire la correspondance fiable entre les aliments du référentiel général et les règles de reprise, puis soumettre les anomalies de correspondance avant d'implémenter le moteur commun.
+
+---
+
+## 12. Journal complémentaire — Raccordement de la liste de courses
+
+### État Git vérifié
+
+Le 20 août 2026, la branche locale a été réalignée sur la branche distante
+`finalisation-reprise-jeune-alimentaire-chatgpt`. Le document
+`ETAT_DES_LIEUX_LISTE_COURSES_REPRISE_ALIMENTAIRE.md` est bien présent sur
+GitHub au commit `c6825f7`.
+
+Après la suppression automatique de l'ancien espace de travail temporaire, les
+développements locaux D1 à E décrits dans les échanges postérieurs au point
+d'arrêt ci-dessus n'ont pas été retrouvés dans l'historique Git de la branche.
+Les modifications de schéma déjà appliquées directement dans Supabase peuvent
+toujours exister dans la base distante, mais le code local non commité n'est
+pas récupérable depuis GitHub. Les lots D1 à E ne doivent donc pas être
+considérés comme livrés dans le code de cette branche tant qu'ils n'ont pas été
+reconstitués, vérifiés puis publiés.
+
+### Correction locale réalisée — étape 1
+
+- ajout de `lib/listeCoursesReprise.js`, source commune de normalisation et de
+  regroupement de la liste ;
+- format canonique : tableau JSON d'articles contenant le nom, la quantité, la
+  catégorie, la phase et la priorité ;
+- compatibilité de lecture avec l'ancien objet groupé par catégorie ;
+- `pages/validation-plan-reprise.js` affiche désormais le tableau réellement
+  généré au lieu de le rejeter ;
+- si la copie locale manque, cet écran récupère la dernière proposition de
+  l'utilisatrice dans `reprises_alimentaires` et recrée la copie locale ;
+- `pages/reprise-alimentaire-apres-jeune.js` ne recalcule plus une seconde
+  liste J+1/J+2 : il affiche exactement `programme.liste_courses` ;
+- les deux écrans annoncent donc la même période de sept jours et présentent
+  les mêmes quantités enregistrées ;
+- quatre tests unitaires couvrent le format courant, l'ancien format, le
+  regroupement et les données invalides.
+
+### Limite volontaire
+
+Cette étape supprime les deux sources de vérité, mais ne prétend pas encore que
+les aliments autorisés sont des repas choisis. Le générateur historique
+continue à produire une liste indicative à partir des aliments possibles. La
+séparation entre achats indispensables et alternatives, puis le calcul à
+partir de repas réellement retenus, restent des décisions métier à réaliser
+dans les étapes suivantes.
+
+### Vérifications
+
+- 4 tests ciblés réussis ;
+- compilation Next.js réussie ;
+- 37 pages statiques générées ;
+- aucune modification du référentiel alimentaire général ;
+- ce raccordement et la présente mise à jour de passation sont publiés
+  ensemble sur la branche `finalisation-reprise-jeune-alimentaire-chatgpt`.

@@ -13,6 +13,7 @@ import RecettesPhase3Modal from '../components/RecettesPhase3Modal';
 import RecettesPhase4Modal from '../components/RecettesPhase4Modal';
 import RecettesPhase5Modal from '../components/RecettesPhase5Modal';
 import HistoriqueReprisesModal from '../components/HistoriqueReprisesModal';
+import { normaliserListeCoursesReprise } from '../lib/listeCoursesReprise';
 
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
@@ -395,24 +396,8 @@ export default function RepriseAlimentaireApresJeune() {
         setJours(parsed.jours_detailles || []);
         setDateAuj(new Date().toISOString().split('T')[0]);
         
-        // Générer liste de courses
-        if (parsed.jours_detailles && parsed.jours_detailles.length > 0) {
-          const premiersJours = parsed.jours_detailles.slice(0, 2);
-          const alimentsUniques = {};
-          premiersJours.forEach(jour => {
-            if (jour.aliments_autorises) {
-              jour.aliments_autorises.forEach(alim => {
-                if (alim && alim.nom) {
-                  const key = alim.nom.toLowerCase();
-                  if (!alimentsUniques[key]) {
-                    alimentsUniques[key] = { nom: alim.nom, portion: alim.portion };
-                  }
-                }
-              });
-            }
-          });
-          setListeCourses(Object.values(alimentsUniques));
-        }
+        // Réutiliser exactement la liste enregistrée avec le programme.
+        setListeCourses(normaliserListeCoursesReprise(parsed.liste_courses));
         setLoading(false);
       } catch (e) {
         console.error('[ERROR] Exception:', e);
@@ -1284,16 +1269,16 @@ export default function RepriseAlimentaireApresJeune() {
             </div>
           </div>
 
-            {/* Liste de courses pour les 2 premiers jours */}
+            {/* Même liste enregistrée que sur la validation du programme */}
           {listeCourses.length > 0 && (
             <div style={{background:'#fffde7', border:'1px solid #ffe082', borderRadius:10, padding:'1.1rem 1.3rem', marginBottom:'2rem'}}>
               <div style={{display:'flex',alignItems:'center',marginBottom:6}}>
                 <span role="img" aria-label="courses" style={{fontSize:'1.3em',marginRight:8}}>🛒</span>
-                <span style={{color:'#f57c00',fontWeight:700,fontSize:'1.08rem'}}>Liste de courses pour démarrer la reprise (J+1 et J+2)</span>
+                <span style={{color:'#f57c00',fontWeight:700,fontSize:'1.08rem'}}>Liste de courses (7 premiers jours)</span>
               </div>
               <ul style={{margin:'0.5rem 0 0 1.2rem', color:'#333', fontSize:'1.05rem',columns:2}}>
                 {listeCourses.map((alim, i) => (
-                  <li key={i}>{alim.nom}{alim.portion ? ` (${alim.portion})` : ''}</li>
+                  <li key={`${alim.nom}-${i}`}>{alim.nom}{alim.quantite ? ` — ${alim.quantite}` : ''}</li>
                 ))}
               </ul>
               <div style={{color:'#888',fontSize:'0.98rem',marginTop:8}}>

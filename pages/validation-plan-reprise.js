@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabaseClient'
 import { validerProgrammeReprise } from '../lib/jeuneUtils'
+import { grouperListeCoursesReprise } from '../lib/listeCoursesReprise'
 
 export default function ValidationPlanReprise() {
   // ============================================
@@ -23,11 +24,10 @@ export default function ValidationPlanReprise() {
   // USEEFFECT - CHARGEMENT PROGRAMME
   // ============================================
   useEffect(() => {
-    const chargerProgramme = () => {
+    const chargerProgramme = async () => {
       try {
         setLoading(true)
         setError(null)
-        // Uniquement localStorage
         const programmeLocal = localStorage.getItem('programmeReprise')
         if (programmeLocal) {
           const parsed = JSON.parse(programmeLocal)
@@ -35,6 +35,27 @@ export default function ValidationPlanReprise() {
           setLoading(false)
           return
         }
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user?.id) {
+          const { data: programmeDistant, error: erreurProgramme } = await supabase
+            .from('reprises_alimentaires')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('statut', 'proposition')
+            .order('plan_genere_le', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          if (erreurProgramme) throw erreurProgramme
+          if (programmeDistant) {
+            localStorage.setItem('programmeReprise', JSON.stringify(programmeDistant))
+            setProgramme(programmeDistant)
+            setLoading(false)
+            return
+          }
+        }
+
         setError('Aucun programme de reprise en attente de validation.')
         setLoading(false)
       } catch (err) {
@@ -52,20 +73,7 @@ export default function ValidationPlanReprise() {
   // ============================================
   const peutValider = checkboxLu && checkboxEngage && !validating
   
-  // Extraire les aliments Phase 1 et 2 pour liste courses
-  const getListeCourses = () => {
-    if (!programme?.liste_courses) return {}
-    
-    // Si liste_courses est déjà groupé par catégorie
-    if (typeof programme.liste_courses === 'object' && !Array.isArray(programme.liste_courses)) {
-      return programme.liste_courses
-    }
-    
-    // Sinon, retourner vide
-    return {}
-  }
-
-  const listeCoursesGroupee = getListeCourses()
+  const listeCoursesGroupee = grouperListeCoursesReprise(programme?.liste_courses)
 
   // ============================================
   // HANDLERS / FONCTIONS
@@ -360,7 +368,7 @@ export default function ValidationPlanReprise() {
             🛒 Liste de courses (7 premiers jours)
           </h2>
           
-          {Object.entries(listeCoursesGroupee).map(([categorie, infos]) => (
+          {Object.entries(listeCoursesGroupee).map(([categorie, aliments]) => (
             <div key={categorie} style={{ marginBottom: '1rem' }}>
               <h3 style={{ 
                 margin: '0 0 0.5rem 0', 
@@ -371,20 +379,12 @@ export default function ValidationPlanReprise() {
                 {categorie}
               </h3>
               <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
-                {infos.aliments.map((aliment, idx) => (
-                  <li key={idx} style={{ marginBottom: '0.25rem', fontSize: '0.95rem' }}>
-                    {aliment}
+                {aliments.map((aliment, idx) => (
+                  <li key={`${aliment.nom}-${idx}`} style={{ marginBottom: '0.25rem', fontSize: '0.95rem' }}>
+                    {aliment.nom}{aliment.quantite ? ` — ${aliment.quantite}` : ''}
                   </li>
                 ))}
               </ul>
-              <p style={{ 
-                margin: '0.5rem 0 0 0', 
-                fontSize: '0.85rem', 
-                color: '#666',
-                fontStyle: 'italic'
-              }}>
-                Quantités estimées : {infos.quantite_estimee}
-              </p>
             </div>
           ))}
         </div>
