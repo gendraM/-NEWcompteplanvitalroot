@@ -4,6 +4,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { DefisProvider } from '../components/DefisContext';
 import BandeauCompletionProfil from '../components/BandeauCompletionProfil';
 import Navigation from '../components/Navigation';
+import ModeTestParcoursJeune from '../components/ModeTestParcoursJeune';
 
 function MyApp({ Component, pageProps }) {
   const [afficherBandeau, setAfficherBandeau] = useState(false);
@@ -44,6 +45,7 @@ function MyApp({ Component, pageProps }) {
       <AuthProvider>
         <DefisProvider>
           <Navigation />
+          <ModeTestParcoursJeune />
           {profilVerifie && afficherBandeau && <BandeauCompletionProfil onClose={masquerBandeau} />}
           <Component {...pageProps} />
         </DefisProvider>

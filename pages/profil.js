@@ -474,6 +474,14 @@ export default function ProfilPage() {
           Me préparer à jeûner
         </button>
       </Link>
+      <Link href="/test-reprise">
+        <button style={{
+          background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8,
+          padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginLeft: 12
+        }}>
+          🧪 Mode test parcours jeûne
+        </button>
+      </Link>
     </div>
   )
 }

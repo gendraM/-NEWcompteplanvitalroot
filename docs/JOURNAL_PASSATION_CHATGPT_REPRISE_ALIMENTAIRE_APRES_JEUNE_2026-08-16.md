@@ -608,21 +608,24 @@ Rendre visible depuis la page d’accueil un accès nommé « Mode test parcours
 - aucune règle de durée, de date, de phase ou de validation du parcours réel n’a été modifiée ;
 - aucune donnée locale ou Supabase n’est créée ou modifiée par le lien lui-même.
 
-### Périmètre corrigé et implémenté
+### Parcours utilisateur finalement validé
 
-La route `/test-reprise` devient le contrôleur du parcours testable de la préparation jusqu’à la fin de la reprise. La cristallisation reste hors périmètre.
+La première interface technique demandait de choisir manuellement une étape et un numéro de jour. Elle a été refusée, car elle ne reproduisait pas l’expérience réelle. Cette interface est entièrement supprimée.
 
-Le contrôleur :
+Le fonctionnement retenu est désormais le suivant :
 
-- ouvre les véritables écrans de préparation, de jeûne, de validation et de reprise ;
-- permet de positionner la préparation entre J-30 et J0 ;
-- permet de positionner immédiatement le suivi sur un jour choisi du jeûne ;
-- permet de positionner immédiatement le programme sur un jour choisi de la reprise ;
-- valide automatiquement les jours antérieurs lors d’un saut temporel ;
-- décale les dates locales et celles des enregistrements Supabase déjà créés ;
-- ne recrée pas le générateur du programme de reprise ;
-- ne bloque aucune lecture ou écriture Supabase ;
-- n’ajoute aucun marquage particulier aux données ;
-- ne supprime aucune donnée, y compris lors de la désactivation du mode test.
+1. l’utilisatrice clique une seule fois sur « Mode test parcours jeûne » depuis son profil ;
+2. `/test-reprise` active le mode puis redirige immédiatement vers le véritable écran de préparation ;
+3. les écrans normaux restent utilisés dans leur ordre naturel : préparation, jeûne, génération et validation du programme, liste de courses, puis reprise ;
+4. un bandeau permanent « Mode test actif » apparaît au-dessus des écrans ;
+5. sur les écrans quotidiens, l’unique action de simulation est « Passer au jour suivant » ;
+6. cette action décale automatiquement d’un jour les dates locales et Supabase du parcours en cours, puis recharge l’écran ;
+7. « Quitter le mode test » désactive le bandeau et ramène au profil sans supprimer de donnée.
 
-Le mode test sert uniquement à accélérer le calendrier. Les données créées et les synchronisations restent celles du parcours réel ; leur éventuelle suppression reste une action manuelle de l’utilisatrice.
+Il n’existe plus de sélection manuelle de phase, de jour de jeûne ou de jour de reprise. Le programme de reprise n’est pas dupliqué : sa génération reste celle du parcours existant. Supabase continue de fonctionner normalement et aucune suppression automatique n’est ajoutée. La cristallisation reste hors périmètre.
+
+### Correction du point d’entrée visible après connexion
+
+Le premier ajout avait placé le lien dans `pages/index.js`. Or l’écran effectivement utilisé comme accueil après connexion, reconnaissable aux actions « Modifier mon profil », « Commencer mon suivi », « Commencer un jeûne » et « Me préparer à jeûner », est rendu par `pages/profil.js`.
+
+Le lien « 🧪 Mode test parcours jeûne » est donc également ajouté dans `pages/profil.js`, à côté des accès au jeûne et à sa préparation.
