@@ -358,3 +358,90 @@ dans les étapes suivantes.
 - aucune modification du référentiel alimentaire général ;
 - ce raccordement et la présente mise à jour de passation sont publiés
   ensemble sur la branche `finalisation-reprise-jeune-alimentaire-chatgpt`.
+
+---
+
+## 13. Reconstruction contrôlée des lots D1 à E — 20 août 2026
+
+La mention précédente indiquant que D1 à E n'étaient pas présents dans Git
+était un constat historique exact, pas l'affirmation que les travaux n'avaient
+jamais existé. Ils avaient été réalisés localement après le dernier commit,
+mais aucun objet Git, reflog ou branche distante ne contenait ces changements.
+Ils ont donc été reconstruits à partir des décisions métier consignées, du code
+encore publié et du diagnostic réel de Supabase.
+
+### D1 — Cartographie du référentiel
+
+- le référentiel général reste inchangé ;
+- les aliments spécifiques à la reprise conservent leur propre règle ;
+- aucune équivalence arbitraire n'est créée pour compote maison, pomme cuite,
+  yaourts spécifiques, kiwi, pain au levain et chocolat 85 % ;
+- seul le saumon frais possède la liaison générale fiable, avec vapeur ou
+  papillote comme condition de reprise.
+
+### D2 et D3 — Règles et phases
+
+- règles centralisées dans `lib/repriseJeuneMetier.js` ;
+- QN minimum 4 pour les phases 1 et 2, puis 3 pour les phases 3 à 5 ;
+- 80 règles, 77 noms uniques ;
+- phase 3 réalignée sur solides légers, protéines végétales et œufs en fin de
+  phase ;
+- phase 4 enrichie avec poulet, dinde, poisson blanc et petites crudités à
+  partir du deuxième jour ;
+- saumon, sardines, thon et produits laitiers déplacés en phase 5 ;
+- notifications et recette de phase 5 réalignées sur ces introductions.
+
+### D4 et D5 — Saisie et écrans
+
+- questions de préparation et de texture seulement lorsqu'elles influencent
+  l'évaluation ;
+- choix « Je ne sais pas » et conservation du repas même en cas d'écart ;
+- distinction entre nouveaux aliments et aliments encore disponibles depuis
+  les phases précédentes ;
+- anciens programmes harmonisés à leur chargement dans le suivi et le plan.
+
+### E — Synchronisation Supabase
+
+Le diagnostic transmis par la propriétaire confirme que la migration distante
+avait survécu : table des repas à 19 colonnes, index unique
+`(user_id, client_id)`, phases `phase1` à `phase5` et politiques RLS limitées au
+propriétaire. Le code reconstruit :
+
+- sauvegarde d'abord chaque repas localement ;
+- utilise un UUID client stable et un upsert anti-doublon ;
+- résout la journée Supabase puis convertit les moments vers
+  `matin`, `midi`, `soir` ou `collation` ;
+- conserve QN, préparation, texture, ressenti et évaluation JSON ;
+- réessaie les synchronisations en attente au chargement et au retour en ligne ;
+- convertit désormais les phases avant insertion et n'ignore plus silencieusement
+  un échec de création des journées.
+
+La migration distante est aussi représentée dans le dépôt par
+`supabase/migrations/20260820000001_sync_repas_reprise_details.sql` afin que le
+schéma appliqué ne dépende plus uniquement de l'historique de la conversation.
+
+### Contrôles de reconstruction
+
+- 16 tests ciblés réussis sur 16 ;
+- suite globale : 38 tests réussis ; une suite historique ne se charge pas car
+  `validation-semaine.test.js` utilise `require()` sur un module ES exporté,
+  problème de configuration Jest antérieur et sans rapport avec D1 à E ;
+- `git diff --check` sans erreur ;
+- build Next.js réussi ;
+- 37 pages statiques générées ;
+- aucune modification du référentiel général ;
+- aucun commit ni push effectué à ce stade.
+
+### Checklist obligatoire de sauvegarde pour les prochaines modifications
+
+Après chaque lot de modifications :
+
+1. contrôler `git status` et la liste exacte des fichiers modifiés ;
+2. exécuter les tests pertinents, `git diff --check` et le build si applicable ;
+3. présenter le résultat et demander explicitement : « Veux-tu que je commit et
+   push ces modifications ? » ;
+4. ne commit ni ne push sans réponse affirmative ;
+5. après autorisation, vérifier le commit local, pousser la branche puis vérifier
+   le SHA et les fichiers réellement présents sur la branche distante ;
+6. ne jamais annoncer un lot comme sauvegardé ou livré avant cette vérification
+   distante.

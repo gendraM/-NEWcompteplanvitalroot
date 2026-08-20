@@ -14,6 +14,7 @@ import RecettesPhase4Modal from '../components/RecettesPhase4Modal';
 import RecettesPhase5Modal from '../components/RecettesPhase5Modal';
 import HistoriqueReprisesModal from '../components/HistoriqueReprisesModal';
 import { normaliserListeCoursesReprise } from '../lib/listeCoursesReprise';
+import { getAlimentsDisponiblesPhase, harmoniserJoursProgramme } from '../lib/repriseJeuneMetier';
 
 // Composant Aperçu Latéral des Phases
 function PhasesApercu({ phases, jours, dateAuj, onVoirAliments }) {
@@ -265,7 +266,7 @@ export default function RepriseAlimentaireApresJeune() {
   const [modalRecettesPhase4, setModalRecettesPhase4] = useState({ isOpen: false, type: 'patatedouce' });
 
   // 🆕 États pour fonctionnalités Phase 5
-  const [modalRecettesPhase5, setModalRecettesPhase5] = useState({ isOpen: false, type: 'poulet' });
+  const [modalRecettesPhase5, setModalRecettesPhase5] = useState({ isOpen: false, type: 'saumon' });
 
   // 🆕 États pour historique reprises
   const [historiqueReprises, setHistoriqueReprises] = useState([]);
@@ -392,8 +393,11 @@ export default function RepriseAlimentaireApresJeune() {
           console.warn('[REPRISE] Synchronisation du parcours différée:', syncError);
         }
 
+        const joursHarmonises = harmoniserJoursProgramme(parsed.jours_detailles || parsed.jours || []);
+        parsed.jours_detailles = joursHarmonises;
+        localStorage.setItem('programmeRepriseValide', JSON.stringify(parsed));
         setProgramme(parsed);
-        setJours(parsed.jours_detailles || []);
+        setJours(joursHarmonises);
         setDateAuj(new Date().toISOString().split('T')[0]);
         
         // Réutiliser exactement la liste enregistrée avec le programme.
@@ -1917,14 +1921,15 @@ export default function RepriseAlimentaireApresJeune() {
               <h2 style={{color:'#1976d2', fontWeight:700, fontSize:'1.2rem', marginBottom:10}}>Aliments autorisés – Phase {modalAliments}</h2>
               <ul style={{margin:0, paddingLeft:'1.2rem', color:'#333', fontSize:'1.05rem'}}>
                 {(() => {
-                  // Récupérer les aliments de la phase et ajouter bouton recettes pour Phase 1
-                  const aliments = require('../data/alimentsRepriseJeune').default.filter(a => a.phase === modalAliments);
+                  const aliments = getAlimentsDisponiblesPhase(modalAliments, 2);
                   return (
                     <>
                       {aliments.map((a, i) => (
                         <li key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                           <span>
-                            {a.nom} <span style={{color:'#888', fontSize:'0.97em'}}>{a.categorie ? `(${a.categorie})` : ''}</span>
+                            {a.nom} <span style={{color:'#888', fontSize:'0.97em'}}>
+                              {a.phase === modalAliments ? '— nouveau' : `— disponible depuis la phase ${a.phase}`}
+                            </span>
                           </span>
                           {/* Bouton recettes pour aliments Phase 1 spécifiques */}
                           {modalAliments === 1 && (a.nom.includes('Bouillon') || a.nom.includes('Purée')) && (
@@ -2254,7 +2259,7 @@ export default function RepriseAlimentaireApresJeune() {
         <RecettesPhase5Modal 
           isOpen={modalRecettesPhase5.isOpen}
           recetteType={modalRecettesPhase5.type}
-          onClose={() => setModalRecettesPhase5({ isOpen: false, type: 'poulet' })}
+          onClose={() => setModalRecettesPhase5({ isOpen: false, type: 'saumon' })}
         />
       </main>
       

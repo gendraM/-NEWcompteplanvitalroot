@@ -451,7 +451,7 @@ const alimentsRepriseJeune = [
     conseil: "Vierge, TCM favorise cétose"
   },
   { 
-    nom: "Yaourt nature 0%", 
+    nom: "Yaourt nature 0 %, sans sucre ajouté",
     categorie: "protéine", 
     sousCategorie: "Laitage", 
     kcal: 45,
@@ -460,7 +460,7 @@ const alimentsRepriseJeune = [
     unite: "g",
     kcalParUnite: 0.36,
     mesureRecommandee: "Pot individuel",
-    phase: 3,
+    phase: 5,
     favoriseCetose: false,
     conseil: "Nature, sans sucre, si tolérance lactose"
   },
@@ -474,7 +474,7 @@ const alimentsRepriseJeune = [
     unite: "g",
     kcalParUnite: 1.4,
     mesureRecommandee: "Pavé moyen",
-    phase: 3,
+    phase: 5,
     favoriseCetose: true,
     conseil: "Sauvage si possible, oméga-3"
   },
@@ -488,7 +488,7 @@ const alimentsRepriseJeune = [
     unite: "g",
     kcalParUnite: 1.5,
     mesureRecommandee: "Petite boîte",
-    phase: 3,
+    phase: 5,
     favoriseCetose: true,
     conseil: "À l'eau, égouttées, oméga-3"
   },
@@ -502,7 +502,7 @@ const alimentsRepriseJeune = [
     unite: "CS",
     kcalParUnite: 90,
     mesureRecommandee: "Demi cuillère à soupe",
-    phase: 3,
+    phase: 5,
     favoriseCetose: true,
     conseil: "Sans lactose, digestion facile"
   },
@@ -530,7 +530,7 @@ const alimentsRepriseJeune = [
     unite: "g",
     kcalParUnite: 0.5,
     mesureRecommandee: "Petit bol",
-    phase: 3,
+    phase: 5,
     favoriseCetose: false,
     conseil: "Nature, si tolérance lactose OK"
   },
@@ -544,7 +544,7 @@ const alimentsRepriseJeune = [
     unite: "g",
     kcalParUnite: 1.25,
     mesureRecommandee: "Petite boîte",
-    phase: 3,
+    phase: 5,
     favoriseCetose: true,
     conseil: "Égoutté, sans huile"
   },
@@ -637,6 +637,94 @@ const alimentsRepriseJeune = [
   // 🍠 PHASE 4 - FÉCULENTS DOUX (~57% durée reprise)
   // Objectif : Réintroduction progressive glucides, sortie cétose
   // ═══════════════════════════════════════════════════════════
+
+  {
+    nom: "Poulet vapeur",
+    categorie: "protéine",
+    sousCategorie: "Volaille maigre",
+    kcal: 165,
+    qn: 4,
+    portionDefaut: "100g",
+    unite: "g",
+    kcalParUnite: 1.65,
+    mesureRecommandee: "80 à 120g",
+    phase: 4,
+    favoriseCetose: true,
+    conseil: "Vapeur, sans peau, sans sauce"
+  },
+  {
+    nom: "Dinde vapeur",
+    categorie: "protéine",
+    sousCategorie: "Volaille maigre",
+    kcal: 135,
+    qn: 4,
+    portionDefaut: "100g",
+    unite: "g",
+    kcalParUnite: 1.35,
+    mesureRecommandee: "80 à 120g",
+    phase: 4,
+    favoriseCetose: true,
+    conseil: "Vapeur, sans peau, sans sauce"
+  },
+  {
+    nom: "Poisson blanc vapeur ou papillote",
+    categorie: "protéine",
+    sousCategorie: "Poisson maigre",
+    kcal: 100,
+    qn: 4,
+    portionDefaut: "100g",
+    unite: "g",
+    kcalParUnite: 1,
+    mesureRecommandee: "80 à 120g",
+    phase: 4,
+    favoriseCetose: true,
+    conseil: "Vapeur ou papillote, sans friture"
+  },
+  {
+    nom: "Concombre épluché",
+    categorie: "légume",
+    sousCategorie: "Crudité douce",
+    kcal: 15,
+    qn: 4,
+    portionDefaut: "50g",
+    unite: "g",
+    kcalParUnite: 0.3,
+    mesureRecommandee: "Petite portion",
+    phase: 4,
+    jourPhaseMin: 2,
+    favoriseCetose: true,
+    conseil: "À partir du deuxième jour de la phase, épluché"
+  },
+  {
+    nom: "Carotte très finement râpée",
+    categorie: "légume",
+    sousCategorie: "Crudité douce",
+    kcal: 20,
+    qn: 4,
+    portionDefaut: "50g",
+    unite: "g",
+    kcalParUnite: 0.4,
+    mesureRecommandee: "Petite portion",
+    phase: 4,
+    jourPhaseMin: 2,
+    favoriseCetose: false,
+    conseil: "À partir du deuxième jour de la phase, très finement râpée"
+  },
+  {
+    nom: "Tomate pelée",
+    categorie: "légume",
+    sousCategorie: "Crudité douce",
+    kcal: 18,
+    qn: 4,
+    portionDefaut: "50g",
+    unite: "g",
+    kcalParUnite: 0.36,
+    mesureRecommandee: "Petite portion",
+    phase: 4,
+    jourPhaseMin: 2,
+    favoriseCetose: false,
+    conseil: "À partir du deuxième jour de la phase, sans peau"
+  },
   
   { 
     nom: "Patate douce", 
@@ -723,7 +811,7 @@ const alimentsRepriseJeune = [
     conseil: "Plus digestes que vertes, midi"
   },
   { 
-    nom: "Pain complet au levain", 
+    nom: "Pain complet au levain",
     categorie: "féculent", 
     sousCategorie: "Pain", 
     kcal: 60,
@@ -812,9 +900,9 @@ const alimentsRepriseJeune = [
   // Objectif : Stabilisation durable, consolidation acquis
   // ═══════════════════════════════════════════════════════════
   
-  { 
-    nom: "Pain complet bio", 
-    categorie: "feculent", 
+  {
+    nom: "Pain complet au levain",
+    categorie: "feculent",
     sousCategorie: "Pain", 
     kcal: 250,
     qn: 3,
@@ -911,7 +999,7 @@ const alimentsRepriseJeune = [
     conseil: "Affiné 12 mois minimum, riche en calcium"
   },
   { 
-    nom: "Yaourt nature fermenté", 
+    nom: "Yaourt nature sans sucre ajouté",
     categorie: "produit_laitier", 
     sousCategorie: "Yaourt", 
     kcal: 61,

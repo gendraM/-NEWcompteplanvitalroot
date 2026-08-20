@@ -24,14 +24,14 @@ export default function NotificationsPhase3({ phase, jourNum, isActive = false }
       heure: '11:00', 
       label: '11h', 
       aliment: 'Protéine délicate', 
-      quantite: jourNum === 8 ? '1 œuf mollet' : jourNum === 9 ? '1 œuf poché' : 'Fromage blanc 100g', 
+      quantite: jourNum === 8 ? 'Lentilles corail bien cuites' : '1 œuf mollet ou poché en fin de phase',
       type: 'matinee' 
     },
     { 
       heure: '13:00', 
       label: '13h', 
-      aliment: jourNum === 8 ? 'Poisson blanc vapeur' : jourNum === 9 ? 'Saumon vapeur' : 'Sardines nature', 
-      quantite: jourNum === 8 ? '80g' : jourNum === 9 ? '100g' : '80g', 
+      aliment: 'Solides légers',
+      quantite: 'Légumes cuits + féculent digeste',
       type: 'midi' 
     },
     { 
@@ -44,8 +44,8 @@ export default function NotificationsPhase3({ phase, jourNum, isActive = false }
     { 
       heure: '19:00', 
       label: '19h', 
-      aliment: 'Protéine + Huile', 
-      quantite: jourNum === 8 ? 'Yaourt 0% + 0.5 CS huile' : jourNum === 9 ? 'Fromage blanc + 0.75 CS huile' : 'Thon nature + 1 CS huile', 
+      aliment: 'Légumes + lipide doux',
+      quantite: 'Légumes cuits avec huile vierge ajoutée après cuisson',
       type: 'soir' 
     }
   ];

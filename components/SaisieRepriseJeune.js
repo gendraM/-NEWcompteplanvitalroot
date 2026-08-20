@@ -1,5 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import referentielAliments from '../data/referentiel';
+import alimentsRepriseJeune from '../data/alimentsRepriseJeune';
+import {
+    PHASES_REPRISE,
+    evaluerAlimentReprise,
+    getAlimentsDisponiblesPhase,
+    getContraintesAliment,
+    trouverRegleReprise
+} from '../lib/repriseJeuneMetier';
+import {
+    genererClientId,
+    sauvegarderRepasRepriseLocal,
+    synchroniserRepasReprise,
+    synchroniserRepasRepriseEnAttente
+} from '../lib/repriseRepasSync';
 
 export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programmeReprise, dateRepas }) {
     console.log('[SaisieRepriseJeune] Props reçues:', { phaseReprise, jourReprise, programmeReprise });
@@ -18,7 +32,9 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
     
     const alimentsFromReferentiel = useMemo(() => {
         try {
-            return (referentielAliments || []).map(a => a.nom).filter(Boolean);
+            const nomsReprise = alimentsRepriseJeune.map(a => a.nom);
+            const nomsGeneraux = (referentielAliments || []).map(a => a.nom).filter(Boolean);
+            return Array.from(new Set([...nomsReprise, ...nomsGeneraux]));
         } catch (e) {
             return [];
         }
@@ -39,8 +55,45 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
     const [kcal, setKcal] = useState('');
     const [note, setNote] = useState('');
     const [ressenti, setRessenti] = useState('');
+    const [preparation, setPreparation] = useState(null);
+    const [texture, setTexture] = useState(null);
     const [message, setMessage] = useState('');
     const [erreur, setErreur] = useState('');
+
+    const jourDansPhase = useMemo(() => {
+        const debut = programmeReprise?.phases?.[`phase${phaseReprise}`]?.debut;
+        return debut ? Math.max(1, Number(jourReprise) - Number(debut) + 1) : 1;
+    }, [jourReprise, phaseReprise, programmeReprise]);
+
+    const alimentsDisponibles = useMemo(
+        () => getAlimentsDisponiblesPhase(phaseReprise, jourDansPhase),
+        [phaseReprise, jourDansPhase]
+    );
+
+    const alimentRefSelectionne = useMemo(() =>
+        (referentielAliments || []).find(a => a.nom.toLowerCase() === aliment.trim().toLowerCase()) || null,
+    [aliment]);
+    const regleSelectionnee = useMemo(
+        () => trouverRegleReprise(alimentRefSelectionne || aliment),
+        [alimentRefSelectionne, aliment]
+    );
+    const contraintesSelectionnees = useMemo(
+        () => getContraintesAliment(regleSelectionnee || aliment),
+        [regleSelectionnee, aliment]
+    );
+
+    useEffect(() => {
+        synchroniserRepasRepriseEnAttente().catch(error =>
+            console.warn('[REPRISE] Synchronisation différée:', error)
+        );
+        const reprendreSynchronisation = () => {
+            synchroniserRepasRepriseEnAttente().catch(error =>
+                console.warn('[REPRISE] Synchronisation différée:', error)
+            );
+        };
+        window.addEventListener('online', reprendreSynchronisation);
+        return () => window.removeEventListener('online', reprendreSynchronisation);
+    }, []);
 
     // La date sélectionnée dans le suivi est la date réelle du repas.
     // Elle peut correspondre à une journée passée que l'utilisatrice complète après coup.
@@ -60,7 +113,8 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
     // Pré-remplissage automatique lors de la sélection d'un aliment
     useEffect(() => {
         if (!aliment || aliment.trim() === '') return;
-        const found = (referentielAliments || []).find(a => a.nom.toLowerCase() === aliment.trim().toLowerCase());
+        const found = (referentielAliments || []).find(a => a.nom.toLowerCase() === aliment.trim().toLowerCase())
+            || trouverRegleReprise(aliment);
         if (found) {
             if (found.categorie) setCategorie(found.categorie);
             if (found.kcal !== undefined && found.kcal !== null) setKcal(String(found.kcal));
@@ -70,6 +124,8 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
                 setQuantite(String(found.portionMax));
             }
         }
+        setPreparation(null);
+        setTexture(null);
     }, [aliment]);
 
     // Recalcul automatique des kcal selon la quantité
@@ -95,124 +151,39 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
         e.preventDefault();
         setMessage('');
         setErreur('');
-        
-        const isJeune = categorie === "Jeûne";
+
+        const isJeune = categorie === 'Jeûne';
+        const regle = trouverRegleReprise(alimentRefSelectionne || aliment);
         if (!isJeune && !aliment.trim()) {
             setErreur('Merci de saisir un aliment.');
             return;
         }
-
-        // Recherche de l'aliment dans le référentiel UNIQUE
-        const alimentRef = (referentielAliments || []).find(a => 
-            a.nom.toLowerCase() === aliment.trim().toLowerCase()
-        );
-
-        if (!isJeune && !alimentRef) {
-            setErreur('Aliment non reconnu dans le référentiel.');
+        if (!isJeune && !alimentRefSelectionne && !regle) {
+            setErreur('Aliment non reconnu dans le référentiel ou dans les règles de reprise.');
             return;
         }
 
-        // Validation des 4 critères (si aliment trouvé et champs reprise disponibles)
-        let criteresValidés = [];
-        let criteresNonValidés = [];
+        const alimentEvalue = alimentRefSelectionne || regle;
+        const evaluation = isJeune
+            ? {
+                statut: 'jeune',
+                conforme: true,
+                phase_ok: true,
+                jour_ok: true,
+                qn_ok: true,
+                preparation_ok: true,
+                texture_ok: true,
+                regle: null,
+                attendu: null
+            }
+            : evaluerAlimentReprise({
+                aliment: alimentEvalue,
+                phase: phaseReprise,
+                jourDansPhase,
+                preparation,
+                texture
+            });
 
-        if (alimentRef) {
-            // 1️⃣ Critère Phase (seulement si champ 'phase' existe)
-            if (alimentRef.phase !== undefined) {
-                if (alimentRef.phase <= phaseReprise) {
-                    criteresValidés.push('✅ Aliment autorisé Phase ' + phaseReprise);
-                } else {
-                    criteresNonValidés.push('❌ Aliment Phase ' + alimentRef.phase + ' (tu es en Phase ' + phaseReprise + ')');
-                }
-            } else {
-                // Pas de champ phase → considéré comme autorisé
-                criteresValidés.push('✅ Aliment autorisé (phase non spécifiée)');
-            }
-            
-            // 2️⃣ Critère Horaires féculents
-            if (alimentRef.categorie === 'féculent' && phaseReprise >= 4) {
-                const heureNum = heure ? parseInt(heure.split(':')[0]) : new Date().getHours();
-                if (heureNum >= 19) {
-                    criteresNonValidés.push('❌ Féculent après 19h');
-                } else {
-                    criteresValidés.push('✅ Horaires respectés');
-                }
-            } else {
-                criteresValidés.push('✅ Horaires OK');
-            }
-            
-            // 3️⃣ Critère Quantités
-            const quantiteNum = quantite === '' ? 0 : isNaN(Number(quantite)) ? 0 : Number(quantite);
-            const portionDefaut = alimentRef.portionDefaut || alimentRef.portionMax || 1;
-            let portionMax = portionDefaut;
-            if (typeof portionDefaut === 'string') {
-                const match = portionDefaut.match(/([0-9]+([.,][0-9]+)?)/);
-                portionMax = match ? parseFloat(match[1].replace(',', '.')) : 1;
-            }
-            if (quantiteNum <= portionMax) {
-                criteresValidés.push('✅ Quantité respectée');
-            } else {
-                criteresNonValidés.push('❌ Quantité dépassée (' + quantiteNum + ' > ' + portionMax + ')');
-            }
-            
-            // 4️⃣ Critère Qualité (QN) - seulement si champ 'qn' existe
-            if (alimentRef.qn !== undefined) {
-                if (alimentRef.qn >= 4) {
-                    criteresValidés.push('✅ Qualité excellente (QN: ' + alimentRef.qn + '/5)');
-                } else if (alimentRef.qn >= 3) {
-                    criteresValidés.push('⚠️ Qualité correcte (QN: ' + alimentRef.qn + '/5)');
-                } else {
-                    criteresNonValidés.push('❌ Aliment ultra-transformé (QN: ' + alimentRef.qn + '/5)');
-                }
-            } else {
-                // Pas de champ QN → pas de validation qualité
-                criteresValidés.push('ℹ️ Qualité non évaluée');
-            }
-        }
-
-        // Message de confirmation avec détail des critères (AVANT repasPayload)
-        const totalCriteres = 4;
-        const criteresOK = criteresValidés.filter(c => c.startsWith('✅')).length;
-        const criteresKO = criteresNonValidés.length;
-        
-        let messageFinal = '';
-        
-        // En-tête avec statut global
-        if (criteresKO === 0) {
-            messageFinal = '✅ Repas enregistré avec succès !\n\n';
-            messageFinal += '🎯 Validation des critères : ' + criteresOK + '/' + totalCriteres + ' ✅\n\n';
-        } else {
-            messageFinal = '📝 Repas enregistré (avec réserves)\n\n';
-            messageFinal += '📊 Validation des critères : ' + criteresOK + '/' + totalCriteres + ' validés\n\n';
-        }
-        
-        // Détail des critères validés
-        if (criteresValidés.length > 0) {
-            messageFinal += criteresValidés.join('\n') + '\n';
-        }
-        
-        // Détail des critères non validés
-        if (criteresNonValidés.length > 0) {
-            messageFinal += '\n' + criteresNonValidés.join('\n') + '\n';
-        }
-        
-        // Conseil pédagogique selon les critères non validés
-        if (criteresKO > 0) {
-            messageFinal += '\n💡 Conseil : ';
-            if (criteresNonValidés.some(c => c.includes('ultra-transformé'))) {
-                messageFinal += 'Privilégie les aliments bruts (QN ≥ 4) pour optimiser ta récupération digestive.';
-            } else if (criteresNonValidés.some(c => c.includes('Phase'))) {
-                messageFinal += 'Attends quelques jours avant de réintroduire cet aliment progressivement.';
-            } else if (criteresNonValidés.some(c => c.includes('Quantité'))) {
-                messageFinal += 'Respecte les portions recommandées pour éviter la surcharge digestive.';
-            } else if (criteresNonValidés.some(c => c.includes('19h'))) {
-                messageFinal += 'Évite les féculents le soir pour faciliter la digestion nocturne.';
-            }
-        }
-
-        // Enregistrement dans localStorage
-        const alimentToSend = isJeune ? '' : aliment;
-        const quantiteToSend = isJeune ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite));
         const dateSaisie = new Date();
         const dateSaisieISO = dateSaisie.toISOString();
         const dateSaisieJour = [
@@ -222,59 +193,98 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
         ].join('-');
         const dateRepasEffective = date || dateRepas || dateSaisieJour;
         const saisieRetroactive = dateRepasEffective < dateSaisieJour;
-        
+        const clientId = genererClientId();
+
+        const messagesStatut = {
+            autorise: '✅ Repas enregistré : il correspond aux règles de cette phase.',
+            a_confirmer: '📝 Repas enregistré. La préparation ou la texture reste à confirmer.',
+            phase_suivante: `📝 Repas enregistré. Cet aliment est prévu à partir de la phase ${evaluation.attendu?.phase}.`,
+            jour_suivant: `📝 Repas enregistré. Cet aliment sera disponible à partir du jour ${evaluation.attendu?.jour_phase_min} de cette phase.`,
+            ecart: '📝 Repas enregistré avec un écart par rapport à la préparation, la texture ou au QN attendu.',
+            non_reference_reprise: '📝 Repas enregistré. Cet aliment ne possède pas encore de règle spécifique de reprise.',
+            jeune: '✅ Journée de jeûne enregistrée.'
+        };
+        const messageFinal = messagesStatut[evaluation.statut] || '📝 Repas enregistré.';
+
         const repasPayload = {
-            id: Date.now().toString(),
+            id: clientId,
+            client_id: clientId,
             reprise_id: programmeReprise?.id || null,
-            jour_numero: jourReprise,
-            jour_reprise: jourReprise, // Pour compatibilité avec page reprise
-            phase: phaseReprise,
-            phase_reprise: phaseReprise, // Pour compatibilité avec page reprise
-            // `date` est conservé pour compatibilité avec les écrans existants.
+            jour_id: null,
+            jour_numero: Number(jourReprise),
+            jour_reprise: Number(jourReprise),
+            phase: Number(phaseReprise),
+            phase_reprise: Number(phaseReprise),
             date: dateRepasEffective,
             date_repas: dateRepasEffective,
-            heure: heure,
-            heure_repas: heure,
+            heure,
+            heure_repas: heure || null,
             saisie_retroactive: saisieRetroactive,
             moment: type,
-            aliment_nom: alimentToSend,
-            quantite: quantiteToSend,
-            kcal: isJeune ? null : kcal,
+            aliment_nom: isJeune ? 'Jeûne' : aliment,
+            quantite: isJeune ? null : (quantite || null),
+            kcal: isJeune || kcal === '' ? null : Number(kcal),
             note,
             ressenti,
-            conforme: criteresNonValidés.length === 0,
+            conforme: evaluation.conforme,
+            preparation,
+            texture,
+            evaluation_reprise: {
+                statut: evaluation.statut,
+                phase_ok: evaluation.phase_ok,
+                jour_ok: evaluation.jour_ok,
+                qn_ok: evaluation.qn_ok,
+                preparation,
+                preparation_ok: evaluation.preparation_ok,
+                texture,
+                texture_ok: evaluation.texture_ok,
+                attendu: evaluation.attendu,
+                regle_nom: evaluation.regle?.nom || null,
+                phase_metier: PHASES_REPRISE[Number(phaseReprise)]
+            },
             validation: {
-                phase_ok: criteresValidés.some(c => c.includes('Phase')),
-                horaire_ok: criteresValidés.some(c => c.includes('Horaire') || c.includes('féculents')),
-                quantite_ok: criteresValidés.some(c => c.includes('Quantité')),
-                qn_ok: criteresValidés.some(c => c.includes('QN') || c.includes('Qualité')),
+                phase_ok: evaluation.phase_ok,
+                horaire_ok: true,
+                quantite_ok: null,
+                qn_ok: evaluation.qn_ok,
+                preparation_ok: evaluation.preparation_ok,
+                texture_ok: evaluation.texture_ok,
                 message: messageFinal
             },
             consomme_le: `${dateRepasEffective}T${heure || '00:00'}:00`,
-            created_at: dateSaisieISO
+            created_at: dateSaisieISO,
+            statut_sync: 'en_attente',
+            erreur_sync: null
         };
 
         try {
-            const existing = JSON.parse(localStorage.getItem('reprises_repas_consommes') || '[]');
-            existing.push(repasPayload);
-            localStorage.setItem('reprises_repas_consommes', JSON.stringify(existing));
-            console.log('[SaisieRepriseJeune] Repas enregistré:', repasPayload);
+            sauvegarderRepasRepriseLocal(repasPayload);
         } catch (error) {
-            setErreur("Erreur sauvegarde localStorage : " + error.message);
+            setErreur('Erreur de sauvegarde locale : ' + error.message);
             return;
         }
 
-        setMessage(messageFinal);
+        try {
+            await synchroniserRepasReprise(repasPayload);
+            setMessage(messageFinal + '\n☁️ Synchronisé avec ton compte.');
+        } catch (error) {
+            sauvegarderRepasRepriseLocal({
+                ...repasPayload,
+                statut_sync: 'en_attente',
+                erreur_sync: error.message
+            });
+            setMessage(messageFinal + '\n📱 Conservé sur cet appareil, synchronisation automatique en attente.');
+        }
 
-        // Réinitialiser le formulaire
         setAliment('');
         setCategorie('');
         setQuantite('1');
         setKcal('');
         setNote('');
         setRessenti('');
+        setPreparation(null);
+        setTexture(null);
     };
-
     return (
         <div style={{ 
             background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', 
@@ -306,7 +316,7 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
                         Jour {jourReprise} — Phase {phaseReprise}
                     </div>
                     <div style={{fontSize: 12, opacity: 0.85, marginTop: 6, fontWeight: 500}}>
-                        ⚠️ Seuls les aliments autorisés pour ta phase seront validés
+                        Les écarts restent enregistrables et sont clairement signalés
                     </div>
                 </div>
                 <a
@@ -392,7 +402,7 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
                         borderLeft: '3px solid #ef4444'
                     }}>
                         <span style={{fontWeight: 600, color: '#991b1b'}}>4️⃣ Qualité alimentaire :</span>{' '}
-                        <span style={{color: '#475569'}}>Privilégier les aliments bruts (QN ≥ 4)</span>
+                        <span style={{color: '#475569'}}>QN minimum {PHASES_REPRISE[Number(phaseReprise)]?.qnMinimum || 3}</span>
                     </div>
                 </div>
             </div>
@@ -509,11 +519,14 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
                             required={categorie !== "Jeûne"}
                         />
                         <datalist id="alimentOptions">
-                            {alimentsFromReferentiel.map(opt => <option key={opt} value={opt} />)}
+                            {alimentsDisponibles.map(opt => <option key={`reprise-${opt.nom}`} value={opt.nom} label="Disponible dans ta reprise" />)}
+                            {alimentsFromReferentiel
+                                .filter(opt => !alimentsDisponibles.some(disponible => disponible.nom === opt))
+                                .map(opt => <option key={opt} value={opt} />)}
                         </datalist>
                     {/* Affichage portion + QN */}
                     {(() => {
-                        const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.toLowerCase());
+                        const found = alimentRefSelectionne || regleSelectionnee;
                         if (!found) return null;
                         return (
                             <div style={{
@@ -537,6 +550,54 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
                         );
                     })()}
                 </div>
+                {contraintesSelectionnees.preparations.length > 0 && (
+                    <fieldset style={{border:'1px solid #c7d2fe', borderRadius:10, padding:14}}>
+                        <legend style={{fontWeight:700, color:'#4338ca'}}>Comment était-il préparé ?</legend>
+                        <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+                            {[...contraintesSelectionnees.preparations, 'Je ne sais pas'].map(option => (
+                                <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => setPreparation(option)}
+                                    style={{
+                                        border:'1px solid #818cf8',
+                                        borderRadius:20,
+                                        padding:'8px 12px',
+                                        background: preparation === option ? '#4f46e5' : 'white',
+                                        color: preparation === option ? 'white' : '#3730a3',
+                                        cursor:'pointer'
+                                    }}
+                                >
+                                    {option}
+                                </button>
+                            ))}
+                        </div>
+                    </fieldset>
+                )}
+                {contraintesSelectionnees.textures.length > 0 && (
+                    <fieldset style={{border:'1px solid #c7d2fe', borderRadius:10, padding:14}}>
+                        <legend style={{fontWeight:700, color:'#4338ca'}}>Quelle était sa texture ?</legend>
+                        <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+                            {[...contraintesSelectionnees.textures, 'Je ne sais pas'].map(option => (
+                                <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => setTexture(option)}
+                                    style={{
+                                        border:'1px solid #818cf8',
+                                        borderRadius:20,
+                                        padding:'8px 12px',
+                                        background: texture === option ? '#4f46e5' : 'white',
+                                        color: texture === option ? 'white' : '#3730a3',
+                                        cursor:'pointer'
+                                    }}
+                                >
+                                    {option}
+                                </button>
+                            ))}
+                        </div>
+                    </fieldset>
+                )}
                 <div style={{display: 'flex', gap: 16, flexWrap: 'wrap'}}>
                     <div style={{flex: '1 1 200px'}}>
                         <label style={{display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 14, color: '#374151'}}>
@@ -674,10 +735,10 @@ export default function SaisieRepriseJeune({ phaseReprise, jourReprise, programm
                             <span style={{fontSize: 24}}>📋</span>
                             <div>
                                 <h4 style={{margin: 0, fontSize: 16, fontWeight: 700, color: '#065f46'}}>
-                                    Repas enregistré avec réserves
+                                    {message.includes('✅') ? 'Repas conforme enregistré' : 'Repas enregistré avec suivi'}
                                 </h4>
                                 <p style={{margin: '4px 0 0 0', fontSize: 13, color: '#047857'}}>
-                                    {message?.match(/Validation des critères : (\d+)\/4/)?.[1] || '0'}/4 critères validés
+                                    La saisie reste conservée, même en cas d’écart ou d’information inconnue.
                                 </p>
                             </div>
                         </div>

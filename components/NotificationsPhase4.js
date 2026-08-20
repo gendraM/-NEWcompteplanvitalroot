@@ -2,7 +2,7 @@
  * 🔔 NOTIFICATIONS DOUCES - PHASE 4
  * Système de notifications discrètes pour respecter les horaires Phase 4
  * Architecture identique à NotificationsPhase2.js (succès éprouvé)
- * Horaires Phase 4 : Féculents doux (J11+) - MIDI UNIQUEMENT
+ * Horaires Phase 4 : protéines animales légères et crudités douces
  */
 
 import { useState } from 'react';
@@ -27,23 +27,23 @@ export default function NotificationsPhase4({ jourNum, onRecettesClick }) {
     { 
       heure: '13:00', 
       label: '13h MIDI', 
-      aliment: 'FÉCULENT DOUX', 
-      quantite: 'Patate douce 80g OU riz complet 1,5 CS OU quinoa 1,5 CS', 
+      aliment: 'PROTÉINE ANIMALE LÉGÈRE',
+      quantite: 'Poulet ou dinde vapeur, poisson blanc vapeur/papillote — 80 à 120g',
       type: 'midi',
       important: true 
     },
     { 
       heure: '16:00', 
       label: '16h', 
-      aliment: 'Lentilles corail mixées', 
-      quantite: '2 CS bien cuites', 
+      aliment: 'Petite crudité douce',
+      quantite: jourNum > 1 ? 'Concombre épluché, tomate pelée ou carotte très finement râpée' : 'À partir du 2e jour de la phase',
       type: 'aprem' 
     },
     { 
       heure: '19:00', 
       label: '19h', 
-      aliment: 'Légumes + protéines végétales', 
-      quantite: 'Éviter féculents le soir', 
+      aliment: 'Légumes + protéine légère',
+      quantite: 'Cuisson vapeur ou papillote',
       type: 'soir' 
     }
   ];
@@ -76,7 +76,7 @@ export default function NotificationsPhase4({ jourNum, onRecettesClick }) {
               fontSize: '1.1rem',
               color: '#fff'
             }}>
-              Phase 4 - Féculents doux
+              Phase 4 - Protéines légères & crudités douces
             </div>
             <div style={{
               fontSize: '0.85rem',

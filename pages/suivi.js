@@ -70,6 +70,7 @@ import RepasBloc from "../components/RepasBloc";
 import TimelineProgression from "../components/TimelineProgression";
 import SaisieDefiAlimentaire from "../components/SaisieDefiAlimentaire";
 import SaisieRepriseJeune from "../components/SaisieRepriseJeune";
+import { harmoniserJoursProgramme } from '../lib/repriseJeuneMetier';
 import { useDefis } from "../components/DefisContext";
 
 // Utilitaire message cyclique
@@ -703,12 +704,12 @@ export default function Suivi() {
           console.log('[REPRISE] ✅ Reprise ACTIVE - Jour', diffJours, '/', prog.duree_reprise_jours);
           setRepriseActive(true);
           setJourReprise(diffJours);
+          const joursHarmonises = harmoniserJoursProgramme(prog.jours_detailles || prog.jours || []);
+          prog.jours_detailles = joursHarmonises;
           setProgrammeReprise(prog);
 
           // 4. Déterminer la phase et les aliments autorisés
-          const jourData = prog.jours_detailles 
-            ? prog.jours_detailles.find(j => j.jour_numero === diffJours)
-            : prog.jours?.find(j => j.jour_numero === diffJours);
+          const jourData = joursHarmonises.find(j => j.jour_numero === diffJours);
 
           if (jourData) {
             setPhaseReprise(jourData.phase);

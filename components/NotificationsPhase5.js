@@ -114,7 +114,7 @@ const NotificationsPhase5 = ({ jourNum, onRecettesClick }) => {
             {/* Bouton recettes pour MIDI/SOIR */}
             {(h.type === 'midi' || h.type === 'soir') && (
               <button
-                onClick={() => onRecettesClick('poulet')}
+                onClick={() => onRecettesClick('saumon')}
                 style={{
                   background: 'linear-gradient(135deg, #10B981, #34D399)',
                   color: 'white',

@@ -7,11 +7,25 @@ import { useState } from 'react';
  * Pattern identique à RecettesPhase4Modal.js (prouvé stable)
  */
 
-const RecettesPhase5Modal = ({ isOpen, recetteType = 'poulet', onClose }) => {
+const RecettesPhase5Modal = ({ isOpen, recetteType = 'saumon', onClose }) => {
   const [methodPreferee, setMethodPreferee] = useState('cookeo');
 
   // 4 recettes essentielles Phase 5 (fiche métier)
   const recettes = {
+    saumon: {
+      nom: 'Saumon vapeur ou papillote',
+      ingredients: ['100g saumon frais', 'Citron frais', 'Herbes douces'],
+      cookeo: {
+        duree: '8 min',
+        etapes: ['Déposer le saumon en papillote', 'Ajouter citron et herbes', 'Cuire à la vapeur 8 min'],
+        conseil: 'Le saumon est introduit en phase 5 ; privilégier vapeur ou papillote.'
+      },
+      marmite: {
+        duree: '10 min',
+        etapes: ['Placer le saumon dans le panier vapeur', 'Couvrir et cuire doucement 10 min', 'Ajouter le citron après cuisson'],
+        conseil: 'Conserver une texture tendre et éviter la friture.'
+      }
+    },
     poulet: {
       nom: 'Poulet blanc vapeur',
       ingredients: [
@@ -159,8 +173,8 @@ const RecettesPhase5Modal = ({ isOpen, recetteType = 'poulet', onClose }) => {
     }
   };
 
-  // ⚠️ Sécurité : fallback sur 'poulet' si type invalide
-  const recetteActuelle = recettes[recetteType] || recettes.poulet;
+  // ⚠️ Sécurité : fallback sur le saumon, réellement introduit en phase 5
+  const recetteActuelle = recettes[recetteType] || recettes.saumon;
   const methodActuelle = recetteActuelle[methodPreferee] || recetteActuelle.cookeo;
 
   if (!isOpen) return null;
