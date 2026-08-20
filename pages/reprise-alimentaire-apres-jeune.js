@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { demarrerReprise } from '../lib/jeuneUtils';
+import { demarrerReprise, sauvegarderListeCoursesReprise } from '../lib/jeuneUtils';
 import * as ParcoursAPI from '../lib/parcoursJeuneAPI';
 import Link from 'next/link';
 import NotificationsPhase1 from '../components/NotificationsPhase1';
@@ -13,7 +13,9 @@ import RecettesPhase3Modal from '../components/RecettesPhase3Modal';
 import RecettesPhase4Modal from '../components/RecettesPhase4Modal';
 import RecettesPhase5Modal from '../components/RecettesPhase5Modal';
 import HistoriqueReprisesModal from '../components/HistoriqueReprisesModal';
-import { normaliserListeCoursesReprise } from '../lib/listeCoursesReprise';
+import ListeCoursesPratique from '../components/ListeCoursesPratique';
+import PreparationPeriodeCourses from '../components/PreparationPeriodeCourses';
+import { initialiserEtatsListeCourses } from '../lib/listeCoursesReprise';
 import { getAlimentsDisponiblesPhase, harmoniserJoursProgramme } from '../lib/repriseJeuneMetier';
 
 // Composant Aperçu Latéral des Phases
@@ -248,6 +250,7 @@ export default function RepriseAlimentaireApresJeune() {
   const [jours, setJours] = useState([]);
   const [dateAuj, setDateAuj] = useState(null);
   const [listeCourses, setListeCourses] = useState([]);
+  const [messageCourses, setMessageCourses] = useState('');
   
   // 🆕 State pour la saisie du poids final
   const [poidsFinal, setPoidsFinal] = useState('');
@@ -401,7 +404,10 @@ export default function RepriseAlimentaireApresJeune() {
         setDateAuj(new Date().toISOString().split('T')[0]);
         
         // Réutiliser exactement la liste enregistrée avec le programme.
-        setListeCourses(normaliserListeCoursesReprise(parsed.liste_courses));
+        const listeInitialisee = initialiserEtatsListeCourses(parsed.liste_courses);
+        parsed.liste_courses = listeInitialisee;
+        localStorage.setItem('programmeRepriseValide', JSON.stringify(parsed));
+        setListeCourses(listeInitialisee);
         setLoading(false);
       } catch (e) {
         console.error('[ERROR] Exception:', e);
@@ -413,6 +419,54 @@ export default function RepriseAlimentaireApresJeune() {
     chargerProgramme();
   }, []);
 
+  const enregistrerListePratique = async (prochaineListe, prochainsChoix) => {
+    const prochainesOptions = {
+      ...(programme.options || {}),
+      choix_courses: prochainsChoix,
+      liste_courses_personnalisee: true
+    };
+    const programmeMisAJour = { ...programme, liste_courses: prochaineListe, options: prochainesOptions };
+    setListeCourses(prochaineListe);
+    setProgramme(programmeMisAJour);
+    localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeMisAJour));
+    setMessageCourses('Liste enregistrée sur cet appareil.');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id && programme.id) {
+        const resultat = await sauvegarderListeCoursesReprise(programme.id, user.id, prochaineListe, prochainesOptions);
+        if (!resultat.success) throw new Error(resultat.message);
+        setMessageCourses('Liste synchronisée.');
+      }
+    } catch (e) {
+      console.warn('Synchronisation de la liste différée:', e);
+      setMessageCourses('Liste conservée sur cet appareil ; synchronisation à réessayer.');
+    }
+  };
+
+  const enregistrerPeriodeCourses = async (periode) => {
+    const periodesExistantes = programme.options?.periodes_courses_suivantes || [];
+    const prochainesPeriodes = [
+      ...periodesExistantes.filter(item => item.debut !== periode.debut),
+      periode
+    ].sort((a, b) => a.debut - b.debut);
+    const prochainesOptions = { ...(programme.options || {}), periodes_courses_suivantes: prochainesPeriodes };
+    const programmeMisAJour = { ...programme, options: prochainesOptions };
+    setProgramme(programmeMisAJour);
+    localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeMisAJour));
+    setMessageCourses(`Courses J${periode.debut} à J${periode.fin} enregistrées sur cet appareil.`);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id && programme.id) {
+        const resultat = await sauvegarderListeCoursesReprise(programme.id, user.id, programme.liste_courses, prochainesOptions);
+        if (!resultat.success) throw new Error(resultat.message);
+        setMessageCourses(`Courses J${periode.debut} à J${periode.fin} synchronisées.`);
+      }
+    } catch (e) {
+      console.warn('Synchronisation de la période de courses différée:', e);
+      setMessageCourses('Nouvelle période conservée sur cet appareil ; synchronisation à réessayer.');
+    }
+  };
+
   // Calcul du jour de reprise courant
   let jourReprise = null;
   if (programme && programme.date_debut_reprise) {
@@ -421,6 +475,17 @@ export default function RepriseAlimentaireApresJeune() {
     const diff = Math.floor((auj - debut) / (1000 * 60 * 60 * 24));
     jourReprise = diff + 1;
   }
+  const periodesCoursesSuivantes = programme?.options?.periodes_courses_suivantes || [];
+  const jourDansBlocCourses = jourReprise > 0 ? ((jourReprise - 1) % 7) + 1 : null;
+  const prochainDebutCourses = jourReprise > 0 ? Math.floor((jourReprise - 1) / 7) * 7 + 8 : null;
+  const prochaineFinCourses = prochainDebutCourses
+    ? Math.min(prochainDebutCourses + 6, Number(programme?.duree_reprise_jours || prochainDebutCourses + 6))
+    : null;
+  const afficherPreparationSuivante = Boolean(
+    jourDansBlocCourses >= 5
+    && prochainDebutCourses <= Number(programme?.duree_reprise_jours || 0)
+    && !periodesCoursesSuivantes.some(item => item.debut === prochainDebutCourses)
+  );
 
   // 🔔 Activation automatique des notifications en Phase 1
   useEffect(() => {
@@ -1275,20 +1340,17 @@ export default function RepriseAlimentaireApresJeune() {
 
             {/* Même liste enregistrée que sur la validation du programme */}
           {listeCourses.length > 0 && (
-            <div style={{background:'#fffde7', border:'1px solid #ffe082', borderRadius:10, padding:'1.1rem 1.3rem', marginBottom:'2rem'}}>
-              <div style={{display:'flex',alignItems:'center',marginBottom:6}}>
-                <span role="img" aria-label="courses" style={{fontSize:'1.3em',marginRight:8}}>🛒</span>
-                <span style={{color:'#f57c00',fontWeight:700,fontSize:'1.08rem'}}>Liste de courses (7 premiers jours)</span>
-              </div>
-              <ul style={{margin:'0.5rem 0 0 1.2rem', color:'#333', fontSize:'1.05rem',columns:2}}>
-                {listeCourses.map((alim, i) => (
-                  <li key={`${alim.nom}-${i}`}>{alim.nom}{alim.quantite ? ` — ${alim.quantite}` : ''}</li>
-                ))}
-              </ul>
-              <div style={{color:'#888',fontSize:'0.98rem',marginTop:8}}>
-                (Anticipe tes achats pour ne manquer de rien le jour J !)
-              </div>
-            </div>
+            <>
+              <ListeCoursesPratique programme={programme} listeCourses={listeCourses} onChange={enregistrerListePratique} titre="Liste de courses — J1 à J7" />
+              {messageCourses && <p style={{ color:'#5c6728', textAlign:'center', marginTop:'-1rem', marginBottom:'1.5rem' }}>{messageCourses}</p>}
+            </>
+          )}
+
+          {periodesCoursesSuivantes.map(periode => (
+            <PreparationPeriodeCourses key={periode.debut} programme={programme} debut={periode.debut} fin={periode.fin} periodeExistante={periode} onSave={enregistrerPeriodeCourses} />
+          ))}
+          {afficherPreparationSuivante && (
+            <PreparationPeriodeCourses programme={programme} debut={prochainDebutCourses} fin={prochaineFinCourses} onSave={enregistrerPeriodeCourses} />
           )}
 
           <div style={{marginBottom:'2rem'}}>

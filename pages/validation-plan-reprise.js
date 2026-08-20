@@ -1,22 +1,21 @@
 import { useState, useEffect, useMemo } from 'react'
 import alimentsRepriseJeune from '../data/alimentsRepriseJeune'
 import Link from 'next/link'
-import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabaseClient'
-import { validerProgrammeReprise } from '../lib/jeuneUtils'
+import { sauvegarderListeCoursesReprise, validerProgrammeReprise } from '../lib/jeuneUtils'
+import ListeCoursesPratique from '../components/ListeCoursesPratique'
 import {
   choixCoursesComplets,
   creerConfigurationCoursesReprise,
   genererListeCoursesPersonnalisee,
-  grouperListeCoursesReprise
+  grouperListeCoursesReprise,
+  initialiserEtatsListeCourses
 } from '../lib/listeCoursesReprise'
 
 export default function ValidationPlanReprise() {
   // ============================================
   // HOOKS D'ÉTAT (INITIALISATION EN PREMIER)
   // ============================================
-  const router = useRouter()
-  
   const [programme, setProgramme] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -35,6 +34,7 @@ export default function ValidationPlanReprise() {
         setLoading(true)
         setError(null)
         const programmeLocal = localStorage.getItem('programmeReprise')
+          || localStorage.getItem('programmeRepriseValide')
         if (programmeLocal) {
           const parsed = JSON.parse(programmeLocal)
           setProgramme(parsed)
@@ -135,6 +135,7 @@ export default function ValidationPlanReprise() {
     }
 
     try {
+      const listeFinale = initialiserEtatsListeCourses(listeCoursesPersonnalisee);
       const optionsPersonnalisees = {
         ...(programme.options || {}),
         choix_courses: choixCourses,
@@ -144,14 +145,14 @@ export default function ValidationPlanReprise() {
       let programmeValide = {
         ...programme,
         statut: 'plan_valide',
-        liste_courses: listeCoursesPersonnalisee,
+        liste_courses: listeFinale,
         options: optionsPersonnalisees
       };
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user?.id && programme.id) {
         const resultat = await validerProgrammeReprise(programme.id, user.id, {
-          listeCourses: listeCoursesPersonnalisee,
+          listeCourses: listeFinale,
           choixCourses,
           periode: configurationCourses.periode,
           optionsExistantes: programme.options
@@ -167,17 +168,37 @@ export default function ValidationPlanReprise() {
       localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeValide));
       localStorage.removeItem('programmeReprise');
       setProgramme(programmeValide);
-      setMessage('✅ Programme validé ! Il reste lié au même parcours et ta copie locale est conservée.');
-
-      setTimeout(() => {
-        router.push('/reprise-alimentaire-apres-jeune');
-      }, 1200);
+      setMessage('✅ Ton programme et ta liste de courses sont prêts.');
+      setValidating(false);
     } catch (e) {
       console.error('Erreur validation du programme:', e);
       setError(e.message || 'Erreur lors de la sauvegarde du plan.');
       setValidating(false);
     }
   }
+
+  const enregistrerListePratique = async (prochaineListe, prochainsChoix) => {
+    const prochainesOptions = {
+      ...(programme.options || {}),
+      choix_courses: prochainsChoix,
+      liste_courses_personnalisee: true
+    };
+    const programmeMisAJour = { ...programme, liste_courses: prochaineListe, options: prochainesOptions };
+    setProgramme(programmeMisAJour);
+    localStorage.setItem('programmeRepriseValide', JSON.stringify(programmeMisAJour));
+    setMessage('Liste enregistrée sur cet appareil.');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id && programme.id) {
+        const resultat = await sauvegarderListeCoursesReprise(programme.id, user.id, prochaineListe, prochainesOptions);
+        if (!resultat.success) throw new Error(resultat.message);
+        setMessage('Liste synchronisée.');
+      }
+    } catch (e) {
+      console.warn('Synchronisation de la liste différée:', e);
+      setMessage('Liste conservée sur cet appareil ; synchronisation à réessayer.');
+    }
+  };
 
   // ============================================
   // RENDU JSX
@@ -210,6 +231,23 @@ export default function ValidationPlanReprise() {
         </Link>
       </div>
     )
+  }
+
+  if (programme.statut !== 'proposition') {
+    return (
+      <main style={{ padding:'1rem', maxWidth:760, margin:'0 auto' }}>
+        <div style={{ background:'#e9f8ef', border:'1px solid #8fd0a7', borderRadius:12, padding:'1.3rem', marginBottom:'1.4rem' }}>
+          <h1 style={{ margin:'0 0 0.45rem', color:'#1f6a3c', fontSize:'1.5rem' }}>Ton programme et ta liste sont prêts</h1>
+          <p style={{ margin:0, color:'#355f45' }}>La reprise commencera le {new Date(programme.date_debut_reprise).toLocaleDateString('fr-FR')}. Consulter tes courses ne démarre pas la reprise.</p>
+        </div>
+        <ListeCoursesPratique programme={programme} listeCourses={programme.liste_courses} onChange={enregistrerListePratique} />
+        {message && <p style={{ textAlign:'center', color:'#315f42' }}>{message}</p>}
+        <div style={{ display:'flex', gap:10, justifyContent:'center', flexWrap:'wrap' }}>
+          <Link href="/jeune" style={{ padding:'0.8rem 1.2rem', borderRadius:8, background:'#eceff1', color:'#263238', textDecoration:'none' }}>Retour à mon jeûne</Link>
+          <Link href="/reprise-alimentaire-apres-jeune" style={{ padding:'0.8rem 1.2rem', borderRadius:8, background:'#3267b1', color:'#fff', textDecoration:'none' }}>Consulter mon programme</Link>
+        </div>
+      </main>
+    );
   }
 
   return (

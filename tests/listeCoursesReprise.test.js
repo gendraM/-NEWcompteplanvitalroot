@@ -7,7 +7,7 @@ function chargerModule() {
   const source = fs.readFileSync(filePath, 'utf8');
   const transformed = source
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { normaliserListeCoursesReprise, grouperListeCoursesReprise, creerConfigurationCoursesReprise, choixCoursesComplets, genererListeCoursesPersonnalisee };');
+    .concat('\nmodule.exports = { normaliserListeCoursesReprise, grouperListeCoursesReprise, creerConfigurationCoursesReprise, choixCoursesComplets, genererListeCoursesPersonnalisee, initialiserEtatsListeCourses, modifierStatutArticle, alternativesArticle, remplacerArticleCourses };');
 
   const context = { module: { exports: {} }, exports: {} };
   vm.createContext(context);
@@ -20,7 +20,11 @@ const {
   grouperListeCoursesReprise,
   creerConfigurationCoursesReprise,
   choixCoursesComplets,
-  genererListeCoursesPersonnalisee
+  genererListeCoursesPersonnalisee,
+  initialiserEtatsListeCourses,
+  modifierStatutArticle,
+  alternativesArticle,
+  remplacerArticleCourses
 } = chargerModule();
 
 const programmeSixJours = {
@@ -152,5 +156,56 @@ describe('Liste de courses canonique de la reprise', () => {
     });
 
     expect(liste.find(item => item.nom === 'Patates douces').quantite).toBe('1.05 kg');
+  });
+
+  test('initialise les anciennes listes avec un identifiant et le statut à acheter', () => {
+    const liste = initialiserEtatsListeCourses([{ nom: 'Poulet', quantite: '200 g', groupe_id: 'proteine-animale', phase: 4 }]);
+    expect(liste[0].article_id).toContain('poulet');
+    expect(liste[0].statut_achat).toBe('a_acheter');
+  });
+
+  test('conserve l’article en changeant uniquement son état pratique', () => {
+    const liste = initialiserEtatsListeCourses([{ nom: 'Poulet', quantite: '200 g', groupe_id: 'proteine-animale', phase: 4 }]);
+    const resultat = modifierStatutArticle(liste, liste[0].article_id, 'achete');
+    expect(resultat[0]).toMatchObject({ nom: 'Poulet', quantite: '200 g', statut_achat: 'achete' });
+    expect(resultat[0].statut_modifie_le).toBeTruthy();
+  });
+
+  test('ne propose que les substitutions du même groupe', () => {
+    const liste = genererListeCoursesPersonnalisee(programmeSixJours, { 'proteine-animale': ['Poulet'] });
+    const poulet = initialiserEtatsListeCourses(liste).find(item => item.nom === 'Poulet');
+    expect(alternativesArticle(programmeSixJours, poulet).map(item => item.nom)).toEqual(['Dinde', 'Poisson blanc']);
+  });
+
+  test('remplace une alternative sans recréer le programme ni perdre les autres choix', () => {
+    const configuration = creerConfigurationCoursesReprise(programmeSixJours);
+    const choix = Object.fromEntries(configuration.groupes.map(groupe => [groupe.id, [groupe.options[0].nom]]));
+    const liste = initialiserEtatsListeCourses(genererListeCoursesPersonnalisee(programmeSixJours, choix));
+    const poulet = liste.find(item => item.nom === 'Poulet');
+    const resultat = remplacerArticleCourses(programmeSixJours, liste, poulet.article_id, 'Dinde', choix);
+    expect(resultat.remplace).toBe(true);
+    expect(resultat.liste.some(item => item.nom === 'Dinde')).toBe(true);
+    expect(resultat.liste.some(item => item.nom === 'Poulet')).toBe(false);
+    expect(resultat.choix['feculent-doux']).toEqual(choix['feculent-doux']);
+  });
+
+  test('interdit le remplacement d’un indispensable', () => {
+    const liste = initialiserEtatsListeCourses(genererListeCoursesPersonnalisee(programmeSixJours, {}));
+    const indispensable = liste.find(item => item.type === 'indispensable');
+    const resultat = remplacerArticleCourses(programmeSixJours, liste, indispensable.article_id, 'Courgettes', {});
+    expect(resultat.remplace).toBe(false);
+  });
+
+  test('génère une période suivante depuis le même programme', () => {
+    const programmeLong = {
+      duree_reprise_jours: 20,
+      phases: { phase5: { debut: 8, fin: 20 } }
+    };
+    const configuration = creerConfigurationCoursesReprise(programmeLong, 14, 8);
+    expect(configuration.periode).toMatchObject({ debut: 8, fin: 14, libelle: 'J8 à J14' });
+    const choix = Object.fromEntries(configuration.groupes.map(groupe => [groupe.id, [groupe.options[0].nom]]));
+    const liste = genererListeCoursesPersonnalisee(programmeLong, choix, 14, 8);
+    expect(liste.find(item => item.nom === 'Saumon frais')).toMatchObject({ quantite:'700 g', utilisations_estimees:7 });
+    expect(liste.every(item => item.phase === 5)).toBe(true);
   });
 });

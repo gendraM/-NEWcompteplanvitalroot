@@ -545,3 +545,52 @@ Le lot 4 portera sur l'utilisation pratique de la liste sauvegardée : états
 « acheté » et « déjà disponible », modification ou substitution après
 validation, puis définition du besoin d'impression ou de partage. Ces états ne
 devront pas provoquer un recalcul concurrent de la liste métier enregistrée.
+
+---
+
+## 16. Lot 4 — Utilisation pratique et périodes suivantes
+
+Le lot 4 intervient exclusivement sur la liste rattachée au programme de
+reprise existant. Il ne génère ni second programme, ni nouvelles phases, ni
+nouvelles journées et n'ajoute aucune table Supabase.
+
+Après validation, l'utilisatrice reste sur une confirmation qui lui permet de
+faire ses courses ou de consulter son programme. La consultation anticipée ne
+démarre pas la reprise. La même liste interactive est ensuite affichée pendant
+la reprise.
+
+Chaque article possède désormais un identifiant stable et l'un des trois états
+pratiques suivants : `a_acheter`, `achete` ou `deja_disponible`. Les anciennes
+listes sans état sont automatiquement interprétées comme restant à acheter.
+Les modifications sont enregistrées immédiatement dans la copie locale puis
+synchronisées dans le JSONB `reprises_alimentaires.liste_courses` du même
+programme.
+
+Un article choisi peut être remplacé uniquement par une alternative appartenant
+au même groupe métier et disponible pendant la période. Les indispensables ne
+peuvent pas être remplacés arbitrairement. Le remplacement recalcule la liste et
+les quantités sans modifier le programme, ses phases ou ses journées.
+
+Pour les reprises de plus de sept jours, l'option retenue est une préparation
+par périodes successives. À partir du cinquième jour de chaque bloc, l'écran
+propose de préparer la période de sept jours suivante : J8–J14, puis J15–J21,
+avec un dernier bloc raccourci si nécessaire. Ces périodes sont calculées à
+partir du même programme et stockées dans
+`options.periodes_courses_suivantes`; la première liste J1–J7 reste conservée
+dans `liste_courses` pour compatibilité.
+
+### Contrôles du lot 4
+
+- 28 tests ciblés réussis sur 28 ;
+- compatibilité des anciennes listes vérifiée ;
+- changements d'état sans modification des quantités vérifiés ;
+- substitutions limitées au même groupe vérifiées ;
+- indispensables protégés contre les remplacements arbitraires ;
+- génération J8–J14 depuis le même programme vérifiée ;
+- `git diff --check` sans erreur ;
+- build Next.js réussi ;
+- 37 pages statiques générées.
+
+L'impression et le partage ne sont pas activés dans ce lot. Ils restent une
+amélioration ultérieure après validation fonctionnelle de la gestion des états,
+des substitutions et des périodes successives.
