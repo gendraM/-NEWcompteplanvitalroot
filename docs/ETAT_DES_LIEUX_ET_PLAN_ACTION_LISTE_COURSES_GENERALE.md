@@ -3,7 +3,7 @@
 **Date :** 24 août 2026  
 **Branche de travail :** liste-courses-generale-plan-chatgpt  
 **Branche source :** finalisation-reprise-jeune-alimentaire-chatgpt  
-**Statut :** lots 0 à 3 poussés ; lot 4 implémenté localement, testé et en attente de validation Git
+**Statut :** lots 0 à 4 poussés ; lot 5A implémenté localement, testé et en attente de validation Git
 
 ## 1. Objet du chantier
 
@@ -786,8 +786,91 @@ Un message précise que le calcul repose sur les repas réellement planifiés et
 - suite complète : 99 tests réussis sur 99, 13 suites réussies sur 13 ;
 - build Next.js : réussi, 36 pages générées ;
 - aucune migration Supabase et aucune donnée de test créée ;
-- commit et push du lot 4 : en attente d’autorisation explicite.
+- commit et push du lot 4 : effectués sur la branche `liste-courses-generale-plan-chatgpt`, commit `b027f6be813ab481664f3905df13da5ce6fbd713`.
 
 ### 16.8 Prochaine étape après validation Git
 
 Lot 5 : afficher le budget calorique prévisionnel du plan, avec les calories par jour, le total et la moyenne de la période, puis l’écart par rapport à l’objectif calorique disponible lorsque celui-ci est connu.
+
+## 17. Journal d’exécution — Lot 5A
+
+### 17.1 Périmètre volontairement séparé de la restitution
+
+Le lot 5 a été scindé en deux étapes afin de ne pas figer prématurément une interface longue ou peu lisible :
+
+- lot 5A : structure fiable des données et des calculs ;
+- lot 5B : choix des vues, densité d’affichage, code couleur et comportement mobile.
+
+Le lot 5A n’ajoute donc pas encore de tableau, de couleur, de recette ni de téléchargement à l’écran. Il prépare une seule structure réutilisable pour les futures vues « Synthèse », « Repas », « Détails » et « Courses ».
+
+### 17.2 Source de l’objectif calorique
+
+L’audit du code a confirmé la coexistence de deux anciens calculs. La référence déjà utilisée par le suivi et présentée dans le routeur poids est `calculerProfilComplet(...).apport_calorique_cible`.
+
+Le nouveau moteur réutilise exclusivement cette fonction. Il ne recalcule pas une cible concurrente à partir de `besoin_objectif` et ne remplace jamais un profil incomplet par une valeur arbitraire de 1 800 ou 1 900 kcal.
+
+Le type d’objectif est déduit de la comparaison entre `poids_de_depart` et le poids `objectif`, puis transmis au routeur existant : perte, maintien ou prise.
+
+### 17.3 Contrôle Supabase du profil
+
+La table `profil` contient bien `user_id`, ainsi que les données nécessaires au routeur poids. Le chargeur du lot 5A :
+
+- sélectionne explicitement le profil de l’utilisateur connecté avec `user_id` ;
+- prend le profil le plus récent selon `created_at` ;
+- ne retourne aucune cible si l’utilisateur n’est pas connecté ou si son profil est incomplet.
+
+Le contrôle a aussi confirmé que les politiques actuelles de `profil` sont globalement permissives et que `user_id` reste nullable. Aucune politique, colonne ou donnée n’a été modifiée dans ce lot. Cette dette de sécurité doit être traitée séparément avec autorisation explicite.
+
+### 17.4 Structure canonique produite
+
+Le nouveau module `lib/budgetCaloriquePlan.js` produit, pour toute période valide :
+
+- la liste inclusive de tous les jours, y compris ceux sans repas ;
+- les repas regroupés par moment dans l’ordre petit-déjeuner, déjeuner, dîner, collation ;
+- les ingrédients réellement présents dans `repas_planifies` ;
+- pour chaque ingrédient : nom, catégorie, quantité, calories connues et origine éventuelle d’un repas composé ;
+- les calories connues par repas et par journée ;
+- le nombre d’éléments connus et le nombre total ;
+- un statut de journée `vide`, `incomplet` ou `complet` ;
+- le total et les deux moyennes de la période : sur tous les jours et sur les seuls jours renseignés ;
+- l’objectif quotidien et l’objectif de la période lorsqu’ils sont disponibles.
+
+Les lignes répétées avec le même identifiant Supabase sont neutralisées.
+
+### 17.5 Règles de fiabilité
+
+Le moteur additionne les calories connues mais n’invente jamais celles qui manquent. Un écart par rapport à l’objectif n’est calculé que si :
+
+- la journée contient au moins un élément planifié ;
+- toutes ses calories sont connues ;
+- un objectif calorique personnalisé est disponible.
+
+De même, l’écart global de la période reste absent tant qu’un jour est vide ou incomplet. Le total partiel reste disponible sous le nom explicite `total_kcal_connues` afin qu’une future interface ne le présente pas comme un total complet.
+
+### 17.6 Repas composés et recettes
+
+Les ingrédients photographiés par le lot 3 restent regroupables dans le même moment de repas et ne sont pas recomptés. Le moteur conserve l’indicateur `combo_valide`, mais n’invente pas le nom du modèle composé puisque l’occurrence planifiée ne contient actuellement pas cette référence.
+
+Le lot 5A ne génère aucune recette. Une future vue « Recettes associées » ne pourra afficher que les recettes possédant une liaison réelle avec un repas planifié.
+
+### 17.7 Vérifications réalisées
+
+- nouvelle suite `tests/budgetCaloriquePlan.test.js` : 9 tests réussis ;
+- période invalide ou inversée ;
+- source commune du routeur poids ;
+- filtre du profil par `user_id` ;
+- regroupement par jour, moment et ingrédient ;
+- journées vides, incomplètes et complètes ;
+- absence de calorie ou d’écart inventé ;
+- moyennes distinctes sur la période et sur les jours renseignés ;
+- anti-doublon Supabase ;
+- repas composés conservés sous forme d’ingrédients ;
+- tests ciblés : 30 réussis sur 30 ;
+- suite complète : 108 tests réussis sur 108, 14 suites réussies sur 14 ;
+- build Next.js : réussi, 36 pages générées ;
+- aucune migration Supabase et aucune donnée de test créée ;
+- commit et push du lot 5A : en attente d’autorisation explicite.
+
+### 17.8 Prochaine étape après validation Git
+
+Lot 5B : définir puis implémenter les vues de restitution à partir de cette structure unique, notamment les niveaux « Synthèse », « Repas », « Détails » et « Courses », avant d’ouvrir le chantier de téléchargement des formats choisis.
