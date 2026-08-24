@@ -3,7 +3,7 @@
 **Date :** 24 août 2026  
 **Branche de travail :** liste-courses-generale-plan-chatgpt  
 **Branche source :** finalisation-reprise-jeune-alimentaire-chatgpt  
-**Statut :** lots 0 et 1 poussés ; lot 2 implémenté localement et en attente de validation Git
+**Statut :** lots 0 à 2 poussés ; lot 3 implémenté localement, testé et en attente de validation Git
 
 ## 1. Objet du chantier
 
@@ -612,8 +612,108 @@ Ce lot prépare la projection calorique sans anticiper le lot 5 : il ne charge p
 - build Next.js : réussi, 36 pages générées ;
 - référentiel général inchangé ;
 - Supabase : aucune migration et aucune modification de schéma ;
-- commit et push du lot 2 : en attente d’autorisation explicite.
+- commit et push du lot 2 : effectués sur la branche, commit 7447331.
 
 ### 14.5 Prochaine étape après validation Git
 
 Lot 3 : raccorder les repas composés réutilisables à la table repas_complets existante, sans confondre le modèle sauvegardé avec une occurrence planifiée.
+
+## 15. Journal d’exécution — Lot 3
+
+### 15.1 Structure Supabase contrôlée
+
+Le contrôle direct du projet `Becomingtherealme` a confirmé que la table `repas_complets` existe déjà avec les champs nécessaires :
+
+- `id` ;
+- `user_id` ;
+- `nom` ;
+- `composition` en JSONB ;
+- `quantite_par_assiette` en JSONB ;
+- `created_at`.
+
+Aucune nouvelle table et aucune migration n’ont été créées. La table `repas_planifies` accepte déjà les occurrences détaillées du modèle. La table `repas_reels` accepte déjà les composants consommés et leur tag commun.
+
+Le module `lib/repasComposes.js` applique systématiquement le `user_id` connecté lors de la lecture, de la création, de la modification et de la suppression des modèles.
+
+### 15.2 Format canonique du modèle
+
+Chaque modèle enregistre dans `composition` un tableau de composants contenant :
+
+- identifiant stable du composant ;
+- nom de l’aliment ;
+- catégorie ;
+- quantité ;
+- unité ;
+- calories ;
+- QN lorsqu’il est disponible.
+
+`quantite_par_assiette` conserve une version du format, les portions, le total calorique et le QN moyen pondéré par les calories.
+
+Un modèle est refusé s’il comporte moins de deux aliments ou si un composant ne possède pas les informations indispensables. Aucune quantité ou calorie n’est inventée.
+
+### 15.3 Création et gestion depuis le planning
+
+La page `pages/plan.js` contient désormais un espace « Mes repas composés » raccordé au repas et à la date déjà sélectionnés dans le formulaire existant.
+
+L’utilisateur peut :
+
+- enregistrer comme modèle les aliments déjà placés au même moment et à la même date ;
+- donner un nom au modèle ;
+- consulter ses composants, ses calories totales et son QN moyen ;
+- planifier tout le modèle sur une date et un moment en une seule action ;
+- modifier le nom, les composants, quantités, unités et calories du modèle ;
+- dupliquer le modèle ;
+- supprimer le modèle après confirmation.
+
+La suppression d’un modèle n’efface jamais les occurrences déjà planifiées.
+
+### 15.4 Photographie des occurrences planifiées
+
+Lorsqu’un modèle est planifié, chaque ingrédient devient une ligne distincte dans `repas_planifies` avec sa quantité et ses calories au moment de l’action.
+
+Ce choix assure simultanément que :
+
+- le nom du repas composé ne devient jamais un article de courses ;
+- le futur générateur de courses retrouve directement chaque ingrédient ;
+- modifier le modèle plus tard ne réécrit pas silencieusement le planning passé ;
+- les totaux déjà livrés au lot 2 continuent à fonctionner sans deuxième moteur.
+
+Les nouvelles opérations de la page `plan.js` renseignent et filtrent aussi explicitement `user_id`.
+
+### 15.5 Réutilisation dans la saisie réelle
+
+`components/RepasBloc.js` propose le nouveau composant `SaisieRepasCompose` lorsqu’au moins un modèle appartient à l’utilisateur connecté.
+
+L’utilisateur choisit un modèle puis peut renseigner une heure, la satiété, un ressenti et une note. Une seule validation crée les lignes détaillées dans `repas_reels`. Toutes les lignes partagent un tag de repas composé, ce qui permet aux analyses existantes de les reconnaître comme un seul repas tout en conservant le détail nutritionnel.
+
+La saisie classique aliment par aliment reste disponible et n’a pas été remplacée.
+
+### 15.6 Séparation avec les combos comportementaux
+
+La table `combos_enregistres` n’est ni lue ni modifiée. Elle conserve sa fonction comportementale historique. Les repas alimentaires réutilisables utilisent exclusivement `repas_complets`.
+
+### 15.7 Point de sécurité constaté, non modifié
+
+Les politiques RLS actuelles de `repas_complets` et `repas_planifies` sont plus permissives que le cloisonnement attendu : leurs politiques globales autorisent actuellement toutes les opérations. Le code du lot 3 filtre explicitement par `user_id`, mais ce filtre applicatif ne remplace pas une politique RLS restrictive.
+
+Conformément au périmètre validé, aucune politique Supabase n’a été modifiée dans ce lot. La sécurisation devra faire l’objet d’une autorisation explicite avant la livraison de persistance du lot 7. Le contrôle Supabase a aussi signalé d’autres tables sans RLS, hors du périmètre de ce lot, notamment `parcours_jeune`, `bilans_jeune` et `referentiel_user_custom`.
+
+### 15.8 Vérifications locales
+
+- nouvelle suite `tests/repasComposes.test.js` : 6 tests ;
+- validation d’une composition et refus des modèles incomplets ;
+- total calorique et QN moyen pondéré ;
+- compatibilité du format JSONB avec la table existante ;
+- compatibilité d’affichage des anciens modèles vides ou incomplets ;
+- photographie indépendante des occurrences planifiées ;
+- création des occurrences consommées avec un tag commun ;
+- tests ciblés lot 2 + lot 3 : 12 réussis sur 12 ;
+- suite complète : 91 tests réussis sur 91, 12 suites réussies sur 12 ;
+- build Next.js : réussi, 36 pages générées ;
+- `git diff --check` : sans erreur ;
+- Supabase : aucune migration, aucune modification de schéma et aucune donnée de test créée ;
+- commit et push du lot 3 : en attente d’autorisation explicite.
+
+### 15.9 Prochaine étape après validation Git
+
+Lot 4 : générer la liste de courses générale depuis une période de repas réellement planifiés, en additionnant les ingrédients et en préservant les unités incompatibles sans double comptage.

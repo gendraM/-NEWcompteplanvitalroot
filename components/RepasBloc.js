@@ -9,6 +9,7 @@ import FormAjoutAliment from './FormAjoutAliment';
 // import foodsUser from '../data/foods_user';
 import { evaluerRespectPortionRepas } from '../lib/validerCriterePreparation';
 import { calculerCaloriesAliment } from '../lib/socleQuantitesCalories';
+import SaisieRepasCompose from './SaisieRepasCompose';
 // import FlipNumbers from 'react-flip-numbers'
 
 // 🐛 DEBUG: Vérifier le référentiel chargé
@@ -670,6 +671,8 @@ function getSuggestionsFromNotes(repasList) {
           numbers={`${extrasRestants}`}
         />
       </div>
+
+      <SaisieRepasCompose supabase={supabase} userId={userId} date={date} type={type} />
 
   <form onSubmit={handleSubmit} style={{ background: "#fff", borderRadius: 12, padding: 20, marginBottom: 24 }}>
         {/* Affichage du message d’erreur Supabase */}

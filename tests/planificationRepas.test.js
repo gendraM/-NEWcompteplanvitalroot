@@ -17,7 +17,7 @@ function chargerModules() {
   const planification = fs.readFileSync(path.join(__dirname, '../lib/planificationRepas.js'), 'utf8')
     .replace(/import \{[\s\S]*?\} from '\.\/socleQuantitesCalories';/, 'const { calculerCaloriesAliment, extraireQuantiteReference, normaliserUnite } = __socle;')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { trouverAlimentReferentiel, obtenirSaisieParDefaut, serialiserQuantitePlanifiee, calculerKcalPlanifiees, normaliserRepasPlanifie, calculerTotauxPlanning };');
+    .concat('\nmodule.exports = { trouverAlimentReferentiel, obtenirSaisieParDefaut, serialiserQuantitePlanifiee, extraireQuantitePlanifiee, calculerKcalPlanifiees, normaliserRepasPlanifie, calculerTotauxPlanning };');
   vm.runInContext(planification, context, { filename: 'planificationRepas.js' });
   return context.module.exports;
 }
@@ -25,6 +25,7 @@ function chargerModules() {
 const {
   obtenirSaisieParDefaut,
   serialiserQuantitePlanifiee,
+  extraireQuantitePlanifiee,
   calculerKcalPlanifiees,
   normaliserRepasPlanifie,
   calculerTotauxPlanning
@@ -46,6 +47,12 @@ describe('Planification enrichie', () => {
     expect(serialiserQuantitePlanifiee('2', 'piece')).toBe('2 unité');
     expect(serialiserQuantitePlanifiee('150 g', '')).toBe('150 g');
     expect(serialiserQuantitePlanifiee('', 'g')).toBeNull();
+  });
+
+  test('relit la quantité et l’unité d’une occurrence pour créer un modèle composé', () => {
+    expect(extraireQuantitePlanifiee('150 grammes')).toEqual({ quantite: 150, unite: 'g' });
+    expect(extraireQuantitePlanifiee('2,5 portions')).toEqual({ quantite: 2.5, unite: 'portions' });
+    expect(extraireQuantitePlanifiee('ancienne valeur')).toEqual({ quantite: null, unite: '' });
   });
 
   test('recalcule les calories et accepte une correction explicite', () => {

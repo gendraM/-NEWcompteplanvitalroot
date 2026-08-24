@@ -12,6 +12,7 @@ import {
 } from "../lib/planificationRepas";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
+import GestionRepasComposes from "../components/GestionRepasComposes";
 
 const typesRepas = [
   { nom: "Petit-déjeuner", emoji: "🥐", color: "#ffe082" },
@@ -106,12 +107,17 @@ export default function Plan() {
 
   // Récupère les repas planifiés du mois
   const fetchPlanning = async () => {
+    if (!userId) {
+      setPlanning({});
+      return;
+    }
     setLoading(true);
     const start = toYYYYMMDD(new Date(year, month, 1));
     const end = toYYYYMMDD(new Date(year, month + 1, 0));
     const { data } = await supabase
       .from("repas_planifies")
       .select("*")
+      .eq("user_id", userId)
       .gte("date", start)
       .lte("date", end);
     const grouped = {};
@@ -123,21 +129,23 @@ export default function Plan() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchPlanning(); }, [year, month]);
+  useEffect(() => { fetchPlanning(); }, [year, month, userId]);
 
   // Suggestions personnalisées (bons ressentis)
   useEffect(() => {
     const fetchSuggestions = async () => {
+      if (!userId) return setSuggestions([]);
       const { data } = await supabase
         .from("repas_reels")
         .select("aliment, categorie")
+        .eq("user_id", userId)
         .eq("ressenti", "satisfait")
         .eq("satiete", "oui")
         .limit(10);
       setSuggestions(data || []);
     };
     fetchSuggestions();
-  }, []);
+  }, [userId]);
 
   // Met à jour la catégorie et la règle quand on sélectionne un aliment
   useEffect(() => {
@@ -182,7 +190,7 @@ export default function Plan() {
     setLoading(true);
     setErreurAjout("");
     const { error } = await supabase.from("repas_planifies").insert([
-      { date: selectedDate, type, aliment, categorie, quantite: quantiteEnregistree, kcal: Math.round(kcalEnregistrees) }
+      { user_id: userId, date: selectedDate, type, aliment, categorie, quantite: quantiteEnregistree, kcal: Math.round(kcalEnregistrees) }
     ]);
     if (error) {
       setErreurAjout("Le repas n’a pas pu être enregistré. Réessaie.");
@@ -206,7 +214,8 @@ export default function Plan() {
     await supabase
       .from("repas_planifies")
       .update({ date: destination.droppableId })
-      .eq("id", draggableId);
+      .eq("id", draggableId)
+      .eq("user_id", userId);
     fetchPlanning();
   };
 
@@ -350,7 +359,7 @@ export default function Plan() {
         setImportFeedback("Aucun repas valide trouvé dans le fichier. Vérifie séparateur/format ou télécharge le modèle.");
         setLoading(false); return;
       }
-      await supabase.from("repas_planifies").insert(repas);
+      await supabase.from("repas_planifies").insert(repas.map(item => ({ ...item, user_id: userId })));
       setImportFeedback("Importation terminée !");
       fetchPlanning(); // recharge le planning
     } catch (err) {
@@ -598,6 +607,18 @@ export default function Plan() {
         </div>
       )}
 
+      <GestionRepasComposes
+        supabase={supabase}
+        userId={userId}
+        planning={planning}
+        referentiel={referentielComplet}
+        date={selectedDate}
+        type={type}
+        onChangeDate={setSelectedDate}
+        onChangeType={setType}
+        onPlanningChange={fetchPlanning}
+      />
+
       {/* 8. Progression mois */}
       <div style={{ marginBottom: 16, textAlign: "center" }}>
         <span style={{
@@ -705,7 +726,7 @@ export default function Plan() {
                                             <button
                                               onClick={async (e) => {
                                                 e.stopPropagation();
-                                                await supabase.from("repas_planifies").delete().eq("id", r.id);
+                                                await supabase.from("repas_planifies").delete().eq("id", r.id).eq("user_id", userId);
                                                 fetchPlanning();
                                               }}
                                               style={{
