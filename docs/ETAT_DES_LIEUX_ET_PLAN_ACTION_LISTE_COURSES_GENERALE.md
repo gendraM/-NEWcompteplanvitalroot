@@ -3,7 +3,7 @@
 **Date :** 24 août 2026  
 **Branche de travail :** liste-courses-generale-plan-chatgpt  
 **Branche source :** finalisation-reprise-jeune-alimentaire-chatgpt  
-**Statut :** lots 0 à 5B et corrections fonctionnelles publiés ; lot 6 prochaine étape
+**Statut :** lots 0 à 6 publiés ; lot 6B en cours de validation locale
 
 ## 1. Objet du chantier
 
@@ -1160,3 +1160,25 @@ Le prix détaillé par produit, le magasin, le type de commerce, l'origine et l'
 ### 22.7 Prochaine étape après validation Git
 
 Lot 7 : définir puis implémenter la persistance Supabase de la liste générale, de ses états et de ses prix facultatifs afin de permettre la reprise après rechargement et sur plusieurs appareils, sans dupliquer `repas_planifies` ni le moteur de génération.
+
+## 23. Lot 6B — Besoin planifié et conditionnement d’achat
+
+### 23.1 Distinction fonctionnelle
+
+La quantité nutritive ou de recette n’est pas une quantité commerciale. Le moteur conserve donc deux informations séparées :
+
+- `besoin_valeur` et `besoin_unite` : somme exacte issue des repas planifiés ;
+- `conditionnement_achat` : format réellement choisi pour faire les courses.
+
+Exemples : un besoin de 720 g peut conduire à acheter deux paquets de 500 g ; un besoin de deux œufs peut conduire à acheter une boîte de six. Le besoin du plan n’est pas remplacé par le volume acheté.
+
+### 23.2 Calcul et limites explicites
+
+- lorsque les unités sont compatibles, le nombre de paquets et le reliquat prévisible sont calculés automatiquement ;
+- les formats proposés sont signalés comme des formats courants à confirmer par l’utilisateur ;
+- un format personnalisé peut être saisi ;
+- lorsque les unités ne sont pas convertibles sans hypothèse, l’utilisateur indique le nombre de paquets ;
+- aucune conversion alimentaire arbitraire n’est créée, notamment entre `CS` et grammes ;
+- les choix restent locaux et sont conservés lors d’un recalcul de la même liste.
+
+Ce lot ne modifie ni le référentiel nutritionnel ni Supabase. La persistance multi-appareils demeure le lot 7.

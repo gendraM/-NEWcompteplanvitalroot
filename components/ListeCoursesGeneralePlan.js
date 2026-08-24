@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import {
   construireListeCoursesGenerale,
+  calculerAchatConditionne,
+  formatsAchatCourants,
   grouperListeCoursesGenerale,
   initialiserSuiviCoursesGenerales,
   modifierSuiviCourseGenerale,
@@ -192,7 +194,85 @@ function ChampPrix({ libelle, valeur, onChange }) {
   );
 }
 
-function VueCourses({ liste, articles, prixEstime, onPrixEstimeChange, onCommencer, onModifierPlan }) {
+const UNITES_CONDITIONNEMENT = ['g', 'kg', 'ml', 'L', 'unité'];
+
+function ConditionnementArticle({ article, onModifier }) {
+  const formats = formatsAchatCourants(article);
+  const conditionnement = article.conditionnement_achat;
+  const choix = conditionnement?.mode === 'au_besoin'
+    ? 'au_besoin'
+    : conditionnement?.mode === 'personnalise'
+      ? 'personnalise'
+      : conditionnement?.id || '';
+  const resultat = calculerAchatConditionne(article, conditionnement);
+
+  const selectionner = valeur => {
+    if (!valeur) return onModifier({ conditionnement_achat: null });
+    if (valeur === 'au_besoin') return onModifier({ conditionnement_achat: { mode: 'au_besoin' } });
+    if (valeur === 'personnalise') {
+      return onModifier({ conditionnement_achat: { mode: 'personnalise', valeur: '', unite: article.besoin_unite || 'g' } });
+    }
+    const format = formats.find(item => item.id === valeur);
+    if (format) onModifier({ conditionnement_achat: { ...format, mode: 'format' } });
+  };
+
+  const modifierConditionnement = modification => onModifier({
+    conditionnement_achat: { ...conditionnement, ...modification }
+  });
+
+  return (
+    <div style={{ marginTop: 8, padding: 9, background: '#f7faf7', borderRadius: 8 }}>
+      <div style={{ color: '#37474f', fontSize: 13 }}>
+        <b>Besoin du plan :</b> {article.quantite_planifiee}
+      </div>
+      <label style={{ display: 'block', marginTop: 7, color: '#546e7a', fontSize: 12 }}>
+        Format d’achat
+        <select aria-label={`Format d’achat pour ${article.nom}`} value={choix} onChange={event => selectionner(event.target.value)} style={{ display: 'block', width: '100%', marginTop: 3, padding: 7, border: '1px solid #cfd8dc', borderRadius: 7 }}>
+          <option value="">Format d’achat à choisir</option>
+          <option value="au_besoin">Au poids ou à l’unité selon le besoin</option>
+          {formats.map(format => <option key={format.id} value={format.id}>{format.libelle} — format courant à confirmer</option>)}
+          <option value="personnalise">Autre format…</option>
+        </select>
+      </label>
+
+      {conditionnement?.mode === 'personnalise' && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 7 }}>
+          <label style={{ flex: '1 1 110px', color: '#546e7a', fontSize: 12 }}>
+            Contenu d’un paquet
+            <input aria-label={`Contenu d’un paquet pour ${article.nom}`} type="number" min="0" step="any" inputMode="decimal" value={conditionnement.valeur ?? ''} onChange={event => modifierConditionnement({ valeur: event.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 3, padding: 7, border: '1px solid #cfd8dc', borderRadius: 7 }} />
+          </label>
+          <label style={{ flex: '0 1 100px', color: '#546e7a', fontSize: 12 }}>
+            Unité
+            <select aria-label={`Unité du paquet pour ${article.nom}`} value={conditionnement.unite || 'g'} onChange={event => modifierConditionnement({ unite: event.target.value })} style={{ display: 'block', width: '100%', marginTop: 3, padding: 7, border: '1px solid #cfd8dc', borderRadius: 7 }}>
+              {UNITES_CONDITIONNEMENT.map(unite => <option key={unite} value={unite}>{unite}</option>)}
+            </select>
+          </label>
+        </div>
+      )}
+
+      {resultat.statut === 'nombre_a_saisir' && (
+        <div style={{ marginTop: 7 }}>
+          <div style={{ color: '#e65100', fontSize: 12 }}>{resultat.message}</div>
+          <label style={{ display: 'block', marginTop: 5, color: '#546e7a', fontSize: 12 }}>
+            Nombre de paquets à acheter
+            <input aria-label={`Nombre de paquets pour ${article.nom}`} type="number" min="1" step="1" inputMode="numeric" value={conditionnement?.nombre_conditionnements ?? ''} onChange={event => modifierConditionnement({ nombre_conditionnements: event.target.value })} style={{ display: 'block', width: 110, marginTop: 3, padding: 7, border: '1px solid #cfd8dc', borderRadius: 7 }} />
+          </label>
+        </div>
+      )}
+
+      {resultat.statut === 'ok' && (
+        <div style={{ marginTop: 7, color: '#1b5e20', fontSize: 13 }}>
+          <b>À acheter :</b> {resultat.nombre_conditionnements ? `${resultat.nombre_conditionnements} paquet(s) — ` : ''}{resultat.quantite_achat}
+          {resultat.reliquat_formate && resultat.reliquat > 0 ? <span style={{ display: 'block', color: '#546e7a' }}>Reste prévisible : {resultat.reliquat_formate}</span> : null}
+          {!resultat.calcul_automatique && <span style={{ display: 'block', color: '#546e7a' }}>Nombre de paquets renseigné manuellement.</span>}
+        </div>
+      )}
+      {resultat.statut === 'incomplet' && <div style={{ marginTop: 6, color: '#e65100', fontSize: 12 }}>{resultat.message}</div>}
+    </div>
+  );
+}
+
+function VueCourses({ liste, articles, prixEstime, onPrixEstimeChange, onCommencer, onModifierPlan, onModifierArticle }) {
   const groupes = grouperListeCoursesGenerale(articles);
   const resume = resumerSuiviCoursesGenerales(articles);
   const resumePrix = resumerPrixListeCoursesGenerale(prixEstime, null);
@@ -232,7 +312,7 @@ function VueCourses({ liste, articles, prixEstime, onPrixEstimeChange, onCommenc
             <div key={article.article_id} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '8px 0', borderTop: '1px solid #eceff1' }}>
               <span style={{ flex: '1 1 180px' }}>
                 <b>{article.nom}</b>{article.preparation ? ` — ${article.preparation}` : ''}
-                <span style={{ display: 'block', color: '#546e7a', marginTop: 2 }}>{article.quantite}</span>
+                <ConditionnementArticle article={article} onModifier={modification => onModifierArticle(article.article_id, modification)} />
               </span>
             </div>
           ))}
@@ -249,7 +329,7 @@ function VueCourses({ liste, articles, prixEstime, onPrixEstimeChange, onCommenc
         </div>
       )}
       <p style={{ fontSize: 13, color: '#546e7a' }}>
-        Les quantités sont arrondies à l’achat. Les données manquantes sont signalées et ne sont jamais estimées automatiquement.
+        Le besoin vient des repas planifiés. Le conditionnement d’achat est choisi séparément ; aucune conversion incompatible ni aucun format commercial ne sont inventés.
       </p>
     </div>
   );
@@ -299,9 +379,10 @@ function ModeCourses({ articles, liste, prixEstime, prixReel, onPrixReelChange, 
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                   <div>
                     <strong style={{ textDecoration: article.statut_achat === 'panier' ? 'line-through' : 'none' }}>{article.nom}</strong>
-                    <div style={{ color: '#546e7a', marginTop: 3 }}>{article.quantite}{article.preparation ? ` · ${article.preparation}` : ''}</div>
+                    {article.preparation ? <div style={{ color: '#546e7a', marginTop: 3 }}>{article.preparation}</div> : null}
                   </div>
                 </div>
+                <ConditionnementArticle article={article} onModifier={modification => onModifierArticle(article.article_id, modification)} />
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'end', gap: 8, marginTop: 11 }}>
                   <button type="button" onClick={() => onModifierArticle(article.article_id, { statut_achat: article.statut_achat === 'panier' ? 'a_acheter' : 'panier' })} style={{ border: 0, borderRadius: 8, padding: '8px 11px', background: article.statut_achat === 'panier' ? '#e8f5e9' : '#2e7d32', color: article.statut_achat === 'panier' ? '#1b5e20' : 'white', fontWeight: 700 }}>
                     {article.statut_achat === 'panier' ? 'Remettre à acheter' : 'Mettre dans mon panier'}
@@ -445,6 +526,7 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
                 onPrixEstimeChange={setPrixEstimeListe}
                 onCommencer={() => setModeCourses(true)}
                 onModifierPlan={modifierPlan}
+                onModifierArticle={modifierArticle}
               />
             )}
           </div>

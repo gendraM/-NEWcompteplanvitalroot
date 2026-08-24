@@ -34,7 +34,7 @@ function chargerModule() {
     .replace(/import \{[\s\S]*?\} from '\.\/planificationRepas';/, 'const { extraireQuantitePlanifiee, trouverAlimentReferentiel } = __plan;')
     .replace(/export const /g, 'const ')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { validerPeriodeCourses, construireArticlePlanifie, construireListeCoursesGenerale, grouperListeCoursesGenerale, initialiserSuiviCoursesGenerales, modifierSuiviCourseGenerale, resumerSuiviCoursesGenerales, resumerPrixListeCoursesGenerale };');
+    .concat('\nmodule.exports = { validerPeriodeCourses, construireArticlePlanifie, construireListeCoursesGenerale, grouperListeCoursesGenerale, formatsAchatCourants, calculerAchatConditionne, initialiserSuiviCoursesGenerales, modifierSuiviCourseGenerale, resumerSuiviCoursesGenerales, resumerPrixListeCoursesGenerale };');
   vm.runInContext(source, context, { filename: 'listeCoursesGenerale.js' });
   return context.module.exports;
 }
@@ -43,6 +43,8 @@ const {
   validerPeriodeCourses,
   construireListeCoursesGenerale,
   grouperListeCoursesGenerale,
+  formatsAchatCourants,
+  calculerAchatConditionne,
   initialiserSuiviCoursesGenerales,
   modifierSuiviCourseGenerale,
   resumerSuiviCoursesGenerales,
@@ -79,7 +81,38 @@ describe('Liste de courses générale depuis le planning', () => {
       { id: '1', date: '2026-08-24', aliment: 'Lait', categorie: 'boisson', quantite: '110 ml' },
       { id: '2', date: '2026-08-25', aliment: 'Lait', categorie: 'boisson', quantite: '115 ml' }
     ], { debut: '2026-08-24', fin: '2026-08-30' });
-    expect(resultat.articles[0]).toMatchObject({ quantite_planifiee: '225 ml', quantite: '250 ml' });
+    expect(resultat.articles[0]).toMatchObject({ besoin_valeur: 225, besoin_unite: 'ml', quantite_planifiee: '225 ml', quantite: '250 ml' });
+  });
+
+  test('propose seulement des formats courants identifiés comme tels', () => {
+    expect(formatsAchatCourants({ nom: 'Œuf', categorie: 'protéine' }).map(item => item.valeur)).toEqual([6, 10, 12]);
+    expect(formatsAchatCourants({ nom: 'Haricots verts', categorie: 'légume' })).toEqual([]);
+  });
+
+  test('calcule une boîte et le reste à partir du besoin exact en œufs', () => {
+    expect(calculerAchatConditionne(
+      { besoin_valeur: 2, besoin_unite: 'unité' },
+      { valeur: 6, unite: 'unité' }
+    )).toMatchObject({ statut: 'ok', calcul_automatique: true, nombre_conditionnements: 1, quantite_achat: '6 unité', reliquat: 4 });
+  });
+
+  test('calcule deux paquets de 500 g pour un besoin de 720 g', () => {
+    expect(calculerAchatConditionne(
+      { besoin_valeur: 720, besoin_unite: 'g' },
+      { valeur: 500, unite: 'g' }
+    )).toMatchObject({ statut: 'ok', nombre_conditionnements: 2, quantite_achat: '1 kg', reliquat: 280 });
+  });
+
+  test('ne convertit pas arbitrairement des cuillères en grammes', () => {
+    const article = { besoin_valeur: 6, besoin_unite: 'CS' };
+    const incomplet = calculerAchatConditionne(article, { valeur: 500, unite: 'g' });
+    expect(incomplet).toMatchObject({ statut: 'nombre_a_saisir', calcul_automatique: false });
+    const manuel = calculerAchatConditionne(article, { valeur: 500, unite: 'g', nombre_conditionnements: 2 });
+    expect(manuel).toMatchObject({ statut: 'ok', calcul_automatique: false, nombre_conditionnements: 2, quantite_achat: '1 kg', reliquat: null });
+  });
+
+  test('demande un format avant de calculer l’achat', () => {
+    expect(calculerAchatConditionne({ besoin_valeur: 500, besoin_unite: 'g' })).toMatchObject({ statut: 'a_choisir' });
   });
 
   test('signale les anciennes lignes incomplètes sans inventer de quantité', () => {
@@ -122,12 +155,12 @@ describe('Liste de courses générale depuis le planning', () => {
   });
 
   test('conserve le statut des articles identiques après recalcul du plan', () => {
-    const precedent = [{ article_id: 'carottes', nom: 'Carottes', quantite: '500 g', statut_achat: 'panier' }];
+    const precedent = [{ article_id: 'carottes', nom: 'Carottes', quantite: '500 g', statut_achat: 'panier', conditionnement_achat: { mode: 'personnalise', valeur: 1, unite: 'kg' } }];
     const recalcules = initialiserSuiviCoursesGenerales([
       { article_id: 'carottes', nom: 'Carottes', quantite: '750 g' },
       { article_id: 'poulet', nom: 'Poulet', quantite: '250 g' }
     ], precedent);
-    expect(recalcules[0]).toMatchObject({ quantite: '750 g', statut_achat: 'panier' });
+    expect(recalcules[0]).toMatchObject({ quantite: '750 g', statut_achat: 'panier', conditionnement_achat: { valeur: 1, unite: 'kg' } });
     expect(recalcules[1]).toMatchObject({ statut_achat: 'a_acheter' });
   });
 

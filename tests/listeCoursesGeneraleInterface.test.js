@@ -32,4 +32,13 @@ describe('Interface de la liste de courses générale', () => {
     expect(pagePlan).toContain('id="planificateur-repas"');
     expect(composant).toContain("getElementById('planificateur-repas')");
   });
+
+  test('distingue le besoin du plan du conditionnement réellement acheté', () => {
+    expect(composant).toContain('Besoin du plan :');
+    expect(composant).toContain('Format d’achat à choisir');
+    expect(composant).toContain('format courant à confirmer');
+    expect(composant).toContain('Autre format…');
+    expect(composant).toContain('Nombre de paquets à acheter');
+    expect(composant).toContain('aucune conversion incompatible ni aucun format commercial ne sont inventés');
+  });
 });

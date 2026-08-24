@@ -2041,3 +2041,16 @@ Points de vigilance :
 - Ajout facultatif des prix validé dans le périmètre du lot 6.
 - Suivi du magasin et de la qualité documenté mais volontairement différé.
 - Aucune implémentation fonctionnelle réalisée par cette entrée documentaire.
+
+### Quantité du plan et format réellement acheté — lot 6B
+
+La liste distingue désormais :
+
+- le besoin exact calculé depuis les ingrédients et portions des repas planifiés ;
+- le format commercial choisi au moment de préparer les courses ;
+- le nombre de conditionnements à acheter ;
+- le reliquat prévisible lorsque les unités permettent un calcul fiable.
+
+Les formats courants éventuellement suggérés doivent toujours être confirmés. Quand le besoin est exprimé dans une unité culinaire non convertible honnêtement vers le paquet — par exemple `CS` vers `g` — l’application demande le nombre de paquets et n’invente aucun coefficient.
+
+Évolutions différées : catalogue commercial par enseigne, formats réellement disponibles, prix par produit, comparaison de magasins et recommandations automatiques de conditionnement. Ces données ne doivent pas être ajoutées au référentiel nutritionnel général.
