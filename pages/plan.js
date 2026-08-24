@@ -6,13 +6,12 @@ import {
   calculerKcalPlanifiees,
   calculerTotauxPlanning,
   normaliserRepasPlanifie,
-  obtenirSaisieParDefaut,
   serialiserQuantitePlanifiee,
   trouverAlimentReferentiel
 } from "../lib/planificationRepas";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
-import GestionRepasComposes from "../components/GestionRepasComposes";
+import PlanificateurRepas from "../components/PlanificateurRepas";
 import ListeCoursesGeneralePlan from "../components/ListeCoursesGeneralePlan";
 
 const typesRepas = [
@@ -60,16 +59,10 @@ export default function Plan() {
 
   // Etat planning
   const [planning, setPlanning] = useState({});
-  const [aliment, setAliment] = useState("");
   const [type, setType] = useState(typesRepas[0].nom);
-  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedDate, setSelectedDate] = useState(toYYYYMMDD(today));
   const [suggestions, setSuggestions] = useState([]);
-  const [regle, setRegle] = useState("");
-  const [categorie, setCategorie] = useState("");
-  const [quantite, setQuantite] = useState("");
-  const [unite, setUnite] = useState("");
-  const [kcal, setKcal] = useState("");
-  const [erreurAjout, setErreurAjout] = useState("");
+  const [erreurPlanning, setErreurPlanning] = useState("");
   const [loading, setLoading] = useState(false);
   const [importFeedback, setImportFeedback] = useState("");
   const [comparaison, setComparaison] = useState({ semaineActuelle: 0, semainePrecedente: 0 });
@@ -80,7 +73,7 @@ export default function Plan() {
   const [theme, setTheme] = useState("");
   const [valideInfos, setValideInfos] = useState({ mantra: "", objectif: "", theme: "" });
   const [userId, setUserId] = useState(null);
-  const { referentielComplet } = useUserReferentiel(userId);
+  const { referentielComplet, refresh: refreshReferentiel } = useUserReferentiel(userId);
 
   useEffect(() => {
     let actif = true;
@@ -115,19 +108,26 @@ export default function Plan() {
     setLoading(true);
     const start = toYYYYMMDD(new Date(year, month, 1));
     const end = toYYYYMMDD(new Date(year, month + 1, 0));
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("repas_planifies")
       .select("*")
       .eq("user_id", userId)
       .gte("date", start)
       .lte("date", end);
+    if (error) {
+      setErreurPlanning(`Le planning n’a pas pu être chargé : ${error.message}`);
+      setLoading(false);
+      return { data: null, error };
+    }
     const grouped = {};
     data?.forEach(r => {
       grouped[r.date] = grouped[r.date] || [];
       grouped[r.date].push(r);
     });
     setPlanning(grouped);
+    setErreurPlanning("");
     setLoading(false);
+    return { data: data || [], error: null };
   };
 
   useEffect(() => { fetchPlanning(); }, [year, month, userId]);
@@ -148,63 +148,19 @@ export default function Plan() {
     fetchSuggestions();
   }, [userId]);
 
-  // Met à jour la catégorie et la règle quand on sélectionne un aliment
-  useEffect(() => {
-    if (!aliment) {
-      setCategorie("");
-      setRegle("");
-      return;
-    }
-    const found = trouverAlimentReferentiel(referentielComplet, aliment);
-    if (found) {
-      setCategorie(found.categorie);
-      setRegle(reglesGestion[found.categorie] || "");
-      const valeurs = obtenirSaisieParDefaut(found);
-      setQuantite(valeurs.quantite);
-      setUnite(valeurs.unite);
-      setKcal(valeurs.kcal === null ? "" : String(valeurs.kcal));
-    } else {
-      setCategorie("");
-      setRegle("");
-      setQuantite("");
-      setUnite("");
-      setKcal("");
-    }
-  }, [aliment, referentielComplet]);
-
-  useEffect(() => {
-    const found = trouverAlimentReferentiel(referentielComplet, aliment);
-    if (!found || !quantite || !unite) return;
-    const resultat = calculerKcalPlanifiees(found, quantite, unite);
-    setKcal(resultat.statut === "ok" ? String(resultat.kcal) : "");
-  }, [aliment, quantite, unite, referentielComplet]);
-
-  // Ajouter un repas planifié
-  const handleAdd = async () => {
-    if (!aliment || !type || !selectedDate) return;
-    const quantiteEnregistree = serialiserQuantitePlanifiee(quantite, unite);
-    const kcalEnregistrees = Number(kcal);
-    if (!quantiteEnregistree || !Number.isFinite(kcalEnregistrees) || kcalEnregistrees < 0) {
-      setErreurAjout("Renseigne une quantité, une unité et des calories valides.");
-      return;
-    }
-    setLoading(true);
-    setErreurAjout("");
-    const { error } = await supabase.from("repas_planifies").insert([
-      { user_id: userId, date: selectedDate, type, aliment, categorie, quantite: quantiteEnregistree, kcal: Math.round(kcalEnregistrees) }
-    ]);
-    if (error) {
-      setErreurAjout("Le repas n’a pas pu être enregistré. Réessaie.");
-      setLoading(false);
-      return;
-    }
-    setAliment("");
-    setQuantite("");
-    setUnite("");
-    setKcal("");
-    setSelectedDate("");
-    setLoading(false);
-    fetchPlanning();
+  const afficherLignesEnregistrees = lignes => {
+    if (!Array.isArray(lignes) || !lignes.length) return;
+    setPlanning(courant => {
+      const suivant = { ...courant };
+      lignes.forEach(ligne => {
+        const dateLigne = ligne.date;
+        const existantes = suivant[dateLigne] || [];
+        suivant[dateLigne] = existantes.some(item => item.id === ligne.id)
+          ? existantes
+          : [...existantes, ligne];
+      });
+      return suivant;
+    });
   };
 
   // Drag & drop (déplacement d'un repas d'une date à une autre)
@@ -230,7 +186,6 @@ export default function Plan() {
     setValideInfos({ mantra, objectif, theme });
   };
 
-  const suggestionsRef = referentielComplet.filter(a => !a.typeRepas || a.typeRepas === type);
   const nbJoursPlanifies = days.filter(d => planning[toYYYYMMDD(d)]?.length).length;
   const totauxPlanning = calculerTotauxPlanning(planning, referentielComplet);
 
@@ -505,120 +460,22 @@ export default function Plan() {
         <button onClick={() => setMonth(m => m === 11 ? 0 : m + 1)}>Mois suivant ➡️</button>
       </div>
 
-      {/* 6. Ajout repas planifié */}
-      <div style={{
-        marginBottom: 24,
-        textAlign: "center",
-        background: "#fffde7",
-        borderRadius: 10,
-        padding: 12,
-        fontWeight: 500
-      }}>
-        <span>➕ <b>Ajoute un repas planifié :</b></span>
-        <select value={type} onChange={e => setType(e.target.value)} style={{ marginLeft: 8 }}>
-          {typesRepas.map(t => <option key={t.nom}>{t.nom}</option>)}
-        </select>
-        <input
-          list="aliments"
-          placeholder="Aliment"
-          value={aliment}
-          onChange={e => setAliment(e.target.value)}
-          style={{ marginLeft: 8, minWidth: 120 }}
-        />
-        <datalist id="aliments">
-          {suggestionsRef.map((a, i) => (
-            <option key={i} value={a.nom}>{a.nom}</option>
-          ))}
-        </datalist>
-        <input
-          type="number"
-          min="0.01"
-          step="0.01"
-          aria-label="Quantité planifiée"
-          placeholder="Quantité"
-          value={quantite}
-          onChange={e => setQuantite(e.target.value)}
-          style={{ marginLeft: 8, width: 90 }}
-        />
-        <input
-          aria-label="Unité de la quantité planifiée"
-          placeholder="Unité"
-          value={unite}
-          onChange={e => setUnite(e.target.value)}
-          style={{ marginLeft: 8, width: 80 }}
-        />
-        <input
-          type="number"
-          min="0"
-          step="1"
-          aria-label="Calories planifiées"
-          placeholder="Kcal"
-          value={kcal}
-          onChange={e => setKcal(e.target.value)}
-          style={{ marginLeft: 8, width: 85 }}
-        />
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={e => setSelectedDate(e.target.value)}
-          style={{ marginLeft: 8 }}
-        />
-        <button onClick={handleAdd} style={{ marginLeft: 8 }} disabled={loading}>Ajouter</button>
-        {aliment && trouverAlimentReferentiel(referentielComplet, aliment)?.portionDefaut && (
-          <div style={{ marginTop: 8, color: "#6d4c41", fontSize: 14 }}>
-            Portion proposée : {trouverAlimentReferentiel(referentielComplet, aliment).portionDefaut}
-          </div>
-        )}
-        {erreurAjout && (
-          <div role="alert" style={{ marginTop: 8, color: "#c62828", fontWeight: 600 }}>{erreurAjout}</div>
-        )}
-        <span style={{ marginLeft: 24 }}>Suggestions :</span>
-        {suggestions.map((s, i) => (
-          <button
-            key={i}
-            style={{
-              marginLeft: 8,
-              background: "#c8e6c9",
-              border: "none",
-              borderRadius: 8,
-              padding: "4px 10px",
-              cursor: "pointer"
-            }}
-            onClick={() => setAliment(s.aliment)}
-          >
-            {s.aliment} ({s.categorie})
-          </button>
-        ))}
-      </div>
-
-      {/* 7. Règle nutritionnelle */}
-      {regle && (
-        <div style={{
-          background: "#fffde7",
-          border: "1px solid #ffe082",
-          borderRadius: 8,
-          padding: 12,
-          marginBottom: 16,
-          color: "#795548",
-          fontWeight: 500,
-          maxWidth: 600,
-          margin: "0 auto"
-        }}>
-          <span>📋 <b>Règle à respecter pour ce choix :</b> {regle}</span>
-        </div>
-      )}
-
-      <GestionRepasComposes
+      <PlanificateurRepas
         supabase={supabase}
         userId={userId}
-        planning={planning}
         referentiel={referentielComplet}
         date={selectedDate}
         type={type}
+        suggestions={suggestions}
+        reglesGestion={reglesGestion}
         onChangeDate={setSelectedDate}
         onChangeType={setType}
+        onReferentielChange={refreshReferentiel}
+        onPlanningRecorded={afficherLignesEnregistrees}
         onPlanningChange={fetchPlanning}
       />
+
+      {erreurPlanning && <div role="alert" style={{ margin: "0 0 16px", padding: 10, borderRadius: 8, color: "#b71c1c", background: "#ffebee", fontWeight: 700 }}>{erreurPlanning}</div>}
 
       <ListeCoursesGeneralePlan
         supabase={supabase}
@@ -844,12 +701,6 @@ export default function Plan() {
 
       {/* 12. Responsive style */}
       <style jsx global>{`
-        @media (max-width: 600px) {
-          input, select, button {
-            width: 100% !important;
-            margin: 8px 0 !important;
-          }
-        }
         .dragged-success {
           animation: pop 0.4s;
         }

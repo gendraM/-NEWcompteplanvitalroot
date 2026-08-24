@@ -16,27 +16,39 @@ function chargerModules() {
   vm.createContext(context);
   const planification = fs.readFileSync(path.join(__dirname, '../lib/planificationRepas.js'), 'utf8')
     .replace(/import \{[\s\S]*?\} from '\.\/socleQuantitesCalories';/, 'const { calculerCaloriesAliment, extraireQuantiteReference, normaliserUnite } = __socle;')
+    .replace(/export async function /g, 'async function ')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { trouverAlimentReferentiel, obtenirSaisieParDefaut, serialiserQuantitePlanifiee, extraireQuantitePlanifiee, calculerKcalPlanifiees, normaliserRepasPlanifie, calculerTotauxPlanning };');
+    .concat('\nmodule.exports = { normaliserNomAliment, trouverAlimentReferentiel, rechercherAlimentsReferentiel, obtenirSaisieParDefaut, serialiserQuantitePlanifiee, extraireQuantitePlanifiee, calculerKcalPlanifiees, construireComposantAssiette, construireOccurrencesAssiette, enregistrerAssiettePlanifiee, normaliserRepasPlanifie, calculerTotauxPlanning };');
   vm.runInContext(planification, context, { filename: 'planificationRepas.js' });
   return context.module.exports;
 }
 
 const {
+  trouverAlimentReferentiel,
+  rechercherAlimentsReferentiel,
   obtenirSaisieParDefaut,
   serialiserQuantitePlanifiee,
   extraireQuantitePlanifiee,
   calculerKcalPlanifiees,
+  construireComposantAssiette,
+  construireOccurrencesAssiette,
+  enregistrerAssiettePlanifiee,
   normaliserRepasPlanifie,
   calculerTotauxPlanning
 } = chargerModules();
 
 const referentiel = [
   { nom: 'Poulet', categorie: 'protéine', portionDefaut: '120g', unite: 'g', kcal: 198 },
-  { nom: 'Pomme', categorie: 'fruit', portionDefaut: '1 unité', unite: 'piece', kcal: 80 }
+  { nom: 'Pomme', categorie: 'fruit', portionDefaut: '1 unité', unite: 'piece', kcal: 80 },
+  { nom: 'Œuf', categorie: 'protéine', portionDefaut: '1 œuf', unite: 'piece', kcal: 80, kcalParUnite: 80, qn: 3 }
 ];
 
 describe('Planification enrichie', () => {
+  test('retrouve une fiche canonique malgré les accents et la ligature œ', () => {
+    expect(trouverAlimentReferentiel(referentiel, 'oeuf')?.nom).toBe('Œuf');
+    expect(rechercherAlimentsReferentiel(referentiel, 'OE')[0]?.nom).toBe('Œuf');
+  });
+
   test('préremplit quantité, unité et calories depuis la portion du référentiel', () => {
     expect(obtenirSaisieParDefaut(referentiel[0])).toEqual({ quantite: '120', unite: 'g', kcal: 198 });
     expect(obtenirSaisieParDefaut(referentiel[1])).toEqual({ quantite: '1', unite: 'unité', kcal: 80 });
@@ -87,5 +99,69 @@ describe('Planification enrichie', () => {
     expect(totaux.parType).toEqual({ Déjeuner: 278 });
     expect(totaux.totalJour).toBe(278);
     expect(totaux).toMatchObject({ elementsComplets: 2, elementsTotal: 3, complet: false });
+  });
+
+  test('construit un composant avec portion et calories issues du référentiel', () => {
+    expect(construireComposantAssiette(referentiel[2], '2', 'unité', 'oeuf-1')).toEqual({
+      erreur: null,
+      composant: {
+        id: 'oeuf-1', nom: 'Œuf', categorie: 'protéine', quantite: 2,
+        unite: 'unité', kcal: 160, qn: 3
+      }
+    });
+  });
+
+  test('prépare toutes les lignes du repas pour un enregistrement immédiat dans le planning', () => {
+    const oeuf = construireComposantAssiette(referentiel[2], '2', 'unité', 'oeuf-1').composant;
+    const pomme = construireComposantAssiette(referentiel[1], '1', 'unité', 'pomme-1').composant;
+    const occurrences = construireOccurrencesAssiette([oeuf, pomme], {
+      userId: 'user-1', date: '2026-08-24', type: 'Petit-déjeuner'
+    });
+
+    expect(occurrences).toHaveLength(2);
+    expect(occurrences[0]).toMatchObject({
+      user_id: 'user-1', aliment: 'Œuf', quantite: '2 unité', kcal: 160, combo_valide: true
+    });
+    expect(occurrences[1]).toMatchObject({ aliment: 'Pomme', combo_valide: true });
+  });
+
+  test('un aliment seul reste un repas planifié simple et non un combo', () => {
+    const oeuf = construireComposantAssiette(referentiel[2], '1', 'unité', 'oeuf-1').composant;
+    expect(construireOccurrencesAssiette([oeuf], {
+      userId: 'user-1', date: '2026-08-24', type: 'Petit-déjeuner'
+    })[0]).toMatchObject({ aliment: 'Œuf', combo_valide: false });
+  });
+
+  test('envoie le repas à Supabase et demande le retour des lignes créées', async () => {
+    const oeuf = construireComposantAssiette(referentiel[2], '1', 'unité', 'oeuf-1').composant;
+    let table = null;
+    let payload = null;
+    let selection = null;
+    const supabase = {
+      from: nom => {
+        table = nom;
+        return {
+          insert: lignes => {
+            payload = lignes;
+            return {
+              select: colonnes => {
+                selection = colonnes;
+                return Promise.resolve({ data: [{ id: 'ligne-1', ...lignes[0] }], error: null });
+              }
+            };
+          }
+        };
+      }
+    };
+
+    const resultat = await enregistrerAssiettePlanifiee(supabase, [oeuf], {
+      userId: 'user-1', date: '2026-08-24', type: 'Petit-déjeuner'
+    });
+
+    expect(table).toBe('repas_planifies');
+    expect(payload).toHaveLength(1);
+    expect(selection).toBe('*');
+    expect(resultat.error).toBeNull();
+    expect(resultat.data[0]).toMatchObject({ id: 'ligne-1', aliment: 'Œuf' });
   });
 });

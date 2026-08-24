@@ -924,8 +924,72 @@ Le téléchargement, l’impression, le partage, les états pratiques d’achat 
 - page `/plan` compilée avec succès ;
 - `git diff --check` sans erreur avant mise à jour de la passation ;
 - aucune migration Supabase et aucune donnée de test créée ;
-- commit et push du lot 5B : en attente d’autorisation explicite.
+- commit et push du lot 5B : effectués sur la branche `liste-courses-generale-plan-chatgpt`, commit `8a2d798c9028eee16c34b34c7beaf08458c1dd22`.
 
 ### 18.6 Prochaine étape après validation Git
 
 Lot 6 : rendre la liste utilisable pendant les courses avec des identifiants stables et les états `à acheter`, `acheté` et `déjà disponible`, puis définir le comportement de conservation lors d’une régénération.
+
+## 19. Correction fonctionnelle après test utilisateur — planification et repas composés
+
+### 19.1 Régression constatée
+
+Le test utilisateur du 24 août 2026 a montré que l’interface livrée par les lots 2 et 3 ne respectait pas le parcours métier décrit au chapitre 2.2 :
+
+- le bloc « Ajoute un repas planifié » appelait « repas » l’insertion d’une seule ligne d’aliment ;
+- le champ avec `datalist` acceptait une valeur libre sans garantir sa liaison à une fiche du référentiel ;
+- la recherche exacte ne rapprochait pas `oeuf` de la fiche canonique `Œuf`, laissant quantité, unité et calories vides ;
+- l’unité et les calories restaient présentées comme des champs manuels alors qu’elles devaient découler du référentiel ;
+- le repas composé était créé dans un second bloc après des insertions séparées dans le planning ;
+- les erreurs de lecture de `repas_planifies` étaient ignorées et le rechargement n’était pas attendu, ce qui pouvait laisser le calendrier vide sans explication après une tentative d’enregistrement.
+
+Cette séparation était contraire à l’attendu historique : construire une assiette multi-aliments dans une même saisie, puis décider éventuellement de la conserver comme modèle réutilisable.
+
+### 19.2 Parcours corrigé
+
+La page utilise désormais un seul espace « Planifier mon repas » :
+
+1. l’utilisateur choisit une fois la date et le moment ;
+2. il recherche une fiche du référentiel général ou de son référentiel personnel ;
+3. la recherche neutralise accents, casse et ligatures, notamment `oeuf` / `Œuf` ;
+4. la portion et l’unité de référence sont chargées automatiquement ;
+5. les calories sont calculées automatiquement et recalculées si la quantité change ;
+6. « Ajouter à mon repas » place l’aliment dans une assiette temporaire sans encore écrire une ligne isolée ;
+7. l’utilisateur peut ajouter, modifier ou retirer plusieurs composants et consulter le total calorique ;
+8. « Enregistrer dans mon planning » écrit toutes les lignes de l’assiette dans `repas_planifies` en une seule action ;
+9. à partir de deux aliments, l’utilisateur peut aussi nommer et sauvegarder cette composition dans `repas_complets` ;
+10. un modèle existant peut être chargé dans la même assiette, ajusté, planifié et mis à jour.
+
+Un aliment absent n’est jamais enregistré comme texte libre. L’interface permet d’ouvrir le formulaire personnel existant, puis rafraîchit le référentiel fusionné.
+
+### 19.3 Garantie d’enregistrement et d’affichage
+
+L’insertion Supabase demande désormais le retour des lignes créées. Après confirmation :
+
+- les lignes sont immédiatement intégrées au planning local affiché ;
+- la lecture mensuelle Supabase est relancée et attendue ;
+- l’assiette n’est vidée qu’après réussite de l’insertion ;
+- l’erreur Supabase réelle reste affichée en cas d’échec ;
+- si l’écriture est confirmée mais que le rechargement échoue, l’interface distingue explicitement ces deux résultats.
+
+Le planning et la liste de courses conservent une ligne par ingrédient. `combo_valide` vaut `true` lorsque l’assiette contient plusieurs aliments et `false` pour un aliment seul. Aucun schéma Supabase, moteur de courses ou moteur de budget calorique n’est dupliqué.
+
+### 19.4 Fichiers concernés
+
+- `components/PlanificateurRepas.js` : nouvelle saisie unifiée et gestion intégrée des modèles ;
+- `pages/plan.js` : suppression des deux blocs concurrents, rafraîchissement contrôlé et affichage immédiat ;
+- `lib/planificationRepas.js` : recherche canonique, construction de l’assiette et insertion Supabase ;
+- `tests/planificationRepas.test.js` : recherche `oeuf`, calcul, mono-aliment, multi-aliments et écriture simulée ;
+- `tests/planificateurRepasInterface.test.js` : garde-fous sur le parcours rendu ;
+- présent document : correction du statut Git du lot 5B et journal de la régression.
+
+### 19.5 Vérifications
+
+- aucune migration Supabase et aucune donnée distante créée pendant la correction ;
+- 117 tests réussis sur 117, répartis dans 15 suites ;
+- build Next.js de production réussi, avec 36 pages générées ;
+- route locale de production `/plan` vérifiée en HTTP 200 ;
+- le rendu contient « Planifier mon repas » et « Enregistrer dans mon planning » ;
+- les anciens intitulés « Ajoute un repas planifié » et « Mes repas composés » ne sont plus rendus ;
+- `git diff --check` sans erreur ;
+- aucun commit ni push ne doit être effectué sans autorisation explicite.
