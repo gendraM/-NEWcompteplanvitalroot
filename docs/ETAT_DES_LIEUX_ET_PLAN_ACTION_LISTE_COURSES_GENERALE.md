@@ -3,7 +3,7 @@
 **Date :** 24 août 2026  
 **Branche de travail :** liste-courses-generale-plan-chatgpt  
 **Branche source :** finalisation-reprise-jeune-alimentaire-chatgpt  
-**Statut :** lots 0 à 5A poussés ; lot 5B implémenté localement, testé et en attente de validation Git
+**Statut :** lots 0 à 5B et corrections fonctionnelles publiés ; lot 6 prochaine étape
 
 ## 1. Objet du chantier
 
@@ -992,4 +992,98 @@ Le planning et la liste de courses conservent une ligne par ingrédient. `combo_
 - le rendu contient « Planifier mon repas » et « Enregistrer dans mon planning » ;
 - les anciens intitulés « Ajoute un repas planifié » et « Mes repas composés » ne sont plus rendus ;
 - `git diff --check` sans erreur ;
-- aucun commit ni push ne doit être effectué sans autorisation explicite.
+- correction publiée sur la branche `liste-courses-generale-plan-chatgpt`, commit distant `a7ecda6899955f720ae750fe469a8441d30d95c6`.
+
+## 20. Correction des suggestions après test utilisateur
+
+### 20.1 Anomalie constatée
+
+Dans l’espace « Planifier mon repas », les boutons de la section « Suggestions » ne donnaient aucun résultat visible sur mobile. Le clic copiait seulement le nom de l’aliment dans le champ de recherche situé plus haut dans la page. Il n’ajoutait pas l’aliment à l’assiette en cours.
+
+### 20.2 Comportement corrigé
+
+Un clic sur une suggestion :
+
+- retrouve la fiche canonique dans le référentiel fusionné ;
+- récupère sa portion, son unité, sa catégorie et ses calories ;
+- ajoute immédiatement l’aliment à « Mon repas » ;
+- confirme visuellement l’ajout ;
+- refuse un doublon déjà présent dans l’assiette ;
+- signale explicitement une ancienne suggestion qui n’existerait plus dans le référentiel.
+
+Le contrôle a également révélé que le parseur commun ne reconnaissait pas correctement certains comptages contenant une ligature, notamment `1 œuf`. La lecture des portions reconnaît désormais toute lettre Unicode sans introduire de règle spécifique artificielle pour l’œuf.
+
+### 20.3 Vérifications et publication
+
+- 14 tests ciblés réussis sur 14 ;
+- ajout de tests pour une suggestion valide, absente et déjà présente ;
+- build Next.js réussi, 36 pages générées ;
+- `git diff --check` sans erreur ;
+- quatre fichiers publiés ;
+- commit distant : `520c4360ababd252d44a3ed567706b0265b68a87`.
+
+## 21. État des lieux différé — planification intelligente et go-to meals
+
+### 21.1 Trois notions à ne pas confondre
+
+| Notion | Définition retenue |
+|---|---|
+| Repas composé | Assiette nommée, sauvegardée et réutilisable en une action. |
+| Combo équilibré | Assiette évaluée selon ses catégories, portions, fréquences et règles comportementales. |
+| Go-to meal personnel | Composition qui semble régulièrement bien fonctionner pour l’utilisateur au regard de ses données réelles. |
+
+Le booléen actuel `combo_valide` indique seulement qu’une occurrence planifiée contient plusieurs aliments. Il ne prouve ni son équilibre ni son effet favorable pour l’utilisateur.
+
+### 21.2 Attendus historiques retrouvés
+
+Les fichiers `docs/logique repas.md`, `docs/Fiche_descriptive_suivi.md`, `docs/FUSION_BILAN_HEBDO_ALIMENTAIRE.md` et `docs/SYSTEME_DEFIS_INTELLIGENTS_ET_EXPLOITATION_BDD.md` prévoyaient déjà :
+
+- la reconnaissance des repas fréquemment saisis ;
+- le préremplissage intelligent après répétition ;
+- l’analyse des catégories, portions, fréquences et horaires ;
+- la comparaison entre planification et consommation réelle ;
+- l’exploitation de la satiété, du ressenti et des déclencheurs comportementaux ;
+- la détection de compositions associées à moins d’extras, une meilleure satiété et un ressenti positif ;
+- la proposition dans la planification d’une « assiette qui te réussit bien » ;
+- des conseils destinés au prochain repas, limités et non culpabilisants ;
+- l’identification de moments de fragilité, sans transformer une association statistique en lien de causalité.
+
+### 21.3 Fondations réellement disponibles
+
+Le code ou la structure historique contient déjà :
+
+- les catégories, quantités et calories des aliments ;
+- la date, le moment et l’heure des repas réels ;
+- la satiété, le ressenti, les notes et certains motifs ;
+- les indicateurs `a_reprendre`, `favori`, `regle_respectee` et `repas_planifie_respecte` dans la structure documentée de `repas_reels` ;
+- des calculs mensuels sur les catégories, dépassements, horaires, satiété et humeur ;
+- une suggestion rudimentaire dans `/plan`, fondée sur des aliments isolés ayant `satiete = oui` et `ressenti = satisfait`.
+
+Cette suggestion actuelle ne reconstitue pas l’assiette complète et ne constitue donc pas encore un go-to meal.
+
+### 21.4 Écart technique principal
+
+Les aliments d’un repas réel sont enregistrés en lignes séparées sans identifiant d’occurrence d’assiette explicitement exploité par le code actuel. Les regrouper seulement par date, type et heure serait fragile. Une détection fiable des compositions récurrentes nécessitera un identifiant commun de repas réel avant de produire des recommandations.
+
+### 21.5 Expérience cible à instruire
+
+La planification intelligente devra pouvoir proposer, sans imposer :
+
+1. un repas personnel régulièrement associé à une satiété respectée et un ressenti favorable ;
+2. un ajustement fondé sur le bilan réel de S-1, par exemple une catégorie peu représentée ;
+3. un point de vigilance lorsque plusieurs occurrences comparables sont associées à des portions dépassées, un horaire défavorable ou un ressenti difficile ;
+4. une alternative issue du référentiel ou des repas déjà appréciés par l’utilisateur.
+
+Les messages devront parler d’observations dans l’historique, jamais diagnostiquer une carence ni affirmer qu’un aliment a causé un comportement.
+
+### 21.6 Position dans le plan d’action
+
+Ce chantier est enregistré maintenant mais sera implémenté après le lot 9 du périmètre actuel. Il touche la saisie réelle, le modèle de données, les bilans et la recommandation comportementale ; l’insérer avant le lot 6 mélangerait ce moteur transversal avec la finalisation pratique de la liste de courses.
+
+L’ordre retenu est donc :
+
+1. lot 6 — utilisation pratique pendant les courses ;
+2. lot 7 — persistance Supabase ;
+3. lot 8 — préparation du contexte de cristallisation ;
+4. lot 9 — validation finale et documentation ;
+5. chantier suivant — regroupement fiable des repas réels, bilan S-1, combos équilibrés et go-to meals personnels.
