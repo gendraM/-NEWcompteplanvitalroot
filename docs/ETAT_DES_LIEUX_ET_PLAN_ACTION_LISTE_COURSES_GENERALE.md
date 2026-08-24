@@ -3,7 +3,7 @@
 **Date :** 24 août 2026  
 **Branche de travail :** liste-courses-generale-plan-chatgpt  
 **Branche source :** finalisation-reprise-jeune-alimentaire-chatgpt  
-**Statut :** cadrage validé, aucune implémentation fonctionnelle commencée sur cette branche
+**Statut :** lot 0 de non-régression réalisé localement, aucune implémentation fonctionnelle commencée
 
 ## 1. Objet du chantier
 
@@ -466,3 +466,45 @@ Pour éviter toute perte de travail :
 - après chaque lot modifié, demander l’autorisation avant commit et push, sauf autorisation explicite déjà donnée pour ce lot ;
 - vérifier la présence distante du commit après chaque push ;
 - ne jamais inclure des fichiers étrangers au lot dans un commit.
+
+## 12. Journal d’exécution — Lot 0
+
+### 12.1 Point de départ vérifié
+
+- branche : liste-courses-generale-plan-chatgpt ;
+- commit de départ : 1ef3073, « Documenter le chantier liste de courses générale » ;
+- arbre de travail propre avant le début du lot ;
+- aucune modification fonctionnelle de pages/plan.js, du moteur de reprise ou de Supabase dans ce lot.
+
+### 12.2 Inventaire de la couverture au démarrage
+
+- planning général : aucune suite dédiée à pages/plan.js ;
+- moteur calorique : aucune suite dédiée à lib/routeurPoids.js ;
+- aliments personnalisés : le raccordement existe dans useUserReferentiel et RepasBloc, mais aucune suite unitaire dédiée au hook ;
+- liste de courses de reprise : 16 tests existants avant ce lot ;
+- règles métier de reprise : 6 tests existants ;
+- synchronisation des repas de reprise : 6 tests existants ;
+- préparation au jeûne et mode test : déjà couverts par les suites existantes.
+
+Le planning et le hook de référentiel seront testés au moment de leur extraction vers des fonctions pures dans les lots 1 et 2. Aucun faux test fondé uniquement sur le texte source de la page n’a été ajouté.
+
+### 12.3 Tests de caractérisation ajoutés
+
+- création de tests du routeur poids : BMR, TDEE, plafonds du budget extras, objectif calorique quotidien et refus des données invalides ;
+- verrouillage de la distinction entre apport_calorique_cible et budgetExtras ;
+- ajout de cas d’agrégation de courses couvrant les préparations compatibles, les préparations distinctes et les unités incompatibles ;
+- conversion de l’ancien script validation-semaine en véritable suite Jest avec assertions ;
+- stabilisation de ses données de test selon la règle actuelle est_extra et selon les dates locales.
+
+### 12.4 Résultats locaux
+
+- tests ciblés routeur poids et liste de reprise : 24 réussis sur 24 ;
+- suite complète : 65 tests réussis sur 65, 9 suites réussies sur 9 ;
+- build Next.js : réussi, 36 pages générées ;
+- reprise alimentaire : aucun fichier fonctionnel modifié ;
+- Supabase : aucune lecture ou écriture nécessaire pour ce lot ;
+- commit et push : en attente d’autorisation explicite.
+
+### 12.5 Prochaine étape après validation Git
+
+Lot 1 : extraire le socle commun de quantités et de calories, en conservant toutes les règles propres à la reprise dans leur module actuel et en maintenant les tests du lot 0 au vert.

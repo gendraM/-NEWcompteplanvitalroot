@@ -7,6 +7,37 @@
 // ═══════════════════════════════════════════════════════════
 // IMPORTS
 // ═══════════════════════════════════════════════════════════
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+function chargerModule() {
+  const filePath = path.join(__dirname, '../lib/validationSemaine.js');
+  const source = fs.readFileSync(filePath, 'utf8');
+  const transformed = source
+    .replace(/export async function /g, 'async function ')
+    .replace(/export function /g, 'function ')
+    .concat('\nmodule.exports = { calculerExtrasSemaine, genererMessageFeedback, calculerVariation, getSemainesNonValidees, formatDate, getMonday, addDays, isDateInRange };');
+
+  const context = {
+    module: { exports: {} },
+    exports: {},
+    console,
+    Date,
+    Math,
+    Array,
+    Object,
+    Set,
+    String,
+    Number,
+    Boolean,
+    isNaN
+  };
+  vm.createContext(context);
+  vm.runInContext(transformed, context, { filename: 'validationSemaine.js' });
+  return context.module.exports;
+}
+
 const { 
   calculerExtrasSemaine, 
   genererMessageFeedback, 
@@ -16,7 +47,7 @@ const {
   getMonday,
   addDays,
   isDateInRange
-} = require('../lib/validationSemaine');
+} = chargerModule();
 
 // ═══════════════════════════════════════════════════════════
 // DONNÉES DE TEST
@@ -24,8 +55,8 @@ const {
 
 const repasMock = [
   // Semaine du 8 janvier (2 fast-food)
-  { date: '2026-01-08', type: 'Déjeuner', categorie: 'fast-food', nom: 'Big Mac', moment: 'Déjeuner' },
-  { date: '2026-01-10', type: 'Dîner', tag: 'fast-food', nom: 'Pizza', moment: 'Dîner' },
+  { date: '2026-01-08', type: 'Déjeuner', categorie: 'fast-food', nom: 'Big Mac', moment: 'Déjeuner', est_extra: true },
+  { date: '2026-01-10', type: 'Dîner', tag: 'fast-food', nom: 'Pizza', moment: 'Dîner', est_extra: true },
   { date: '2026-01-09', type: 'Déjeuner', categorie: 'normal', nom: 'Salade', moment: 'Déjeuner' },
   
   // Semaine du 1er janvier (0 fast-food)
@@ -66,8 +97,8 @@ console.log(`  ✅ ${test2 === '' ? 'PASS' : '❌ FAIL'}`);
 
 // Test 3: getMonday
 console.log('\nTest 3: getMonday (vendredi 9 janvier 2026)');
-const test3 = getMonday(new Date('2026-01-09'));
-const test3Str = test3.toISOString().slice(0, 10);
+const test3 = getMonday('2026-01-09');
+const test3Str = formatDate(test3, 'yyyy-MM-dd');
 console.log(`  Résultat: "${test3Str}"`);
 console.log(`  Attendu: "2026-01-05" (lundi de la semaine)`);
 console.log(`  ✅ ${test3Str === '2026-01-05' ? 'PASS' : '❌ FAIL'}`);
@@ -173,3 +204,24 @@ console.log('   7. Fermer modal');
 console.log('   8. Sélectionner lundi');
 console.log('   9. Vérifier badge "Voir feedback" apparaît');
 console.log('   10. Cliquer badge → vérifier modal s\'ouvre\n');
+
+describe('Caractérisation de la validation hebdomadaire historique', () => {
+  test('les résultats documentés par le script sont réellement conformes', () => {
+    expect(test1_1).toBe('2026-01-09');
+    expect(test1_2).toBe('9 janvier 2026');
+    expect(test2).toBe('');
+    expect(test3Str).toBe('2026-01-05');
+    expect(test4Str).toBe('2026-01-12');
+    expect(test5_1).toBe(true);
+    expect(test5_2).toBe(false);
+    expect(test6.count).toBe(2);
+    expect(test6.details).toHaveLength(2);
+    expect(test7.count).toBe(0);
+    expect(test8.count).toBe(0);
+    expect(test9).toContain('Incroyable');
+    expect(test10.includes('Bravo') || test10.includes('quota')).toBe(true);
+    expect(test11).toContain('Dépassement');
+    expect(test12).toBe(1);
+    expect(test13.length).toBeGreaterThanOrEqual(2);
+  });
+});
