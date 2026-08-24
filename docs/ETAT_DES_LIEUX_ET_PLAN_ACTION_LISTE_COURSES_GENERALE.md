@@ -3,7 +3,7 @@
 **Date :** 24 août 2026  
 **Branche de travail :** liste-courses-generale-plan-chatgpt  
 **Branche source :** finalisation-reprise-jeune-alimentaire-chatgpt  
-**Statut :** lot 0 poussé ; lot 1 implémenté localement et en attente de validation Git
+**Statut :** lots 0 et 1 poussés ; lot 2 implémenté localement et en attente de validation Git
 
 ## 1. Objet du chantier
 
@@ -552,8 +552,68 @@ Un contrôle exhaustif a exécuté le nouveau calcul sur la portion par défaut 
 - le build a été exécuté dans une copie temporaire hors du dossier synchronisé, car le service de synchronisation recréait le cache ignoré .next/export pendant son nettoyage ;
 - aucune modification du référentiel général ;
 - aucune modification Supabase ;
-- commit et push du lot 1 : en attente d’autorisation explicite.
+- commit et push du lot 1 : effectués sur la branche, commit 1a856cc.
 
 ### 13.5 Prochaine étape après validation Git
 
 Lot 2 : enrichir pages/plan.js avec le référentiel fusionné, la quantité, l’unité, les kcal enregistrées et les totaux par repas et par journée, tout en maintenant l’affichage des anciens repas incomplets.
+
+## 14. Journal d’exécution — Lot 2
+
+### 14.1 Planification enrichie
+
+pages/plan.js utilise désormais le référentiel fusionné général + aliments personnalisés. Lorsqu’un aliment connu est sélectionné :
+
+- sa catégorie est reprise ;
+- sa portion par défaut est proposée ;
+- la quantité et l’unité restent modifiables ;
+- les calories sont calculées avec le socle commun du lot 1 ;
+- l’utilisateur peut corriger explicitement les calories avant l’enregistrement.
+
+Le repas est enregistré dans les colonnes existantes de repas_planifies :
+
+- quantite contient la valeur et l’unité sous une forme explicite, par exemple 150 g ;
+- kcal contient la valeur entière prévue ;
+- aucune migration ni nouvelle colonne Supabase n’est nécessaire pour ce lot.
+
+Les modèles CSV et Excel comprennent maintenant les colonnes Quantité, Unité et Kcal. Les anciens fichiers restent importables ; les calories sont recalculées lorsque la quantité et l’aliment suffisent à un calcul démontrable.
+
+### 14.2 Compatibilité des anciens repas
+
+Le nouveau module lib/planificationRepas.js distingue explicitement :
+
+- les lignes complètes, disposant d’une quantité et de calories enregistrées ou calculables ;
+- les lignes historiques sans quantité ou sans valeur calorique ;
+- les données impossibles à relier au référentiel sans estimation arbitraire.
+
+Une ancienne ligne incomplète reste affichée avec « Quantité non renseignée » et/ou « Calories non renseignées ». Aucune quantité ni calorie n’est inventée et aucune ancienne ligne n’est modifiée automatiquement dans la base.
+
+### 14.3 Totaux affichés
+
+Dans chaque journée du calendrier :
+
+- chaque aliment affiche sa quantité et ses calories ;
+- les aliments partageant le même moment de repas sont additionnés ;
+- le total calorique de chaque moment est affiché ;
+- le total calorique journalier est affiché ;
+- la mention « partiel » apparaît dès qu’une ligne de la journée ne possède pas de calories exploitables.
+
+Ce lot prépare la projection calorique sans anticiper le lot 5 : il ne charge pas encore l’objectif calorique du profil et ne calcule pas encore la moyenne ni l’écart de la période.
+
+### 14.4 Vérifications locales
+
+- nouvelle suite tests/planificationRepas.test.js : 6 tests ;
+- quantité/unité sérialisées dans le champ texte existant ;
+- calcul et correction explicite des kcal ;
+- anciens repas incomplets conservés sans valeur inventée ;
+- récupération des calories lorsque l’ancienne quantité suffit ;
+- totaux par repas et par journée avec statut complet ou partiel ;
+- suite complète : 84 tests réussis sur 84, 11 suites réussies sur 11 ;
+- build Next.js : réussi, 36 pages générées ;
+- référentiel général inchangé ;
+- Supabase : aucune migration et aucune modification de schéma ;
+- commit et push du lot 2 : en attente d’autorisation explicite.
+
+### 14.5 Prochaine étape après validation Git
+
+Lot 3 : raccorder les repas composés réutilisables à la table repas_complets existante, sans confondre le modèle sauvegardé avec une occurrence planifiée.

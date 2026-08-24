@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import referentielAliments from "../data/referentiel";
+import useUserReferentiel from "../lib/useUserReferentiel";
+import {
+  calculerKcalPlanifiees,
+  calculerTotauxPlanning,
+  normaliserRepasPlanifie,
+  obtenirSaisieParDefaut,
+  serialiserQuantitePlanifiee,
+  trouverAlimentReferentiel
+} from "../lib/planificationRepas";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 
@@ -56,6 +64,10 @@ export default function Plan() {
   const [suggestions, setSuggestions] = useState([]);
   const [regle, setRegle] = useState("");
   const [categorie, setCategorie] = useState("");
+  const [quantite, setQuantite] = useState("");
+  const [unite, setUnite] = useState("");
+  const [kcal, setKcal] = useState("");
+  const [erreurAjout, setErreurAjout] = useState("");
   const [loading, setLoading] = useState(false);
   const [importFeedback, setImportFeedback] = useState("");
   const [comparaison, setComparaison] = useState({ semaineActuelle: 0, semainePrecedente: 0 });
@@ -65,6 +77,16 @@ export default function Plan() {
   const [objectif, setObjectif] = useState("");
   const [theme, setTheme] = useState("");
   const [valideInfos, setValideInfos] = useState({ mantra: "", objectif: "", theme: "" });
+  const [userId, setUserId] = useState(null);
+  const { referentielComplet } = useUserReferentiel(userId);
+
+  useEffect(() => {
+    let actif = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (actif) setUserId(data?.user?.id || null);
+    });
+    return () => { actif = false; };
+  }, []);
 
   // Récupère les valeurs de localStorage côté client
   useEffect(() => {
@@ -124,24 +146,53 @@ export default function Plan() {
       setRegle("");
       return;
     }
-    const found = referentielAliments.find(a => a.nom === aliment);
+    const found = trouverAlimentReferentiel(referentielComplet, aliment);
     if (found) {
       setCategorie(found.categorie);
       setRegle(reglesGestion[found.categorie] || "");
+      const valeurs = obtenirSaisieParDefaut(found);
+      setQuantite(valeurs.quantite);
+      setUnite(valeurs.unite);
+      setKcal(valeurs.kcal === null ? "" : String(valeurs.kcal));
     } else {
       setCategorie("");
       setRegle("");
+      setQuantite("");
+      setUnite("");
+      setKcal("");
     }
-  }, [aliment]);
+  }, [aliment, referentielComplet]);
+
+  useEffect(() => {
+    const found = trouverAlimentReferentiel(referentielComplet, aliment);
+    if (!found || !quantite || !unite) return;
+    const resultat = calculerKcalPlanifiees(found, quantite, unite);
+    setKcal(resultat.statut === "ok" ? String(resultat.kcal) : "");
+  }, [aliment, quantite, unite, referentielComplet]);
 
   // Ajouter un repas planifié
   const handleAdd = async () => {
     if (!aliment || !type || !selectedDate) return;
+    const quantiteEnregistree = serialiserQuantitePlanifiee(quantite, unite);
+    const kcalEnregistrees = Number(kcal);
+    if (!quantiteEnregistree || !Number.isFinite(kcalEnregistrees) || kcalEnregistrees < 0) {
+      setErreurAjout("Renseigne une quantité, une unité et des calories valides.");
+      return;
+    }
     setLoading(true);
-    await supabase.from("repas_planifies").insert([
-      { date: selectedDate, type, aliment, categorie }
+    setErreurAjout("");
+    const { error } = await supabase.from("repas_planifies").insert([
+      { date: selectedDate, type, aliment, categorie, quantite: quantiteEnregistree, kcal: Math.round(kcalEnregistrees) }
     ]);
+    if (error) {
+      setErreurAjout("Le repas n’a pas pu être enregistré. Réessaie.");
+      setLoading(false);
+      return;
+    }
     setAliment("");
+    setQuantite("");
+    setUnite("");
+    setKcal("");
     setSelectedDate("");
     setLoading(false);
     fetchPlanning();
@@ -169,13 +220,14 @@ export default function Plan() {
     setValideInfos({ mantra, objectif, theme });
   };
 
-  const suggestionsRef = referentielAliments.filter(a => a.typeRepas === type);
+  const suggestionsRef = referentielComplet.filter(a => !a.typeRepas || a.typeRepas === type);
   const nbJoursPlanifies = days.filter(d => planning[toYYYYMMDD(d)]?.length).length;
+  const totauxPlanning = calculerTotauxPlanning(planning, referentielComplet);
 
   // EXPORT MODELE (CSV/XLSX) avec toutes colonnes utiles
   const handleExport = (format = "csv") => {
     const rows = [
-      ["Date", "Jour", "Type", "Aliment", "Catégorie"]
+      ["Date", "Jour", "Type", "Aliment", "Catégorie", "Quantité", "Unité", "Kcal"]
     ];
     days.forEach(dateObj => {
       const dateJJMMAAAA = dateObj.toLocaleDateString("fr-FR");
@@ -185,6 +237,9 @@ export default function Plan() {
           dateJJMMAAAA,
           jourSemaine,
           typeR.nom,
+          "",
+          "",
+          "",
           "",
           ""
         ]);
@@ -236,7 +291,14 @@ export default function Plan() {
             date: d,
             type: r.Type || r["type"] || "",
             aliment: r.Aliment || r["aliment"] || "",
-            categorie: r.Catégorie || r["Categorie"] || r["categorie"] || ""
+            categorie: r.Catégorie || r["Categorie"] || r["categorie"] || "",
+            quantite: serialiserQuantitePlanifiee(
+              r.Quantité || r.Quantite || r.quantite,
+              r.Unité || r.Unite || r.unite
+            ),
+            kcal: Number(r.Kcal ?? r.kcal) >= 0 && String(r.Kcal ?? r.kcal).trim() !== ""
+              ? Math.round(Number(r.Kcal ?? r.kcal))
+              : null
           };
         }).filter(r => !!r.date && !!r.type && !!r.aliment);
       } else if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
@@ -258,13 +320,32 @@ export default function Plan() {
             date: d,
             type: r.Type || r["type"] || "",
             aliment: r.Aliment || r["aliment"] || "",
-            categorie: r.Catégorie || r["Categorie"] || r["categorie"] || ""
+            categorie: r.Catégorie || r["Categorie"] || r["categorie"] || "",
+            quantite: serialiserQuantitePlanifiee(
+              r.Quantité || r.Quantite || r.quantite,
+              r.Unité || r.Unite || r.unite
+            ),
+            kcal: Number(r.Kcal ?? r.kcal) >= 0 && String(r.Kcal ?? r.kcal).trim() !== ""
+              ? Math.round(Number(r.Kcal ?? r.kcal))
+              : null
           };
         }).filter(r => !!r.date && !!r.type && !!r.aliment);
       } else {
         setImportFeedback("Format de fichier non supporté. Import CSV ou XLSX seulement.");
         setLoading(false); return;
       }
+      repas = repas.map(item => {
+        const alimentReference = trouverAlimentReferentiel(referentielComplet, item.aliment);
+        if (!alimentReference) return item;
+        const calories = item.kcal === null && item.quantite
+          ? calculerKcalPlanifiees(alimentReference, item.quantite, alimentReference.unite)
+          : null;
+        return {
+          ...item,
+          categorie: item.categorie || alimentReference.categorie || "",
+          kcal: calories?.statut === "ok" ? calories.kcal : item.kcal
+        };
+      });
       if (repas.length === 0) {
         setImportFeedback("Aucun repas valide trouvé dans le fichier. Vérifie séparateur/format ou télécharge le modèle.");
         setLoading(false); return;
@@ -440,12 +521,47 @@ export default function Plan() {
           ))}
         </datalist>
         <input
+          type="number"
+          min="0.01"
+          step="0.01"
+          aria-label="Quantité planifiée"
+          placeholder="Quantité"
+          value={quantite}
+          onChange={e => setQuantite(e.target.value)}
+          style={{ marginLeft: 8, width: 90 }}
+        />
+        <input
+          aria-label="Unité de la quantité planifiée"
+          placeholder="Unité"
+          value={unite}
+          onChange={e => setUnite(e.target.value)}
+          style={{ marginLeft: 8, width: 80 }}
+        />
+        <input
+          type="number"
+          min="0"
+          step="1"
+          aria-label="Calories planifiées"
+          placeholder="Kcal"
+          value={kcal}
+          onChange={e => setKcal(e.target.value)}
+          style={{ marginLeft: 8, width: 85 }}
+        />
+        <input
           type="date"
           value={selectedDate}
           onChange={e => setSelectedDate(e.target.value)}
           style={{ marginLeft: 8 }}
         />
         <button onClick={handleAdd} style={{ marginLeft: 8 }} disabled={loading}>Ajouter</button>
+        {aliment && trouverAlimentReferentiel(referentielComplet, aliment)?.portionDefaut && (
+          <div style={{ marginTop: 8, color: "#6d4c41", fontSize: 14 }}>
+            Portion proposée : {trouverAlimentReferentiel(referentielComplet, aliment).portionDefaut}
+          </div>
+        )}
+        {erreurAjout && (
+          <div role="alert" style={{ marginTop: 8, color: "#c62828", fontWeight: 600 }}>{erreurAjout}</div>
+        )}
         <span style={{ marginLeft: 24 }}>Suggestions :</span>
         {suggestions.map((s, i) => (
           <button
@@ -554,6 +670,7 @@ export default function Plan() {
                                 <div ref={provided.innerRef} {...provided.droppableProps}>
                                   {(planning[dateStr] || []).map((r, idx) => {
                                     const repasType = typesRepas.find(t => t.nom === r.type);
+                                    const repasAffiche = normaliserRepasPlanifie(r, referentielComplet);
                                     return (
                                       <Draggable key={r.id} draggableId={r.id} index={idx}>
                                         {(provided) => (
@@ -576,7 +693,15 @@ export default function Plan() {
                                             }}
                                           >
                                             <span style={{ fontSize: 18 }}>{repasType?.emoji}</span>
-                                            <b>{r.type}</b> : {r.aliment}
+                                            <span style={{ flex: 1 }}>
+                                              <b>{r.type}</b> : {r.aliment}
+                                              <span style={{ display: "block", fontSize: 12, color: "#455a64", marginTop: 2 }}>
+                                                {repasAffiche.quantite_affichee || "Quantité non renseignée"}
+                                                {repasAffiche.kcal_calculees !== null
+                                                  ? ` • ${repasAffiche.kcal_calculees} kcal`
+                                                  : " • Calories non renseignées"}
+                                              </span>
+                                            </span>
                                             <button
                                               onClick={async (e) => {
                                                 e.stopPropagation();
@@ -601,6 +726,24 @@ export default function Plan() {
                                     );
                                   })}
                                   {provided.placeholder}
+                                  {Object.entries(totauxPlanning[dateStr]?.parType || {}).map(([typeRepas, total]) => (
+                                    <div key={typeRepas} style={{ fontSize: 12, color: "#37474f", marginTop: 3 }}>
+                                      {typeRepas} : <b>{total} kcal</b>
+                                    </div>
+                                  ))}
+                                  {(planning[dateStr] || []).length > 0 && (
+                                    <div style={{
+                                      borderTop: "1px solid #cfd8dc",
+                                      marginTop: 6,
+                                      paddingTop: 5,
+                                      color: totauxPlanning[dateStr]?.complet ? "#2e7d32" : "#ef6c00",
+                                      fontSize: 12,
+                                      fontWeight: 700
+                                    }}>
+                                      Total jour : {totauxPlanning[dateStr]?.totalJour || 0} kcal
+                                      {!totauxPlanning[dateStr]?.complet && " (partiel)"}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </Droppable>
@@ -619,7 +762,7 @@ export default function Plan() {
       {/* 10. Export planning rempli */}
       <button
         onClick={() => {
-          const rows = [["Date", "Jour", "Type", "Aliment", "Catégorie"]];
+          const rows = [["Date", "Jour", "Type", "Aliment", "Catégorie", "Quantité", "Kcal"]];
           Object.entries(planning).forEach(([date, repasArray]) => {
             const dObj = new Date(date);
             const jour = joursSemaine[dObj.getDay()];
@@ -630,7 +773,9 @@ export default function Plan() {
                 jour,
                 r.type,
                 r.aliment,
-                r.categorie || ""
+                r.categorie || "",
+                r.quantite || "",
+                r.kcal ?? ""
               ]);
             });
           });
