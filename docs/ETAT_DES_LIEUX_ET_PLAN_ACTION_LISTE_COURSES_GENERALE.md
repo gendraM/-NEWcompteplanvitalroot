@@ -3,7 +3,7 @@
 **Date :** 24 août 2026  
 **Branche de travail :** liste-courses-generale-plan-chatgpt  
 **Branche source :** finalisation-reprise-jeune-alimentaire-chatgpt  
-**Statut :** lots 0 à 4 poussés ; lot 5A implémenté localement, testé et en attente de validation Git
+**Statut :** lots 0 à 5A poussés ; lot 5B implémenté localement, testé et en attente de validation Git
 
 ## 1. Objet du chantier
 
@@ -869,8 +869,63 @@ Le lot 5A ne génère aucune recette. Une future vue « Recettes associées » n
 - suite complète : 108 tests réussis sur 108, 14 suites réussies sur 14 ;
 - build Next.js : réussi, 36 pages générées ;
 - aucune migration Supabase et aucune donnée de test créée ;
-- commit et push du lot 5A : en attente d’autorisation explicite.
+- commit et push du lot 5A : `d321d633a5600cb81c4c8a06896786c46c8c376a`.
 
-### 17.8 Prochaine étape après validation Git
+### 17.8 Étape réalisée après validation Git
 
 Lot 5B : définir puis implémenter les vues de restitution à partir de cette structure unique, notamment les niveaux « Synthèse », « Repas », « Détails » et « Courses », avant d’ouvrir le chantier de téléchargement des formats choisis.
+
+## 18. Journal d’exécution — Lot 5B
+
+### 18.1 Parcours retenu
+
+Le lot 5B conserve un seul bloc dans `pages/plan.js`, un seul choix de période et un seul bouton d’analyse. Il ne crée ni deuxième calendrier ni générateur concurrent.
+
+Après avoir choisi la période, l’utilisateur obtient quatre niveaux de lecture dans le même espace :
+
+- `Synthèse` : calories connues, moyenne des jours renseignés, objectif calorique quotidien et écart prévisionnel lorsque celui-ci est fiable ;
+- `Repas` : journées repliables, moments de repas, aliments prévus et calories du repas ;
+- `Détails` : quantités et calories de chaque ingrédient, avec signalement des informations manquantes et des composants issus d’un repas enregistré ;
+- `Courses` : liste agrégée par catégorie selon le moteur du lot 4.
+
+### 18.2 Source de données unique
+
+Une seule lecture de `repas_planifies`, filtrée par `user_id` et par la période choisie, alimente simultanément :
+
+- le moteur du budget calorique du lot 5A ;
+- le moteur de liste de courses du lot 4 ;
+- les vues repas et détails.
+
+Le dernier profil appartenant à l’utilisateur est chargé en parallèle afin d’éviter une attente séquentielle inutile. Aucune table, politique Supabase ou donnée n’a été modifiée.
+
+### 18.3 Lisibilité et fiabilité
+
+Les journées sont repliables afin de limiter la longueur de la page sur mobile et ordinateur. Les journées sans repas restent visibles pour que l’utilisateur identifie immédiatement les trous du planning.
+
+L’interface distingue explicitement :
+
+- un total complet d’un total seulement partiel ;
+- une journée vide, incomplète ou complète ;
+- les calories connues des calories manquantes ;
+- le plan prévisionnel des repas réellement consommés.
+
+L’écart à l’objectif n’est pas affiché comme fiable lorsque la période est incomplète. Aucune recette ni aucun nom de repas composé n’est inventé.
+
+### 18.4 Limites conservées volontairement
+
+Le téléchargement, l’impression, le partage, les états pratiques d’achat et la persistance d’une liste générale restent hors du lot 5B. Ils relèvent des lots suivants et ne doivent pas être simulés par une donnée locale concurrente.
+
+### 18.5 Vérifications réalisées
+
+- copie Git complète recréée depuis le commit du lot 5A avant toute modification ;
+- tests ciblés budget calorique et liste de courses : 17 réussis sur 17 ;
+- suite complète : 108 tests réussis sur 108, 14 suites réussies sur 14 ;
+- build Next.js : réussi, 36 pages générées ;
+- page `/plan` compilée avec succès ;
+- `git diff --check` sans erreur avant mise à jour de la passation ;
+- aucune migration Supabase et aucune donnée de test créée ;
+- commit et push du lot 5B : en attente d’autorisation explicite.
+
+### 18.6 Prochaine étape après validation Git
+
+Lot 6 : rendre la liste utilisable pendant les courses avec des identifiants stables et les états `à acheter`, `acheté` et `déjà disponible`, puis définir le comportement de conservation lors d’une régénération.
