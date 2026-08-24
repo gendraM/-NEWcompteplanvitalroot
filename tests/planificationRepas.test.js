@@ -18,7 +18,7 @@ function chargerModules() {
     .replace(/import \{[\s\S]*?\} from '\.\/socleQuantitesCalories';/, 'const { calculerCaloriesAliment, extraireQuantiteReference, normaliserUnite } = __socle;')
     .replace(/export async function /g, 'async function ')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { normaliserNomAliment, trouverAlimentReferentiel, rechercherAlimentsReferentiel, obtenirSaisieParDefaut, serialiserQuantitePlanifiee, extraireQuantitePlanifiee, calculerKcalPlanifiees, construireComposantAssiette, construireOccurrencesAssiette, enregistrerAssiettePlanifiee, normaliserRepasPlanifie, calculerTotauxPlanning };');
+    .concat('\nmodule.exports = { normaliserNomAliment, trouverAlimentReferentiel, rechercherAlimentsReferentiel, obtenirSaisieParDefaut, serialiserQuantitePlanifiee, extraireQuantitePlanifiee, calculerKcalPlanifiees, construireComposantAssiette, construireAjoutSuggestion, construireOccurrencesAssiette, enregistrerAssiettePlanifiee, normaliserRepasPlanifie, calculerTotauxPlanning };');
   vm.runInContext(planification, context, { filename: 'planificationRepas.js' });
   return context.module.exports;
 }
@@ -31,6 +31,7 @@ const {
   extraireQuantitePlanifiee,
   calculerKcalPlanifiees,
   construireComposantAssiette,
+  construireAjoutSuggestion,
   construireOccurrencesAssiette,
   enregistrerAssiettePlanifiee,
   normaliserRepasPlanifie,
@@ -108,6 +109,21 @@ describe('Planification enrichie', () => {
         id: 'oeuf-1', nom: 'Œuf', categorie: 'protéine', quantite: 2,
         unite: 'unité', kcal: 160, qn: 3
       }
+    });
+  });
+
+  test('ajoute une suggestion avec la portion et les calories du référentiel', () => {
+    expect(construireAjoutSuggestion(referentiel, { aliment: 'oeuf' }, [])).toMatchObject({
+      erreur: null,
+      composant: { nom: 'Œuf', categorie: 'protéine', quantite: 1, unite: 'unité', kcal: 80 }
+    });
+  });
+
+  test('refuse une suggestion absente ou déjà présente dans le repas', () => {
+    expect(construireAjoutSuggestion(referentiel, { aliment: 'Inconnu' }, [])).toMatchObject({ composant: null });
+    expect(construireAjoutSuggestion(referentiel, { aliment: 'oeuf' }, [{ nom: 'Œuf' }])).toMatchObject({
+      erreur: 'Œuf est déjà dans ce repas.',
+      composant: null
     });
   });
 

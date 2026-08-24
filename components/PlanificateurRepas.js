@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   calculerKcalPlanifiees,
+  construireAjoutSuggestion,
   construireComposantAssiette,
   construireOccurrencesAssiette,
   enregistrerAssiettePlanifiee,
@@ -136,6 +137,19 @@ export default function PlanificateurRepas({
     setAssiette(courante => [...courante, resultat.composant]);
     setRecherche('');
     setFeedback(`${alimentSelectionne.nom} a été ajouté au repas.`);
+  };
+
+  const ajouterSuggestion = suggestion => {
+    setErreur('');
+    setFeedback('');
+    const resultat = construireAjoutSuggestion(referentiel, suggestion, assiette);
+    if (resultat.erreur) {
+      setErreur(resultat.erreur);
+      return;
+    }
+    setAssiette(courante => [...courante, resultat.composant]);
+    setRecherche('');
+    setFeedback(`${resultat.composant.nom} a été ajouté au repas depuis tes suggestions.`);
   };
 
   const modifierQuantite = (id, nouvelleQuantite) => {
@@ -349,10 +363,9 @@ export default function PlanificateurRepas({
         <div className="suggestions">
           <span>Suggestions :</span>
           {suggestions.map((suggestion, index) => (
-            <button key={`${suggestion.aliment}-${index}`} type="button" onClick={() => {
-              const reference = trouverAlimentReferentiel(referentiel, suggestion.aliment);
-              if (reference) choisirAliment(reference);
-            }}>{suggestion.aliment}</button>
+            <button key={`${suggestion.aliment}-${index}`} type="button" onClick={() => ajouterSuggestion(suggestion)}>
+              + {suggestion.aliment}
+            </button>
           ))}
         </div>
       )}
