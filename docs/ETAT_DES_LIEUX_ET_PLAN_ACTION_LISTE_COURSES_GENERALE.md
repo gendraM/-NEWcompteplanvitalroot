@@ -3,7 +3,7 @@
 **Date :** 24 août 2026  
 **Branche de travail :** liste-courses-generale-plan-chatgpt  
 **Branche source :** finalisation-reprise-jeune-alimentaire-chatgpt  
-**Statut :** lots 0 à 2 poussés ; lot 3 implémenté localement, testé et en attente de validation Git
+**Statut :** lots 0 à 3 poussés ; lot 4 implémenté localement, testé et en attente de validation Git
 
 ## 1. Objet du chantier
 
@@ -712,8 +712,82 @@ Conformément au périmètre validé, aucune politique Supabase n’a été modi
 - build Next.js : réussi, 36 pages générées ;
 - `git diff --check` : sans erreur ;
 - Supabase : aucune migration, aucune modification de schéma et aucune donnée de test créée ;
-- commit et push du lot 3 : en attente d’autorisation explicite.
+- commit et push du lot 3 : effectués sur la branche `liste-courses-generale-plan-chatgpt`, commit `eac84ede4c478ba8a153a02c0e5fc46151a92d6d`.
 
-### 15.9 Prochaine étape après validation Git
+### 15.9 Étape suivante engagée
 
 Lot 4 : générer la liste de courses générale depuis une période de repas réellement planifiés, en additionnant les ingrédients et en préservant les unités incompatibles sans double comptage.
+
+## 16. Journal d’exécution — Lot 4
+
+### 16.1 Périmètre effectivement livré
+
+La page `pages/plan.js` intègre désormais un générateur général de liste de courses. L’utilisateur choisit une date de début et une date de fin ; la période proposée par défaut correspond à la semaine civile courante, du lundi au dimanche.
+
+Le générateur interroge uniquement les lignes de `repas_planifies` appartenant à l’utilisateur connecté et comprises dans la période choisie. Il ne modifie pas la liste de courses propre à la reprise alimentaire.
+
+Cette première version du lot 4 produit un aperçu calculé à partir du planning. Elle n’enregistre pas encore une liste indépendante et ne gère pas encore les états « acheté » ou « déjà disponible », réservés aux lots 6 et 7.
+
+### 16.2 Structure Supabase vérifiée
+
+La structure réelle de `repas_planifies` a été contrôlée dans le projet Supabase `Becomingtherealme`. Les colonnes nécessaires existent déjà : identifiant, utilisateur, date, moment, aliment, catégorie, quantité, calories et indicateur de combo.
+
+Aucune table, migration ou donnée de test n’a été créée. La lecture applique explicitement les filtres `user_id`, date minimale et date maximale, puis trie les lignes par date.
+
+Le point de sécurité déjà signalé au lot 3 reste inchangé : certaines politiques RLS de `repas_planifies` sont plus permissives que le cloisonnement attendu. Ce lot ne les modifie pas sans autorisation spécifique.
+
+### 16.3 Calcul des articles
+
+Le nouveau module `lib/listeCoursesGenerale.js` :
+
+- valide la période demandée ;
+- écarte les lignes hors période ;
+- neutralise un éventuel doublon possédant le même identifiant Supabase ;
+- rattache les aliments connus au nom canonique du référentiel fusionné ;
+- analyse les quantités textuelles enregistrées dans le planning ;
+- additionne les quantités compatibles avec le socle commun du lot 1 ;
+- convertit les unités compatibles, notamment grammes/kilogrammes et millilitres/litres ;
+- applique l’arrondi d’achat uniquement après l’addition ;
+- conserve séparément les unités qui ne peuvent pas être additionnées sans hypothèse ;
+- signale les anciennes lignes incomplètes au lieu d’inventer une quantité.
+
+Les catégories restent dynamiques : le moteur conserve la catégorie issue du planning ou du référentiel et l’interface groupe les articles à partir des catégories réellement présentes.
+
+### 16.4 Repas composés sans double comptage
+
+Le générateur ne lit pas les modèles de `repas_complets`. Lorsqu’un repas composé a été planifié, le lot 3 a déjà créé une photographie de chacun de ses ingrédients dans `repas_planifies`.
+
+La liste additionne donc ces lignes d’ingrédients comme les autres aliments. Le nom du modèle ne devient pas un article de courses et le contenu n’est pas compté une seconde fois.
+
+### 16.5 Expérience utilisateur actuelle
+
+Dans l’espace de planification, l’utilisateur :
+
+1. choisit la période à couvrir ;
+2. lance « Générer ma liste » ;
+3. voit les achats regroupés par catégorie ;
+4. voit les quantités totales arrondies pour l’achat ;
+5. est averti lorsqu’une ancienne saisie ne contient pas assez d’informations pour calculer une quantité fiable.
+
+Un message précise que le calcul repose sur les repas réellement planifiés et qu’aucune quantité manquante n’est estimée automatiquement.
+
+### 16.6 Fichiers du lot 4
+
+- `lib/listeCoursesGenerale.js` : moteur de période, normalisation et agrégation ;
+- `components/ListeCoursesGeneralePlan.js` : sélection de période, lecture Supabase et affichage ;
+- `pages/plan.js` : intégration dans la page existante ;
+- `tests/listeCoursesGenerale.test.js` : couverture automatisée du moteur ;
+- présent document : journal d’exécution et point de passation.
+
+### 16.7 Vérifications réalisées
+
+- nouvelle suite `tests/listeCoursesGenerale.test.js` : 8 tests réussis ;
+- tests ciblés lots 1, 3 et 4 : 29 réussis sur 29 ;
+- suite complète : 99 tests réussis sur 99, 13 suites réussies sur 13 ;
+- build Next.js : réussi, 36 pages générées ;
+- aucune migration Supabase et aucune donnée de test créée ;
+- commit et push du lot 4 : en attente d’autorisation explicite.
+
+### 16.8 Prochaine étape après validation Git
+
+Lot 5 : afficher le budget calorique prévisionnel du plan, avec les calories par jour, le total et la moyenne de la période, puis l’écart par rapport à l’objectif calorique disponible lorsque celui-ci est connu.

@@ -13,6 +13,7 @@ import {
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import GestionRepasComposes from "../components/GestionRepasComposes";
+import ListeCoursesGeneralePlan from "../components/ListeCoursesGeneralePlan";
 
 const typesRepas = [
   { nom: "Petit-déjeuner", emoji: "🥐", color: "#ffe082" },
@@ -617,6 +618,12 @@ export default function Plan() {
         onChangeDate={setSelectedDate}
         onChangeType={setType}
         onPlanningChange={fetchPlanning}
+      />
+
+      <ListeCoursesGeneralePlan
+        supabase={supabase}
+        userId={userId}
+        referentiel={referentielComplet}
       />
 
       {/* 8. Progression mois */}
