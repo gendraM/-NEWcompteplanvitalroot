@@ -3,7 +3,7 @@
 **Date :** 24 août 2026  
 **Branche de travail :** liste-courses-generale-plan-chatgpt  
 **Branche source :** finalisation-reprise-jeune-alimentaire-chatgpt  
-**Statut :** lot 0 de non-régression réalisé localement, aucune implémentation fonctionnelle commencée
+**Statut :** lot 0 poussé ; lot 1 implémenté localement et en attente de validation Git
 
 ## 1. Objet du chantier
 
@@ -508,3 +508,52 @@ Le planning et le hook de référentiel seront testés au moment de leur extract
 ### 12.5 Prochaine étape après validation Git
 
 Lot 1 : extraire le socle commun de quantités et de calories, en conservant toutes les règles propres à la reprise dans leur module actuel et en maintenant les tests du lot 0 au vert.
+
+## 13. Journal d’exécution — Lot 1
+
+### 13.1 Socle commun créé
+
+Le nouveau module lib/socleQuantitesCalories.js centralise désormais :
+
+- la normalisation des unités ;
+- les conversions explicites g/kg et ml/cl/L ;
+- les équivalences de comptage pièce/unité ;
+- la lecture des portions numériques, fractionnaires et descriptives ;
+- le calcul depuis kcalParUnite ;
+- le calcul depuis une quantité calorique de référence ;
+- le calcul depuis la portion par défaut ;
+- la prise en charge explicite des valeurs pour 100 g ;
+- les arrondis et le formatage des quantités d’achat ;
+- la clé de compatibilité et l’agrégation des articles.
+
+Une conversion non démontrable retourne un résultat de statut incomplet avec kcal à null. Le moteur ne remplace jamais une donnée absente par une estimation arbitraire.
+
+### 13.2 Raccordements effectués
+
+- lib/listeCoursesReprise.js conserve toutes ses règles de phases, aliments, portions et préparations, mais utilise maintenant le socle commun pour arrondir, formater et agréger ;
+- components/RepasBloc.js utilise maintenant le calcul calorique commun lors de la sélection d’un aliment, de la modification d’une quantité et de l’ajout d’un aliment personnalisé ;
+- pages/plan.js n’est pas encore modifié : son enrichissement appartient au lot 2.
+
+### 13.3 Compatibilité du référentiel
+
+Un contrôle exhaustif a exécuté le nouveau calcul sur la portion par défaut des 616 aliments du référentiel général :
+
+- 616 aliments calculables sur 616 ;
+- 0 portion par défaut incomplète ;
+- 0 écart entre les kcal calculées et les kcal de référence ;
+- prise en charge vérifiée des formats g, kg, ml, cl, L, CS, unité, pièce, part, portion et conditionnements textuels ;
+- les aliments personnalisés disposant de quantite, kcal et kcalParUnite restent compatibles.
+
+### 13.4 Vérifications locales
+
+- tests ciblés du socle et de la reprise : 30 réussis sur 30 ;
+- suite complète : 78 tests réussis sur 78, 10 suites réussies sur 10 ;
+- build Next.js : réussi, 36 pages générées ;
+- le build a été exécuté dans une copie temporaire hors du dossier synchronisé, car le service de synchronisation recréait le cache ignoré .next/export pendant son nettoyage ;
+- aucune modification du référentiel général ;
+- aucune modification Supabase ;
+- commit et push du lot 1 : en attente d’autorisation explicite.
+
+### 13.5 Prochaine étape après validation Git
+
+Lot 2 : enrichir pages/plan.js avec le référentiel fusionné, la quantité, l’unité, les kcal enregistrées et les totaux par repas et par journée, tout en maintenant l’affichage des anciens repas incomplets.

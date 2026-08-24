@@ -3,13 +3,27 @@ const path = require('path');
 const vm = require('vm');
 
 function chargerModule() {
+  const soclePath = path.join(__dirname, '../lib/socleQuantitesCalories.js');
+  const socleSource = fs.readFileSync(soclePath, 'utf8');
+  const socleTransforme = socleSource
+    .replace(/export function /g, 'function ')
+    .concat('\nmodule.exports = { agregerArticles, arrondirQuantiteAchat, formaterQuantite };');
+  const socleContext = { module: { exports: {} }, exports: {} };
+  vm.createContext(socleContext);
+  vm.runInContext(socleTransforme, socleContext, { filename: 'socleQuantitesCalories.js' });
+
   const filePath = path.join(__dirname, '../lib/listeCoursesReprise.js');
   const source = fs.readFileSync(filePath, 'utf8');
   const transformed = source
+    .replace(/import\s*\{[\s\S]*?\}\s*from\s*['"]\.\/socleQuantitesCalories['"];?\s*/, '')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { normaliserListeCoursesReprise, grouperListeCoursesReprise, creerConfigurationCoursesReprise, choixCoursesComplets, genererListeCoursesPersonnalisee, initialiserEtatsListeCourses, modifierStatutArticle, alternativesArticle, remplacerArticleCourses, agregerArticles };');
+    .concat('\nmodule.exports = { normaliserListeCoursesReprise, grouperListeCoursesReprise, creerConfigurationCoursesReprise, choixCoursesComplets, genererListeCoursesPersonnalisee, initialiserEtatsListeCourses, modifierStatutArticle, alternativesArticle, remplacerArticleCourses };');
 
-  const context = { module: { exports: {} }, exports: {} };
+  const context = {
+    module: { exports: {} },
+    exports: {},
+    ...socleContext.module.exports
+  };
   vm.createContext(context);
   vm.runInContext(transformed, context, { filename: 'listeCoursesReprise.js' });
   return context.module.exports;
@@ -24,8 +38,7 @@ const {
   initialiserEtatsListeCourses,
   modifierStatutArticle,
   alternativesArticle,
-  remplacerArticleCourses,
-  agregerArticles
+  remplacerArticleCourses
 } = chargerModule();
 
 const programmeSixJours = {
@@ -157,48 +170,6 @@ describe('Liste de courses canonique de la reprise', () => {
     });
 
     expect(liste.find(item => item.nom === 'Patates douces').quantite).toBe('1.05 kg');
-  });
-
-  test('additionne deux articles seulement lorsque aliment, unité et préparation sont compatibles', () => {
-    const resultat = agregerArticles([
-      {
-        nom: 'Carottes', categorie: 'légume', preparation: 'Vapeur', phase: 2,
-        quantite: '600 g', quantite_valeur: 600, quantite_unite: 'g', utilisations_estimees: 3
-      },
-      {
-        nom: 'Carottes', categorie: 'légume', preparation: 'Vapeur', phase: 3,
-        quantite: '500 g', quantite_valeur: 500, quantite_unite: 'g', utilisations_estimees: 2
-      },
-      {
-        nom: 'Carottes', categorie: 'légume', preparation: 'Très finement râpées', phase: 4,
-        quantite: '200 g', quantite_valeur: 200, quantite_unite: 'g', utilisations_estimees: 2
-      }
-    ]);
-
-    expect(resultat).toHaveLength(2);
-    expect(resultat.find(item => item.preparation === 'Vapeur')).toMatchObject({
-      quantite: '1.1 kg',
-      quantite_valeur: 1100,
-      utilisations_estimees: 5,
-      phases: [2, 3]
-    });
-    expect(resultat.find(item => item.preparation === 'Très finement râpées').quantite).toBe('200 g');
-  });
-
-  test('conserve séparément les quantités exprimées dans des unités incompatibles', () => {
-    const resultat = agregerArticles([
-      {
-        nom: 'Bouillon', categorie: 'liquide', phase: 1,
-        quantite: '750 ml', quantite_valeur: 750, quantite_unite: 'ml', utilisations_estimees: 3
-      },
-      {
-        nom: 'Bouillon', categorie: 'liquide', phase: 1,
-        quantite: '1 unité', quantite_valeur: 1, quantite_unite: 'unité', utilisations_estimees: 1
-      }
-    ]);
-
-    expect(resultat).toHaveLength(2);
-    expect(resultat.map(item => item.quantite).sort()).toEqual(['1 unité', '750 ml']);
   });
 
   test('initialise les anciennes listes avec un identifiant et le statut à acheter', () => {
