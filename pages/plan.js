@@ -460,20 +460,22 @@ export default function Plan() {
         <button onClick={() => setMonth(m => m === 11 ? 0 : m + 1)}>Mois suivant ➡️</button>
       </div>
 
-      <PlanificateurRepas
-        supabase={supabase}
-        userId={userId}
-        referentiel={referentielComplet}
-        date={selectedDate}
-        type={type}
-        suggestions={suggestions}
-        reglesGestion={reglesGestion}
-        onChangeDate={setSelectedDate}
-        onChangeType={setType}
-        onReferentielChange={refreshReferentiel}
-        onPlanningRecorded={afficherLignesEnregistrees}
-        onPlanningChange={fetchPlanning}
-      />
+      <div id="planificateur-repas">
+        <PlanificateurRepas
+          supabase={supabase}
+          userId={userId}
+          referentiel={referentielComplet}
+          date={selectedDate}
+          type={type}
+          suggestions={suggestions}
+          reglesGestion={reglesGestion}
+          onChangeDate={setSelectedDate}
+          onChangeType={setType}
+          onReferentielChange={refreshReferentiel}
+          onPlanningRecorded={afficherLignesEnregistrees}
+          onPlanningChange={fetchPlanning}
+        />
+      </div>
 
       {erreurPlanning && <div role="alert" style={{ margin: "0 0 16px", padding: 10, borderRadius: 8, color: "#b71c1c", background: "#ffebee", fontWeight: 700 }}>{erreurPlanning}</div>}
 

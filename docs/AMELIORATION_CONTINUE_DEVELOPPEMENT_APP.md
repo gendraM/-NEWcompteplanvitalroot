@@ -1957,3 +1957,87 @@ Harmoniser ces familles avec la même méthodologie que céréales: audit, anti-
 - Propositions validées pour la feuille de route.
 - Aucune implémentation immédiate demandée.
 - Exécution reportée à des batchs ultérieurs.
+
+---
+
+## 🛒 LISTE DE COURSES — EXPÉRIENCE PRATIQUE ET SUIVI FACULTATIF DU COÛT (2026-08-24)
+
+### Contexte et principe directeur
+La liste de courses générale est produite à partir des repas réellement planifiés dans `/plan`. Elle ne doit pas devenir un second générateur indépendant ni créer une deuxième source de vérité.
+
+L'expérience retenue reste intégrée à la page de planification :
+- l'onglet `Courses` présente d'abord un aperçu de la liste issue du plan ;
+- l'utilisateur peut revenir modifier ses repas avant de commencer ses courses ;
+- le bouton `Commencer mes courses` ouvre un mode plein écran centré sur les achats, toujours dans la même page et sans créer une nouvelle route ;
+- le retour au plan conserve la période, la liste et l'avancement en cours.
+
+### Fonctionnement visuel validé pour le lot 6
+
+#### Aperçu dans l'onglet Courses
+- période couverte par le plan ;
+- nombre de produits et de catégories ;
+- budget estimé facultatif renseigné une seule fois pour toute la liste ;
+- bouton `Modifier mon plan` ;
+- bouton `Commencer mes courses`.
+
+#### Mode courses pratique
+- en-tête avec retour au plan, titre de la liste et progression ;
+- filtres `À acheter`, `Dans mon panier` et `Déjà chez moi` ;
+- articles regroupés par catégorie ou rayon ;
+- action simple pour placer un article dans le panier ;
+- action distincte pour signaler qu'un article est déjà disponible à la maison ;
+- statuts réversibles ;
+- articles traités visuellement différenciés et regroupés dans leur statut ;
+- barre récapitulative mobile indiquant ce qui reste à acheter, ce qui est dans le panier et ce qui est déjà disponible.
+
+### Règles de cohérence avec le plan
+- Une seule liste est dérivée des repas planifiés et des quantités agrégées.
+- Une modification du plan propose de mettre à jour la liste.
+- Les articles identiques conservent leur statut après recalcul.
+- Les nouveaux articles apparaissent dans `À acheter`.
+- Les articles qui ne sont plus nécessaires disparaissent lors de la mise à jour confirmée.
+- Une régénération ne doit pas remettre arbitrairement à zéro les articles déjà traités.
+
+### Totaux facultatifs du panier — intégré au périmètre du lot 6
+Le prix ne doit jamais être obligatoire pour créer, utiliser ou terminer une liste de courses.
+
+Fonctionnement retenu :
+- possibilité de renseigner une seule estimation pour toute la liste avant les courses ;
+- possibilité de renseigner une seule fois le montant total réellement payé à la caisse ;
+- comparaison facultative entre ces deux montants globaux ;
+- absence de prix acceptée, sans message bloquant ni valeur artificielle à zéro.
+
+Le lot 6 ne demande aucun prix sur les lignes d'aliments. Un suivi détaillé par produit supposerait de connaître les achats réellement effectués et relève du chantier ultérieur consacré aux magasins et à l'analyse des coûts.
+
+Finalités :
+- permettre à l'utilisateur de suivre son budget alimentaire s'il le souhaite ;
+- observer l'évolution du coût des achats dans le temps ;
+- rendre visible qu'une alimentation planifiée ou moins transformée peut, selon les achats réellement effectués, être économiquement avantageuse ;
+- créer plus tard un indicateur de motivation fondé sur des données réelles, sans tirer de conclusion automatique à partir d'une seule liste.
+
+### Évolutions volontairement différées — lieu et qualité d'achat
+Ces informations sont à conserver dans la feuille de route, mais ne doivent pas être implémentées dans le lot 6 actuel.
+
+Évolutions envisagées :
+- enseigne ou lieu d'achat ;
+- type de commerce : supermarché, marché, boucherie, poissonnerie, magasin bio, producteur ou autre ;
+- origine ou niveau de qualité choisi lorsque l'information est connue ;
+- analyse comparative du coût selon le magasin ou le type de commerce ;
+- rapprochement futur entre coût, qualité nutritionnelle, degré de transformation, régularité des habitudes et résultats observés dans les bilans.
+
+Points de vigilance :
+- ces informations doivent rester facultatives ;
+- le type de commerce ne suffit pas, à lui seul, à garantir la qualité d'un produit ;
+- l'application devra distinguer les faits saisis par l'utilisateur des recommandations ou interprétations ;
+- aucune comparaison de prix ou de qualité ne devra être présentée sans données suffisantes et comparables.
+
+### Découpage retenu
+- **Lot 6 actuel :** expérience pratique de courses, statuts des articles, conservation de l'avancement et deux montants globaux facultatifs pour le panier.
+- **Lot 7 :** persistance Supabase et récupération multi-appareils, selon le plan d'action du chantier.
+- **Chantier ultérieur :** magasins, types de commerces, qualité/origine et analyses historiques coût–qualité–habitudes.
+
+### Statut
+- Expérience utilisateur du lot 6 validée en conversation.
+- Ajout facultatif des prix validé dans le périmètre du lot 6.
+- Suivi du magasin et de la qualité documenté mais volontairement différé.
+- Aucune implémentation fonctionnelle réalisée par cette entrée documentaire.

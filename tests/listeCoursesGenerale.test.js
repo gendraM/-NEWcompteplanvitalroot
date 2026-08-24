@@ -32,13 +32,22 @@ function chargerModule() {
   const source = fs.readFileSync(path.join(__dirname, '../lib/listeCoursesGenerale.js'), 'utf8')
     .replace(/import \{[\s\S]*?\} from '\.\/socleQuantitesCalories';/, 'const { agregerArticles, arrondirQuantiteAchat, formaterQuantite } = __socle;')
     .replace(/import \{[\s\S]*?\} from '\.\/planificationRepas';/, 'const { extraireQuantitePlanifiee, trouverAlimentReferentiel } = __plan;')
+    .replace(/export const /g, 'const ')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { validerPeriodeCourses, construireArticlePlanifie, construireListeCoursesGenerale, grouperListeCoursesGenerale };');
+    .concat('\nmodule.exports = { validerPeriodeCourses, construireArticlePlanifie, construireListeCoursesGenerale, grouperListeCoursesGenerale, initialiserSuiviCoursesGenerales, modifierSuiviCourseGenerale, resumerSuiviCoursesGenerales, resumerPrixListeCoursesGenerale };');
   vm.runInContext(source, context, { filename: 'listeCoursesGenerale.js' });
   return context.module.exports;
 }
 
-const { validerPeriodeCourses, construireListeCoursesGenerale, grouperListeCoursesGenerale } = chargerModule();
+const {
+  validerPeriodeCourses,
+  construireListeCoursesGenerale,
+  grouperListeCoursesGenerale,
+  initialiserSuiviCoursesGenerales,
+  modifierSuiviCourseGenerale,
+  resumerSuiviCoursesGenerales,
+  resumerPrixListeCoursesGenerale
+} = chargerModule();
 const referentiel = [{ nom: 'Carottes', categorie: 'légume' }, { nom: 'Poulet', categorie: 'protéine' }];
 
 describe('Liste de courses générale depuis le planning', () => {
@@ -104,5 +113,48 @@ describe('Liste de courses générale depuis le planning', () => {
     ]);
     expect(Object.keys(groupes).sort()).toEqual(['légume', 'protéine', 'épicerie']);
   });
-});
 
+  test('initialise les articles à acheter sans ajouter de prix par aliment', () => {
+    const articles = initialiserSuiviCoursesGenerales([{ article_id: 'carottes', nom: 'Carottes' }]);
+    expect(articles[0]).toMatchObject({ statut_achat: 'a_acheter' });
+    expect(articles[0]).not.toHaveProperty('prix_estime');
+    expect(articles[0]).not.toHaveProperty('prix_reel');
+  });
+
+  test('conserve le statut des articles identiques après recalcul du plan', () => {
+    const precedent = [{ article_id: 'carottes', nom: 'Carottes', quantite: '500 g', statut_achat: 'panier' }];
+    const recalcules = initialiserSuiviCoursesGenerales([
+      { article_id: 'carottes', nom: 'Carottes', quantite: '750 g' },
+      { article_id: 'poulet', nom: 'Poulet', quantite: '250 g' }
+    ], precedent);
+    expect(recalcules[0]).toMatchObject({ quantite: '750 g', statut_achat: 'panier' });
+    expect(recalcules[1]).toMatchObject({ statut_achat: 'a_acheter' });
+  });
+
+  test('modifie le statut pratique sans ajouter de prix par aliment', () => {
+    let articles = initialiserSuiviCoursesGenerales([{ article_id: 'poulet', nom: 'Poulet' }]);
+    articles = modifierSuiviCourseGenerale(articles, 'poulet', { statut_achat: 'deja_disponible' });
+    expect(articles[0]).toMatchObject({ statut_achat: 'deja_disponible' });
+    expect(articles[0].statut_modifie_le).toBeTruthy();
+  });
+
+  test('calcule la progression indépendamment du prix global du panier', () => {
+    const resume = resumerSuiviCoursesGenerales([
+      { statut_achat: 'a_acheter' },
+      { statut_achat: 'panier' },
+      { statut_achat: 'deja_disponible' }
+    ]);
+    expect(resume).toMatchObject({
+      total: 3,
+      a_acheter: 1,
+      panier: 1,
+      deja_disponible: 1,
+      traites: 2
+    });
+  });
+
+  test('compare une seule estimation au total payé pour toute la liste', () => {
+    expect(resumerPrixListeCoursesGenerale('50,00', '47.80')).toEqual({ prix_estime: 50, prix_reel: 47.8, ecart: -2.2 });
+    expect(resumerPrixListeCoursesGenerale('', '47.80')).toEqual({ prix_estime: null, prix_reel: 47.8, ecart: null });
+  });
+});

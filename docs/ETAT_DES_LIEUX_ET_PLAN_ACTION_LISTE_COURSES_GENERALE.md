@@ -1087,3 +1087,76 @@ L’ordre retenu est donc :
 3. lot 8 — préparation du contexte de cristallisation ;
 4. lot 9 — validation finale et documentation ;
 5. chantier suivant — regroupement fiable des repas réels, bilan S-1, combos équilibrés et go-to meals personnels.
+
+## 22. Journal d’exécution — Lot 6 : utilisation pratique pendant les courses
+
+### 22.1 Expérience intégrée à `/plan`
+
+Le lot 6 ne crée ni nouvelle route ni deuxième liste. La vue `Courses` du bloc existant devient l'aperçu de la liste calculée depuis `repas_planifies`.
+
+L'aperçu affiche :
+
+- la période réellement analysée ;
+- le nombre de produits et de catégories ;
+- le nombre de lignes alimentaires planifiées ;
+- le budget estimé de toute la liste lorsqu'il est renseigné ;
+- l'accès au planificateur existant pour modifier les repas ;
+- l'action `Commencer mes courses`.
+
+Cette dernière action ouvre un mode plein écran dans la page courante. Le retour ferme ce mode et retrouve les quatre vues du plan sans recréer le générateur.
+
+### 22.2 États pratiques des articles
+
+Chaque article dispose désormais de trois états explicites :
+
+- `À acheter` ;
+- `Dans mon panier` ;
+- `Déjà chez moi`.
+
+Le mode courses propose un filtre pour chacun de ces états, deux actions distinctes sur chaque article et une progression globale. Les changements restent réversibles. Une barre mobile récapitule ce qui reste à acheter, ce qui est dans le panier et ce qui était déjà disponible.
+
+### 22.3 Conservation lors d'un recalcul
+
+Le moteur réutilise l'identifiant stable construit à partir du nom canonique, de la catégorie, de la préparation et de l'unité. Lorsque l'utilisateur demande `Mettre à jour mon plan et mes courses` :
+
+- la nouvelle quantité issue du plan remplace l'ancienne ;
+- un article identique conserve son état ;
+- un nouvel article démarre dans `À acheter` ;
+- un article retiré du plan disparaît de la liste recalculée.
+
+Cette conservation est limitée à l'état React de la page actuelle. La persistance après rechargement et la récupération multi-appareils appartiennent au lot 7.
+
+### 22.4 Montants globaux facultatifs du panier
+
+Le prix n'est jamais requis pour utiliser la liste.
+
+- un seul budget estimé peut être renseigné dans l'aperçu pour toute la liste ;
+- un seul total réellement payé à la caisse peut être renseigné dans le mode courses ;
+- les champs vides restent `null` et ne sont jamais convertis artificiellement en zéro ;
+- l'écart correspond à la différence entre ces deux montants globaux ;
+- aucun prix n'est demandé par aliment dans le lot 6.
+
+Le prix détaillé par produit, le magasin, le type de commerce, l'origine et l'analyse historique coût–qualité restent volontairement différés et documentés dans `AMELIORATION_CONTINUE_DEVELOPPEMENT_APP.md`.
+
+### 22.5 Fichiers du lot 6
+
+- `components/ListeCoursesGeneralePlan.js` : aperçu, mode courses, filtres, actions, progression et prix facultatifs ;
+- `lib/listeCoursesGenerale.js` : initialisation, modification, conservation et synthèse du suivi pratique ;
+- `pages/plan.js` : point de retour vers le véritable planificateur ;
+- `tests/listeCoursesGenerale.test.js` : tests métier du suivi pratique ;
+- `tests/listeCoursesGeneraleInterface.test.js` : garde-fous sur l'expérience affichée ;
+- présent document : passation du lot 6.
+
+### 22.6 Vérifications réalisées
+
+- 17 tests ciblés réussis sur 17 ;
+- suite complète : 128 tests réussis sur 128, 16 suites réussies sur 16 ;
+- build Next.js de production réussi, 36 pages générées ;
+- route `/plan` compilée ;
+- `git diff --check` sans erreur avant finalisation ;
+- aucune migration Supabase ni donnée distante créée ;
+- implémentation non commitée et non poussée à ce point d'arrêt.
+
+### 22.7 Prochaine étape après validation Git
+
+Lot 7 : définir puis implémenter la persistance Supabase de la liste générale, de ses états et de ses prix facultatifs afin de permettre la reprise après rechargement et sur plusieurs appareils, sans dupliquer `repas_planifies` ni le moteur de génération.
