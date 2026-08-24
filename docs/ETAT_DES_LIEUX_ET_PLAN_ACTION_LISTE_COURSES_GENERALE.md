@@ -3,7 +3,7 @@
 **Date :** 24 août 2026  
 **Branche de travail :** liste-courses-generale-plan-chatgpt  
 **Branche source :** finalisation-reprise-jeune-alimentaire-chatgpt  
-**Statut :** lots 0 à 6 publiés ; lot 6B en cours de validation locale
+**Statut :** lots 0 à 6B publiés ; lot 7 en cours de validation locale
 
 ## 1. Objet du chantier
 
@@ -1182,3 +1182,45 @@ Exemples : un besoin de 720 g peut conduire à acheter deux paquets de 500 g ; u
 - les choix restent locaux et sont conservés lors d’un recalcul de la même liste.
 
 Ce lot ne modifie ni le référentiel nutritionnel ni Supabase. La persistance multi-appareils demeure le lot 7.
+
+## 24. Lot 7 — Persistance de la liste générale dans Supabase
+
+### 24.1 Structure réutilisée
+
+Le projet Supabase `Becomingtherealme` a été contrôlé directement avant l’implémentation. La table `listes_courses_generees` existe, contient 18 colonnes et aucune ligne au point de départ. Son champ `liste_json` permet de conserver l’intégralité du fonctionnement sans nouvelle table ni nouvelle colonne.
+
+Les listes générales sont distinguées des listes de cristallisation par `parcours_id = null`. La période utilise `semaine_debut` et `semaine_fin`, même lorsque la période choisie n’est pas strictement une semaine civile.
+
+### 24.2 Données enregistrées
+
+Le JSON versionné `plan_general` conserve :
+
+- la période ;
+- les articles issus des repas planifiés ;
+- le besoin exact et le conditionnement choisi ;
+- le nombre de paquets saisi ou calculé ;
+- les statuts `À acheter`, `Dans mon panier` et `Déjà chez moi` ;
+- les informations incomplètes et le résumé de génération ;
+- le budget estimé global et le total payé global ;
+- la date de la dernière sauvegarde.
+
+### 24.3 Comportement applicatif
+
+- au chargement d’une période, l’application récupère la dernière liste générale de l’utilisateur ;
+- les anciens états sont rapprochés des articles recalculés grâce à leur identifiant stable ;
+- la liste est enregistrée automatiquement après 700 ms sans nouvelle modification ;
+- la première sauvegarde crée une ligne ;
+- les suivantes mettent à jour cette même ligne pour l’utilisateur et la période ;
+- une erreur Supabase reste visible et n’est pas présentée comme une sauvegarde réussie.
+
+### 24.4 Sécurité constatée, non modifiée dans ce lot
+
+La politique RLS actuellement présente sur `listes_courses_generees` est une politique globale `ALL` avec `true`, accordée à `public`. Le code filtre systématiquement les lectures et mises à jour par `user_id`, mais ce filtre applicatif ne remplace pas une politique RLS propriétaire. Cette anomalie préexistante est consignée ; aucune politique ni migration n’a été modifiée dans le lot 7 sans décision explicite sur le périmètre global de sécurité.
+
+### 24.5 Fichiers du lot 7
+
+- `lib/listeCoursesGeneraleSync.js` : sérialisation, restauration, lecture et création/mise à jour ;
+- `components/ListeCoursesGeneralePlan.js` : récupération et sauvegarde automatique ;
+- `tests/listeCoursesGeneraleSync.test.js` : contrats de persistance ;
+- `tests/listeCoursesGeneraleInterface.test.js` : garde-fous du raccordement visible ;
+- présent document : passation du lot 7.

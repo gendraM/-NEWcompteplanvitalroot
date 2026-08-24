@@ -41,4 +41,11 @@ describe('Interface de la liste de courses générale', () => {
     expect(composant).toContain('Nombre de paquets à acheter');
     expect(composant).toContain('aucune conversion incompatible ni aucun format commercial ne sont inventés');
   });
+
+  test('récupère et enregistre automatiquement la liste générale dans Supabase', () => {
+    expect(composant).toContain('chargerListeCoursesGenerale');
+    expect(composant).toContain('sauvegarderListeCoursesGenerale');
+    expect(composant).toContain('Liste enregistrée');
+    expect(composant).toContain('Enregistrement impossible');
+  });
 });

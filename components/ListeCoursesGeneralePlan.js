@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   construireListeCoursesGenerale,
   calculerAchatConditionne,
@@ -10,6 +10,7 @@ import {
   resumerSuiviCoursesGenerales,
   validerPeriodeCourses
 } from '../lib/listeCoursesGenerale';
+import { chargerListeCoursesGenerale, sauvegarderListeCoursesGenerale } from '../lib/listeCoursesGeneraleSync';
 import { chargerObjectifCaloriqueProfil, construireBudgetCaloriquePlan } from '../lib/budgetCaloriquePlan';
 
 const VUES = [
@@ -422,6 +423,30 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
   const [modeCourses, setModeCourses] = useState(false);
   const [prixEstimeListe, setPrixEstimeListe] = useState(null);
   const [prixReelListe, setPrixReelListe] = useState(null);
+  const [listeSupabaseId, setListeSupabaseId] = useState(null);
+  const [etatSynchronisation, setEtatSynchronisation] = useState('');
+
+  useEffect(() => {
+    if (!resultat?.liste || !userId) return undefined;
+    setEtatSynchronisation('Enregistrement…');
+    const delai = setTimeout(async () => {
+      const { data, error } = await sauvegarderListeCoursesGenerale(
+        supabase,
+        userId,
+        resultat.liste,
+        prixEstimeListe,
+        prixReelListe,
+        listeSupabaseId
+      );
+      if (error) {
+        setEtatSynchronisation(`Enregistrement impossible : ${error.message}`);
+      } else {
+        setListeSupabaseId(data.id);
+        setEtatSynchronisation('Liste enregistrée');
+      }
+    }, 700);
+    return () => clearTimeout(delai);
+  }, [resultat?.liste, prixEstimeListe, prixReelListe, supabase, userId, listeSupabaseId]);
 
   const modifierArticle = (articleId, modification) => {
     setResultat(actuel => actuel ? {
@@ -447,7 +472,7 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
     const articlesPrecedents = resultat?.liste?.articles || [];
     const memePeriode = resultat?.liste?.periode?.debut === debut && resultat?.liste?.periode?.fin === fin;
 
-    const [repas, objectif] = await Promise.all([
+    const [repas, objectif, listeEnregistree] = await Promise.all([
       supabase
         .from('repas_planifies')
         .select('id, user_id, date, type, aliment, categorie, quantite, kcal, combo_valide')
@@ -455,7 +480,8 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
         .gte('date', debut)
         .lte('date', fin)
         .order('date', { ascending: true }),
-      chargerObjectifCaloriqueProfil(supabase, userId)
+      chargerObjectifCaloriqueProfil(supabase, userId),
+      chargerListeCoursesGenerale(supabase, userId, debut, fin)
     ]);
 
     if (repas.error) {
@@ -463,7 +489,11 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
     } else {
       const lignes = repas.data || [];
       const liste = construireListeCoursesGenerale(lignes, { debut, fin, referentiel });
-      liste.articles = initialiserSuiviCoursesGenerales(liste.articles, articlesPrecedents);
+      const suiviEnregistre = listeEnregistree.data?.liste?.articles || [];
+      liste.articles = initialiserSuiviCoursesGenerales(
+        liste.articles,
+        memePeriode ? articlesPrecedents : suiviEnregistre
+      );
       const budget = construireBudgetCaloriquePlan(lignes, {
         debut,
         fin,
@@ -471,10 +501,10 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
         objectifCaloriqueJour: objectif.objectif_calorique_jour
       });
       setResultat({ liste, budget, objectif });
-      if (!memePeriode) {
-        setPrixEstimeListe(null);
-        setPrixReelListe(null);
-      }
+      setListeSupabaseId(listeEnregistree.data?.id || null);
+      setPrixEstimeListe(memePeriode ? prixEstimeListe : listeEnregistree.data?.prix_estime ?? null);
+      setPrixReelListe(memePeriode ? prixReelListe : listeEnregistree.data?.prix_reel ?? null);
+      if (listeEnregistree.error) setEtatSynchronisation(`Récupération impossible : ${listeEnregistree.error.message}`);
       setVueActive('synthese');
       setFeedback(budget.resume?.lignes_planifiees ? '' : 'Aucun repas planifié sur cette période.');
     }
@@ -493,6 +523,11 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
         </button>
       </div>
       {feedback && <div role="status" style={{ marginTop: 10, color: feedback.includes('pas pu') ? '#b71c1c' : '#455a64' }}>{feedback}</div>}
+      {resultat?.liste && (
+        <div role="status" style={{ marginTop: 8, color: etatSynchronisation.includes('impossible') ? '#b71c1c' : '#546e7a', fontSize: 13 }}>
+          {etatSynchronisation || 'Synchronisation de la liste prête'}
+        </div>
+      )}
 
       {resultat?.budget?.resume?.lignes_planifiees > 0 && (
         <div style={{ marginTop: 16 }}>
