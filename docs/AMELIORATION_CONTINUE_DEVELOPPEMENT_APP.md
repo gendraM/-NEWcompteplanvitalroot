@@ -2054,3 +2054,28 @@ La liste distingue désormais :
 Les formats courants éventuellement suggérés doivent toujours être confirmés. Quand le besoin est exprimé dans une unité culinaire non convertible honnêtement vers le paquet — par exemple `CS` vers `g` — l’application demande le nombre de paquets et n’invente aucun coefficient.
 
 Évolutions différées : catalogue commercial par enseigne, formats réellement disponibles, prix par produit, comparaison de magasins et recommandations automatiques de conditionnement. Ces données ne doivent pas être ajoutées au référentiel nutritionnel général.
+
+### Correction validée après test — estimation financière automatique uniquement
+
+Le « budget estimé » ne doit jamais être une seconde saisie demandée à l’utilisateur. Le fonctionnement cible est :
+
+- l’application calcule elle-même le prix estimé de la liste complète ;
+- l’utilisateur renseigne seulement, s’il le souhaite, le total réellement payé à la caisse ;
+- l’écart estimé/réel ne devient disponible qu’après un calcul automatique fiable ;
+- aucune estimation n’est affichée tant que l’application ne dispose pas d’une source de prix exploitable.
+
+Pour rendre ce calcul futur possible, il faudra définir une source de prix distincte du référentiel nutritionnel : historique d’achats, catalogue commercial, enseigne et zone géographique, ou autre source datée. Le prix ne doit pas être inventé à partir des calories, des portions de recette ou d’un format commercial supposé.
+
+### Feuille de route consolidée — plan et liste de courses
+
+Ce bloc complète les réflexions déjà consignées sur les bilans, les repas composés, le QN et les go-to meals ; il ne les remplace pas.
+
+- **Avant de planifier :** présenter une synthèse facultative de S-1 fondée sur les repas réellement consommés, avec catégories, QN, satiété, ressenti, horaires et excès disponibles.
+- **Pendant la planification :** proposer des ajustements explicables et non bloquants, par exemple renforcer une catégorie insuffisamment présente ou réutiliser une assiette complète qui a régulièrement produit un bon ressenti.
+- **Go-to meals personnels :** reconnaître une combinaison complète seulement après plusieurs occurrences comparables et positives ; conserver sa composition, ses portions et son contexte d’utilisation.
+- **Points de vigilance :** avertir avec mesure lorsqu’une combinaison, une portion, un horaire ou un état émotionnel est régulièrement associé à un ressenti difficile ou à des excès, sans transformer une corrélation en certitude.
+- **Qualité nutritionnelle :** utiliser le QN réel des aliments du référentiel et les catégories connues ; ne jamais créer un score pour une donnée absente.
+- **Coût des courses :** calculer plus tard l’estimation totale automatiquement, comparer au total payé et suivre l’historique, dès qu’une source de prix fiable existe.
+- **Achats enrichis ultérieurs :** magasin, type de commerce, format commercial réellement acheté, prix par conditionnement, origine ou qualité déclarée.
+
+L’expérience doit rester intégrée au plan existant : un même plan, une même liste et des suggestions que l’utilisateur peut accepter, ignorer ou modifier.

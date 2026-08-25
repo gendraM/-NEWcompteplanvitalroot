@@ -50,7 +50,7 @@ const {
   resumerSuiviCoursesGenerales,
   resumerPrixListeCoursesGenerale
 } = chargerModule();
-const referentiel = [{ nom: 'Carottes', categorie: 'légume' }, { nom: 'Poulet', categorie: 'protéine' }];
+const referentiel = [{ nom: 'Carottes', categorie: 'légume', qn: 5 }, { nom: 'Poulet', categorie: 'protéine', qn: 4 }];
 
 describe('Liste de courses générale depuis le planning', () => {
   test('refuse une période absente ou inversée', () => {
@@ -64,7 +64,14 @@ describe('Liste de courses générale depuis le planning', () => {
       { id: '2', date: '2026-09-01', aliment: 'Poulet', categorie: 'protéine', quantite: '120 g' }
     ], { debut: '2026-08-24', fin: '2026-08-30', referentiel });
     expect(resultat.resume.lignes_planifiees).toBe(1);
-    expect(resultat.articles[0].quantite).toBe('120 g');
+    expect(resultat.articles[0]).toMatchObject({ quantite: '120 g', categorie: 'protéine', qn: 4 });
+  });
+
+  test('n’invente aucun QN lorsque le référentiel n’en fournit pas', () => {
+    const resultat = construireListeCoursesGenerale([
+      { id: '1', date: '2026-08-24', aliment: 'Lait', categorie: 'boisson', quantite: '1 L' }
+    ], { debut: '2026-08-24', fin: '2026-08-30', referentiel: [{ nom: 'Lait', categorie: 'boisson' }] });
+    expect(resultat.articles[0]).toMatchObject({ categorie: 'boisson', qn: null });
   });
 
   test('additionne les mêmes aliments et convertit les unités compatibles', () => {

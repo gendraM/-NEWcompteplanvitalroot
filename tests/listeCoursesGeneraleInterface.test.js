@@ -21,9 +21,9 @@ describe('Interface de la liste de courses générale', () => {
     expect(composant).toContain("['deja_disponible', 'Déjà chez moi']");
   });
 
-  test('rend un seul budget estimé et un seul total payé pour toute la liste', () => {
-    expect(composant).toContain('Budget estimé pour toute la liste');
-    expect(composant).toContain('Un seul montant facultatif pour tout le panier');
+  test('ne demande plus une estimation manuelle et conserve seulement le total réellement payé', () => {
+    expect(composant).not.toContain('Budget estimé pour toute la liste');
+    expect(composant).not.toContain('Un seul montant facultatif pour tout le panier');
     expect(composant).toContain('Total payé à la caisse');
     expect(composant).toContain('placeholder="Facultatif"');
     expect(composant).not.toContain('Magasin');
@@ -49,6 +49,14 @@ describe('Interface de la liste de courses générale', () => {
     expect(composant).toContain('sauvegarderListeCoursesGenerale');
     expect(composant).toContain('Liste enregistrée');
     expect(composant).toContain('Enregistrement impossible');
+  });
+
+  test('propose une sauvegarde explicite et affiche les informations fiables du référentiel', () => {
+    expect(composant).toContain('Enregistrer mes courses');
+    expect(composant).toContain('Liste prête à être enregistrée');
+    expect(composant).toContain('Qualité nutritionnelle issue du référentiel');
+    expect(composant).toContain('QN {qnValide}/5');
+    expect(composant).toContain('<InformationsAliment categorie={article.categorie} qn={article.qn} />');
   });
 
   test('ouvre le même plan depuis les deux écrans de cristallisation', () => {

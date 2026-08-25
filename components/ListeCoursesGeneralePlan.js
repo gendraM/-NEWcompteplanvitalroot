@@ -6,7 +6,6 @@ import {
   grouperListeCoursesGenerale,
   initialiserSuiviCoursesGenerales,
   modifierSuiviCourseGenerale,
-  resumerPrixListeCoursesGenerale,
   resumerSuiviCoursesGenerales,
   validerPeriodeCourses
 } from '../lib/listeCoursesGenerale';
@@ -53,14 +52,30 @@ function ecartLisible(valeur) {
   return valeur > 0 ? `+${valeur} kcal` : `${valeur} kcal`;
 }
 
-function prixLisible(valeur) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(valeur);
-}
-
 function statutJour(jour) {
   if (jour.statut === 'vide') return 'Aucun repas planifié';
   if (jour.statut === 'incomplet') return 'Calories incomplètes';
   return ecartLisible(jour.ecart_calorique) || 'Journée complète';
+}
+
+const COULEURS_QN = {
+  1: { fond: '#ffebee', texte: '#b71c1c' },
+  2: { fond: '#fff3e0', texte: '#e65100' },
+  3: { fond: '#fffde7', texte: '#827717' },
+  4: { fond: '#e8f5e9', texte: '#2e7d32' },
+  5: { fond: '#c8e6c9', texte: '#1b5e20' }
+};
+
+function InformationsAliment({ categorie, qn }) {
+  const qnValide = Number.isFinite(Number(qn)) && Number(qn) >= 1 && Number(qn) <= 5 ? Number(qn) : null;
+  const couleurs = qnValide ? COULEURS_QN[qnValide] : null;
+  if (!categorie && !qnValide) return null;
+  return (
+    <span style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 4 }}>
+      {categorie && <small style={{ background: '#eceff1', color: '#455a64', borderRadius: 999, padding: '2px 7px', textTransform: 'capitalize' }}>{categorie}</small>}
+      {qnValide && <small title="Qualité nutritionnelle issue du référentiel" style={{ background: couleurs.fond, color: couleurs.texte, borderRadius: 999, padding: '2px 7px', fontWeight: 700 }}>QN {qnValide}/5</small>}
+    </span>
+  );
 }
 
 function CarteResume({ titre, valeur, precision }) {
@@ -135,7 +150,12 @@ function VueRepas({ budget }) {
                 <span>{repas.complet ? kcalLisibles(repas.total_kcal_connues) : `${kcalLisibles(repas.total_kcal_connues)} connues`}</span>
               </div>
               <div style={{ color: '#546e7a', marginTop: 4 }}>
-                {repas.ingredients.map(item => item.aliment).join(', ')}
+                {repas.ingredients.map((item, index) => (
+                  <span key={item.id || `${item.aliment}-${index}`} style={{ display: 'inline-block', marginRight: 12, marginBottom: 5 }}>
+                    {item.aliment}
+                    <InformationsAliment categorie={item.categorie} qn={item.qn} />
+                  </span>
+                ))}
               </div>
             </div>
           ))}
@@ -161,6 +181,7 @@ function VueDetails({ budget }) {
                   <span>
                     {ingredient.aliment}
                     {ingredient.combo_valide ? <small style={{ color: '#607d8b' }}> — composant d’un repas enregistré</small> : null}
+                    <InformationsAliment categorie={ingredient.categorie} qn={ingredient.qn} />
                   </span>
                   <span>
                     {ingredient.quantite || 'quantité à compléter'} · {ingredient.calories_connues ? kcalLisibles(ingredient.kcal) : 'kcal à compléter'}
@@ -274,10 +295,9 @@ function ConditionnementArticle({ article, onModifier }) {
   );
 }
 
-function VueCourses({ liste, articles, prixEstime, onPrixEstimeChange, onCommencer, onModifierPlan, onModifierArticle }) {
+function VueCourses({ liste, articles, onCommencer, onModifierPlan, onModifierArticle }) {
   const groupes = grouperListeCoursesGenerale(articles);
   const resume = resumerSuiviCoursesGenerales(articles);
-  const resumePrix = resumerPrixListeCoursesGenerale(prixEstime, null);
   const categories = Object.keys(groupes).length;
   return (
     <div>
@@ -289,14 +309,6 @@ function VueCourses({ liste, articles, prixEstime, onPrixEstimeChange, onCommenc
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
           <CarteResume titre="Produits" valeur={resume.total} precision={`${liste.resume.lignes_planifiees} aliment(s) planifié(s)`} />
           <CarteResume titre="Catégories" valeur={categories} precision="Regroupées automatiquement" />
-          <CarteResume
-            titre="Budget estimé de la liste"
-            valeur={resumePrix.prix_estime !== null ? prixLisible(resumePrix.prix_estime) : 'Non renseigné'}
-            precision="Un seul montant facultatif pour tout le panier"
-          />
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <ChampPrix libelle="Budget estimé pour toute la liste" valeur={prixEstime} onChange={onPrixEstimeChange} />
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
           <button type="button" onClick={onModifierPlan} style={{ border: '1px solid #2e7d32', borderRadius: 8, padding: '9px 14px', background: 'white', color: '#1b5e20', fontWeight: 700 }}>
@@ -314,6 +326,7 @@ function VueCourses({ liste, articles, prixEstime, onPrixEstimeChange, onCommenc
             <div key={article.article_id} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '8px 0', borderTop: '1px solid #eceff1' }}>
               <span style={{ flex: '1 1 180px' }}>
                 <b>{article.nom}</b>{article.preparation ? ` — ${article.preparation}` : ''}
+                <InformationsAliment categorie={article.categorie} qn={article.qn} />
                 <ConditionnementArticle article={article} onModifier={modification => onModifierArticle(article.article_id, modification)} />
               </span>
             </div>
@@ -343,12 +356,12 @@ const FILTRES_COURSES = [
   ['deja_disponible', 'Déjà chez moi']
 ];
 
-function ModeCourses({ articles, liste, prixEstime, prixReel, onPrixReelChange, onModifierArticle, onFermer }) {
+function ModeCourses({ articles, liste, prixReel, onPrixReelChange, onModifierArticle, onEnregistrer, etatSynchronisation, onFermer }) {
   const [filtre, setFiltre] = useState('a_acheter');
   const resume = resumerSuiviCoursesGenerales(articles);
   const visibles = articles.filter(article => article.statut_achat === filtre);
   const groupes = grouperListeCoursesGenerale(visibles);
-  const resumePrix = resumerPrixListeCoursesGenerale(prixEstime, prixReel);
+  const enregistrementEnCours = etatSynchronisation === 'Enregistrement…';
   return (
     <div role="dialog" aria-modal="true" aria-label="Mode courses" style={{ position: 'fixed', inset: 0, zIndex: 3000, background: '#f7faf7', overflowY: 'auto' }}>
       <header style={{ position: 'sticky', top: 0, zIndex: 2, background: 'white', borderBottom: '1px solid #c8e6c9', padding: '12px max(14px, env(safe-area-inset-left))' }}>
@@ -362,7 +375,7 @@ function ModeCourses({ articles, liste, prixEstime, prixReel, onPrixReelChange, 
         </div>
       </header>
 
-      <main style={{ maxWidth: 820, margin: '0 auto', padding: '14px 14px 110px' }}>
+      <main style={{ maxWidth: 820, margin: '0 auto', padding: '14px 14px 175px' }}>
         <div role="tablist" aria-label="État des articles" style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 10 }}>
           {FILTRES_COURSES.map(([valeur, libelle]) => (
             <button key={valeur} type="button" role="tab" aria-selected={filtre === valeur} onClick={() => setFiltre(valeur)} style={{ whiteSpace: 'nowrap', border: `1px solid ${filtre === valeur ? '#2e7d32' : '#a5d6a7'}`, borderRadius: 999, padding: '8px 12px', background: filtre === valeur ? '#2e7d32' : 'white', color: filtre === valeur ? 'white' : '#1b5e20', fontWeight: 700 }}>
@@ -382,6 +395,7 @@ function ModeCourses({ articles, liste, prixEstime, prixReel, onPrixReelChange, 
                   <div>
                     <strong style={{ textDecoration: article.statut_achat === 'panier' ? 'line-through' : 'none' }}>{article.nom}</strong>
                     {article.preparation ? <div style={{ color: '#546e7a', marginTop: 3 }}>{article.preparation}</div> : null}
+                    <InformationsAliment categorie={article.categorie} qn={article.qn} />
                   </div>
                 </div>
                 <ConditionnementArticle article={article} onModifier={modification => onModifierArticle(article.article_id, modification)} />
@@ -403,9 +417,13 @@ function ModeCourses({ articles, liste, prixEstime, prixReel, onPrixReelChange, 
         <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 7, fontSize: 13 }}>
           <b>{resume.a_acheter} à acheter · {resume.panier} dans le panier · {resume.deja_disponible} déjà chez moi</b>
           <span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'end', gap: 8 }}>
-            {resumePrix.prix_estime !== null && <span>Budget : {prixLisible(resumePrix.prix_estime)}</span>}
-            <ChampPrix libelle="Total payé à la caisse" valeur={resumePrix.prix_reel} onChange={onPrixReelChange} />
-            {resumePrix.ecart !== null && <span>Écart : {resumePrix.ecart > 0 ? '+' : ''}{prixLisible(resumePrix.ecart)}</span>}
+            <ChampPrix libelle="Total payé à la caisse" valeur={prixReel} onChange={onPrixReelChange} />
+            <button type="button" onClick={onEnregistrer} disabled={enregistrementEnCours} style={{ border: 0, borderRadius: 8, padding: '9px 13px', background: 'white', color: '#1b5e20', fontWeight: 800 }}>
+              {enregistrementEnCours ? 'Enregistrement…' : 'Enregistrer mes courses'}
+            </button>
+            <span role="status" style={{ flexBasis: '100%', textAlign: 'right', color: etatSynchronisation.includes('impossible') ? '#ffcdd2' : 'white' }}>
+              {etatSynchronisation || 'Liste prête à être enregistrée'}
+            </span>
           </span>
         </div>
       </footer>
@@ -422,7 +440,6 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
   const [feedback, setFeedback] = useState('');
   const [chargement, setChargement] = useState(false);
   const [modeCourses, setModeCourses] = useState(false);
-  const [prixEstimeListe, setPrixEstimeListe] = useState(null);
   const [prixReelListe, setPrixReelListe] = useState(null);
   const [listeSupabaseId, setListeSupabaseId] = useState(null);
   const [etatSynchronisation, setEtatSynchronisation] = useState('');
@@ -435,7 +452,7 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
         supabase,
         userId,
         resultat.liste,
-        prixEstimeListe,
+        null,
         prixReelListe,
         listeSupabaseId,
         contexte
@@ -448,7 +465,30 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
       }
     }, 700);
     return () => clearTimeout(delai);
-  }, [resultat?.liste, prixEstimeListe, prixReelListe, supabase, userId, listeSupabaseId, contexte]);
+  }, [resultat?.liste, prixReelListe, supabase, userId, listeSupabaseId, contexte]);
+
+  const enregistrerMaintenant = async () => {
+    if (!resultat?.liste || !userId) {
+      setEtatSynchronisation('Enregistrement impossible : liste ou utilisateur incomplet.');
+      return;
+    }
+    setEtatSynchronisation('Enregistrement…');
+    const { data, error } = await sauvegarderListeCoursesGenerale(
+      supabase,
+      userId,
+      resultat.liste,
+      null,
+      prixReelListe,
+      listeSupabaseId,
+      contexte
+    );
+    if (error) {
+      setEtatSynchronisation(`Enregistrement impossible : ${error.message}`);
+      return;
+    }
+    setListeSupabaseId(data.id);
+    setEtatSynchronisation('Liste enregistrée');
+  };
 
   const modifierArticle = (articleId, modification) => {
     setResultat(actuel => actuel ? {
@@ -507,7 +547,6 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
       });
       setResultat({ liste, budget, objectif });
       setListeSupabaseId(listeEnregistree.data?.id || null);
-      setPrixEstimeListe(memePeriode ? prixEstimeListe : listeEnregistree.data?.prix_estime ?? null);
       setPrixReelListe(memePeriode ? prixReelListe : listeEnregistree.data?.prix_reel ?? null);
       if (listeEnregistree.error) setEtatSynchronisation(`Récupération impossible : ${listeEnregistree.error.message}`);
       setVueActive('synthese');
@@ -567,8 +606,6 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
               <VueCourses
                 liste={resultat.liste}
                 articles={resultat.liste.articles}
-                prixEstime={prixEstimeListe}
-                onPrixEstimeChange={setPrixEstimeListe}
                 onCommencer={() => setModeCourses(true)}
                 onModifierPlan={modifierPlan}
                 onModifierArticle={modifierArticle}
@@ -581,10 +618,11 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
         <ModeCourses
           articles={resultat.liste.articles}
           liste={resultat.liste}
-          prixEstime={prixEstimeListe}
           prixReel={prixReelListe}
           onPrixReelChange={setPrixReelListe}
           onModifierArticle={modifierArticle}
+          onEnregistrer={enregistrerMaintenant}
+          etatSynchronisation={etatSynchronisation}
           onFermer={() => setModeCourses(false)}
         />
       )}

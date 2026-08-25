@@ -1292,3 +1292,59 @@ Après l’autorisation de publication, la maintenance automatique de l’espace
 ### 25.7 Étape suivante
 
 Le lot 9 réalisera la validation fonctionnelle finale du parcours complet, la vérification de la non-régression de la reprise et la consolidation documentaire. Les recommandations avancées de cristallisation restent un chantier ultérieur distinct.
+
+## 26. Lot 9 — Corrections issues du test réel de la liste
+
+### 26.1 Correction du suivi financier
+
+Le test utilisateur a confirmé que le champ « budget estimé » ne correspondait pas au besoin : il demandait à l’utilisateur de saisir lui-même une estimation, alors que l’estimation attendue doit être calculée par l’application.
+
+La règle corrigée est donc la suivante :
+
+- aucun budget estimé manuel n’est demandé ;
+- l’utilisateur peut renseigner uniquement le total réellement payé à la caisse, de manière facultative ;
+- l’ancien champ `prix_estime` reste toléré dans les snapshots existants pour compatibilité, mais il n’est plus alimenté ni affiché par l’interface ;
+- une estimation automatique ne sera affichée que lorsqu’une source de prix suffisamment fiable permettra un vrai calcul.
+
+Cette décision remplace explicitement le fonctionnement manuel décrit au paragraphe 22.4 ; celui-ci reste dans l’historique du chantier mais n’est plus l’attendu actif.
+
+### 26.2 Sauvegarde explicite pendant les courses
+
+La sauvegarde automatique Supabase est conservée comme sécurité. Le mode courses ajoute en plus une action visible « Enregistrer mes courses », sans fermer l’écran. L’utilisateur voit l’état réel : enregistrement en cours, liste enregistrée ou erreur de sauvegarde. Cette correction réutilise la table et le JSON existants ; aucune migration n’est nécessaire.
+
+### 26.3 Catégorie et QN visibles
+
+Les écrans Repas, Détails, Courses et le mode courses affichent désormais :
+
+- la catégorie de l’aliment ;
+- le QN sur 5 uniquement lorsqu’il existe dans le référentiel.
+
+Le moteur rattache ces informations à partir du nom reconnu dans le référentiel. Une valeur absente reste absente : aucun QN n’est déduit ou inventé.
+
+### 26.4 Limite conservée
+
+Les suggestions fondées sur les bilans précédents, la satiété, le ressenti, les excès ou les combinaisons « go-to meal » ne sont pas ajoutées à ce lot correctif. Elles restent dans le chantier ultérieur de planification intelligente afin de ne pas présenter une recommandation sans moteur métier validé.
+
+### 26.5 Vérifications locales
+
+- 150 tests automatisés réussis sur 150, répartis dans 18 suites ;
+- build Next.js 15.5.7 réussi, 36 pages générées ;
+- route `/plan` compilée ;
+- aucune modification du schéma Supabase ;
+- aucun prix ni QN inventé ;
+- modifications encore locales, non commitées et non poussées à ce point d’arrêt.
+
+### 26.6 Suite différée consolidée
+
+Après la stabilisation du plan et de la liste, le chantier pourra être prolongé sans recréer un second planificateur :
+
+1. calculer automatiquement une estimation financière de la liste à partir d’une véritable source de prix datée ;
+2. conserver l’historique des totaux réellement payés pour suivre l’évolution du coût des courses ;
+3. relire le bilan de la semaine précédente avant la planification suivante ;
+4. analyser les catégories réellement consommées, le QN, la satiété, le ressenti, les horaires et les excès ;
+5. proposer facultativement des ajustements de composition lorsque les données montrent un manque ou un déséquilibre répété ;
+6. identifier comme « go-to meal » une assiette complète qui fonctionne régulièrement bien pour l’utilisateur ;
+7. signaler avec prudence une association ou un contexte régulièrement lié à un ressenti difficile ou à des excès ;
+8. permettre plus tard l’analyse du coût selon le magasin, le type de commerce, les formats achetés et la qualité connue des produits.
+
+Ces fonctions devront distinguer clairement les faits mesurés, les hypothèses et les recommandations. Elles ne devront pas déduire une causalité à partir d’une seule occurrence.

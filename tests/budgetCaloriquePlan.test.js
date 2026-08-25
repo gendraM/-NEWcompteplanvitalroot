@@ -11,7 +11,8 @@ function chargerModule() {
         quantite_affichee: ligne.quantite ? String(ligne.quantite) : null,
         kcal_calculees: Number.isFinite(Number(ligne.kcal)) && ligne.kcal !== null && ligne.kcal !== '' ? Math.round(Number(ligne.kcal)) : null,
         donnees_completes: Boolean(ligne.quantite) && Number.isFinite(Number(ligne.kcal)) && ligne.kcal !== null && ligne.kcal !== ''
-      })
+      }),
+      trouverAlimentReferentiel: (referentiel, nom) => referentiel.find(item => item.nom.toLowerCase() === String(nom).toLowerCase()) || null
     },
     __routeur: {
       calculerProfilComplet: profil => profil.sexe && profil.age && profil.taille && profil.poids_de_depart && profil.niveau_activite
@@ -21,7 +22,7 @@ function chargerModule() {
   };
   vm.createContext(context);
   const source = fs.readFileSync(path.join(__dirname, '../lib/budgetCaloriquePlan.js'), 'utf8')
-    .replace("import { normaliserRepasPlanifie } from './planificationRepas';", 'const { normaliserRepasPlanifie } = __plan;')
+    .replace("import { normaliserRepasPlanifie, trouverAlimentReferentiel } from './planificationRepas';", 'const { normaliserRepasPlanifie, trouverAlimentReferentiel } = __plan;')
     .replace("import { calculerProfilComplet } from './routeurPoids';", 'const { calculerProfilComplet } = __routeur;')
     .replace(/export async function /g, 'async function ')
     .replace(/export function /g, 'function ')
@@ -76,6 +77,18 @@ describe('Budget calorique prévisionnel du planning', () => {
     expect(resultat.jours[0].repas[0]).toMatchObject({ total_kcal_connues: 302, elements_total: 2, complet: true });
     expect(resultat.jours[0].repas[0].ingredients.map(item => item.aliment)).toEqual(['Poulet', 'Riz']);
     expect(resultat.jours[1]).toMatchObject({ statut: 'vide', repas: [], ecart_calorique: null });
+  });
+
+  test('joint catégorie et QN depuis le référentiel sans inventer une valeur absente', () => {
+    const resultat = construireBudgetCaloriquePlan([
+      { id: '1', date: '2026-08-24', type: 'Déjeuner', aliment: 'Poulet', quantite: '120 g', kcal: 198 },
+      { id: '2', date: '2026-08-24', type: 'Déjeuner', aliment: 'Mystère', quantite: '1 unité', kcal: 100 }
+    ], {
+      debut: '2026-08-24', fin: '2026-08-24',
+      referentiel: [{ nom: 'Poulet', categorie: 'protéine', qn: 4 }]
+    });
+    expect(resultat.jours[0].repas[0].ingredients[0]).toMatchObject({ categorie: 'protéine', qn: 4 });
+    expect(resultat.jours[0].repas[0].ingredients[1]).toMatchObject({ categorie: null, qn: null });
   });
 
   test('additionne les calories connues sans inventer celles qui manquent', () => {
