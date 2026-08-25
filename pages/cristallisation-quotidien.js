@@ -799,6 +799,22 @@ export default function CristallisationQuotidien() {
         </div>
       )}
 
+      <div style={{
+        background: '#e8f5e9',
+        border: '2px solid #66bb6a',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16
+      }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: 20, color: '#1b5e20' }}>🛒 Planifier mes repas et mes courses</h2>
+        <p style={{ margin: '0 0 12px', color: '#455a64' }}>
+          Retrouve le même plan et la même liste de courses, reliés à ton parcours de cristallisation.
+        </p>
+        <button type="button" onClick={() => router.push('/plan?source=cristallisation')} style={{ background: '#2e7d32', color: 'white', border: 0, borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer' }}>
+          Ouvrir mon plan et mes courses →
+        </button>
+      </div>
+
       {/* MESSAGE CONSTRUCTION */}
       <div style={{
         background: '#fff3cd',
@@ -813,7 +829,7 @@ export default function CristallisationQuotidien() {
           Section en construction
         </div>
         <div style={{ color: '#666' }}>
-          Prochainement : liste de courses intelligente, conseils personnalisés, graphiques progression
+          Prochainement : conseils personnalisés et graphiques de progression
         </div>
       </div>
     </div>

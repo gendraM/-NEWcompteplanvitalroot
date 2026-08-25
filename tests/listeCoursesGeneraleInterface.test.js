@@ -4,6 +4,8 @@ const path = require('path');
 describe('Interface de la liste de courses générale', () => {
   const composant = fs.readFileSync(path.join(__dirname, '../components/ListeCoursesGeneralePlan.js'), 'utf8');
   const pagePlan = fs.readFileSync(path.join(__dirname, '../pages/plan.js'), 'utf8');
+  const pageCristallisation = fs.readFileSync(path.join(__dirname, '../pages/cristallisation.js'), 'utf8');
+  const pageCristallisationQuotidien = fs.readFileSync(path.join(__dirname, '../pages/cristallisation-quotidien.js'), 'utf8');
 
   test('conserve les quatre vues du plan et ajoute le mode courses sans nouvelle route', () => {
     expect(composant).toContain("{ id: 'synthese', libelle: 'Synthèse' }");
@@ -47,5 +49,17 @@ describe('Interface de la liste de courses générale', () => {
     expect(composant).toContain('sauvegarderListeCoursesGenerale');
     expect(composant).toContain('Liste enregistrée');
     expect(composant).toContain('Enregistrement impossible');
+  });
+
+  test('ouvre le même plan depuis les deux écrans de cristallisation', () => {
+    expect(pageCristallisation).toContain("/plan?source=cristallisation");
+    expect(pageCristallisationQuotidien).toContain("/plan?source=cristallisation");
+    expect(pageCristallisation).toContain('Ouvrir mon plan et mes courses');
+  });
+
+  test('affiche le contexte sans prétendre appliquer les recommandations avancées', () => {
+    expect(pagePlan).toContain('construireContexteCristallisation');
+    expect(composant).toContain('Contexte cristallisation actif');
+    expect(composant).toContain('aucune recommandation automatique n’est encore appliquée');
   });
 });

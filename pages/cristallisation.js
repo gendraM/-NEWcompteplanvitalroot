@@ -458,6 +458,21 @@ export default function Cristallisation() {
           </div>
         </div>
       )}
+      <div style={{
+        background: '#e8f5e9',
+        border: '2px solid #66bb6a',
+        borderRadius: 12,
+        padding: 20,
+        marginBottom: 20
+      }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: 20, color: '#1b5e20' }}>🛒 Planifier mes repas et mes courses</h2>
+        <p style={{ margin: '0 0 14px', color: '#455a64' }}>
+          Prépare tes repas et ta liste depuis le plan général, avec le contexte de ton parcours de cristallisation.
+        </p>
+        <button type="button" onClick={() => router.push('/plan?source=cristallisation')} style={{ background: '#2e7d32', color: 'white', border: 0, borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer' }}>
+          Ouvrir mon plan et mes courses →
+        </button>
+      </div>
       {/* MESSAGE CONSTRUCTION */}
       <div style={{
         background: '#fff3cd',

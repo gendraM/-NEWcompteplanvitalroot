@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import useUserReferentiel from "../lib/useUserReferentiel";
@@ -13,6 +14,7 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import PlanificateurRepas from "../components/PlanificateurRepas";
 import ListeCoursesGeneralePlan from "../components/ListeCoursesGeneralePlan";
+import { CONTEXTE_LISTE_GENERAL, construireContexteCristallisation } from "../lib/contexteListeCourses";
 
 const typesRepas = [
   { nom: "Petit-déjeuner", emoji: "🥐", color: "#ffe082" },
@@ -52,6 +54,7 @@ function toYYYYMMDD(date) {
 }
 
 export default function Plan() {
+  const router = useRouter();
   // Etat navigation
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -73,6 +76,7 @@ export default function Plan() {
   const [theme, setTheme] = useState("");
   const [valideInfos, setValideInfos] = useState({ mantra: "", objectif: "", theme: "" });
   const [userId, setUserId] = useState(null);
+  const [contexteListeCourses, setContexteListeCourses] = useState(CONTEXTE_LISTE_GENERAL);
   const { referentielComplet, refresh: refreshReferentiel } = useUserReferentiel(userId);
 
   useEffect(() => {
@@ -82,6 +86,32 @@ export default function Plan() {
     });
     return () => { actif = false; };
   }, []);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const source = Array.isArray(router.query.source) ? router.query.source[0] : router.query.source;
+    if (source !== 'cristallisation') {
+      setContexteListeCourses(CONTEXTE_LISTE_GENERAL);
+      return;
+    }
+    if (!userId) return;
+
+    let actif = true;
+    const chargerContexte = async () => {
+      const parcoursId = Array.isArray(router.query.parcours_id) ? router.query.parcours_id[0] : router.query.parcours_id;
+      let requete = supabase
+        .from('parcours_cristallisation')
+        .select('id, criteres_personnalises, bilan_reprise')
+        .eq('user_id', userId);
+      requete = parcoursId
+        ? requete.eq('id', parcoursId)
+        : requete.eq('statut', 'en_cours').order('date_debut', { ascending: false }).limit(1);
+      const { data } = await requete.maybeSingle();
+      if (actif) setContexteListeCourses(construireContexteCristallisation(data));
+    };
+    chargerContexte();
+    return () => { actif = false; };
+  }, [router.isReady, router.query.source, router.query.parcours_id, userId]);
 
   // Récupère les valeurs de localStorage côté client
   useEffect(() => {
@@ -483,6 +513,7 @@ export default function Plan() {
         supabase={supabase}
         userId={userId}
         referentiel={referentielComplet}
+        contexte={contexteListeCourses}
       />
 
       {/* 8. Progression mois */}

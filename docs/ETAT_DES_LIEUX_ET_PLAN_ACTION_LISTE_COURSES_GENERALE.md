@@ -3,7 +3,7 @@
 **Date :** 24 août 2026  
 **Branche de travail :** liste-courses-generale-plan-chatgpt  
 **Branche source :** finalisation-reprise-jeune-alimentaire-chatgpt  
-**Statut :** lots 0 à 6B publiés ; lot 7 en cours de validation locale
+**Statut :** lots 0 à 7 publiés ; sécurisation du lot 7 appliquée dans Supabase ; lot 8 en validation locale
 
 ## 1. Objet du chantier
 
@@ -1213,9 +1213,16 @@ Le JSON versionné `plan_general` conserve :
 - les suivantes mettent à jour cette même ligne pour l’utilisateur et la période ;
 - une erreur Supabase reste visible et n’est pas présentée comme une sauvegarde réussie.
 
-### 24.4 Sécurité constatée, non modifiée dans ce lot
+### 24.4 Sécurisation appliquée et vérifiée
 
-La politique RLS actuellement présente sur `listes_courses_generees` est une politique globale `ALL` avec `true`, accordée à `public`. Le code filtre systématiquement les lectures et mises à jour par `user_id`, mais ce filtre applicatif ne remplace pas une politique RLS propriétaire. Cette anomalie préexistante est consignée ; aucune politique ni migration n’a été modifiée dans le lot 7 sans décision explicite sur le périmètre global de sécurité.
+Après publication du lot 7, la politique globale `ALL` avec condition `true` a été remplacée manuellement dans Supabase. Le contrôle direct de `listes_courses_generees` confirme désormais quatre politiques réservées au rôle `authenticated` :
+
+- `listes_courses_select_owner` limite la lecture à `auth.uid() = user_id` ;
+- `listes_courses_insert_owner` impose `auth.uid() = user_id` à la création ;
+- `listes_courses_update_owner` impose cette règle en lecture et en écriture ;
+- `listes_courses_delete_owner` limite la suppression au propriétaire.
+
+L’ancienne politique globale n’est plus présente. Cette sécurisation n’a nécessité aucune nouvelle table ni nouvelle colonne.
 
 ### 24.5 Fichiers du lot 7
 
@@ -1224,3 +1231,64 @@ La politique RLS actuellement présente sur `listes_courses_generees` est une po
 - `tests/listeCoursesGeneraleSync.test.js` : contrats de persistance ;
 - `tests/listeCoursesGeneraleInterface.test.js` : garde-fous du raccordement visible ;
 - présent document : passation du lot 7.
+
+### 24.6 Publication
+
+Le lot 7 est publié sur la branche `liste-courses-generale-plan-chatgpt`. Le commit distant contrôlé avant le lot 8 est `916b0cb31db304de66c8763d4c956078ab603029` (« Persister la liste de courses générale »).
+
+## 25. Lot 8 — Préparation du raccordement à la cristallisation
+
+### 25.1 Parcours utilisateur retenu
+
+La cristallisation ne possède pas un second planificateur ni un second générateur de courses. Depuis la page principale ou le suivi quotidien de cristallisation, le bouton « Ouvrir mon plan et mes courses » ouvre `/plan?source=cristallisation`.
+
+L’utilisateur retrouve donc le même écran, les mêmes repas planifiés, le même calcul calorique, le même regroupement des quantités et la même utilisation pratique pendant les courses. Un bandeau indique que le contexte de cristallisation est actif.
+
+### 25.2 Contexte transmis sans recommandation inventée
+
+Le nouveau module `lib/contexteListeCourses.js` prépare un contrat explicite comprenant :
+
+- l’identifiant du parcours actif ;
+- les critères personnalisés réellement enregistrés dans `parcours_cristallisation` ;
+- les aliments déclencheurs uniquement lorsqu’ils sont explicitement présents dans le bilan de reprise ;
+- un emplacement pour un futur objectif QN.
+
+L’objectif QN reste à `null` tant qu’aucune règle fiable ne le définit. Le lot 8 n’invente donc ni seuil, ni recommandation, ni prévision de poids.
+
+### 25.3 Persistance isolée selon le contexte
+
+La table existante `listes_courses_generees` suffit :
+
+- une liste générale conserve `parcours_id = null` ;
+- une liste de cristallisation porte l’identifiant du parcours actif ;
+- les critères, déclencheurs et objectif QN utilisent les colonnes déjà existantes ;
+- une sauvegarde de cristallisation sans parcours actif est refusée ;
+- les recherches d’une liste filtrent simultanément l’utilisateur, la période et le contexte.
+
+Aucune table, colonne ou migration Supabase supplémentaire n’est nécessaire.
+
+### 25.4 Fichiers du lot 8
+
+- `lib/contexteListeCourses.js` : contrat du contexte général ou cristallisation ;
+- `lib/listeCoursesGeneraleSync.js` : lecture et sauvegarde isolées par parcours ;
+- `components/ListeCoursesGeneralePlan.js` : bandeau contextuel et transmission du contexte ;
+- `pages/plan.js` : chargement du parcours de l’utilisateur ;
+- `pages/cristallisation.js` et `pages/cristallisation-quotidien.js` : accès au plan commun ;
+- `tests/contexteListeCourses.test.js`, `tests/listeCoursesGeneraleSync.test.js` et `tests/listeCoursesGeneraleInterface.test.js` : non-régression du contrat et du parcours ;
+- présent document : passation du lot 8.
+
+### 25.5 Vérifications
+
+- tests ciblés du lot 8 : 18 réussis sur 18 ;
+- suite complète : 147 tests réussis sur 147, 18 suites réussies sur 18 ;
+- build Next.js 15.5.7 : réussi, 36 pages générées ;
+- aucune modification du référentiel général ;
+- aucune modification du schéma Supabase.
+
+### 25.6 Continuité du travail
+
+Après l’autorisation de publication, la maintenance automatique de l’espace temporaire a supprimé la première copie locale avant la création du commit. Le lot 8 a été reconstruit sur le commit distant `916b0cb`, puis ses contrôles ont été repris depuis le début. Aucun résultat de l’ancienne copie n’est utilisé comme preuve de validation de cette reconstruction.
+
+### 25.7 Étape suivante
+
+Le lot 9 réalisera la validation fonctionnelle finale du parcours complet, la vérification de la non-régression de la reprise et la consolidation documentaire. Les recommandations avancées de cristallisation restent un chantier ultérieur distinct.

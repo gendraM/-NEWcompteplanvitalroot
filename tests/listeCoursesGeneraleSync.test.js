@@ -6,6 +6,7 @@ function chargerModule() {
   const context = { module: { exports: {} }, exports: {}, Date, Error };
   vm.createContext(context);
   const source = fs.readFileSync(path.join(__dirname, '../lib/listeCoursesGeneraleSync.js'), 'utf8')
+    .replace("import { CONTEXTE_LISTE_GENERAL, estContexteCristallisation } from './contexteListeCourses';", "const CONTEXTE_LISTE_GENERAL = { type: 'plan_general', parcours_id: null, criteres_actifs: [], aliments_triggers: [], objectif_qn: null }; const estContexteCristallisation = contexte => contexte?.type === 'cristallisation';")
     .replace(/export function /g, 'function ')
     .replace(/export async function /g, 'async function ')
     .concat('\nmodule.exports = { construireSnapshotListeCoursesGenerale, restaurerSnapshotListeCoursesGenerale, chargerListeCoursesGenerale, sauvegarderListeCoursesGenerale };');
@@ -16,6 +17,7 @@ function chargerModule() {
 const {
   construireSnapshotListeCoursesGenerale,
   restaurerSnapshotListeCoursesGenerale,
+  chargerListeCoursesGenerale,
   sauvegarderListeCoursesGenerale
 } = chargerModule();
 
@@ -56,10 +58,10 @@ describe('Persistance de la liste de courses générale', () => {
     expect(snapshot.articles[0]).toMatchObject({ statut_achat: 'panier', conditionnement_achat: { valeur: 6 } });
   });
 
-  test('restaure uniquement une liste générale valide', () => {
+  test('restaure une liste générale ou de cristallisation valide', () => {
     const snapshot = construireSnapshotListeCoursesGenerale(liste, 50, null);
     expect(restaurerSnapshotListeCoursesGenerale({ id: 'liste-1', liste_json: snapshot })).toMatchObject({ id: 'liste-1', prix_estime: 50 });
-    expect(restaurerSnapshotListeCoursesGenerale({ id: 'autre', liste_json: { contexte: 'cristallisation', articles: [] } })).toBe(null);
+    expect(restaurerSnapshotListeCoursesGenerale({ id: 'autre', parcours_id: 'parcours-1', liste_json: { contexte: 'cristallisation', articles: [] } })).toMatchObject({ contexte: { type: 'cristallisation', parcours_id: 'parcours-1' } });
   });
 
   test('insère la première liste sans parcours de cristallisation', async () => {
@@ -77,5 +79,28 @@ describe('Persistance de la liste de courses générale', () => {
     expect(ecriture).toBeTruthy();
     expect(ecriture.filtres).toContainEqual(['id', 'liste-1']);
     expect(ecriture.payload.liste_json).toMatchObject({ prix_estime: 50, prix_reel: 48 });
+  });
+
+  test('isole la lecture de cristallisation par parcours', async () => {
+    const supabase = fauxSupabase();
+    const contexte = { type: 'cristallisation', parcours_id: 'parcours-1', criteres_actifs: [], aliments_triggers: [], objectif_qn: null };
+    await chargerListeCoursesGenerale(supabase, 'user-1', '2026-08-24', '2026-08-30', contexte);
+    expect(supabase.appels[0].filtres).toContainEqual(['parcours_id', 'parcours-1']);
+  });
+
+  test('enregistre les données de contexte dans les colonnes existantes', async () => {
+    const supabase = fauxSupabase();
+    const contexte = { type: 'cristallisation', parcours_id: 'parcours-1', criteres_actifs: ['c1'], aliments_triggers: ['chips'], objectif_qn: null };
+    await sauvegarderListeCoursesGenerale(supabase, 'user-1', liste, 50, null, null, contexte);
+    const ecriture = supabase.appels.find(appel => appel.action === 'insert');
+    expect(ecriture.payload).toMatchObject({ parcours_id: 'parcours-1', criteres_actifs: ['c1'], aliments_triggers: ['chips'], objectif_qn: null });
+    expect(ecriture.payload.liste_json).toMatchObject({ contexte: 'cristallisation', parcours_id: 'parcours-1' });
+  });
+
+  test('refuse une liste de cristallisation sans parcours actif', async () => {
+    const supabase = fauxSupabase();
+    const resultat = await sauvegarderListeCoursesGenerale(supabase, 'user-1', liste, null, null, null, { type: 'cristallisation', parcours_id: null });
+    expect(resultat.error.message).toContain('Aucun parcours');
+    expect(supabase.appels).toHaveLength(0);
   });
 });

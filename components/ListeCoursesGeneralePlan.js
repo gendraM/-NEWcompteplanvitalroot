@@ -12,6 +12,7 @@ import {
 } from '../lib/listeCoursesGenerale';
 import { chargerListeCoursesGenerale, sauvegarderListeCoursesGenerale } from '../lib/listeCoursesGeneraleSync';
 import { chargerObjectifCaloriqueProfil, construireBudgetCaloriquePlan } from '../lib/budgetCaloriquePlan';
+import { CONTEXTE_LISTE_GENERAL, estContexteCristallisation } from '../lib/contexteListeCourses';
 
 const VUES = [
   { id: 'synthese', libelle: 'Synthèse' },
@@ -412,7 +413,7 @@ function ModeCourses({ articles, liste, prixEstime, prixReel, onPrixReelChange, 
   );
 }
 
-export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel }) {
+export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel, contexte = CONTEXTE_LISTE_GENERAL }) {
   const defaut = useMemo(periodeParDefaut, []);
   const [debut, setDebut] = useState(defaut.debut);
   const [fin, setFin] = useState(defaut.fin);
@@ -436,7 +437,8 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
         resultat.liste,
         prixEstimeListe,
         prixReelListe,
-        listeSupabaseId
+        listeSupabaseId,
+        contexte
       );
       if (error) {
         setEtatSynchronisation(`Enregistrement impossible : ${error.message}`);
@@ -446,7 +448,7 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
       }
     }, 700);
     return () => clearTimeout(delai);
-  }, [resultat?.liste, prixEstimeListe, prixReelListe, supabase, userId, listeSupabaseId]);
+  }, [resultat?.liste, prixEstimeListe, prixReelListe, supabase, userId, listeSupabaseId, contexte]);
 
   const modifierArticle = (articleId, modification) => {
     setResultat(actuel => actuel ? {
@@ -467,6 +469,9 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
     const validation = validerPeriodeCourses(debut, fin);
     if (!validation.valide) return setFeedback(validation.erreur);
     if (!userId) return setFeedback('Connecte-toi pour analyser ton planning.');
+    if (estContexteCristallisation(contexte) && !contexte.parcours_id) {
+      return setFeedback('Aucun parcours de cristallisation actif n’a été trouvé.');
+    }
     setChargement(true);
     setFeedback('');
     const articlesPrecedents = resultat?.liste?.articles || [];
@@ -481,7 +486,7 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
         .lte('date', fin)
         .order('date', { ascending: true }),
       chargerObjectifCaloriqueProfil(supabase, userId),
-      chargerListeCoursesGenerale(supabase, userId, debut, fin)
+      chargerListeCoursesGenerale(supabase, userId, debut, fin, contexte)
     ]);
 
     if (repas.error) {
@@ -515,6 +520,11 @@ export default function ListeCoursesGeneralePlan({ supabase, userId, referentiel
     <section style={{ background: '#e8f5e9', border: '1px solid #81c784', borderRadius: 12, padding: 16, margin: '22px 0' }}>
       <h2 style={{ marginTop: 0 }}>🛒 Mon plan et ma liste de courses</h2>
       <p>Choisis une période pour consulter les repas prévus, leur budget calorique et les courses correspondantes.</p>
+      {estContexteCristallisation(contexte) && (
+        <div role="status" style={{ background: '#ede7f6', border: '1px solid #9575cd', borderRadius: 9, padding: 11, marginBottom: 12, color: '#4527a0' }}>
+          <b>Contexte cristallisation actif.</b> Tu utilises le même plan et la même liste de courses. Les critères personnalisés et les aliments déclencheurs sont transmis au contexte ; aucune recommandation automatique n’est encore appliquée.
+        </div>
+      )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
         <label>Du <input type="date" value={debut} onChange={e => setDebut(e.target.value)} /></label>
         <label>au <input type="date" value={fin} onChange={e => setFin(e.target.value)} /></label>
