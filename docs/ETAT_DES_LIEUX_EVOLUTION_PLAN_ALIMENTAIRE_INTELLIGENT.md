@@ -2,7 +2,7 @@
 
 ## Statut
 
-Audit technique terminé. Lot 1 de fondation en cours d'implémentation sur la branche `plan-alimentaire-intelligent-chatgpt`.
+Audit technique terminé. Lot 1 de fondation en cours de validation sur la branche `plan-alimentaire-intelligent-chatgpt`.
 
 Branche de référence initiale vérifiée : `plan-alimentaire-intelligent-chatgpt` au commit `8e70aa3` avant création de ce document.
 
@@ -15,13 +15,14 @@ Cet état des lieux constitue la source de vérité du chantier suivant : faire 
 - Unicité de `semaines_validees` corrigée en `user_id + weekStart`.
 - RLS propriétaire activé sur `repas_reels`, `repas_planifies`, `repas_complets` et `semaines_validees`.
 - Anciennes lignes `user_id IS NULL` du jeu de test réattribuées au compte de test actif directement sur la base live ; aucun UUID utilisateur n'est codé dans une migration.
-- Complément Lot 1 : un `DEFAULT gen_random_uuid()` est ajouté à `repas_reels.occurrence_repas_id` afin que toute nouvelle saisie simple reçoive automatiquement un identifiant d'occurrence, quel que soit le chemin d'insertion existant.
+- Complément Lot 1 : le `DEFAULT gen_random_uuid()` de `repas_reels.occurrence_repas_id` est appliqué et vérifié sur la base Supabase live : toute nouvelle saisie simple sans ID explicite reçoit automatiquement un identifiant d'occurrence.
 - Les repas composés génèrent explicitement un UUID par consommation et recopient ce même UUID sur toutes les lignes alimentaires de l'assiette.
 - Deux consommations du même modèle de repas composé conservent le même `tag` de modèle mais reçoivent deux `occurrence_repas_id` différents.
 - Aucun regroupement rétroactif des anciennes lignes n'est effectué.
 - `RepasBloc` et ses règles métier (portions, extras, fast-food, satiété, planification) ne sont pas réécrits dans ce complément : le DEFAULT base protège les chemins de saisie simple existants.
 - Tests unitaires ajoutés pour le format UUID v4, l'unicité, le partage de l'ID dans une assiette et la distinction entre deux consommations.
-- Le build Next.js complet reste à exécuter après versionnement de ce patch ; toute correction éventuelle fera l'objet d'une nouvelle autorisation avant commit.
+- Le build Next.js du commit `098263b` a été vérifié sur Vercel : compilation réussie et génération statique 36/36 ; les quatre checks Vercel associés sont au vert.
+- Jest est déjà présent dans les dépendances de développement. Un script `npm test` est ajouté afin de rendre les tests exécutables de façon standard. Le résultat Jest doit encore être observé réellement avant de déclarer le Lot 1 définitivement clos.
 
 ---
 
@@ -193,6 +194,8 @@ Les deux anomalies identifiées pendant l'audit ont été corrigées sur la base
 1. l'unicité des bilans est maintenant définie par `user_id + weekStart` ;
 2. les tables `repas_reels`, `repas_planifies`, `repas_complets` et `semaines_validees` sont protégées par des politiques RLS propriétaire pour le rôle `authenticated`.
 
+Le complément `DEFAULT gen_random_uuid()` de `repas_reels.occurrence_repas_id` est également actif et vérifié sur la base live.
+
 Les alertes de sécurité Supabase concernant d'autres tables/fonctions du projet restent hors périmètre de ce chantier et ne doivent pas être modifiées silencieusement.
 
 ---
@@ -340,6 +343,8 @@ Les points de vigilance récurrents peuvent également être remontés, sans jam
 - deux consommations du même modèle reçoivent deux IDs différents ;
 - un `occurrenceRepasId` fourni par le futur repas en cours est conservé sur toutes les lignes ;
 - le `tag` de modèle composé reste distinct de l'identifiant d'occurrence.
+
+État de validation : build Next.js/Vercel validé ; `DEFAULT gen_random_uuid()` Supabase live validé ; exécution réelle de Jest encore à confirmer après ajout du script `npm test`.
 
 ---
 
