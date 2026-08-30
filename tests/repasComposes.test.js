@@ -15,12 +15,13 @@ function chargerModule() {
     .replace("import { serialiserQuantitePlanifiee } from './planificationRepas';", 'const { serialiserQuantitePlanifiee } = __planification;')
     .replace(/export async function /g, 'async function ')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { normaliserComposantRepas, validerCompositionRepas, calculerResumeRepasCompose, construirePayloadRepasCompose, normaliserRepasCompose, construireOccurrencesPlanifiees, construireOccurrencesReelles };');
+    .concat('\nmodule.exports = { genererOccurrenceRepasId, normaliserComposantRepas, validerCompositionRepas, calculerResumeRepasCompose, construirePayloadRepasCompose, normaliserRepasCompose, construireOccurrencesPlanifiees, construireOccurrencesReelles };');
   vm.runInContext(source, context, { filename: 'repasComposes.js' });
   return context.module.exports;
 }
 
 const {
+  genererOccurrenceRepasId,
   validerCompositionRepas,
   calculerResumeRepasCompose,
   construirePayloadRepasCompose,
@@ -74,6 +75,13 @@ describe('Repas composés réutilisables', () => {
     composition[0].quantite = 120;
   });
 
+  test('génère un identifiant UUID v4 pour une nouvelle occurrence', () => {
+    const ids = Array.from({ length: 100 }, () => genererOccurrenceRepasId());
+    const formatUuidV4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    expect(ids.every(id => formatUuidV4.test(id))).toBe(true);
+    expect(new Set(ids).size).toBe(100);
+  });
+
   test('prépare les lignes consommées avec un identifiant commun sans transformer le nom du modèle en aliment', () => {
     const occurrences = construireOccurrencesReelles({ id: 'modele-1', nom: 'Assiette', composition }, {
       userId: 'user-1', date: '2026-08-25', type: 'Déjeuner', heure: '12:30', satiete: 'oui'
@@ -81,6 +89,23 @@ describe('Repas composés réutilisables', () => {
     expect(occurrences).toHaveLength(3);
     expect(occurrences.map(item => item.aliment)).toEqual(['Poulet', 'Riz', 'Brocolis']);
     expect(new Set(occurrences.map(item => item.tag))).toEqual(new Set(['repas_compose:modele-1:Assiette']));
+    expect(new Set(occurrences.map(item => item.occurrence_repas_id)).size).toBe(1);
+    expect(occurrences[0].occurrence_repas_id).toBeTruthy();
     expect(occurrences[0]).toMatchObject({ heure: '12:30', satiete: 'oui', est_extra: false });
+  });
+
+  test('deux consommations du même modèle reçoivent deux occurrences différentes', () => {
+    const contexte = { userId: 'user-1', date: '2026-08-25', type: 'Déjeuner' };
+    const premiere = construireOccurrencesReelles({ id: 'modele-1', nom: 'Assiette', composition }, contexte);
+    const seconde = construireOccurrencesReelles({ id: 'modele-1', nom: 'Assiette', composition }, contexte);
+    expect(premiere[0].occurrence_repas_id).not.toBe(seconde[0].occurrence_repas_id);
+  });
+
+  test('accepte un identifiant fourni par le repas en cours', () => {
+    const occurrenceRepasId = '123e4567-e89b-42d3-a456-426614174000';
+    const occurrences = construireOccurrencesReelles({ id: 'modele-1', nom: 'Assiette', composition }, {
+      userId: 'user-1', date: '2026-08-25', type: 'Déjeuner', occurrenceRepasId
+    });
+    expect(occurrences.every(item => item.occurrence_repas_id === occurrenceRepasId)).toBe(true);
   });
 });

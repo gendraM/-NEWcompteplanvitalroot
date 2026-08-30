@@ -2,13 +2,26 @@
 
 ## Statut
 
-Audit technique terminé avant implémentation.
+Audit technique terminé. Lot 1 de fondation en cours d'implémentation sur la branche `plan-alimentaire-intelligent-chatgpt`.
 
-Branche de référence vérifiée : `plan-alimentaire-intelligent-chatgpt` au commit `8e70aa3` avant création de ce document.
+Branche de référence initiale vérifiée : `plan-alimentaire-intelligent-chatgpt` au commit `8e70aa3` avant création de ce document.
 
 Cet état des lieux constitue la source de vérité du chantier suivant : faire évoluer la saisie réelle des repas afin de reconnaître fiablement une occurrence de repas complète, sans supprimer le détail alimentaire ni casser les comportements existants.
 
-Aucune modification fonctionnelle n'a été réalisée pendant l'audit.
+### Avancement Lot 1 — 31/08/2026
+
+- Migration `20260826_lot1_occurrence_bilans_rls.sql` déjà versionnée au commit `585d867`.
+- `repas_reels.occurrence_repas_id UUID` ajouté en base, nullable pour ne pas réécrire artificiellement l'historique.
+- Unicité de `semaines_validees` corrigée en `user_id + weekStart`.
+- RLS propriétaire activé sur `repas_reels`, `repas_planifies`, `repas_complets` et `semaines_validees`.
+- Anciennes lignes `user_id IS NULL` du jeu de test réattribuées au compte de test actif directement sur la base live ; aucun UUID utilisateur n'est codé dans une migration.
+- Complément Lot 1 : un `DEFAULT gen_random_uuid()` est ajouté à `repas_reels.occurrence_repas_id` afin que toute nouvelle saisie simple reçoive automatiquement un identifiant d'occurrence, quel que soit le chemin d'insertion existant.
+- Les repas composés génèrent explicitement un UUID par consommation et recopient ce même UUID sur toutes les lignes alimentaires de l'assiette.
+- Deux consommations du même modèle de repas composé conservent le même `tag` de modèle mais reçoivent deux `occurrence_repas_id` différents.
+- Aucun regroupement rétroactif des anciennes lignes n'est effectué.
+- `RepasBloc` et ses règles métier (portions, extras, fast-food, satiété, planification) ne sont pas réécrits dans ce complément : le DEFAULT base protège les chemins de saisie simple existants.
+- Tests unitaires ajoutés pour le format UUID v4, l'unicité, le partage de l'ID dans une assiette et la distinction entre deux consommations.
+- Le build Next.js complet reste à exécuter après versionnement de ce patch ; toute correction éventuelle fera l'objet d'une nouvelle autorisation avant commit.
 
 ---
 
@@ -157,11 +170,11 @@ Le bloc « Utiliser un repas composé » enregistre directement les aliments dan
 
 À terme, il doit charger les aliments dans le repas en cours puis laisser `RepasBloc` effectuer l'enregistrement final.
 
-### 6.3 Aucun identifiant d'occurrence
+### 6.3 Aucun identifiant d'occurrence — fondation Lot 1 mise en place
 
 Le tag existant identifie le modèle de repas composé, mais pas chaque consommation.
 
-Si « Poulet, riz et brocolis » est consommé deux fois, le tag est identique. Un véritable `occurrence_repas_id`, différent à chaque repas, est nécessaire.
+La fondation Lot 1 ajoute `occurrence_repas_id`. Les nouvelles lignes simples reçoivent un UUID par défaut en base et les lignes d'une même consommation composée reçoivent explicitement le même UUID. L'exploitation de cet identifiant dans les statistiques et la future saisie multi-aliments reste un lot ultérieur.
 
 ### 6.4 Rafraîchissement incomplet du suivi
 
@@ -173,17 +186,14 @@ Les calculs des repas composés et de la planification disposent de tests, mais 
 
 ---
 
-## 7. Anomalies Supabase à corriger
+## 7. Anomalies Supabase — statut Lot 1
 
-Deux problèmes doivent être réparés avant de construire les suggestions intelligentes :
+Les deux anomalies identifiées pendant l'audit ont été corrigées sur la base live et versionnées dans la migration Lot 1 :
 
-1. `semaines_validees` impose actuellement une semaine unique pour toute la base au lieu d'une semaine par utilisateur ;
-2. les politiques de `repas_reels`, `repas_planifies`, `repas_complets` et `semaines_validees` autorisent actuellement toutes les opérations à tout le monde.
+1. l'unicité des bilans est maintenant définie par `user_id + weekStart` ;
+2. les tables `repas_reels`, `repas_planifies`, `repas_complets` et `semaines_validees` sont protégées par des politiques RLS propriétaire pour le rôle `authenticated`.
 
-Le lot de sécurisation doit donc :
-
-- corriger l'unicité des bilans en `user_id + semaine` ;
-- cloisonner les quatre tables par propriétaire.
+Les alertes de sécurité Supabase concernant d'autres tables/fonctions du projet restent hors périmètre de ce chantier et ne doivent pas être modifiées silencieusement.
 
 ---
 
@@ -291,9 +301,9 @@ Les points de vigilance récurrents peuvent également être remontés, sans jam
 
 ## 11. Plan d'action consolidé
 
-1. Ajouter un identifiant d'occurrence partagé par tous les aliments d'un même repas.
-2. Corriger l'unicité des bilans en `user_id + semaine`.
-3. Cloisonner `repas_reels`, `repas_planifies`, `repas_complets` et `semaines_validees` par propriétaire.
+1. **Fondation réalisée Lot 1** — ajouter `occurrence_repas_id`, garantir un UUID aux nouvelles saisies simples et un UUID partagé aux repas composés.
+2. **Réalisé Lot 1** — corriger l'unicité des bilans en `user_id + semaine`.
+3. **Réalisé Lot 1** — cloisonner `repas_reels`, `repas_planifies`, `repas_complets` et `semaines_validees` par propriétaire.
 4. Faire évoluer `RepasBloc` vers une saisie multi-aliments progressive sans supprimer ses comportements existants.
 5. Corriger la lecture des repas planifiés composés dans le suivi.
 6. Faire charger un repas composé réutilisé dans le repas en cours au lieu de contourner `RepasBloc`.
@@ -303,7 +313,7 @@ Les points de vigilance récurrents peuvent également être remontés, sans jam
 10. Détecter les candidats go-to meals après plusieurs occurrences comparables et positives.
 11. Présenter les suggestions intelligentes dans `/plan`.
 12. Ajouter les points de vigilance récurrents sans transformer une corrélation en causalité.
-13. Effectuer les tests, le build et mettre à jour la passation.
+13. Effectuer les tests, le build et mettre à jour la passation à chaque lot.
 
 ---
 
@@ -323,12 +333,22 @@ Les points de vigilance récurrents peuvent également être remontés, sans jam
 - tests automatisés complets ;
 - build Next.js.
 
+### Tests spécifiques de fondation Lot 1
+
+- UUID v4 généré pour une occurrence ;
+- toutes les lignes d'un repas composé partagent le même `occurrence_repas_id` ;
+- deux consommations du même modèle reçoivent deux IDs différents ;
+- un `occurrenceRepasId` fourni par le futur repas en cours est conservé sur toutes les lignes ;
+- le `tag` de modèle composé reste distinct de l'identifiant d'occurrence.
+
 ---
 
 ## 13. Règle de reprise du chantier
 
-Le prochain lot fonctionnel est :
+Une fois le Lot 1 validé par tests/build, le prochain lot fonctionnel est :
 
-**faire évoluer `RepasBloc` en repas multi-aliments avec un `occurrence_repas_id` fiable, sans supprimer ni remplacer les comportements existants.**
+**faire évoluer `RepasBloc` en repas multi-aliments en s'appuyant sur `occurrence_repas_id`, sans supprimer ni remplacer les comportements existants.**
 
-Avant toute implémentation, l'état réel du schéma Supabase et des chemins d'enregistrement doit être vérifié. Les modifications doivent être testées avant validation. Aucun regroupement rétroactif approximatif des anciennes données ne doit être effectué.
+Avant chaque commit fonctionnel : rappeler explicitement le dépôt et la branche, présenter le périmètre du commit et attendre l'autorisation de l'utilisatrice. Ne jamais pousser sur `main` sans autorisation explicite distincte.
+
+Les modifications doivent être testées avant validation. Aucun regroupement rétroactif approximatif des anciennes données ne doit être effectué.
