@@ -2,7 +2,7 @@
 
 ## Statut
 
-Audit technique terminé. Lot 1 de fondation en cours de validation sur la branche `plan-alimentaire-intelligent-chatgpt`.
+Audit technique terminé. **Lot 1 de fondation validé techniquement** sur la branche `plan-alimentaire-intelligent-chatgpt`.
 
 Branche de référence initiale vérifiée : `plan-alimentaire-intelligent-chatgpt` au commit `8e70aa3` avant création de ce document.
 
@@ -22,7 +22,8 @@ Cet état des lieux constitue la source de vérité du chantier suivant : faire 
 - `RepasBloc` et ses règles métier (portions, extras, fast-food, satiété, planification) ne sont pas réécrits dans ce complément : le DEFAULT base protège les chemins de saisie simple existants.
 - Tests unitaires ajoutés pour le format UUID v4, l'unicité, le partage de l'ID dans une assiette et la distinction entre deux consommations.
 - Le build Next.js du commit `098263b` a été vérifié sur Vercel : compilation réussie et génération statique 36/36 ; les quatre checks Vercel associés sont au vert.
-- Jest est déjà présent dans les dépendances de développement. Un script `npm test` est ajouté afin de rendre les tests exécutables de façon standard. Le résultat Jest doit encore être observé réellement avant de déclarer le Lot 1 définitivement clos.
+- Le workflow GitHub Actions `Tests plan alimentaire` a exécuté réellement `npm test -- --runInBand` sur le commit `0a9d404` : **18 suites sur 18 réussies et 153 tests sur 153 réussis**. `tests/repasComposes.test.js` est PASS, y compris les tests spécifiques à `occurrence_repas_id`.
+- Le Lot 1 est donc validé sur ses trois contrôles techniques : **base Supabase live, build Next.js/Vercel et tests Jest automatisés**.
 
 ---
 
@@ -304,9 +305,9 @@ Les points de vigilance récurrents peuvent également être remontés, sans jam
 
 ## 11. Plan d'action consolidé
 
-1. **Fondation réalisée Lot 1** — ajouter `occurrence_repas_id`, garantir un UUID aux nouvelles saisies simples et un UUID partagé aux repas composés.
-2. **Réalisé Lot 1** — corriger l'unicité des bilans en `user_id + semaine`.
-3. **Réalisé Lot 1** — cloisonner `repas_reels`, `repas_planifies`, `repas_complets` et `semaines_validees` par propriétaire.
+1. **Fondation réalisée et validée Lot 1** — ajouter `occurrence_repas_id`, garantir un UUID aux nouvelles saisies simples et un UUID partagé aux repas composés.
+2. **Réalisé et validé Lot 1** — corriger l'unicité des bilans en `user_id + semaine`.
+3. **Réalisé et validé Lot 1** — cloisonner `repas_reels`, `repas_planifies`, `repas_complets` et `semaines_validees` par propriétaire.
 4. Faire évoluer `RepasBloc` vers une saisie multi-aliments progressive sans supprimer ses comportements existants.
 5. Corriger la lecture des repas planifiés composés dans le suivi.
 6. Faire charger un repas composé réutilisé dans le repas en cours au lieu de contourner `RepasBloc`.
@@ -344,13 +345,20 @@ Les points de vigilance récurrents peuvent également être remontés, sans jam
 - un `occurrenceRepasId` fourni par le futur repas en cours est conservé sur toutes les lignes ;
 - le `tag` de modèle composé reste distinct de l'identifiant d'occurrence.
 
-État de validation : build Next.js/Vercel validé ; `DEFAULT gen_random_uuid()` Supabase live validé ; exécution réelle de Jest encore à confirmer après ajout du script `npm test`.
+**État de validation Lot 1 : VALIDÉ.**
+
+- Supabase live : `DEFAULT gen_random_uuid()` vérifié.
+- Next.js/Vercel : build validé, compilation réussie et 36/36 pages générées.
+- GitHub Actions/Jest sur `0a9d404` : **18/18 suites PASS, 153/153 tests PASS**.
+- `tests/repasComposes.test.js` : PASS avec les contrôles spécifiques d'occurrence.
+
+Les tests fonctionnels complets de `RepasBloc` restent volontairement rattachés au prochain lot fonctionnel, puisque `RepasBloc` n'a pas été réécrit dans le Lot 1.
 
 ---
 
 ## 13. Règle de reprise du chantier
 
-Une fois le Lot 1 validé par tests/build, le prochain lot fonctionnel est :
+Le Lot 1 étant validé par la base, les tests automatisés et le build, le prochain lot fonctionnel est :
 
 **faire évoluer `RepasBloc` en repas multi-aliments en s'appuyant sur `occurrence_repas_id`, sans supprimer ni remplacer les comportements existants.**
 
