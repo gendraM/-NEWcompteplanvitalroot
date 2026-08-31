@@ -2,7 +2,7 @@
 
 ## Statut
 
-Audit technique terminé. **Lot 1 de fondation validé techniquement** sur la branche `plan-alimentaire-intelligent-chatgpt`.
+Audit technique terminé. **Lot 1 de fondation et sous-lot 2.1 du moteur repas en cours validés techniquement** sur la branche `plan-alimentaire-intelligent-chatgpt`.
 
 Branche de référence initiale vérifiée : `plan-alimentaire-intelligent-chatgpt` au commit `8e70aa3` avant création de ce document.
 
@@ -24,6 +24,18 @@ Cet état des lieux constitue la source de vérité du chantier suivant : faire 
 - Le build Next.js du commit `098263b` a été vérifié sur Vercel : compilation réussie et génération statique 36/36 ; les quatre checks Vercel associés sont au vert.
 - Le workflow GitHub Actions `Tests plan alimentaire` a exécuté réellement `npm test -- --runInBand` sur le commit `0a9d404` : **18 suites sur 18 réussies et 153 tests sur 153 réussis**. `tests/repasComposes.test.js` est PASS, y compris les tests spécifiques à `occurrence_repas_id`.
 - Le Lot 1 est donc validé sur ses trois contrôles techniques : **base Supabase live, build Next.js/Vercel et tests Jest automatisés**.
+
+### Avancement sous-lot 2.1 — 31/08/2026
+
+- Le moteur de regroupement du repas en cours est externalisé dans `lib/repasEnCours.js` au lieu d'être ajouté directement dans `RepasBloc`.
+- `construirePayloadRepasEnCours` refuse un repas vide, accepte un ou plusieurs aliments déjà préparés, génère ou réutilise un seul `occurrence_repas_id` et applique ce même identifiant à toutes les lignes de l'occurrence.
+- Le contexte global du repas peut être partagé entre les lignes tout en conservant les données propres à chaque aliment.
+- `RepasBloc.js` n'a pas été modifié dans ce sous-lot : il est désormais traité comme un **composant sensible à protéger** compte tenu des nombreuses règles métier qu'il concentre.
+- Le moteur n'est pas encore raccordé à l'interface : le comportement utilisateur actuel reste donc inchangé à ce stade.
+- Commit fonctionnel initial : `020b3a9` (`Externaliser le moteur repas en cours`). Les deux commits suivants `4874f9a` et `4b9b1b5` ont uniquement corrigé l'exécution/syntaxe du nouveau fichier de test, sans modifier le moteur ni `RepasBloc`.
+- GitHub Actions sur `4b9b1b5280260117bfa5e45e42066465b8469d73` : **19/19 suites PASS et 158/158 tests PASS**. Les 5 tests de `tests/repasEnCours.test.js` sont PASS et les 153 tests historiques restent PASS.
+- Vercel sur le même commit : déploiement `dpl_Gc7m5GKEVag7njXwKfKXU7Rx3vQQ` en état **READY** ; build Next.js terminé avec succès en 22 s et déploiement complété.
+- Le sous-lot 2.1 est donc **validé techniquement** sur tests automatisés et build. Il ne constitue pas encore la fonctionnalité multi-aliments visible : le prochain sous-lot doit déterminer le raccordement le moins risqué.
 
 ---
 
@@ -58,7 +70,7 @@ Les briques nécessaires existent déjà, mais le système ne sait pas encore re
 
 ## 2. Problème structurel confirmé
 
-Un repas composé crée plusieurs lignes dans `repas_reels`, mais sans identifiant unique partagé par l'occurrence.
+Historiquement, un repas composé créait plusieurs lignes dans `repas_reels` sans identifiant unique partagé par l'occurrence.
 
 Le tag actuel indique seulement le modèle utilisé. Si le même modèle est consommé plusieurs fois, il ne suffit pas pour distinguer proprement chaque consommation.
 
@@ -69,7 +81,7 @@ Données observées pendant l'audit :
 - aucun repas composé n'avait encore été enregistré avec le nouveau tag ;
 - `a_reprendre` et `favori` n'étaient actifs sur aucune ligne.
 
-Les anciennes données ne doivent donc pas être artificiellement transformées en repas complets fiables. La reconnaissance sûre commencera avec les nouvelles saisies correctement regroupées.
+Les anciennes données ne doivent donc pas être artificiellement transformées en repas complets fiables. La reconnaissance sûre commence avec les nouvelles saisies correctement regroupées grâce à la fondation Lot 1 et au moteur du sous-lot 2.1 une fois celui-ci raccordé.
 
 ---
 
@@ -136,6 +148,12 @@ Dans le suivi normal :
 
 Les modes reprise alimentaire et défi alimentaire utilisent leurs propres formulaires et sont hors périmètre de ce chantier.
 
+### Règle d'architecture retenue après le sous-lot 2.1
+
+`RepasBloc` est un composant sensible. La logique nouvelle de regroupement multi-aliments ne doit pas être enfouie dans ce fichier tant qu'un point de raccordement plus sûr n'a pas été audité.
+
+Le moteur `lib/repasEnCours.js` constitue désormais la couche métier externe : il reçoit des aliments déjà préparés/validés et construit l'occurrence commune. Le prochain sous-lot doit vérifier si un contrat étroit, un callback ou un orchestrateur/enveloppe peut relier ce moteur au parcours existant. Une modification minimale de `RepasBloc` ne sera envisagée que si aucun point d'extension fiable n'existe ; elle ne doit jamais être supposée avant l'audit.
+
 ---
 
 ## 5. Trois chemins d'enregistrement actuellement présents
@@ -170,13 +188,13 @@ Le bloc « Utiliser un repas composé » enregistre directement les aliments dan
 - les signaux détaillés ;
 - le rafraîchissement normal du suivi.
 
-À terme, il doit charger les aliments dans le repas en cours puis laisser `RepasBloc` effectuer l'enregistrement final.
+À terme, il doit charger les aliments dans le repas en cours puis utiliser le même parcours final fiable que la saisie normale, sans contourner les règles métier existantes.
 
-### 6.3 Aucun identifiant d'occurrence — fondation Lot 1 mise en place
+### 6.3 Identifiant d'occurrence — fondation Lot 1 en place
 
 Le tag existant identifie le modèle de repas composé, mais pas chaque consommation.
 
-La fondation Lot 1 ajoute `occurrence_repas_id`. Les nouvelles lignes simples reçoivent un UUID par défaut en base et les lignes d'une même consommation composée reçoivent explicitement le même UUID. L'exploitation de cet identifiant dans les statistiques et la future saisie multi-aliments reste un lot ultérieur.
+La fondation Lot 1 ajoute `occurrence_repas_id`. Les nouvelles lignes simples reçoivent un UUID par défaut en base et les lignes d'une même consommation composée reçoivent explicitement le même UUID. Le sous-lot 2.1 ajoute le moteur externe capable de construire ce même regroupement pour le futur repas en cours. Son raccordement à l'interface reste à réaliser.
 
 ### 6.4 Rafraîchissement incomplet du suivi
 
@@ -184,7 +202,7 @@ Après certaines insertions, le message de réussite apparaît mais les calories
 
 ### 6.5 Absence de protection automatisée complète de `RepasBloc`
 
-Les calculs des repas composés et de la planification disposent de tests, mais le parcours complet de `RepasBloc` n'a pas de test de non-régression suffisant.
+Les calculs des repas composés, de la planification et désormais du moteur `repasEnCours` disposent de tests, mais le parcours complet de `RepasBloc` n'a pas encore de test de non-régression suffisant. Cette faiblesse justifie de privilégier un raccordement externe et minimal.
 
 ---
 
@@ -205,9 +223,9 @@ Les alertes de sécurité Supabase concernant d'autres tables/fonctions du proje
 
 Il ne faut pas remplacer `RepasBloc` par une copie du planificateur.
 
-La modification minimale recommandée consiste à conserver visuellement et techniquement le bloc actuel et à lui permettre de construire plusieurs aliments avant l'enregistrement final.
+La **cible UX** reste de conserver le bloc actuel et de permettre la construction progressive de plusieurs aliments avant l'enregistrement final. En revanche, la **stratégie technique** est désormais de porter le regroupement dans `lib/repasEnCours.js` et de rechercher un raccordement externe/orchestré avant toute modification du composant sensible.
 
-L'utilisatrice conserve les champs actuels et dispose de deux actions :
+L'utilisatrice conserve les champs actuels et doit à terme disposer de deux actions :
 
 - `+ Ajouter un autre aliment`
 - `Enregistrer ce repas`
@@ -308,20 +326,22 @@ Les points de vigilance récurrents peuvent également être remontés, sans jam
 1. **Fondation réalisée et validée Lot 1** — ajouter `occurrence_repas_id`, garantir un UUID aux nouvelles saisies simples et un UUID partagé aux repas composés.
 2. **Réalisé et validé Lot 1** — corriger l'unicité des bilans en `user_id + semaine`.
 3. **Réalisé et validé Lot 1** — cloisonner `repas_reels`, `repas_planifies`, `repas_complets` et `semaines_validees` par propriétaire.
-4. Faire évoluer `RepasBloc` vers une saisie multi-aliments progressive sans supprimer ses comportements existants.
-5. Corriger la lecture des repas planifiés composés dans le suivi.
-6. Faire charger un repas composé réutilisé dans le repas en cours au lieu de contourner `RepasBloc`.
-7. Créer un moteur commun qui reconstruit les repas complets avant tout calcul.
-8. Corriger le bilan afin de compter les occurrences de repas plutôt que les lignes alimentaires lorsqu'une métrique porte sur le repas.
-9. Produire la synthèse S-1.
-10. Détecter les candidats go-to meals après plusieurs occurrences comparables et positives.
-11. Présenter les suggestions intelligentes dans `/plan`.
-12. Ajouter les points de vigilance récurrents sans transformer une corrélation en causalité.
-13. Effectuer les tests, le build et mettre à jour la passation à chaque lot.
+4. **Sous-lot 2.1 réalisé et validé** — externaliser le moteur de construction du repas en cours dans `lib/repasEnCours.js`, sans modifier `RepasBloc`.
+5. **Sous-lot 2.2 — prochaine étape** — auditer le point de raccordement le moins risqué entre `RepasBloc`, `suivi.js`, `SaisieRepasCompose` et le moteur `repasEnCours` ; privilégier un contrat étroit/callback ou un orchestrateur/enveloppe et documenter la stratégie de non-régression avant modification fonctionnelle.
+6. Raccorder ensuite la saisie multi-aliments progressive et la persistance commune uniquement après validation du point 5.
+7. Corriger la lecture des repas planifiés composés dans le suivi.
+8. Faire charger un repas composé réutilisé dans le repas en cours au lieu de contourner les règles métier du parcours normal.
+9. Créer un moteur commun qui reconstruit les repas complets avant tout calcul.
+10. Corriger le bilan afin de compter les occurrences de repas plutôt que les lignes alimentaires lorsqu'une métrique porte sur le repas.
+11. Produire la synthèse S-1.
+12. Détecter les candidats go-to meals après plusieurs occurrences comparables et positives.
+13. Présenter les suggestions intelligentes dans `/plan`.
+14. Ajouter les points de vigilance récurrents sans transformer une corrélation en causalité.
+15. Effectuer les tests, le build et mettre à jour la passation à chaque lot.
 
 ---
 
-## 12. Tests indispensables avant validation du lot `RepasBloc`
+## 12. Tests indispensables avant validation du lot fonctionnel de raccordement
 
 - repas avec un seul aliment ;
 - repas avec plusieurs aliments ;
@@ -352,16 +372,33 @@ Les points de vigilance récurrents peuvent également être remontés, sans jam
 - GitHub Actions/Jest sur `0a9d404` : **18/18 suites PASS, 153/153 tests PASS**.
 - `tests/repasComposes.test.js` : PASS avec les contrôles spécifiques d'occurrence.
 
-Les tests fonctionnels complets de `RepasBloc` restent volontairement rattachés au prochain lot fonctionnel, puisque `RepasBloc` n'a pas été réécrit dans le Lot 1.
+### Tests spécifiques sous-lot 2.1
+
+- repas mono-aliment avec occurrence ;
+- plusieurs aliments partageant la même occurrence ;
+- partage du contexte global sans perte des données propres à chaque aliment ;
+- génération d'une occurrence lorsque le moteur n'en reçoit pas ;
+- refus d'un repas vide.
+
+**État de validation sous-lot 2.1 : VALIDÉ TECHNIQUEMENT.**
+
+- GitHub Actions/Jest sur `4b9b1b5` : **19/19 suites PASS, 158/158 tests PASS**.
+- `tests/repasEnCours.test.js` : **5/5 PASS**.
+- Vercel `dpl_Gc7m5GKEVag7njXwKfKXU7Rx3vQQ` : **READY**, build Next.js terminé avec succès en 22 s.
+- `RepasBloc.js` non modifié ; aucune nouvelle UX multi-aliments n'est encore déclarée fonctionnelle.
+
+Les tests fonctionnels complets de `RepasBloc` restent volontairement rattachés au futur raccordement, puisque `RepasBloc` n'a pas été réécrit dans le sous-lot 2.1.
 
 ---
 
 ## 13. Règle de reprise du chantier
 
-Le Lot 1 étant validé par la base, les tests automatisés et le build, le prochain lot fonctionnel est :
+Le Lot 1 et le sous-lot 2.1 étant validés techniquement, le prochain sous-lot est :
 
-**faire évoluer `RepasBloc` en repas multi-aliments en s'appuyant sur `occurrence_repas_id`, sans supprimer ni remplacer les comportements existants.**
+**2.2 — auditer et définir le point de raccordement/orchestrateur le moins risqué pour connecter le moteur `repasEnCours` au parcours existant, sans commencer par modifier directement `RepasBloc`.**
 
-Avant chaque commit fonctionnel : rappeler explicitement le dépôt et la branche, présenter le périmètre du commit et attendre l'autorisation de l'utilisatrice. Ne jamais pousser sur `main` sans autorisation explicite distincte.
+L'objectif UX multi-aliments reste inchangé, mais aucune modification de `RepasBloc` ne doit être engagée avant d'avoir vérifié ses points d'extension et les trois chemins d'enregistrement existants.
+
+Avant chaque commit fonctionnel, documentaire ou correctif : rappeler explicitement le dépôt et la branche, présenter le périmètre du commit et attendre l'autorisation de l'utilisatrice. Ne jamais pousser sur `main` sans autorisation explicite distincte.
 
 Les modifications doivent être testées avant validation. Aucun regroupement rétroactif approximatif des anciennes données ne doit être effectué.
