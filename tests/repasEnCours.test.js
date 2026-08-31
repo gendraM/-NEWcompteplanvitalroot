@@ -70,7 +70,7 @@ describe('construirePayloadRepasEnCours', () => {
     expect(lignes[1]).toMatchObject({ satiete: 'oui', ressenti: 'satisfait', est_extra: true, regle_respectee: false });
   });
 
-  test('génère une occurrence lorsque le moteur n'en reçoit pas', () => {
+  test("génère une occurrence lorsque le moteur n'en reçoit pas", () => {
     const lignes = construirePayloadRepasEnCours([
       { aliment: 'Poulet', categorie: 'volaille' },
       { aliment: 'Haricots verts', categorie: 'légumes' },
