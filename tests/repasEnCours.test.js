@@ -1,4 +1,27 @@
-import { construirePayloadRepasEnCours } from '../lib/repasEnCours';
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+function chargerModule() {
+  const context = {
+    module: { exports: {} },
+    exports: {},
+    __repasComposes: {
+      genererOccurrenceRepasId: () => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    },
+  };
+
+  vm.createContext(context);
+  const source = fs.readFileSync(path.join(__dirname, '../lib/repasEnCours.js'), 'utf8')
+    .replace("import { genererOccurrenceRepasId } from './repasComposes';", 'const { genererOccurrenceRepasId } = __repasComposes;')
+    .replace(/export function /g, 'function ')
+    .concat('\nmodule.exports = { construirePayloadRepasEnCours };');
+
+  vm.runInContext(source, context, { filename: 'repasEnCours.js' });
+  return context.module.exports;
+}
+
+const { construirePayloadRepasEnCours } = chargerModule();
 
 describe('construirePayloadRepasEnCours', () => {
   const contexte = {
@@ -45,6 +68,15 @@ describe('construirePayloadRepasEnCours', () => {
 
     expect(lignes[0]).toMatchObject({ satiete: 'oui', ressenti: 'satisfait', est_extra: false, regle_respectee: true });
     expect(lignes[1]).toMatchObject({ satiete: 'oui', ressenti: 'satisfait', est_extra: true, regle_respectee: false });
+  });
+
+  test('génère une occurrence lorsque le moteur n'en reçoit pas', () => {
+    const lignes = construirePayloadRepasEnCours([
+      { aliment: 'Poulet', categorie: 'volaille' },
+      { aliment: 'Haricots verts', categorie: 'légumes' },
+    ], contexte);
+
+    expect(lignes.every(ligne => ligne.occurrence_repas_id === 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')).toBe(true);
   });
 
   test('refuse un repas vide', () => {
