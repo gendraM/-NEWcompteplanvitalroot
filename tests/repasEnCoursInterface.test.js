@@ -18,6 +18,15 @@ describe('Interface Mon repas en cours', () => {
     expect(source).toContain('+ Ajouter cet aliment au repas');
   });
 
+  test('initialise le référentiel avant le calcul automatique des calories', () => {
+    const source = lire('components/RepasBloc.js');
+    const initialisationReferentiel = source.indexOf('const { referentielComplet, referentielCustom');
+    const calculCalories = source.indexOf('// Calcul automatique des kcal selon la quantité');
+
+    expect(initialisationReferentiel).toBeGreaterThan(-1);
+    expect(calculCalories).toBeGreaterThan(initialisationReferentiel);
+  });
+
   test('affiche, retire, nomme et finalise le repas en cours', () => {
     const source = lire('components/RepasEnCours.js');
     expect(source).toContain('Mon repas en cours');

@@ -374,19 +374,6 @@ function getSuggestionsFromNotes(repasList) {
     }
   }, [aliment])
 
-  // Calcul automatique des kcal selon la quantité et l'aliment (référentiel complet : global + custom)
-  useEffect(() => {
-    const found = referentielComplet.find(a => a.nom.toLowerCase() === aliment.toLowerCase())
-    if (found && quantite) {
-      const resultat = calculerCaloriesAliment(found, quantite, found.unite)
-      setKcal(resultat.statut === 'ok' ? String(resultat.kcal) : '')
-    } else {
-      setKcal('')
-    }
-  }, [aliment, quantite, referentielComplet])
-
-
-
   // ...existing code...
 
   // DEBUG: Chargement du référentiel fusionné
@@ -404,6 +391,18 @@ function getSuggestionsFromNotes(repasList) {
   }, [supabase]);
   const { referentielComplet, referentielCustom, refresh: refreshReferentiel } = useUserReferentiel(userId);
   const [ajoutSucces, setAjoutSucces] = useState(null); // message de succès/erreur inline
+
+  // Calcul automatique des kcal selon la quantité et l'aliment (référentiel complet : global + custom)
+  useEffect(() => {
+    const found = referentielComplet.find(a => a.nom.toLowerCase() === aliment.toLowerCase())
+    if (found && quantite) {
+      const resultat = calculerCaloriesAliment(found, quantite, found.unite)
+      setKcal(resultat.statut === 'ok' ? String(resultat.kcal) : '')
+    } else {
+      setKcal('')
+    }
+  }, [aliment, quantite, referentielComplet])
+
   console.log('🔍 DEBUG RepasBloc - Référentiel fusionné:', {
     nombreAliments: referentielComplet.length,
     premiersAliments: referentielComplet.slice(0, 5).map(a => a.nom),
