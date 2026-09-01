@@ -105,6 +105,15 @@ export default function RepasBloc({
   const [portionRespectee, setPortionRespectee] = useState('');
   // Champ Note pour analyse comportementale
   const [note, setNote] = useState('');
+  const repasPlanifieDisponible = [repasPrevu, categoriePrevu, quantitePrevu, kcalPrevu]
+    .some(valeur => String(valeur ?? '').trim().length > 0);
+
+  useEffect(() => {
+    if (!repasPlanifieDisponible && repasConforme) {
+      setRepasConforme(false);
+    }
+  }, [repasPlanifieDisponible, repasConforme]);
+
   // Auto-remplissage conditionnel des champs si repas conforme au planning ET données planifiées valides
   useEffect(() => {
     // Mode création strict : aucun champ existant et aucune id de repas (Next.js/edition)
@@ -528,11 +537,11 @@ function getSuggestionsFromNotes(repasList) {
     reinitialiserChampsAliment();
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Enregistrement du repas classique
     // Si repas conforme au planning, enregistrement automatique
-    if (repasConforme) {
+    if (repasConforme && repasPlanifieDisponible) {
       let kcalPlanning = kcal;
       if (!kcalPlanning) {
         alert("Merci de saisir manuellement les kcal du repas prévu pour le suivi.");
@@ -567,38 +576,33 @@ function getSuggestionsFromNotes(repasList) {
         return;
       }
       // Si Jeûne, on autorise l'enregistrement même si les champs sont vides
-      import('../lib/supabaseClient').then(({ supabase }) => {
-        supabase.auth.getUser().then(({ data: userData }) => {
-          const user_id = userData?.user?.id || null;
-          supabase.from('repas_reels').insert([
-            {
-              user_id,
-              date,
-              type,
-              heure: heureRepas || null,
-              aliment: isJeune ? '' : alimentFinal,
-              categorie: isJeune ? 'Jeûne' : (isFastFood ? 'fast-food' : categorieFinal),
-              quantite: isJeune ? null : (quantiteFinal === '' ? null : isNaN(Number(quantiteFinal)) ? quantiteFinal : Number(quantiteFinal)),
-              kcal: isJeune ? null : (kcalFinal === '' ? null : isNaN(Number(kcalFinal)) ? kcalFinal : Number(kcalFinal)),
-              est_extra: false,
-              regle_respectee: regleRespectee,
-              satiete,
-              pourquoi,
-              ressenti,
-              details_signaux: detailsSignaux,
-              repas_planifie_respecte: true,
-              note,
-              tag: isFastFood ? fastFoodType : null
-            }
-          ]).then(({ error }) => {
-            if (error) {
-              setSupabaseError(error.message);
-            } else {
-              setSupabaseError(null);
-            }
-          });
-        });
+      if (!onSave) {
+        setSupabaseError("L'enregistrement du repas est indisponible.");
+        return;
+      }
+      const resultat = await onSave({
+        date,
+        type,
+        heure: heureRepas || null,
+        aliment: isJeune ? '' : alimentFinal,
+        categorie: isJeune ? 'Jeûne' : (isFastFood ? 'fast-food' : categorieFinal),
+        quantite: isJeune ? null : (quantiteFinal === '' ? null : isNaN(Number(quantiteFinal)) ? quantiteFinal : Number(quantiteFinal)),
+        kcal: isJeune ? null : (kcalFinal === '' ? null : isNaN(Number(kcalFinal)) ? kcalFinal : Number(kcalFinal)),
+        est_extra: false,
+        regle_respectee: regleRespectee,
+        satiete,
+        pourquoi,
+        ressenti,
+        details_signaux: detailsSignaux,
+        repas_planifie_respecte: true,
+        note,
+        tag: isFastFood ? fastFoodType : null
       });
+      if (!resultat?.ok) {
+        setSupabaseError(resultat?.error?.message || "Impossible d'enregistrer le repas.");
+        return;
+      }
+      setSupabaseError(null);
       setRepasConforme(false);
       setAliment('');
       setCategorie('');
@@ -742,10 +746,12 @@ function getSuggestionsFromNotes(repasList) {
           style={{ width: '100%', marginBottom: 12 }}
         />
         {/* Case à cocher Repas conforme au planning */}
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          <input type="checkbox" checked={repasConforme} onChange={e => setRepasConforme(e.target.checked)} />
-          Repas conforme au planning
-        </label>
+        {repasPlanifieDisponible && (
+          <label style={{ display: 'block', marginBottom: 8 }}>
+            <input type="checkbox" checked={repasConforme} onChange={e => setRepasConforme(e.target.checked)} />
+            Repas conforme au planning
+          </label>
+        )}
         {/* Message d’avertissement et suggestion si règle non respectée */}
         {isFastFood && fastFoodHistory.length > 0 && (
           (() => {

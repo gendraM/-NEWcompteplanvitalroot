@@ -27,6 +27,28 @@ describe('Interface Mon repas en cours', () => {
     expect(calculCalories).toBeGreaterThan(initialisationReferentiel);
   });
 
+  test('raccorde le repas conforme au handler commun et attend son succès', () => {
+    const source = lire('components/RepasBloc.js');
+    const debutConforme = source.indexOf('if (repasConforme && repasPlanifieDisponible)');
+    const finConforme = source.indexOf('// Enregistrement du repas classique', debutConforme + 1);
+    const cheminConforme = source.slice(debutConforme, finConforme);
+
+    expect(source).toContain('const handleSubmit = async (e) =>');
+    expect(cheminConforme).toContain('const resultat = await onSave({');
+    expect(cheminConforme).toContain('repas_planifie_respecte: true');
+    expect(cheminConforme).toContain('if (!resultat?.ok)');
+    expect(cheminConforme).not.toContain("from('repas_reels').insert");
+    expect(cheminConforme.indexOf('if (!resultat?.ok)')).toBeLessThan(cheminConforme.indexOf("setRepasConforme(false)"));
+  });
+
+  test('ne propose pas de déclarer conforme un repas sans planning', () => {
+    const source = lire('components/RepasBloc.js');
+
+    expect(source).toContain('const repasPlanifieDisponible = [repasPrevu, categoriePrevu, quantitePrevu, kcalPrevu]');
+    expect(source).toContain('if (!repasPlanifieDisponible && repasConforme)');
+    expect(source).toContain('{repasPlanifieDisponible && (');
+  });
+
   test('affiche, retire, nomme et finalise le repas en cours', () => {
     const source = lire('components/RepasEnCours.js');
     expect(source).toContain('Mon repas en cours');
