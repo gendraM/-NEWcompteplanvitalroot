@@ -34,6 +34,8 @@ import { fetchRepasPeriode } from '../lib/repasUtils';
 import BudgetExtrasCard from '../components/BudgetExtrasCard';
 import { supabase } from '../lib/supabaseClient';
 import { normaliserRepasPourPersistance } from '../lib/repasPersistence';
+import { construirePayloadRepasEnCoursDepuisLignes, creerCleRepasEnCours } from '../lib/repasEnCours';
+import { creerRepasCompose } from '../lib/repasComposes';
 import { calculerProfilComplet } from '../lib/routeurPoids';
 import { 
   calculerExtrasSemaine, 
@@ -68,6 +70,7 @@ import {
 } from '../lib/validerCriterePreparation';
 import Link from 'next/link';
 import RepasBloc from "../components/RepasBloc";
+import RepasEnCours from "../components/RepasEnCours";
 import TimelineProgression from "../components/TimelineProgression";
 import SaisieDefiAlimentaire from "../components/SaisieDefiAlimentaire";
 import SaisieRepriseJeune from "../components/SaisieRepriseJeune";
@@ -737,7 +740,7 @@ export default function Suivi() {
   // Affichage de la saisie dédiée au défi alimentaire en cours (ex : 1 portion ça suffit)
   // Respecte la checklist : hooks, logique, handlers déclarés avant le rendu
   // Affiche le composant avant la sélection du type de repas
-  const handleSaveRepas = async (repasData) => {
+  const handleSaveRepas = async (repasData, { afficherSucces = true } = {}) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const repasPayloads = normaliserRepasPourPersistance(
@@ -750,11 +753,15 @@ export default function Suivi() {
         .insert(repasPayloads);
       if (error) {
         setSnackbar({ open: true, message: "Erreur Supabase : " + error.message, type: "error" });
-        return;
+        return { ok: false, error };
       }
-      setSnackbar({ open: true, message: "Repas enregistré !", type: "success" });
+      if (afficherSucces) {
+        setSnackbar({ open: true, message: "Repas enregistré !", type: "success" });
+      }
+      return { ok: true, data };
     } catch (error) {
       setSnackbar({ open: true, message: "Erreur lors de l'enregistrement du repas.", type: "error" });
+      return { ok: false, error };
     }
   };
   // ...tous les hooks, useEffect et logique métier ici...
@@ -762,6 +769,8 @@ export default function Suivi() {
   // ...handlers et fonctions utilitaires...
   // ----------- AUTRES HOOKS PRINCIPAUX -----------
   const [selectedType, setSelectedType] = useState(null);
+  const [repasEnCoursParCle, setRepasEnCoursParCle] = useState({});
+  const [enregistrementRepasEnCours, setEnregistrementRepasEnCours] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'info' });
   // Objectif calorique et calories du jour
   const [objectifCalorique, setObjectifCalorique] = useState(1800); // Valeur par défaut, sera remplacée par routeur poids
@@ -773,6 +782,80 @@ export default function Suivi() {
   const [showNotesHistory, setShowNotesHistory] = useState(false);
   // Plan de repas du jour (repas planifiés)
   const [repasPlan, setRepasPlan] = useState({});
+
+  const cleRepasEnCours = creerCleRepasEnCours(selectedDate, selectedType);
+  const alimentsRepasEnCours = cleRepasEnCours ? (repasEnCoursParCle[cleRepasEnCours] || []) : [];
+
+  const handleAjouterAlimentAuRepas = ({ ligne, composantModele }) => {
+    if (!cleRepasEnCours || !ligne?.aliment) return;
+    if (alimentsRepasEnCours.some(entree => entree.ligne.aliment === ligne.aliment)) {
+      setSnackbar({
+        open: true,
+        message: `${ligne.aliment} est déjà dans ce repas. Retire-le avant de le saisir à nouveau.`,
+        type: 'error'
+      });
+      return;
+    }
+    setRepasEnCoursParCle(courant => {
+      const alimentsCourants = courant[cleRepasEnCours] || [];
+      const id = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+      return {
+        ...courant,
+        [cleRepasEnCours]: [...alimentsCourants, { id, ligne, composantModele }]
+      };
+    });
+  };
+
+  const handleRetirerAlimentDuRepas = id => {
+    if (!cleRepasEnCours) return;
+    setRepasEnCoursParCle(courant => ({
+      ...courant,
+      [cleRepasEnCours]: (courant[cleRepasEnCours] || []).filter(entree => entree.id !== id)
+    }));
+  };
+
+  const handleFinaliserRepasEnCours = async ({ enregistrerModele = false, nomModele = '' } = {}) => {
+    if (!cleRepasEnCours || alimentsRepasEnCours.length === 0) {
+      return { ok: false };
+    }
+
+    setEnregistrementRepasEnCours(true);
+    try {
+      const payloads = construirePayloadRepasEnCoursDepuisLignes(
+        alimentsRepasEnCours.map(entree => entree.ligne)
+      );
+      const persistance = await handleSaveRepas(payloads, { afficherSucces: false });
+      if (!persistance.ok) return persistance;
+
+      let message = `${alimentsRepasEnCours.length} aliment${alimentsRepasEnCours.length > 1 ? 's ont' : ' a'} été enregistré${alimentsRepasEnCours.length > 1 ? 's' : ''} dans un seul repas.`;
+      if (enregistrerModele) {
+        const composition = alimentsRepasEnCours.map(entree => entree.composantModele);
+        const { error: erreurModele } = await creerRepasCompose(supabase, {
+          userId,
+          nom: nomModele,
+          composition
+        });
+        if (erreurModele) {
+          message += ` Le repas réel est enregistré, mais l’assiette réutilisable ne l’est pas : ${erreurModele.message}`;
+        } else {
+          message += ` « ${nomModele} » est maintenant disponible pour une prochaine fois.`;
+        }
+      }
+
+      setRepasEnCoursParCle(courant => {
+        const suivant = { ...courant };
+        delete suivant[cleRepasEnCours];
+        return suivant;
+      });
+      setSnackbar({ open: true, message, type: 'success' });
+      return { ok: true };
+    } catch (error) {
+      setSnackbar({ open: true, message: `Impossible d’enregistrer le repas : ${error.message}`, type: 'error' });
+      return { ok: false, error };
+    } finally {
+      setEnregistrementRepasEnCours(false);
+    }
+  };
 
   // Chargement profil et calcul objectif calorique personnalisé (routeur poids)
   useEffect(() => {
@@ -2073,6 +2156,12 @@ export default function Suivi() {
                 <span style={{ color: "#bbb" }}>Non défini</span>
               )}
             </div>
+            <RepasEnCours
+              aliments={alimentsRepasEnCours}
+              chargement={enregistrementRepasEnCours}
+              onRetirer={handleRetirerAlimentDuRepas}
+              onFinaliser={handleFinaliserRepasEnCours}
+            />
             <RepasBloc
               repasPrevu={typeof repasPlan[selectedType]?.aliment === 'string' ? repasPlan[selectedType].aliment : ''}
               categoriePrevu={typeof repasPlan[selectedType]?.categorie === 'string' ? repasPlan[selectedType].categorie : ''}
@@ -2083,6 +2172,8 @@ export default function Suivi() {
               planCategorie={repasPlan[selectedType]?.categorie}
               extrasRestants={typeof extrasRestants === 'number' && !isNaN(extrasRestants) ? extrasRestants : 0}
               onSave={handleSaveRepas}
+              onAjouterAlimentAuRepas={handleAjouterAlimentAuRepas}
+              nombreAlimentsRepasEnCours={alimentsRepasEnCours.length}
               setSnackbar={setSnackbar}
               repasSemaine={repasSemaine}
               onChangeChampsRepas={isMounted && preparationActive ? setChampsRepasEnCours : undefined}

@@ -78,7 +78,9 @@ export default function RepasBloc({
   categoriePrevu,
   quantitePrevu,
   kcalPrevu,
-  onChangeChampsRepas
+  onChangeChampsRepas,
+  onAjouterAlimentAuRepas,
+  nombreAlimentsRepasEnCours = 0
 }) {  // Hook Supabase avec contexte (doit être en premier)
   // (supabase déjà déclaré plus bas, ne pas redéclarer ici)
   // État pour afficher le formulaire d’ajout personnalisé
@@ -448,6 +450,85 @@ function getSuggestionsFromNotes(repasList) {
     setReactBloc(blocs)
   }, [estExtra, satiete, categorie, planCategorie, routineCount, extrasRestants])
 
+  const construireSaisieClassique = () => {
+    const regleRespectee = categorie === 'Jeûne'
+      ? null
+      : evaluerRespectPortionRepas(
+          {
+            aliment,
+            quantite,
+            regle_respectee: portionRespectee === 'oui' ? true : portionRespectee === 'non' ? false : undefined,
+          },
+          referentielAliments
+        );
+    if (categorie !== 'Jeûne' && regleRespectee === null) {
+      alert("Impossible d'analyser automatiquement la portion pour cet aliment. Merci d'indiquer si la portion recommandée a été respectée.");
+      return null;
+    }
+
+    const ligne = {
+      type,
+      date,
+      heure: heureRepas || null,
+      aliment: categorie === 'Jeûne' ? '' : aliment,
+      categorie: categorie === 'Jeûne' ? 'Jeûne' : (isFastFood ? 'fast-food' : categorie),
+      quantite: categorie === 'Jeûne' ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite)),
+      kcal: categorie === 'Jeûne' ? null : (kcal === '' ? null : isNaN(Number(kcal)) ? kcal : Number(kcal)),
+      est_extra: estExtra,
+      regle_respectee: regleRespectee,
+      satiete,
+      pourquoi,
+      ressenti,
+      details_signaux: detailsSignaux,
+      note,
+      tag: isFastFood ? fastFoodType : null
+    };
+
+    const reference = referentielComplet.find(item =>
+      item.nom && item.nom.toLowerCase() === String(aliment || '').toLowerCase()
+    );
+    const texteQuantite = String(quantite || '').trim().replace(',', '.');
+    let quantiteModele = Number(texteQuantite);
+    if (!Number.isFinite(quantiteModele)) {
+      const uniteMasseVolume = String(reference?.unite || '').match(/^(kg|g|ml|cl|l)$/i);
+      const mesure = uniteMasseVolume
+        ? texteQuantite.match(/(\d+(?:\.\d+)?)\s*(kg|g|ml|cl|l)\b/i)
+        : null;
+      const premierNombre = texteQuantite.match(/^\s*(\d+(?:\.\d+)?)/);
+      quantiteModele = mesure ? Number(mesure[1]) : (premierNombre ? Number(premierNombre[1]) : NaN);
+    }
+    const composantModele = reference && Number.isFinite(quantiteModele) && quantiteModele > 0 && reference.unite
+      ? {
+          nom: ligne.aliment,
+          categorie: ligne.categorie,
+          quantite: quantiteModele,
+          unite: reference.unite,
+          kcal: ligne.kcal,
+          qn: reference.qn ?? null
+        }
+      : null;
+
+    return { ligne, composantModele };
+  };
+
+  const reinitialiserChampsAliment = () => {
+    setAliment('');
+    setCategorie('');
+    setQuantite('');
+    setKcal('');
+    setPortionRespectee('');
+    setEstExtra(false);
+    setTypeExtra('');
+  };
+
+  const handleAjouterAlimentAuRepas = event => {
+    if (!event.currentTarget.form?.reportValidity()) return;
+    const saisie = construireSaisieClassique();
+    if (!saisie) return;
+    onAjouterAlimentAuRepas?.(saisie);
+    reinitialiserChampsAliment();
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     // Enregistrement du repas classique
@@ -535,38 +616,9 @@ function getSuggestionsFromNotes(repasList) {
       return;
     }
     // Enregistrement du repas classique
-    const regleRespectee = categorie === 'Jeûne'
-      ? null
-      : evaluerRespectPortionRepas(
-          {
-            aliment,
-            quantite,
-            regle_respectee: portionRespectee === 'oui' ? true : portionRespectee === 'non' ? false : undefined,
-          },
-          referentielAliments
-        );
-    if (categorie !== 'Jeûne' && regleRespectee === null) {
-      alert("Impossible d'analyser automatiquement la portion pour cet aliment. Merci d'indiquer si la portion recommandée a été respectée.");
-      return;
-    }
-    onSave && onSave({
-      // Correction : si Jeûne, envoyer null pour quantite/kcal et '' pour aliment
-      type,
-      date,
-      heure: heureRepas || null,
-      aliment: categorie === 'Jeûne' ? '' : aliment,
-      categorie: categorie === 'Jeûne' ? 'Jeûne' : (isFastFood ? 'fast-food' : categorie),
-      quantite: categorie === 'Jeûne' ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite)),
-      kcal: categorie === 'Jeûne' ? null : (kcal === '' ? null : isNaN(Number(kcal)) ? kcal : Number(kcal)),
-      est_extra: estExtra,
-      regle_respectee: regleRespectee,
-      satiete,
-      pourquoi,
-      ressenti,
-      details_signaux: detailsSignaux,
-      note,
-      tag: isFastFood ? fastFoodType : null
-    });
+    const saisie = construireSaisieClassique();
+    if (!saisie) return;
+    onSave && onSave(saisie.ligne);
     
     // Rechargement de l'historique fast food après enregistrement
     if (isFastFood) {
@@ -1214,7 +1266,22 @@ function getSuggestionsFromNotes(repasList) {
           </div>
         )}
 
-        <button type="submit" style={{ marginTop: 16 }}>Enregistrer ce repas</button>
+        {onAjouterAlimentAuRepas && !repasConforme && categorie !== 'Jeûne' && (
+          <button
+            type="button"
+            onClick={handleAjouterAlimentAuRepas}
+            style={{ marginTop: 16, marginRight: 10, background: '#e3f2fd', color: '#1565c0', border: '1px solid #90caf9', borderRadius: 7, padding: '8px 12px', fontWeight: 700 }}
+          >
+            {nombreAlimentsRepasEnCours > 0 ? '+ Ajouter cet aliment au repas' : '+ Ajouter un autre aliment'}
+          </button>
+        )}
+        {nombreAlimentsRepasEnCours === 0 ? (
+          <button type="submit" style={{ marginTop: 16 }}>Enregistrer ce repas</button>
+        ) : (
+          <div style={{ marginTop: 12, color: '#1565c0', fontWeight: 600 }}>
+            Ajoute cet aliment à l’assiette, puis finalise le repas dans « Mon repas en cours ».
+          </div>
+        )}
       </form>
       {/* Suggestions IA issues des notes (analyse symbolique) */}
       {repasSemaine.length > 0 && (

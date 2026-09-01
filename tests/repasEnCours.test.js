@@ -15,13 +15,17 @@ function chargerModule() {
   const source = fs.readFileSync(path.join(__dirname, '../lib/repasEnCours.js'), 'utf8')
     .replace("import { genererOccurrenceRepasId } from './repasComposes';", 'const { genererOccurrenceRepasId } = __repasComposes;')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { construirePayloadRepasEnCours };');
+    .concat('\nmodule.exports = { construirePayloadRepasEnCours, creerCleRepasEnCours, construirePayloadRepasEnCoursDepuisLignes };');
 
   vm.runInContext(source, context, { filename: 'repasEnCours.js' });
   return context.module.exports;
 }
 
-const { construirePayloadRepasEnCours } = chargerModule();
+const {
+  construirePayloadRepasEnCours,
+  creerCleRepasEnCours,
+  construirePayloadRepasEnCoursDepuisLignes,
+} = chargerModule();
 
 describe('construirePayloadRepasEnCours', () => {
   const contexte = {
@@ -81,5 +85,32 @@ describe('construirePayloadRepasEnCours', () => {
 
   test('refuse un repas vide', () => {
     expect(() => construirePayloadRepasEnCours([], contexte)).toThrow('Au moins un aliment');
+  });
+
+  test('isole le repas en cours par date et type', () => {
+    expect(creerCleRepasEnCours('2026-09-01', 'Déjeuner')).toBe('2026-09-01::Déjeuner');
+    expect(creerCleRepasEnCours('', 'Déjeuner')).toBeNull();
+  });
+
+  test('finalise les lignes avec le contexte global de la dernière saisie', () => {
+    const lignes = construirePayloadRepasEnCoursDepuisLignes([
+      {
+        type: 'Déjeuner', date: '2026-09-01', heure: '12:10', aliment: 'Poulet',
+        categorie: 'volaille', quantite: 120, kcal: 180, satiete: '', note: ''
+      },
+      {
+        type: 'Déjeuner', date: '2026-09-01', heure: '12:35', aliment: 'Haricots verts',
+        categorie: 'légumes', quantite: 150, kcal: 45, satiete: 'oui', note: 'Repas complet'
+      },
+    ], '44444444-4444-4444-8444-444444444444');
+
+    expect(lignes).toHaveLength(2);
+    expect(lignes.every(ligne => ligne.heure === '12:35')).toBe(true);
+    expect(lignes.every(ligne => ligne.satiete === 'oui')).toBe(true);
+    expect(lignes.every(ligne => ligne.note === 'Repas complet')).toBe(true);
+    expect(lignes.map(ligne => ligne.aliment)).toEqual(['Poulet', 'Haricots verts']);
+    expect(new Set(lignes.map(ligne => ligne.occurrence_repas_id))).toEqual(
+      new Set(['44444444-4444-4444-8444-444444444444'])
+    );
   });
 });
