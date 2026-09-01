@@ -4,7 +4,7 @@
 **Branche de travail : `Align-Life`**  
 **Branche source : `plan-alimentaire-intelligent-chatgpt`**  
 **HEAD de création de la branche : `0f9be4e3c2b5278d4c1fadc4fcc63110a3a9d36e`**  
-**Statut : gouvernance + planification, aucun code applicatif modifié dans ce commit**
+**Statut : P0 gouvernance validé ; P1 expérience utilisateur validée ; P2 audit technique = prochaine priorité**
 
 ---
 
@@ -37,12 +37,21 @@ Boucle cible :
 
 **CREATE → ALIGN → LIVE → OBSERVE → ADAPT → GROW → enrichissement de la Boussole.**
 
+## Nomenclature verrouillée
+
+- **Nom utilisateur de l'expérience : `My Way`**.
+- **Concept produit/fonctionnel interne : Boussole**.
+- **Notion de cap :** peut être utilisée à l'intérieur de My Way pour parler de direction, mais n'est pas le nom principal de l'expérience.
+- **Architecture interne :** CREATE → ALIGN → LIVE → OBSERVE → ADAPT → GROW.
+- **Branche de développement :** `Align-Life`.
+- **Sous-titre de travail :** « My Way — Ce qui compte pour moi et ce que je construis. » ; formulation révisable ultérieurement sans remettre en cause le naming validé `My Way`.
+
 Principes verrouillés :
 
-- Mon Pourquoi reste la graine initiale de la Boussole ;
+- Mon Pourquoi reste la graine initiale de la Boussole / My Way ;
 - une seule direction identitaire globale et évolutive ;
 - exprimer quand je sais / découvrir quand je ne sais pas ;
-- aucune obligation de compléter la Boussole ;
+- aucune obligation de compléter My Way ;
 - aspiration ≠ objectif ≠ Idéal ;
 - l'utilisateur choisit si une aspiration devient un projet concret ;
 - Idéaux transforme une aspiration concrète en trajectoire ;
@@ -62,50 +71,71 @@ Principes verrouillés :
 
 ## P0 — Gouvernance et sécurité du chantier
 
-**État : EN COURS — initialisation avec le présent document.**
+**État : TERMINÉ.**
 
-Objectifs :
-- verrouiller la branche et la base ;
-- consigner les règles de commit ;
-- disposer d'un journal de passation fiable ;
-- ne toucher à aucun code tant que le parcours UX cible n'est pas validé.
+Objectifs atteints :
+- branche `Align-Life` dédiée ;
+- règles de commit consignées ;
+- journal de passation opérationnel ;
+- interdiction de modification applicative avant audit et validation du parcours respectée.
 
-Critère de sortie : ce fichier est présent sur `Align-Life` et devient obligatoire dans chaque futur commit autorisé.
+Critère de sortie atteint : ce fichier est présent sur `Align-Life` et devient obligatoire dans chaque futur commit autorisé.
 
 ---
 
-## P1 — Figer l'expérience utilisateur cible Align-Life
+## P1 — Figer l'expérience utilisateur cible Align-Life / My Way
 
-**État : À FAIRE — prochaine priorité fonctionnelle.**
+**État : TERMINÉ — parcours fonctionnel + implantation UX cible + naming validés.**
 
-Décrire précisément ce que vit l'utilisateur :
+### P1A — Parcours fonctionnel validé
 
-**Mon Pourquoi → Boussole progressive → aspiration éventuelle → Idéaux si choix de concrétisation → LIVE dans les outils existants → OBSERVE → GROW → éventuel ADAPT → Boussole enrichie.**
+Parcours cible :
 
-À décider avant développement :
-- où vit la Boussole dans l'interface ;
-- comment l'utilisateur l'ouvre volontairement ;
-- comment Mon Pourquoi est présenté et raccordé ;
-- comportement pour un nouvel utilisateur ;
-- comportement pour un utilisateur déjà existant ;
-- parcours « je sais » / « je ne sais pas » ;
-- comment une aspiration est ajoutée ;
-- comment l'utilisateur choisit d'en faire ou non un Idéal ;
-- où et quand les retours GROW apparaissent ;
-- comment éviter un nouveau tableau de bord ou une nouvelle to-do list ;
-- comment la Boussole évolue sans devenir un formulaire à compléter.
+**Mon Pourquoi → My Way progressive → aspiration éventuelle → Idéaux si choix de concrétisation → LIVE dans les outils existants → OBSERVE → GROW → éventuel ADAPT → My Way enrichie.**
 
-**Règle : aucun développement applicatif avant validation de cette expérience.**
+Règles fonctionnelles validées :
+- Mon Pourquoi reste la graine d'entrée ;
+- si l'utilisateur sait ce qu'il veut exprimer, il peut l'écrire directement ;
+- s'il ne sait pas, l'application ne l'interroge pas en boucle et il peut continuer à vivre son parcours ;
+- les éléments de My Way sont évolutifs et non obligatoires ;
+- une aspiration peut rester une aspiration ;
+- seule une décision explicite de l'utilisateur permet de la transmettre à Idéaux ;
+- `NO_INTERVENTION` / droit au silence sont conservés ;
+- GROW montre des faits/tendances/transformations observables sans attribuer automatiquement une identité à l'utilisateur.
+
+### P1B — Implantation UX cible validée
+
+Décisions :
+- **`My Way` est le nom visible utilisateur.**
+- `Boussole` reste un terme interne et ne doit pas être présenté par défaut comme le nom d'un nouvel onglet utilisateur.
+- ne pas créer par défaut un nouvel onglet principal `My Way` dans la navigation ; l'audit technique P2 doit confirmer le raccord le moins intrusif ;
+- le **Profil** reste le point de naissance naturel via l'objectif + Mon Pourquoi ;
+- toute l'expérience My Way ne doit pas être enfermée dans le Profil ;
+- le **Tableau de bord** est la cible privilégiée pour une entrée légère et volontaire vers My Way ;
+- **GROW doit aussi apparaître contextuellement** là où le fait significatif se produit réellement : Suivi, Idéaux, Défi, Cristallisation, etc. ;
+- My Way sert à retrouver le sens et les éléments validés, pas à créer un nouveau tableau de tâches ;
+- Idéaux reste le moteur de concrétisation d'une aspiration et n'est pas remplacé par My Way.
+
+Contenus candidats de l'espace My Way, sans obligation de complétion :
+- pourquoi j'ai commencé ;
+- ce qui compte pour moi / ce que je veux vivre davantage ;
+- qui je choisis de devenir, uniquement si je l'ai exprimé ou validé ;
+- mes aspirations ;
+- ce que mon parcours m'a déjà montré via GROW.
+
+**Critère de sortie atteint : l'expérience cible est suffisamment figée pour permettre l'audit technique P2 sans recommencer la conception fonctionnelle.**
 
 ---
 
 ## P2 — Audit technique ciblé sur le HEAD réel de `Align-Life`
 
-**État : À FAIRE après P1.**
+**État : PROCHAINE PRIORITÉ — aucun code applicatif à modifier pendant l'audit.**
 
 Auditer uniquement les zones qui doivent réellement se raccorder :
 
 - `pages/profil.js` / Mon Pourquoi ;
+- `components/FormulaireProfil.js` ;
+- `pages/tableau-de-bord.js` ;
 - `pages/ideaux.js` ;
 - `pages/plan-action.js` ;
 - `lib/generateAnchoringPlan.js` ;
@@ -128,7 +158,7 @@ Objectif : raccorder au réel existant, pas recréer ce qui fonctionne déjà.
 
 ---
 
-## P3 — Fondation de données de la Boussole
+## P3 — Fondation de données de la Boussole / My Way
 
 **État : À FAIRE après audit.**
 
@@ -149,7 +179,7 @@ Contraintes :
 
 ---
 
-## P4 — Boussole V1 sans dépendance forte à l'IA
+## P4 — My Way V1 sans dépendance forte à l'IA
 
 **État : À FAIRE.**
 
@@ -183,7 +213,7 @@ Avant implémentation : recalculer les coûts API actuels et documenter :
 
 ---
 
-## P6 — Raccord Boussole → Idéaux
+## P6 — Raccord My Way → Idéaux
 
 **État : À FAIRE.**
 
@@ -191,7 +221,7 @@ Règle : une aspiration ne devient jamais automatiquement un Idéal.
 
 Exemple :
 
-**Boussole** : retrouver ma liberté physique  
+**My Way** : retrouver ma liberté physique  
 → **aspiration** : recommencer à courir  
 → choix utilisateur : **En faire quelque chose de concret**  
 → **Idéaux prend le relais.**
@@ -271,7 +301,7 @@ Exemple factuel :
 
 > « Il y a deux mois, 12 minutes étaient difficiles. Aujourd'hui tu en fais 28. »
 
-Puis, uniquement si une Boussole validée le permet :
+Puis, uniquement si un élément validé dans My Way le permet :
 
 > « Tu avais associé cela au fait de retrouver ta liberté physique. Cette liberté commence à prendre une forme concrète. »
 
@@ -329,6 +359,8 @@ Pour chaque futur changement autorisé, ajouter une entrée contenant au minimum
 - **HEAD après commit** ;
 - **Prochaine étape autorisée / non autorisée**.
 
+Note technique : le SHA d'un commit ne peut pas être connu avant sa création. Le SHA du commit courant doit donc être vérifié immédiatement après création et reporté dans le récapitulatif externe ; il sera également consolidé dans ce journal au prochain commit autorisé, sans créer un commit documentaire artificiel uniquement pour auto-référencer son propre SHA.
+
 ---
 
 # 5. JOURNAL CHRONOLOGIQUE
@@ -345,6 +377,29 @@ Pour chaque futur changement autorisé, ajouter une entrée contenant au minimum
 **Supabase / API / migration :** non concerné.  
 **Code applicatif :** aucun changement.  
 **Comportement utilisateur :** aucun changement.  
-**Tests :** vérification attendue de la création du fichier et du commit sur `Align-Life` uniquement.  
-**Résultat :** à compléter avec le SHA retourné par GitHub dans le récapitulatif de commit.  
+**Tests :** vérification de la création du fichier et du commit sur `Align-Life` uniquement.  
+**Résultat :** succès.  
+**Commit SHA / HEAD après :** `d531ee315d9491c468b6865fc7d8f98e31a97b62`.  
 **Prochaine étape :** P1 — figer l'expérience utilisateur cible Align-Life avant toute modification applicative.
+
+---
+
+## LOG 002 — Validation du parcours UX et du naming My Way
+
+**Date : 1er septembre 2026**  
+**Branche : `Align-Life`**  
+**HEAD avant changement : `d531ee315d9491c468b6865fc7d8f98e31a97b62`**  
+**Objectif :** figer dans la source de passation les décisions P1 déjà validées en conversation : expérience utilisateur cible, implantation UX de principe et naming `My Way`.  
+**Accord utilisateur : OUI — « go » après explication explicite que l'autorisation concernait uniquement la mise à jour documentaire du journal, et non des modifications applicatives.**  
+**Fichiers inspectés pendant l'audit UX ciblé :** `components/Navigation.js`, `pages/profil.js`, `pages/tableau-de-bord.js`, `pages/suivi.js`, `pages/ideaux.js`, `docs/ALIGN_LIFE_PLAN_ACTION_ET_JOURNAL.md`.  
+**Fichier modifié :** `docs/ALIGN_LIFE_PLAN_ACTION_ET_JOURNAL.md` uniquement.  
+**Supabase / API / migration :** non concerné. Aucun changement de schéma, donnée, RLS ou API.  
+**Comportement avant :** My Way/Boussole n'est pas implémenté ; la documentation P1 restait marquée « à faire ».  
+**Comportement attendu après :** aucun changement visible dans l'application ; la documentation devient la référence de passation pour le naming et l'UX cible validés.  
+**Tests réalisés avant commit :** vérification du HEAD `Align-Life`, lecture du journal existant, contrôle ciblé des fichiers UX concernés.  
+**Résultats :** les décisions sont compatibles avec l'architecture visible actuelle : navigation courte, Mon Pourquoi dans Profil, dashboard agrégateur, Suivi comme centre vivant, Idéaux comme moteur de concrétisation.  
+**Régressions / anomalies / limites :** aucune régression applicative possible sur ce commit documentaire ; P2 n'est pas encore réalisé ; My Way n'est pas encore implémenté ; le sous-titre est une formulation de travail.  
+**Décisions prises :** nom utilisateur `My Way` ; Boussole = concept interne ; pas de nouvel onglet principal par défaut ; graine via Mon Pourquoi/Profil ; entrée vivante privilégiée depuis le Tableau de bord ; GROW contextuel ; aspiration → Idéaux uniquement sur choix explicite ; droit au silence / `NO_INTERVENTION` conservé.  
+**Commit SHA :** à vérifier immédiatement après création de ce commit, puis à consolider au prochain commit autorisé.  
+**HEAD après commit :** à vérifier immédiatement après création de ce commit.  
+**Prochaine étape :** P2 — audit technique ciblé en lecture seule. **Aucune modification applicative n'est autorisée par ce commit.**
