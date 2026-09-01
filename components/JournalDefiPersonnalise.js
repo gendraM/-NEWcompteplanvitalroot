@@ -35,6 +35,12 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
     return "hors-créneau";
   };
 
+  const formatDateJour = (date) => date.toLocaleDateString('fr-FR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
   // Charger le journal du jour au montage
   useEffect(() => {
     if (defi?.id && jourActuel) {
@@ -43,17 +49,24 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
   }, [defi?.id, jourActuel]);
 
   const chargerJournal = async () => {
+    setJournalCharge(false);
+    setEngagements([]);
+    setNotePersonnelle("");
+    setEtapeValidee(false);
+    setMessage("");
+
     try {
       const journal = await chargerJournalDefi(defi.id, jourActuel);
       if (journal) {
         setEngagements(journal.engagements || []);
         setNotePersonnelle(journal.note_personnelle || "");
-        setEtapeValidee(journal.valide || false);
+        setEtapeValidee(Boolean(journal.valide));
       }
-      setJournalCharge(true);
     } catch (error) {
       console.error("Erreur chargement journal:", error);
       setMessage("Erreur lors du chargement");
+    } finally {
+      setJournalCharge(true);
     }
   };
 
@@ -88,25 +101,26 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
 
     try {
       const maintenant = new Date();
-      const dateJour = maintenant.toLocaleDateString('fr-FR', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      const dateJour = formatDateJour(maintenant);
+      const heureComplete = maintenant.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit'
       });
-      const heureComplete = maintenant.toLocaleTimeString('fr-FR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-      
+
       const engagementsAvecDate = engagements.map(eng => ({
         ...eng,
         date_declaration: maintenant.toISOString(),
         date_jour: dateJour,
         heure_declaration: heureComplete
       }));
-      
-      await sauvegarderEngagements(defi.id, jourActuel, engagementsAvecDate, notePersonnelle);
+
+      const result = await sauvegarderEngagements(defi.id, jourActuel, engagementsAvecDate, notePersonnelle);
+      if (!result?.success) {
+        setMessage(result?.error || "Erreur lors de la sauvegarde");
+        return;
+      }
+
+      setEngagements(engagementsAvecDate);
       setMessage(`✓ Engagements sauvegardés le ${dateJour} à ${heureComplete}`);
       setTimeout(() => setMessage(""), 4000);
     } catch (error) {
@@ -117,7 +131,7 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
 
   const validerJournee = async () => {
     if (engagements.length === 0) {
-      setMessage("Déclarez d\'abord vos engagements du matin");
+      setMessage("Déclarez d'abord vos engagements du matin");
       return;
     }
 
@@ -129,25 +143,26 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
 
     // Vérification cohérence date (validation le même jour que déclaration)
     const maintenant = new Date();
-    const dateJourActuelle = maintenant.toLocaleDateString('fr-FR', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-    
-    // Vérifier si les engagements ont été déclarés aujourd'hui
+    const dateJourActuelle = formatDateJour(maintenant);
+
+    // Vérifier si les engagements ont été déclarés aujourd'hui.
+    // L'ISO est prioritaire ; date_jour garde la compatibilité avec les anciens journaux.
     const premierEngagement = engagements[0];
-    if (premierEngagement?.date_jour && premierEngagement.date_jour !== dateJourActuelle) {
-      setMessage(`⚠️ Ces engagements ont été déclarés le ${premierEngagement.date_jour}. Vous ne pouvez valider que le jour même.`);
+    const dateDeclaration = premierEngagement?.date_declaration
+      ? formatDateJour(new Date(premierEngagement.date_declaration))
+      : premierEngagement?.date_jour;
+
+    if (dateDeclaration && dateDeclaration !== dateJourActuelle) {
+      setMessage(`⚠️ Ces engagements ont été déclarés le ${premierEngagement.date_jour || dateDeclaration}. Vous ne pouvez valider que le jour même.`);
       return;
     }
 
     try {
-      const heureComplete = maintenant.toLocaleTimeString('fr-FR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      const heureComplete = maintenant.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit'
       });
-      
+
       const engagementsAvecValidation = engagements.map(eng => ({
         ...eng,
         date_validation: eng.valide ? maintenant.toISOString() : null,
@@ -155,21 +170,41 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
       }));
 
       const result = await validerEtapeDefi(defi.id, jourActuel, engagementsAvecValidation);
-      setEtapeValidee(true);
 
-      if (result.progressionIncrementee) {
-        setMessage(`✓ Journée validée le ${dateJourActuelle} à ${heureComplete} ! Progression : ${result.newProgress}/${defi.duree}`);
-        if (onProgressionUpdate) {
+      if (!result?.success) {
+        setEtapeValidee(false);
+        setMessage(result?.error || "Erreur lors de la validation");
+        return;
+      }
+
+      setEngagements(engagementsAvecValidation);
+
+      if (result.dejaValidee) {
+        setEtapeValidee(true);
+        if (typeof result.newProgress === 'number' && onProgressionUpdate) {
           onProgressionUpdate(result.newProgress);
         }
+        setMessage("✓ Cette journée avait déjà été validée. La progression n’a pas été comptée deux fois.");
+      } else if (result.etapeValidee) {
+        setEtapeValidee(true);
+        if (result.progressionIncrementee) {
+          setMessage(`✓ Journée validée le ${dateJourActuelle} à ${heureComplete} ! Progression : ${result.newProgress}/${defi.duree}`);
+          if (onProgressionUpdate) {
+            onProgressionUpdate(result.newProgress);
+          }
+        } else {
+          setMessage("✓ Journée validée.");
+        }
       } else {
-        const score = calculerScore(engagements);
+        setEtapeValidee(false);
+        const score = calculerScore(engagementsAvecValidation);
         setMessage(`Journée enregistrée (${score} validés). Minimum 2/3 requis pour progresser.`);
       }
 
       setTimeout(() => setMessage(""), 5000);
     } catch (error) {
       console.error("Erreur validation:", error);
+      setEtapeValidee(false);
       setMessage("Erreur lors de la validation");
     }
   };
@@ -196,21 +231,21 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
     }
   };
   const indicateur = afficherIndicateurCreneau();
-  
-  const dateComplete = heureActuelle.toLocaleDateString('fr-FR', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+
+  const dateComplete = heureActuelle.toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* En-tête stylé */}
-      <div style={{ 
-        background: 'linear-gradient(to right, #8B5CF6, #4F46E5)', 
-        borderRadius: '16px', 
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', 
+      <div style={{
+        background: 'linear-gradient(to right, #8B5CF6, #4F46E5)',
+        borderRadius: '16px',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
         padding: '24px',
         color: 'white'
       }}>
@@ -225,9 +260,9 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             ✅ {defi.progress || 0} jours validés
           </span>
-          <span style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
+          <span style={{
+            display: 'flex',
+            alignItems: 'center',
             gap: '4px',
             padding: '4px 12px',
             background: 'rgba(255, 255, 255, 0.2)',
@@ -245,8 +280,8 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
           padding: '16px',
           borderRadius: '12px',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-          background: message.includes("✓") 
-            ? 'linear-gradient(to right, #ECFDF5, #D1FAE5)' 
+          background: message.includes("✓")
+            ? 'linear-gradient(to right, #ECFDF5, #D1FAE5)'
             : 'linear-gradient(to right, #FEF3C7, #FED7AA)',
           border: message.includes("✓") ? '2px solid #86EFAC' : '2px solid #FCD34D',
           color: message.includes("✓") ? '#065F46' : '#92400E'
@@ -286,7 +321,7 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
             <div style={{ fontSize: '2.5rem' }}>☀️</div>
             <div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1E3A8A', marginBottom: '4px' }}>Ce matin</h3>
-              <p style={{ fontSize: '0.875rem', color: '#1D4ED8' }}>Déclarez 1 à 5 engagements concrets pour aujourd\'hui</p>
+              <p style={{ fontSize: '0.875rem', color: '#1D4ED8' }}>Déclarez 1 à 5 engagements concrets pour aujourd'hui</p>
             </div>
           </div>
 
@@ -329,11 +364,11 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
                   </button>
                 </div>
                 {eng.heure_declaration && (
-                  <div style={{ 
-                    marginTop: '8px', 
-                    paddingTop: '8px', 
+                  <div style={{
+                    marginTop: '8px',
+                    paddingTop: '8px',
                     borderTop: '1px solid #E5E7EB',
-                    fontSize: '0.75rem', 
+                    fontSize: '0.75rem',
                     color: '#6B7280',
                     fontStyle: 'italic'
                   }}>
@@ -353,7 +388,7 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
                   value={nouvelEngagement}
                   onChange={(e) => setNouvelEngagement(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && ajouterEngagement()}
-                  placeholder="Ex: Boire 2L d\'eau, Marcher 30min..."
+                  placeholder="Ex: Boire 2L d'eau, Marcher 30min..."
                   style={{
                     flex: 1,
                     padding: '12px 16px',
@@ -424,8 +459,8 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
             style={{
               width: '100%',
               padding: '16px',
-              background: (engagements.length === 0 || !estMatin()) 
-                ? 'linear-gradient(to right, #D1D5DB, #9CA3AF)' 
+              background: (engagements.length === 0 || !estMatin())
+                ? 'linear-gradient(to right, #D1D5DB, #9CA3AF)'
                 : 'linear-gradient(to right, #10B981, #059669)',
               color: 'white',
               borderRadius: '12px',
@@ -526,11 +561,11 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
                   {eng.valide && <span style={{ color: '#10B981', fontSize: '1.25rem' }}>✓</span>}
                 </label>
                 {eng.heure_declaration && (
-                  <div style={{ 
-                    marginTop: '8px', 
-                    paddingTop: '8px', 
+                  <div style={{
+                    marginTop: '8px',
+                    paddingTop: '8px',
                     borderTop: '1px solid #F3E8FF',
-                    fontSize: '0.75rem', 
+                    fontSize: '0.75rem',
                     color: '#6B7280',
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -589,8 +624,8 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
               style={{
                 width: '100%',
                 padding: '16px',
-                background: !estSoir() 
-                  ? 'linear-gradient(to right, #D1D5DB, #9CA3AF)' 
+                background: !estSoir()
+                  ? 'linear-gradient(to right, #D1D5DB, #9CA3AF)'
                   : 'linear-gradient(to right, #9333EA, #DB2777)',
                 color: 'white',
                 borderRadius: '12px',
