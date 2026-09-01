@@ -85,13 +85,7 @@ L’image motivante doit progressivement se dévoiler avec la progression réell
 
 ### 4.1 Création de l’idéal
 
-`pages/ideaux.js` permet déjà de saisir :
-- titre ;
-- description émotionnelle ;
-- indicateur principal ;
-- date cible ;
-- date de début ;
-- image.
+`pages/ideaux.js` permet déjà de saisir : titre, description émotionnelle, indicateur principal, date cible, date de début et image.
 
 **État : fonctionnel.**
 
@@ -100,8 +94,6 @@ L’image motivante doit progressivement se dévoiler avec la progression réell
 `generateAnchoringPlan()` génère actuellement une structure de type :
 
 **objectif → mois → semaines → actions.**
-
-Les actions sont positionnées sur de vraies dates.
 
 **État : fonctionnel techniquement.**
 
@@ -113,11 +105,7 @@ Le premier palier peut être personnalisé puis validé. Les paramètres sont fi
 
 ### 4.4 Suivi réel
 
-`plan-action.js` permet de suivre :
-- fait / non fait ;
-- durée réelle ;
-- distance ;
-- vitesse.
+`plan-action.js` permet de suivre fait / non fait, durée réelle, distance et vitesse.
 
 **État : fonctionnel.**
 
@@ -147,13 +135,9 @@ La cible est :
 
 **planifier → observer → comprendre → adapter → replanifier.**
 
-Le prochain palier n’est pas encore réellement généré à partir des résultats du palier précédent.
-
 ### 5.2 Orientation encore très « course à pied »
 
 Le générateur conserve plusieurs hypothèses liées à la course : « Courir », `course`, vitesse en km/h, durée/fréquence/jours par défaut, moment `matin`.
-
-Idéaux n’est donc pas encore techniquement générique, même si son concept métier peut l’être.
 
 ### 5.3 Défloutage non fiabilisé
 
@@ -171,27 +155,17 @@ La distinction métier existe mais n’est pas encore correctement propagée dan
 
 ### 5.6 Adaptation comportementale absente
 
-Idéaux enregistre ce que l’utilisateur fait mais n’interprète presque pas encore : difficulté, retard, avance, baisse d’énergie, changement d’emploi du temps, reprise après interruption, etc.
+Idéaux enregistre ce que l’utilisateur fait mais n’interprète presque pas encore difficulté, retard, avance, baisse d’énergie, changement d’emploi du temps ou reprise après interruption.
 
 ### 5.7 Modèle de données
 
-L’implémentation actuelle repose surtout sur :
-- `ideaux` ;
-- `plan_data` JSON ;
-- `plan_params_valides` ;
-- `seances_reelles`.
+L’implémentation actuelle repose surtout sur `ideaux`, `plan_data`, `plan_params_valides` et `seances_reelles`.
 
-Il n’est pas recommandé de créer immédiatement toutes les tables conceptuelles historiques (`Objectifs`, `Routines`, `Actions`, `Alternatives`) uniquement pour reproduire un ancien schéma. Le besoin devra être réévalué lorsque le moteur adaptatif exigera un historique plus fin.
+Il n’est pas recommandé de créer immédiatement toutes les tables conceptuelles historiques uniquement pour reproduire un ancien schéma. Le besoin devra être réévalué lorsque le moteur adaptatif exigera un historique plus fin.
 
 ### 5.8 Auth / `user_id`
 
-Le code Idéaux ne rend pas encore l’isolation utilisateur explicite partout côté client. Cela ne permet pas de conclure à un problème de sécurité car les RLS peuvent assurer l’isolation côté base.
-
-À auditer avant validation multi-utilisateur complète :
-- RLS `ideaux` ;
-- RLS `seances_reelles` ;
-- alimentation de `user_id` ;
-- rattachement des données historiques.
+À auditer avant validation multi-utilisateur complète : RLS `ideaux`, RLS `seances_reelles`, alimentation de `user_id` et rattachement des données historiques.
 
 ---
 
@@ -229,65 +203,26 @@ Le code Idéaux ne rend pas encore l’isolation utilisateur explicite partout c
 
 Mon Plan Vital a été conçu comme un **compagnon du quotidien**, et non comme un simple outil calorique.
 
-Les principes historiques récurrents sont :
-- bienveillance ;
-- personnalisation ;
-- autonomisation ;
-- auto-observation ;
-- adaptation aux rythmes et besoins réels ;
-- modules indépendants mais interconnectés ;
-- progression plutôt que sanction ;
-- retour au « Mon Pourquoi » ;
-- statistiques comme lecture de progression, non comme outil de contrôle.
-
-Cette vision est cohérente avec l’idée d’un futur socle mental, mais ne signifie pas que ce socle est déjà implémenté.
+Les principes historiques récurrents sont : bienveillance, personnalisation, autonomisation, auto-observation, adaptation au réel, modules indépendants mais interconnectés, progression plutôt que sanction, retour au « Mon Pourquoi » et statistiques au service de la progression.
 
 ---
 
 ## 8. Architecture fonctionnelle actuelle observée
 
-L’application peut être lue selon trois niveaux.
-
 ### Niveau A — Direction
-
-Aujourd’hui cette couche contient principalement :
-- poids objectif ;
-- délai ;
-- `Mon Pourquoi` ;
-- Idéaux.
-
-Elle donne une direction mais reste encore peu structurée sur l’identité, la vision de vie et l’incarnation quotidienne.
+Poids objectif, délai, `Mon Pourquoi`, Idéaux.
 
 ### Niveau B — Moteurs de transformation
-
-On retrouve notamment :
-- plan alimentaire ;
-- suivi alimentaire ;
-- Défis ;
-- Idéaux ;
-- préparation au jeûne ;
-- jeûne ;
-- reprise ;
-- cristallisation.
+Plan alimentaire, suivi, Défis, Idéaux, préparation au jeûne, jeûne, reprise, cristallisation.
 
 ### Niveau C — Réalité observée
+Repas réels, extras, satiété, raisons de manger, ressentis, poids, actions/séances, résultats de défis et progression des cycles.
 
-L’app dispose déjà de nombreux signaux :
-- repas réellement consommés ;
-- extras ;
-- satiété ;
-- raisons de manger ;
-- ressentis ;
-- poids ;
-- séances/actions réalisées ;
-- résultats de défis ;
-- progression de certains cycles.
-
-Le système sait donc déjà assez bien faire :
+Le système sait déjà faire beaucoup de :
 
 **RÉALITÉ → ANALYSE / MOTEUR.**
 
-La boucle beaucoup moins développée est :
+La boucle moins développée est :
 
 **DIRECTION → ACTION → RÉALITÉ → APPRENTISSAGE → TRANSFORMATION DE LA PERSONNE.**
 
@@ -295,264 +230,283 @@ La boucle beaucoup moins développée est :
 
 ## 9. `/suivi.js` : centre vivant de la réalité quotidienne
 
-La documentation métier présente `/suivi.js` comme le **centre vivant de l’application**.
-
-Il ne sert pas uniquement à enregistrer des aliments. Sa logique cible relie déjà :
-- prévu vs réel ;
-- calories ;
-- extras ;
-- satiété ;
-- « pourquoi j’ai mangé ? » ;
-- ressenti ;
-- tendances ;
-- bilans ;
-- déclencheurs comportementaux ;
-- futurs recentrages ;
-- certains liens avec les Défis et les cycles.
-
-Conclusion : **le futur socle mental ne doit pas créer un deuxième moteur d’observation comportementale**. Il doit exploiter ce moteur existant.
+Le suivi est le principal point de convergence du réel. Il ne faut pas créer un deuxième moteur d’observation comportementale pour le futur socle mental : celui-ci devra exploiter les données et analyses existantes.
 
 ---
 
 ## 10. Rôle exact des Défis
 
-Les Défis sont à considérer comme un **moteur d’action / d’expérimentation comportementale**.
+Les Défis sont un **moteur d’action / d’expérimentation comportementale** :
 
-Ils répondent à un besoin de mobilisation : l’utilisateur est suffisamment disponible pour travailler activement une difficulté, une habitude ou une progression.
+**besoin/opportunité → défi adapté → expérimentation réelle → observation du résultat.**
 
-Ils ne doivent donc pas devenir :
-- la boussole globale ;
-- le socle mental ;
-- le système de recentrage profond.
-
-Chaîne fonctionnelle visée :
-
-**besoin/opportunité détecté → défi adapté → expérimentation réelle → observation du résultat.**
+Ils ne sont ni la boussole globale ni le système de recentrage profond.
 
 ---
 
 ## 11. Rôle exact des Capsules / Portes
 
-Les Capsules / Portes montrées dans la sauvegarde utilisateur sont **un projet conceptuel, non une fonctionnalité active actuelle**.
+Les Capsules / Portes sont **un projet conceptuel non actif actuellement**.
 
-Elles prolongent cependant une idée historique déjà documentée dans le suivi et la gestion des extras : intervenir lorsqu’une dérive répétée apparaît.
+Leur rôle est différent des Défis :
+- Défi : utilisateur encore mobilisable ;
+- Capsule / Porte : dérive, fermeture, anesthésie, fatigue de choisir ou réfléchir ;
+- réponse : une micro-interruption et un mouvement minimal de recentrage.
 
-Leur rôle est différent de celui des Défis :
-- Défi : l’utilisateur est encore mobilisable ;
-- Capsule / Porte : l’utilisateur dérive, se ferme, s’anesthésie ou n’a plus envie de choisir / réfléchir ;
-- action attendue : une micro-interruption, un mouvement minimal, un recentrage immédiat.
-
-Les Portes ne représentent donc pas des qualités identitaires comme Constance, Courage ou Patience.
-
-Elles représentent des **voies de recentrage** selon un état de dérive et une inspiration précise.
+Les Portes sont des **voies de recentrage**, pas des qualités identitaires.
 
 ---
 
 ## 12. Le Journal spirituel : périmètre verrouillé
 
-Le Journal spirituel est **contextuel au cycle Jeûne**.
+Le Journal spirituel est **contextuel au cycle Jeûne** et ne constitue pas un module mental permanent.
 
-Il ne constitue pas un module mental permanent de Mon Plan Vital.
-
-Son code le rattache explicitement :
-- au jour du jeûne ;
-- au jeûne actif ;
-- aux archives d’un jeûne terminé ;
-- au retour vers `/jeune`.
-
-Il doit donc rester classé dans :
+Il reste classé dans :
 
 **Préparation → Jeûne → restauration spirituelle du jeûne → Reprise → Cristallisation.**
 
-Cette expérience donne néanmoins une leçon d’architecture importante : **une capacité importante peut être contextuelle et n’apparaître que lorsque le parcours utilisateur le justifie.**
+Leçon architecturale : une capacité forte peut rester contextuelle et n’apparaître que lorsque le parcours la justifie.
 
 ---
 
 ## 13. Mon Pourquoi : boussole existante, mais encore limitée
 
-`Mon Pourquoi` est historiquement conçu comme une **boussole, jamais comme un objectif**.
+`Mon Pourquoi` est historiquement une **boussole, jamais un objectif**.
 
-Il peut être rappelé dans certains contextes pour reconnecter l’utilisateur au sens.
+Il constitue une graine du futur socle mental, mais ne structure pas encore pleinement l’identité souhaitée, la vie à construire, la manière de l’incarner aujourd’hui et les preuves réelles de transformation.
 
-C’est une graine importante du futur socle mental.
-
-Mais, dans son état actuel, il ne structure pas encore pleinement :
-- qui je choisis de devenir ;
-- quelle vie je veux construire ;
-- comment cette personne pense / choisit / agit ;
-- ce que j’incarne aujourd’hui ;
-- ce que mes actions réelles disent de mon évolution.
-
-Le futur travail ne doit donc pas automatiquement créer un concurrent de `Mon Pourquoi`. Il faudra d’abord examiner comment **faire évoluer la notion de boussole existante**.
+Le futur travail doit donc d’abord étudier comment **enrichir la boussole existante** plutôt que créer automatiquement une notion concurrente.
 
 ---
 
 ## 14. Place corrigée d’Idéaux dans l’ensemble
 
-Après l’audit global, Idéaux ne doit plus être vu comme « tout le système Create ».
+Idéaux ne doit pas être vu comme « tout le système Create ».
 
-Sa fonction naturelle est plutôt :
+Sa fonction naturelle est :
 
 **transformer certaines aspirations suffisamment concrètes en trajectoires progressives et adaptatives.**
 
-Exemple de hiérarchie possible :
+Hiérarchie de travail :
 
-**Direction / identité souhaitée**  
-→ **Idéal concret qui matérialise cette direction**  
-→ **objectif intermédiaire**  
-→ **palier**  
-→ **action**  
-→ **réel observé**  
-→ **adaptation**.
-
-Idéaux est donc un **pont entre une aspiration et son incarnation concrète**, pas le conteneur de toute la vie de l’utilisateur.
+**Direction / identité souhaitée → Idéal concret → objectif intermédiaire → palier → action → réel observé → adaptation.**
 
 ---
 
-# PARTIE III — CONSTAT SUR LE SOCLE MENTAL MANQUANT
+# PARTIE III — SOCLE MENTAL ET BOUCLE DE TRANSFORMATION
 
-## 15. Le trou architectural principal
+## 15. Fonction centrale du socle
 
-Mon Plan Vital possède déjà beaucoup de boucles courtes :
-- je mange → j’observe ;
-- je dépasse → j’analyse ;
-- je rencontre une difficulté → Défi ;
-- je poursuis un Idéal → actions ;
-- j’entre dans un cycle Jeûne → parcours spécialisé ;
-- je dérive → futur recentrage possible.
+Question de référence :
 
-Ce qui manque davantage est une **boucle longue de transformation personnelle** :
+> **Est-ce que la manière dont je vis aujourd’hui construit réellement la personne et la vie que je veux devenir ?**
 
-**DIRECTION INTÉRIEURE**  
-↓  
-Qui est-ce que je choisis de devenir ?
+Le socle est différent :
+- du poids objectif ;
+- d’un Idéal ;
+- d’un Défi ;
+- d’un programme ;
+- du seul `Mon Pourquoi`.
 
-**INCARNATION**  
-↓  
-Comment cette personne commencerait-elle à vivre aujourd’hui ?
-
-**VIE RÉELLE**  
-↓  
-Alimentation · comportements · Idéaux · Défis · habitudes · cycles
-
-**OBSERVATION**  
-↓  
-Qu’est-ce qui s’est réellement passé ?
-
-**RÉALIGNEMENT / ADAPTATION**  
-↓  
-Je poursuis, j’adapte, je passe éventuellement par un Défi ou une Capsule
-
-**TRANSFORMATION**  
-↓  
-Qu’est-ce qui change réellement dans ma manière d’être et de vivre ?
-
-Puis la nouvelle réalité intérieure nourrit à nouveau la direction.
+Il doit transformer une direction intérieure en manière de vivre le présent, puis permettre au réel de nourrir la transformation.
 
 ---
 
-## 16. Hypothèse de travail : Create → Align → Live comme modèle transversal
+## 16. Les cinq éléments proposés pour la boussole
 
-À ce stade, **Create–Align–Live ne doit pas être considéré comme un module utilisateur déjà décidé**.
+### A. CE QUI COMPTE
 
-L’hypothèse la plus cohérente est qu’il puisse devenir un **modèle mental transversal** :
+La raison profonde. Cette dimension reprend et peut approfondir `Mon Pourquoi`.
 
-### CREATE
-Définir ou enrichir la direction : qui je veux devenir, ce que je veux créer, ce qui compte vraiment.
+Elle donne du **sens** et ne constitue pas un objectif à atteindre.
 
-### ALIGN
-Confronter progressivement cette direction à la réalité vécue, sans jugement.
+### B. QUI JE CHOISIS DE DEVENIR
 
-### LIVE
-Commencer à incarner cette direction maintenant, via les moteurs déjà existants.
+Dimension identitaire aujourd’hui insuffisamment structurée dans l’application.
 
-Puis compléter la boucle par :
+Exemple : « devenir quelqu’un qui prend soin de soi sans s’abandonner dès qu’elle fait une erreur » plutôt que « perdre 15 kg ».
 
-### OBSERVE
-Observer le réel.
+### C. LA VIE QUE JE VEUX CRÉER
 
-### ADAPT
-Adapter la trajectoire et l’accompagnement.
+Projection concrète de la vie désirée : énergie, liberté physique, rapport à l’alimentation, expériences que l’utilisateur veut pouvoir vivre.
 
-### GROW
-Rendre visible ce qui se transforme réellement chez l’utilisateur.
+C’est une composante naturelle de **CREATE**.
 
-Formule de travail :
+### D. COMMENT CETTE PERSONNE VIT
 
-**CREATE → ALIGN → LIVE → OBSERVE → ADAPT → GROW → CREATE…**
+Quelques principes d’incarnation, et non une nouvelle liste de tâches.
 
-Cette formule reste une hypothèse de cadrage, pas encore une spécification fonctionnelle validée.
+Exemples conceptuels :
+- elle écoute sa satiété ;
+- elle revient après une mauvaise journée au lieu d’attendre lundi ;
+- elle agit imparfaitement plutôt que de tout abandonner ;
+- elle prend soin de son corps au lieu de le punir.
 
----
+C’est une composante naturelle de **ALIGN**.
 
-## 17. Principe central à préserver
+### E. CE QUE JE PEUX INCARNER MAINTENANT
 
-Le futur socle ne doit pas devenir :
-- un onglet `Create` ;
-- un onglet `Align` ;
-- un onglet `Live` ;
-- un module Mindset indépendant ;
-- un module Spiritualité permanent ;
-- un module Vision concurrent de `Mon Pourquoi` ;
-- un nouvel outil de gestion universelle de la vie.
+C’est **LIVE**.
 
-Cela créerait une application dans l’application et dupliquerait les moteurs déjà présents.
-
-L’orientation privilégiée est :
-
-**un socle transversal commun + des capacités visibles seulement quand elles apportent de la valeur.**
+Cette couche **ne doit pas créer son propre gestionnaire de tâches**. Elle doit utiliser les outils déjà présents : suivi, plan alimentaire, Idéaux, Défis, habitudes et cycles pertinents.
 
 ---
 
-## 18. Architecture conceptuelle provisoire
+## 17. Create / Align / Live : fonctions, pas trois écrans
 
-### SOCLE TRANSVERSAL
-**Create → Align → Live → Observe → Adapt → Grow**
+### CREATE — Ma direction
 
-### CAPACITÉS PERMANENTES EXISTANTES
-- Profil / Pourquoi ;
-- suivi ;
-- plan alimentaire ;
-- poids / routeur ;
-- Idéaux ;
-- bilans / tableaux de bord.
+Peut mobiliser :
+- `Mon Pourquoi` ;
+- personne que je veux devenir ;
+- vie que je veux construire ;
+- aspirations importantes.
 
-### MOTEURS CONTEXTUELS
-- Défis ;
-- futures Capsules / Portes de recentrage.
+### ALIGN — Ma boussole confrontée au réel
 
-### CYCLES TEMPORAIRES
-- Préparation Jeûne ;
-- Jeûne ;
-- Journal spirituel pendant le cycle ;
-- Reprise ;
-- Cristallisation.
+L’application met progressivement en relation la direction et les comportements observés, sans jugement.
 
-Le socle doit **donner du sens aux composants existants**, et non devenir un composant supplémentaire qui cherche à tout faire.
+Elle réutilise les données déjà collectées plutôt que demander à l’utilisateur de tout ressaisir.
+
+### LIVE — L’incarnation
+
+La direction se vit à travers les outils existants : alimentation, Idéaux, actions, habitudes, programmes, Défis et cycles spécialisés.
+
+**Décision de cadrage : Create / Align / Live ne doivent pas devenir trois onglets ou trois nouveaux systèmes autonomes.**
 
 ---
 
-## 19. Une expérience utilisateur visible sera probablement nécessaire
+## 18. OBSERVE — regarder le réel plutôt que l’intention
 
-Un socle entièrement invisible ne suffit pas : l’application doit disposer d’une représentation minimale de la direction personnelle de l’utilisateur pour pouvoir réellement parler d’alignement.
+Mon Plan Vital possède déjà une grande quantité de signaux permettant d’observer le comportement réel.
 
-Une piste à étudier est une **boussole progressive**, construite au fil du temps et non via un long questionnaire initial.
+Le futur socle peut donner un sens supplémentaire à ces données en les transformant, lorsque c’est pertinent, en **preuves d’alignement ou d’évolution**.
+
+Exemple : une amélioration du respect de la satiété ne raconte pas seulement une meilleure conformité alimentaire ; elle peut montrer que l’utilisateur apprend réellement à écouter son corps.
+
+---
+
+## 19. ADAPT — distribuer l’intervention au bon moteur
+
+ADAPT ne doit pas être un module supplémentaire.
+
+Le moteur à solliciter dépend de la situation :
+
+### Situation normale
+Tout va bien → aucune intervention nécessaire.
+
+### Difficulté ciblée + utilisateur mobilisable
+→ **Défi**.
+
+### Dérive profonde / fermeture / perte d’élan
+→ future **Capsule / Porte**.
+
+### Trajectoire d’un Idéal devenue irréaliste
+→ moteur adaptatif **Idéaux**.
+
+### Écart alimentaire progressif
+→ moteurs **suivi / plan alimentaire / routeur / bilan** selon le besoin.
+
+Principe : **le socle oriente ; le moteur spécialisé agit.**
+
+---
+
+## 20. GROW — rendre visible la transformation humaine
+
+GROW apparaît comme une brique aujourd’hui insuffisamment représentée dans Mon Plan Vital.
+
+L’application mesure déjà de nombreux résultats : poids, calories, QN, extras, séances, jours validés, défis, etc.
+
+GROW doit répondre à une question différente :
+
+> **Qu’est-ce que ma vie réelle montre que je suis désormais capable de faire ou de devenir ?**
 
 Exemple conceptuel :
+- auparavant : un extra entraînait plusieurs jours d’abandon ;
+- aujourd’hui : retour au plan dès le repas suivant.
 
-> « La personne que je choisis de devenir… »
+La transformation intéressante devient alors :
 
-Puis, progressivement, l’application pourrait relier certaines actions réelles à cette direction.
+**temps de retour à l’alignement : plusieurs jours → un repas.**
 
-Exemple : si la direction est « ne plus m’abandonner après une mauvaise semaine » et que l’utilisateur revient malgré une période difficile, l’app pourrait reconnaître ce retour comme une **preuve d’identité en construction**, plutôt que comme un simple point ou badge.
+Cette évolution peut être reconnue comme une transformation réelle sans être réduite à une récompense ou à un badge.
 
-Cette piste doit être étudiée avant toute implémentation ; elle n’est pas encore validée fonctionnellement.
+---
+
+## 21. Pas de score global d’alignement de la personne
+
+À ce stade, il est déconseillé de produire un score de type :
+
+**Alignement : 72 %**.
+
+Un tel score risquerait de recréer une norme, une logique de contrôle et une culpabilisation incompatibles avec la philosophie historique de Mon Plan Vital.
+
+Le socle doit privilégier :
+- évolutions ;
+- preuves ;
+- tendances ;
+- retours ;
+- reprises ;
+- comportements nouveaux.
+
+**On mesure des phénomènes utiles ; on ne note pas la personne.**
+
+---
+
+## 22. Exemple complet avec Idéaux
+
+### Direction
+« Je veux devenir quelqu’un qui retrouve sa liberté physique. »
+
+### Aspiration concrète
+« Je veux pouvoir refaire ma course de 6 km. »
+
+### Idéaux
+Transformation en objectif, paliers et séances.
+
+### LIVE
+L’utilisateur court réellement.
+
+### OBSERVE
+Durée, distance, vitesse, régularité et difficultés sont observées.
+
+### ADAPT
+Idéaux génère le prochain palier à partir du réel.
+
+### GROW
+L’app peut rendre visible que ce qui était difficile auparavant devient maintenant possible.
+
+Dans ce contexte, le défloutage de l’image peut représenter non seulement un pourcentage de progression, mais le fait que **le futur imaginé devient progressivement une réalité vécue**.
+
+---
+
+## 23. Cycle fonctionnel de référence
+
+Le modèle de travail devient :
+
+**CREATE** — Je définis la direction.  
+↓  
+**ALIGN** — Je comprends comment cette direction se traduit dans ma manière de vivre.  
+↓  
+**LIVE** — Je la vis aujourd’hui au travers des outils existants.  
+↓  
+**OBSERVE** — Mon Plan Vital regarde ma réalité, pas seulement mon intention.  
+↓  
+**ADAPT** — Le bon moteur intervient seulement si nécessaire.  
+↓  
+**GROW** — L’application rend visible ce qui est réellement en train de changer.  
+↓  
+**CREATE / approfondissement** — La direction peut être enrichie par la nouvelle réalité vécue.
+
+Formule synthétique :
+
+**CREATE → ALIGN → LIVE → OBSERVE → ADAPT → GROW → CREATE…**
 
 ---
 
 # PARTIE IV — CLASSIFICATION GLOBALE
 
-## 20. Classification ACTIF / PARTIEL / HÉRITÉ / PRÉVU / CONCEPTUEL
+## 24. Classification ACTIF / PARTIEL / HÉRITÉ / PRÉVU / CONCEPTUEL
 
 | Élément | Classification | Commentaire |
 |---|---|---|
@@ -561,119 +515,108 @@ Cette piste doit être étudiée avant toute implémentation ; elle n’est pas 
 | Plan alimentaire | ACTIF | Organisation et anticipation |
 | Référentiel alimentaire | ACTIF + amélioration continue | Évolue en continu |
 | Poids / routeur | ACTIF | Trajectoire calorique / pondérale |
-| Bilans hebdo / mensuels | ACTIF / PARTIEL selon écrans | Moteurs réels plus avancés que certaines pages legacy |
+| Bilans hebdo / mensuels | ACTIF / PARTIEL selon écrans | Moteurs plus avancés que certaines pages legacy |
 | Défis | ACTIF / en évolution | Moteur comportemental spécialisé |
 | Idéaux | ACTIF mais PARTIEL | Fondations présentes, adaptation absente |
 | Préparation Jeûne | ACTIF / avancé | Parcours spécialisé |
 | Jeûne | ACTIF / avancé | Cycle spécialisé |
 | Journal spirituel | ACTIF uniquement dans le cycle Jeûne | Pas un socle global |
 | Reprise après jeûne | ACTIF / avancé | Transition spécialisée |
-| Cristallisation | ACTIF / PARTIEL | Consolidation 45 jours, plusieurs logiques encore locales/legacy |
-| `/checkin.js` | HÉRITÉ / minimal | Ne représente pas seul la vraie capacité humeur globale |
-| `/pause.js` | HÉRITÉ / minimal | Page statique à ne pas confondre avec un moteur mature |
+| Cristallisation | ACTIF / PARTIEL | Consolidation 45 jours |
+| `/checkin.js` | HÉRITÉ / minimal | Ne représente pas seul la capacité humeur globale |
+| `/pause.js` | HÉRITÉ / minimal | Page statique |
 | `/extras.js` | HÉRITÉ / placeholder | Les vraies logiques extras vivent surtout ailleurs |
 | `/statistiques.js` | HÉRITÉ / placeholder partiel | Contient encore des données fictives |
 | Capsules / Portes | CONCEPTUEL / PRÉVU | Non actives actuellement |
-| Socle Create–Align–Live | CONCEPTUEL | Architecture à définir, non implémentée |
+| Boussole enrichie | CONCEPTUEL | À concevoir progressivement |
+| Create–Align–Live–Observe–Adapt–Grow | CONCEPTUEL | Modèle transversal, pas un module validé |
 
 ---
 
 # PARTIE V — RÈGLES D’ARCHITECTURE ET D’AMÉLIORATION CONTINUE
 
-## 21. Règles issues de `AMELIORATION_CONTINUE_DEVELOPPEMENT_APP.md`
+## 25. Règles issues de `AMELIORATION_CONTINUE_DEVELOPPEMENT_APP.md`
 
-Toute évolution liée à ce chantier doit respecter les principes déjà utilisés dans le projet :
+Toute évolution liée à ce chantier doit :
 - avancer progressivement ;
 - préserver le comportement existant ;
-- ne pas déclarer un ancien TODO toujours valable sans vérifier le code ;
-- ne pas perdre de données lors d’une évolution de structure ;
-- prévoir mapping / migration lorsqu’une donnée change de forme ;
+- vérifier le code récent avant de reprendre un ancien TODO ;
+- préserver les données ;
+- prévoir mapping / migration lors d’un changement de structure ;
 - travailler par lots sûrs ;
 - contrôler les régressions ;
 - privilégier l’essentiel puis approfondir ;
 - ne pas reconstruire une fonctionnalité existante sous un nouveau nom ;
-- utiliser le runtime et le retour utilisateur comme source de validation finale.
+- utiliser le runtime et le retour utilisateur comme validation finale.
 
-Règle spécifique pour le futur socle : **la cohérence globale doit être conçue en amont, mais son implémentation doit être livrée progressivement.**
+Règle spécifique : **la cohérence globale doit être conçue en amont, mais l’implémentation doit être livrée progressivement.**
 
 ---
 
-## 22. Conséquence sur le chantier Idéaux
+## 26. Conséquence sur le chantier Idéaux
 
-L’ancien plan de travail Idéaux doit être réordonné.
-
-### Avant
-La logique pouvait être :
-1. stabiliser Idéaux ;
-2. le généraliser ;
-3. le rendre adaptatif ;
-4. ajouter des connexions avec le reste de l’app.
-
-### Après audit global
-Il faut d’abord :
+Il faut :
 1. conserver la stabilisation technique nécessaire ;
-2. **définir la frontière produit entre Direction / Pourquoi / futur socle / Idéaux** ;
-3. rendre Idéaux générique seulement dans la mesure utile à Mon Plan Vital ;
+2. définir la frontière Direction / Pourquoi / boussole / Idéaux ;
+3. rendre Idéaux générique uniquement dans la mesure utile ;
 4. construire son moteur adaptatif à partir du réel ;
-5. connecter progressivement les signaux utiles déjà existants ;
-6. ne créer de nouvelles structures de données que lorsque la boucle adaptative les exige réellement.
+5. connecter progressivement les signaux utiles existants ;
+6. ne créer de nouvelles structures de données que lorsqu’elles deviennent réellement nécessaires.
 
-Idéaux ne doit donc pas porter à lui seul :
-- Create–Align–Live ;
-- Défis ;
-- Capsules / Portes ;
-- développement personnel général ;
-- planification globale de vie.
+Idéaux ne doit pas porter à lui seul Create–Align–Live, Défis, Capsules / Portes, développement personnel général ou planification globale de vie.
 
 ---
 
-## 23. Décisions provisoires de cadrage
+## 27. Décisions provisoires de cadrage
 
 1. **Le Journal spirituel reste dans le cycle Jeûne.**
-2. **Les Capsules / Portes sont un projet futur de recentrage, pas un socle permanent.**
-3. **Les Défis sont un moteur comportemental de mobilisation.**
+2. **Les Capsules / Portes restent un futur mécanisme de recentrage.**
+3. **Les Défis restent un moteur comportemental de mobilisation.**
 4. **Idéaux transforme une aspiration concrète en trajectoire.**
-5. **Mon Pourquoi est une boussole existante à étudier avant d’ajouter une nouvelle notion concurrente.**
-6. **Le futur socle mental doit relier les moteurs existants plutôt que les remplacer.**
-7. **Create–Align–Live est pour l’instant un modèle transversal de travail, pas un menu ou un module validé.**
-8. **La transformation personnelle doit être rendue visible à partir des preuves du réel, pas uniquement par des récompenses.**
-9. **La conception globale doit précéder l’implémentation, mais le développement restera progressif.**
-10. **Aucun code Idéaux ne doit être modifié pour ce nouveau socle tant que la frontière fonctionnelle n’est pas spécifiée.**
+5. **Mon Pourquoi constitue le premier noyau à étudier pour la boussole.**
+6. **Le futur socle relie les moteurs existants plutôt qu’il ne les remplace.**
+7. **Create–Align–Live–Observe–Adapt–Grow est un modèle transversal de travail, pas un menu.**
+8. **La transformation personnelle doit être rendue visible à partir de preuves du réel.**
+9. **Il n’y aura pas de score global notant l’alignement de la personne.**
+10. **La boussole doit rester progressive et légère.**
+11. **LIVE réutilise les outils existants et ne crée pas un nouveau gestionnaire de tâches.**
+12. **ADAPT distribue l’intervention au moteur spécialisé pertinent.**
+13. **Aucun code Idéaux ne doit être modifié pour ce socle avant validation de son parcours fonctionnel.**
 
 ---
 
-## 24. Question architecturale à résoudre avant développement
+## 28. Prochaine étape de conception
 
-Le prochain travail de conception doit déterminer précisément :
-- quelles informations constituent la **boussole** ;
-- comment elle se construit et évolue ;
-- ce qui relève de `Mon Pourquoi` ;
-- ce qui relève d’Idéaux ;
-- ce qui reste purement transversal ;
-- quand un Défi intervient ;
-- quand une Capsule / Porte intervient ;
-- quels signaux de `/suivi.js`, poids, bilans et autres moteurs doivent alimenter l’alignement ;
-- comment transformer une réussite réelle en « preuve de transformation » sans gamification artificielle ;
-- ce que l’utilisateur voit réellement et ce qui reste moteur interne.
+Le prochain chantier est désormais le **parcours utilisateur réel de la boussole**.
+
+Il faut déterminer :
+- quand elle apparaît pour la première fois ;
+- ce que l’utilisateur renseigne au départ ;
+- ce qui est volontairement reporté ;
+- comment `Mon Pourquoi` est repris sans être dupliqué ;
+- comment la dimension « personne que je choisis de devenir » est introduite ;
+- comment la « vie que je veux créer » reste compatible avec le périmètre Mon Plan Vital ;
+- comment les principes d’incarnation sont proposés sans devenir des tâches ;
+- comment la boussole s’enrichit avec le temps ;
+- quand elle réapparaît naturellement ;
+- quand elle doit au contraire rester silencieuse ;
+- comment les preuves GROW sont produites à partir du réel ;
+- comment éviter les notifications et messages répétitifs ou culpabilisants.
+
+Cette étape doit être validée fonctionnellement avant toute conception technique de tables, API ou écrans.
 
 ---
 
-## 25. Conclusion consolidée
+## 29. Conclusion consolidée
 
-Mon Plan Vital possède déjà une grande partie des **composants de transformation** : observation alimentaire, trajectoire pondérale, planification, Défis, Idéaux, cycles de jeûne, reprise et cristallisation.
+Mon Plan Vital possède déjà une grande partie des **organes de transformation**. Le manque principal n’est pas une multiplication de nouveaux modules, mais un système de sens permettant de relier direction personnelle, réalité vécue, adaptation et transformation.
 
-Le problème n’est donc pas qu’il manque une multitude de nouveaux modules.
+Le futur socle doit permettre :
 
-Le constat actuel est plutôt :
+**choisir une direction → commencer à la vivre → observer sa vraie vie → mobiliser le bon moteur si nécessaire → constater ce qui change réellement → approfondir sa direction.**
 
-> **Mon Plan Vital possède déjà beaucoup des organes nécessaires à la transformation, mais il lui manque encore un système de sens suffisamment structuré pour les faire travailler consciemment vers une même direction personnelle.**
-
-Le futur socle ne doit pas devenir une seconde application. Il doit permettre à l’utilisateur de :
-
-**choisir une direction → commencer à la vivre → observer sa vraie vie → s’adapter → constater ce qui change en lui.**
-
-Dans cette architecture, Idéaux conserve un rôle précis et important :
+Dans cette architecture, Idéaux conserve un rôle précis :
 
 > **transformer certaines aspirations en trajectoires concrètes, progressives et adaptatives.**
 
-La prochaine étape n’est donc pas d’ajouter immédiatement des fonctionnalités à Idéaux. Elle est de formaliser la **boussole et les frontières fonctionnelles du socle mental transversal**, puis d’en déduire les connexions nécessaires avec les moteurs existants.
+La prochaine étape est la conception du **parcours progressif de la boussole**, sans modification du code applicatif tant que ce parcours n’est pas validé.
