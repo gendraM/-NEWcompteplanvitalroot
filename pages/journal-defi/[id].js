@@ -23,30 +23,40 @@ export default function PageJournalDefi() {
     }
   }, [router.isReady, id]);
 
+  const calculerJourActuel = (data) => {
+    const duree = Math.max(1, Number(data?.duree) || 1);
+    const progression = Math.max(0, Number(data?.progress) || 0);
+    return Math.min(progression + 1, duree);
+  };
+
   const chargerDefi = async () => {
     try {
       setChargement(true);
       setErreur(null);
 
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!user) {
+        setErreur("Vous devez être connecté pour accéder à ce défi");
+        return;
+      }
+
       const { data, error } = await supabase
         .from("defis")
         .select("*")
         .eq("id", id)
-        .single();
+        .eq("user_id", user.id)
+        .maybeSingle();
 
       if (error) throw error;
 
       if (!data) {
-        setErreur("Défi introuvable");
+        setErreur("Défi introuvable ou non accessible");
         return;
       }
 
       setDefi(data);
-      // Calculer le jour actuel en fonction du temps écoulé depuis created_at
-      const joursEcoules = Math.floor(
-        (Date.now() - new Date(data.created_at).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      setJourActuel(Math.min(joursEcoules + 1, data.duree));
+      setJourActuel(calculerJourActuel(data));
     } catch (err) {
       console.error("Erreur chargement défi:", err);
       setErreur("Erreur lors du chargement du défi");
@@ -56,19 +66,24 @@ export default function PageJournalDefi() {
   };
 
   const handleProgressionUpdate = async (nouvelleProgression) => {
-    // Mettre à jour l'état local du défi
-    setDefi((prev) => ({ ...prev, progress: nouvelleProgression }));
+    setDefi((prev) => prev ? ({ ...prev, progress: nouvelleProgression }) : prev);
 
-    // Recharger le défi depuis Supabase pour synchroniser
     try {
-      const { data } = await supabase
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) return;
+
+      const { data, error } = await supabase
         .from("defis")
         .select("*")
         .eq("id", id)
-        .single();
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
 
       if (data) {
         setDefi(data);
+        setJourActuel(calculerJourActuel(data));
       }
     } catch (err) {
       console.error("Erreur rechargement défi:", err);
