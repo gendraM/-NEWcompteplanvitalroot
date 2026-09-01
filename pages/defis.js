@@ -4,6 +4,8 @@ import SaisieDefisDynamiques from '../components/SaisieDefisDynamiques';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { defisReferentiel } from '../lib/defisReferentiel';
+import { DEFIS_STATUS, getDefiMax, isDefiDisponible, isDefiEnCours, isDefiTermine } from '../lib/defisUtils';
+import { initDefisUser } from '../lib/initDefisUser';
 import { useRouter } from 'next/router';
 
 // Composant retour en arrière
@@ -28,106 +30,83 @@ function RetourArriere() {
 }
 
 const Defis = () => {
-    // Handler pour réinitialiser un défi
-    const handleReinitialiserDefi = async (defi) => {
-        setActionLoading(defi.id);
-        const { error: updateError } = await supabase
-            .from('defis')
-            .update({ progress: 0, status: 'disponible' })
-            .eq('id', defi.id);
-        if (updateError) {
-            setError('Erreur lors de la réinitialisation du défi');
-            setActionLoading(false);
-            return;
-        }
-        // Recharger la liste des défis
-        const { data: updatedData, error: reloadError } = await supabase
-            .from('defis')
-            .select('*');
-        if (reloadError) {
-            setError('Erreur lors du rechargement des défis');
-            setActionLoading(false);
-            return;
-        }
-        setDefis(updatedData);
-        setActionLoading(false);
-    };
-    // Hooks d'état
     const [defis, setDefis] = useState([]);
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [tab, setTab] = useState('disponibles'); // onglet actif
     const [actionLoading, setActionLoading] = useState(false); // Pour feedback bouton
+    const [userId, setUserId] = useState(null);
 
     // Fonction de chargement des défis (réutilisable)
     const loadDefis = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('defis')
-            .select('*');
-        if (error) {
-            setError('Erreur lors du chargement des défis');
-            setLoading(false);
-            return;
-        }
-            // Mise à jour des noms si manquants ou incorrects
-            if (data && data.length > 0) {
-                for (const defi of data) {
-                    const ref = defisReferentiel.find(d => d.description === defi.description);
-                    if (ref && defi.nom !== ref.nom) {
-                        await supabase
-                            .from('defis')
-                            .update({ nom: ref.nom })
-                            .eq('id', defi.id);
+        setError(null);
+
+        try {
+            const { data: authData, error: authError } = await supabase.auth.getUser();
+            const uid = authData?.user?.id;
+
+            if (authError || !uid) {
+                setUserId(null);
+                setDefis([]);
+                setError('Utilisateur non authentifié');
+                return;
+            }
+
+            setUserId(uid);
+
+            // Une seule autorité d'initialisation : ajoute uniquement les défis de référence manquants.
+            const initResult = await initDefisUser();
+            if (initResult?.errors?.length) {
+                console.warn('Initialisation défis partielle:', initResult.errors);
+            }
+
+            let { data, error: loadError } = await supabase
+                .from('defis')
+                .select('*')
+                .eq('user_id', uid);
+
+            if (loadError) throw loadError;
+
+            // Normalisation non destructive des anciens enregistrements de cet utilisateur.
+            for (const defi of data || []) {
+                const ref = defisReferentiel.find(d => d.description === defi.description);
+                const normalisations = {};
+
+                if (ref && defi.nom !== ref.nom) {
+                    normalisations.nom = ref.nom;
+                }
+                if (defi.status === 'en attente') {
+                    normalisations.status = DEFIS_STATUS.DISPONIBLE;
+                }
+
+                if (Object.keys(normalisations).length > 0) {
+                    const { error: updateError } = await supabase
+                        .from('defis')
+                        .update(normalisations)
+                        .eq('id', defi.id)
+                        .eq('user_id', uid);
+
+                    if (updateError) {
+                        console.warn('Normalisation défi impossible:', defi.id, updateError);
                     }
                 }
-                // Recharger après mise à jour
-                const { data: updatedData, error: updateError } = await supabase
-                    .from('defis')
-                    .select('*');
-                if (updateError) {
-                    setError('Erreur lors du rechargement des défis');
-                    setLoading(false);
-                    return;
-                }
-                setDefis(updatedData);
-                setLoading(false);
-                return;
             }
-            // Si aucun défi, initialiser automatiquement
-            if (!data || data.length === 0) {
-                const defisToInsert = defisReferentiel.map(defi => ({
-                    type: defi.type,
-                    theme: defi.theme,
-                    nom: defi.nom,
-                    description: defi.description,
-                    duree: defi.duree,
-                    unite: defi.unite,
-                    status: defi.status,
-                    progress: defi.progress
-                }));
-                const { error: insertError } = await supabase
-                    .from('defis')
-                    .insert(defisToInsert);
-                if (insertError) {
-                    setError('Erreur lors de l\'initialisation des défis');
-                    setLoading(false);
-                    return;
-                }
-                // Recharger les défis après insertion
-                const { data: newData, error: newError } = await supabase
-                    .from('defis')
-                    .select('*');
-                if (newError) {
-                    setError('Erreur lors du rechargement des défis');
-                    setLoading(false);
-                    return;
-                }
-                setDefis(newData);
-                setLoading(false);
-                return;
-            }
+
+            const { data: finalData, error: finalError } = await supabase
+                .from('defis')
+                .select('*')
+                .eq('user_id', uid);
+
+            if (finalError) throw finalError;
+            setDefis(finalData || []);
+        } catch (err) {
+            console.error('Erreur chargement défis:', err);
+            setError('Erreur lors du chargement des défis');
+        } finally {
+            setLoading(false);
+        }
     };
 
     // useEffect pour charger les défis au montage
@@ -135,27 +114,57 @@ const Defis = () => {
         loadDefis();
     }, []);
 
+    // Handler pour réinitialiser un défi
+    const handleReinitialiserDefi = async (defi) => {
+        if (!userId) {
+            setError('Utilisateur non authentifié');
+            return;
+        }
+
+        setActionLoading(defi.id);
+        const { error: updateError } = await supabase
+            .from('defis')
+            .update({ progress: 0, status: DEFIS_STATUS.DISPONIBLE })
+            .eq('id', defi.id)
+            .eq('user_id', userId);
+
+        if (updateError) {
+            setError('Erreur lors de la réinitialisation du défi');
+            setActionLoading(false);
+            return;
+        }
+
+        await loadDefis();
+        setActionLoading(false);
+    };
+
     // Handler pour supprimer un défi personnalisé
     const handleSupprimerDefi = async (defiId) => {
+        if (!userId) {
+            setError('Utilisateur non authentifié');
+            return;
+        }
+
         if (!window.confirm('Voulez-vous vraiment supprimer ce défi personnalisé ?')) {
             return;
         }
-        
+
         setActionLoading(defiId);
         console.log('Suppression défi ID:', defiId);
-        
+
         const { error: deleteError } = await supabase
             .from('defis')
             .delete()
-            .eq('id', defiId);
-        
+            .eq('id', defiId)
+            .eq('user_id', userId);
+
         if (deleteError) {
             console.error('Erreur suppression:', deleteError);
             setError('Erreur lors de la suppression du défi');
             setActionLoading(false);
             return;
         }
-        
+
         console.log('Défi supprimé, rechargement...');
         await loadDefis();
         setActionLoading(false);
@@ -164,51 +173,42 @@ const Defis = () => {
 
     // Handler pour démarrer un défi
     const handleCommencerDefi = async (defiId) => {
-        setActionLoading(defiId); // Pour feedback visuel
-        
-        // Récupérer le type de défi
-        const defi = defis.find(d => d.id === defiId);
-        const estDefiPersonnalise = defi?.type === 'personnalise' || defi?.type === 'alimentaire' || !defisReferentiel.find(d => d.description === defi?.description);
-        
-        // Si défi personnalisé : passer en cours ET ouvrir le journal
-        if (estDefiPersonnalise) {
-            const { error: updateError } = await supabase
-                .from('defis')
-                .update({ progress: 0, status: 'en cours' })
-                .eq('id', defiId);
-            
-            if (updateError) {
-                setError('Erreur lors du démarrage du défi');
-                setActionLoading(false);
-                return;
-            }
-            
-            // Rediriger vers le journal
-            setActionLoading(false);
-            router.push(`/journal-defi/${defiId}`);
+        if (!userId) {
+            setError('Utilisateur non authentifié');
             return;
         }
-        
-        // Défis classiques : progress = 1 et rester sur la page
+
+        setActionLoading(defiId); // Pour feedback visuel
+
+        const defi = defis.find(d => d.id === defiId);
+        if (!defi) {
+            setError('Défi introuvable');
+            setActionLoading(false);
+            return;
+        }
+
+        const estDefiPersonnalise = defi.type === 'personnalise' || defi.type === 'alimentaire' || !defisReferentiel.find(d => d.description === defi.description);
+
+        // Un démarrage ne valide aucune étape : progression toujours à 0.
         const { error: updateError } = await supabase
             .from('defis')
-            .update({ progress: 1, status: 'en cours' })
-            .eq('id', defiId);
+            .update({ progress: 0, status: DEFIS_STATUS.EN_COURS })
+            .eq('id', defiId)
+            .eq('user_id', userId);
+
         if (updateError) {
             setError('Erreur lors du démarrage du défi');
             setActionLoading(false);
             return;
         }
-        // Recharger la liste des défis
-        const { data: updatedData, error: reloadError } = await supabase
-            .from('defis')
-            .select('*');
-        if (reloadError) {
-            setError('Erreur lors du rechargement des défis');
+
+        if (estDefiPersonnalise) {
             setActionLoading(false);
+            router.push(`/journal-defi/${defiId}`);
             return;
         }
-        setDefis(updatedData);
+
+        await loadDefis();
         setActionLoading(false);
     };
 
@@ -217,21 +217,14 @@ const Defis = () => {
         setActionLoading(defi.id);
         const { validerEtapeDefi } = await import('../lib/defisUtils');
         const res = await validerEtapeDefi(defi);
+
         if (!res.success) {
             setError(res.error || 'Erreur lors de la progression du défi');
             setActionLoading(false);
             return;
         }
-        // Recharger la liste des défis
-        const { data: updatedData, error: reloadError } = await supabase
-            .from('defis')
-            .select('*');
-        if (reloadError) {
-            setError('Erreur lors du rechargement des défis');
-            setActionLoading(false);
-            return;
-        }
-        setDefis(updatedData);
+
+        await loadDefis();
         setActionLoading(false);
     };
 
@@ -242,24 +235,28 @@ const Defis = () => {
         return <div style={{ color: 'red' }}>{error}</div>;
     }
 
-    // Filtres selon l'onglet
-    const defisDisponibles = defis.filter(defi => defi.progress === 0);
-    const defisEnCours = defis.filter(defi => {
-        const max = defi.duree || defisReferentiel.find(d => d.description === defi.description)?.duree || 1;
-        return defi.progress > 0 && defi.progress < max;
-    });
-    const defisTermines = defis.filter(defi => {
-        const max = defi.duree || defisReferentiel.find(d => d.description === defi.description)?.duree || 1;
-        return defi.progress >= max;
-    });
+    // Filtres selon l'état métier, pas uniquement la valeur de progression.
+    const defisDisponibles = defis.filter(isDefiDisponible);
+    const defisEnCours = defis.filter(isDefiEnCours);
+    const defisTermines = defis.filter(isDefiTermine);
+    const defiActif = defisEnCours[0] || null;
+    const estDefiActifAvecJournal = defiActif && (
+        defiActif.type === 'personnalise' ||
+        defiActif.type === 'alimentaire' ||
+        !defisReferentiel.find(d => d.description === defiActif.description)
+    );
 
     return (
         <div>
-            <BandeauDefiActif
-                defi={{ nom: "Défi test", duree: 5 }}
-                progression={2}
-                onOpenJournal={() => {}}
-            />
+            {defiActif && (
+                <BandeauDefiActif
+                    defi={defiActif}
+                    progression={defiActif.progress || 0}
+                    onOpenJournal={() => estDefiActifAvecJournal
+                        ? router.push(`/journal-defi/${defiActif.id}`)
+                        : setTab('en-cours')}
+                />
+            )}
             <RetourArriere />
             <h1>Mes défis</h1>
             <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
@@ -314,7 +311,7 @@ const Defis = () => {
                     <ul style={{ listStyle: 'none', padding: 0 }}>
                         {defisDisponibles.length === 0 && <li>Aucun défi disponible.</li>}
                         {defisDisponibles.map(defi => {
-                            const max = defi.duree || defisReferentiel.find(d => d.description === defi.description)?.duree || 1;
+                            const max = getDefiMax(defi);
                             const estDefiPersonnalise = defi.type === 'personnalise' || defi.type === 'alimentaire' || !defisReferentiel.find(d => d.description === defi.description);
                             return (
                                 <li key={defi.id} style={{ marginBottom: 24, border: '1px solid #eee', borderRadius: 10, padding: 20, background: '#fff' }}>
@@ -353,7 +350,7 @@ const Defis = () => {
                     <ul style={{ listStyle: 'none', padding: 0 }}>
                         {defisEnCours.length === 0 && <li>Aucun défi en cours.</li>}
                         {defisEnCours.map(defi => {
-                            const max = defisReferentiel.find(d => d.description === defi.description)?.duree || 1;
+                            const max = getDefiMax(defi);
                             return (
                                 <li key={defi.id} style={{ marginBottom: 20, border: '1px solid #eee', borderRadius: 8, padding: 16, background: '#f9f9f9' }}>
                                     <h2 style={{ margin: 0, fontSize: 20 }}>{defi.nom}</h2>
@@ -397,7 +394,7 @@ const Defis = () => {
                     <ul style={{ listStyle: 'none', padding: 0 }}>
                         {defisTermines.length === 0 && <li>Aucun défi terminé.</li>}
                         {defisTermines.map(defi => {
-                            const max = defisReferentiel.find(d => d.description === defi.description)?.duree || 1;
+                            const max = getDefiMax(defi);
                             return (
                                 <li key={defi.id} style={{ marginBottom: 24, border: '1px solid #eee', borderRadius: 10, padding: 20, background: '#e0ffe0' }}>
                                     <h2 style={{ margin: 0, fontSize: 22 }}>{defi.nom}</h2>
