@@ -33,6 +33,7 @@ import BilanMensuelModal from '../components/BilanMensuelModal';
 import { fetchRepasPeriode } from '../lib/repasUtils';
 import BudgetExtrasCard from '../components/BudgetExtrasCard';
 import { supabase } from '../lib/supabaseClient';
+import { normaliserRepasPourPersistance } from '../lib/repasPersistence';
 import { calculerProfilComplet } from '../lib/routeurPoids';
 import { 
   calculerExtrasSemaine, 
@@ -739,14 +740,14 @@ export default function Suivi() {
   const handleSaveRepas = async (repasData) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const repasPayload = {
-        ...repasData,
-        user_id: repasData.user_id || user?.id || null,
-      };
+      const repasPayloads = normaliserRepasPourPersistance(
+        repasData,
+        user?.id || null
+      );
       // Enregistrement du repas dans Supabase
       const { data, error } = await supabase
         .from("repas_reels")
-        .insert([repasPayload]);
+        .insert(repasPayloads);
       if (error) {
         setSnackbar({ open: true, message: "Erreur Supabase : " + error.message, type: "error" });
         return;
