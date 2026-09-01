@@ -187,9 +187,9 @@ Les suggestions dans `/plan` devront présenter la raison de la suggestion, la c
 1. **Lot 1 — VALIDÉ** : occurrence UUID, unicité hebdomadaire et RLS propriétaire.
 2. **Sous-lot 2.1 — VALIDÉ TECHNIQUEMENT** : moteur `lib/repasEnCours.js` externe à `RepasBloc`.
 3. **Sous-lot 2.2 — AUDIT TERMINÉ** : `suivi.js` retenu comme orchestrateur recommandé ; trois chemins d'écriture et risques documentés.
-4. **Sous-lot 2.3 — prochain périmètre fonctionnel** : sécuriser d'abord le contrat de persistance de `suivi.js` pour qu'il accepte une ligne ou plusieurs lignes sans modifier l'UX et sans modifier `RepasBloc`.
-5. Ajouter des tests ciblés du contrat mono-ligne / multi-lignes et de l'échec de persistance.
-6. Après validation du 2.3, définir le point d'extension minimal permettant à `RepasBloc` d'alimenter progressivement « Mon repas en cours ».
+4. **Sous-lot 2.3 — VALIDÉ TECHNIQUEMENT** : le contrat de persistance de `suivi.js` accepte une ligne ou plusieurs lignes sans modifier l'UX ni `RepasBloc` ; raccord publié dans le commit `8372c91`.
+5. **Tests du sous-lot 2.3 — VALIDÉS** : tests ciblés mono/multi 9/9, suite Jest 162/162 et build Next.js réussis.
+6. **Prochaine étape** : définir le point d'extension minimal permettant à `RepasBloc` d'alimenter progressivement « Mon repas en cours ».
 7. Raccorder la finalisation multi-aliments au moteur `repasEnCours`.
 8. Faire converger ensuite le chemin « conforme au planning » vers la persistance commune.
 9. Corriger la lecture des repas planifiés composés.
@@ -227,12 +227,13 @@ Le premier raccordement ne doit **pas** changer l'expérience utilisateur. Il do
 - Lot 1 : Supabase live vérifié ; GitHub Actions **153/153** ; build Next.js/Vercel validé.
 - Sous-lot 2.1 : GitHub Actions **158/158** ; `repasEnCours` **5/5** ; Vercel **READY**.
 - Sous-lot 2.2 : **audit documentaire uniquement**, donc aucun nouveau comportement n'est déclaré testé ou fonctionnel.
+- Sous-lot 2.3 : raccord `handleSaveRepas` publié dans `8372c91` ; tests ciblés **9/9** ; suite Jest **162/162** ; build Next.js réussi. Aucun changement UX n'est déclaré.
 
 ---
 
 ## 9. Règle de reprise du chantier
 
-Prochaine étape : **sous-lot 2.3 — sécuriser le contrat de persistance dans `suivi.js` pour accepter objet ou tableau, sans modifier `RepasBloc` ni l'UX.**
+Prochaine étape : **définir le point d'extension minimal permettant à `RepasBloc` d'alimenter progressivement « Mon repas en cours », sans modifier immédiatement son comportement historique.**
 
 Avant toute modification, vérifier la version courante des fichiers concernés. Avant chaque commit fonctionnel, documentaire ou correctif : rappeler explicitement le dépôt et la branche, présenter le périmètre et attendre l'autorisation de l'utilisatrice. Ne jamais pousser sur `main` sans autorisation explicite distincte.
 
