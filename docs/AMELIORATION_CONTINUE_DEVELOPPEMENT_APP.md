@@ -2079,3 +2079,24 @@ Ce bloc complète les réflexions déjà consignées sur les bilans, les repas c
 - **Achats enrichis ultérieurs :** magasin, type de commerce, format commercial réellement acheté, prix par conditionnement, origine ou qualité déclarée.
 
 L’expérience doit rester intégrée au plan existant : un même plan, une même liste et des suggestions que l’utilisateur peut accepter, ignorer ou modifier.
+
+## 🍽️ AMÉLIORATION FUTURE — Regrouper les occurrences dans « Gérer mes repas » (2026-09-01)
+
+### Contexte observé
+
+Le parcours « Mon repas en cours » enregistre correctement une assiette multi-aliments sous plusieurs lignes détaillées partageant le même `occurrence_repas_id`. Ce stockage est volontaire : chaque aliment conserve sa quantité, sa catégorie et ses calories.
+
+La page « Gérer mes repas » présente encore ces lignes séparément. Lors du test fonctionnel du sous-lot 2.4, une assiette de deux aliments est donc apparue sous la forme de deux lignes, alors que les statistiques ont correctement additionné les calories et que le modèle nommé est resté réutilisable.
+
+### Évolution UX à prévoir plus tard
+
+- Reconstruire les repas à partir de `occurrence_repas_id` pour l’affichage de la page « Gérer mes repas ».
+- Présenter une seule carte par occurrence avec la liste de ses aliments et le total calorique.
+- Conserver le détail des lignes en base ; ne pas fusionner ni réécrire les données alimentaires.
+- Laisser les anciennes lignes sans occurrence dans leur présentation historique actuelle.
+- Définir explicitement le comportement de modification et de suppression : aliment individuel ou occurrence complète.
+- Ajouter des tests garantissant que deux occurrences différentes du même modèle ne sont jamais confondues.
+
+### Statut
+
+**À faire plus tard.** Cette amélioration d’affichage ne modifie pas le plan d’action courant. La prochaine étape reste le raccord séparé du chemin « Repas conforme au planning » vers la persistance commune.

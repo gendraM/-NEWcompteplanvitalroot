@@ -2,9 +2,9 @@
 
 ## Statut
 
-Sous-lot **implémenté et validé techniquement** sur la branche `plan-alimentaire-intelligent-chatgpt`.
+Sous-lot **implémenté, validé techniquement et validé fonctionnellement** sur la branche `plan-alimentaire-intelligent-chatgpt`.
 
-La validation fonctionnelle authentifiée reste à réaliser sur la prévisualisation de branche avant de déclarer ce sous-lot terminé.
+La validation authentifiée a été réalisée le 1er septembre 2026 sur l’alias Vercel stable de la branche. Le sous-lot 2.4 est clôturé.
 
 ## Comportement ajouté
 
@@ -35,19 +35,19 @@ La validation fonctionnelle authentifiée reste à réaliser sur la prévisualis
 
 ## Validations techniques
 
-- tests ciblés repas en cours/persistance/interface : 15/15 réussis ;
-- suite Jest complète : 168/168 réussis ;
+- tests ciblés repas en cours/persistance/interface : 16/16 réussis ;
+- suite Jest complète : 169/169 réussis ;
 - build Next.js réussi ;
 - `/suivi` compilé et réponse HTTP 200 en serveur local ;
-- contrôle navigateur automatisé indisponible dans l'environnement Work (`agent-browser` absent).
+- ouverture de `RepasBloc` corrigée dans `feee3b6` après reproduction de l’exception client ;
+- contrôle navigateur Vercel réussi : clic sur `Petit-déjeuner`, formulaire et bouton `+ Ajouter un autre aliment` visibles, aucune erreur JavaScript applicative.
 
-## Validation utilisateur attendue
+## Validation utilisateur obtenue
 
-1. vérifier que l'enregistrement direct d'un seul aliment fonctionne toujours ;
-2. ajouter deux aliments à `Mon repas en cours` ;
-3. retirer puis ajouter de nouveau un aliment ;
-4. finaliser l'assiette et vérifier le message de réussite ;
-5. recommencer en cochant l'enregistrement réutilisable et en donnant un nom ;
-6. vérifier que le repas nommé apparaît dans les repas composés disponibles.
+- deux aliments ont été ajoutés puis finalisés dans une même occurrence ;
+- le rafraîchissement du suivi a correctement recalculé le total calorique consommé ;
+- les deux lignes détaillées sont présentes dans « Gérer mes repas », conformément au stockage par aliment ;
+- l’assiette nommée apparaît dans « Utiliser un repas composé » et peut être réutilisée ;
+- le regroupement visuel futur de ces lignes dans « Gérer mes repas » est consigné séparément dans `AMELIORATION_CONTINUE_DEVELOPPEMENT_APP.md` sans modifier le périmètre courant.
 
-Après cette validation, le sous-lot pourra être clôturé. Le chemin `Repas conforme au planning` restera le prochain raccord distinct.
+Le sous-lot 2.4 est clôturé. Le chemin `Repas conforme au planning` est le prochain raccord distinct du plan d’action.

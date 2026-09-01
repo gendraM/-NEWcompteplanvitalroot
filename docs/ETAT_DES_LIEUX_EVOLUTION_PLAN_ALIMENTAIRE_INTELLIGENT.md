@@ -2,7 +2,7 @@
 
 ## Statut
 
-Audit technique terminé. **Lot 1 et sous-lot 2.1 validés techniquement. Audit d'architecture du sous-lot 2.2 terminé et documenté** sur la branche `plan-alimentaire-intelligent-chatgpt`.
+Audit technique terminé. **Lot 1, sous-lots 2.1, 2.3 et 2.4 validés ; audit d'architecture du sous-lot 2.2 terminé et documenté** sur la branche `plan-alimentaire-intelligent-chatgpt`.
 
 Cet état des lieux constitue la source de vérité du chantier : faire évoluer la saisie réelle des repas afin de reconnaître fiablement une occurrence de repas complète, sans supprimer le détail alimentaire ni casser les comportements existants.
 
@@ -189,8 +189,8 @@ Les suggestions dans `/plan` devront présenter la raison de la suggestion, la c
 3. **Sous-lot 2.2 — AUDIT TERMINÉ** : `suivi.js` retenu comme orchestrateur recommandé ; trois chemins d'écriture et risques documentés.
 4. **Sous-lot 2.3 — VALIDÉ TECHNIQUEMENT** : le contrat de persistance de `suivi.js` accepte une ligne ou plusieurs lignes sans modifier l'UX ni `RepasBloc` ; raccord publié dans le commit `8372c91`.
 5. **Tests du sous-lot 2.3 — VALIDÉS** : tests ciblés mono/multi 9/9, suite Jest 162/162 et build Next.js réussis.
-6. **Sous-lot 2.4 — IMPLÉMENTÉ TECHNIQUEMENT, VALIDATION UTILISATEUR REQUISE** : `RepasBloc` alimente « Mon repas en cours » par un callback étroit ; le parcours mono historique reste disponible.
-7. **Finalisation multi-aliments — IMPLÉMENTÉE TECHNIQUEMENT** : `suivi.js` utilise le moteur `repasEnCours`, une occurrence commune et le handler de persistance du Lot 2.3 ; l'assiette nommée reste facultative.
+6. **Sous-lot 2.4 — VALIDÉ ET CLÔTURÉ** : `RepasBloc` alimente « Mon repas en cours » par un callback étroit ; le parcours mono historique reste disponible ; le test utilisateur authentifié du 1er septembre 2026 est concluant.
+7. **Finalisation multi-aliments — VALIDÉE** : `suivi.js` utilise le moteur `repasEnCours`, une occurrence commune et le handler de persistance du Lot 2.3 ; l'assiette nommée reste facultative et sa réutilisation a été vérifiée.
 8. Faire converger ensuite le chemin « conforme au planning » vers la persistance commune.
 9. Corriger la lecture des repas planifiés composés.
 10. Faire converger `SaisieRepasCompose` vers le repas en cours au lieu de contourner les règles métier.
@@ -228,13 +228,14 @@ Le premier raccordement ne doit **pas** changer l'expérience utilisateur. Il do
 - Sous-lot 2.1 : GitHub Actions **158/158** ; `repasEnCours` **5/5** ; Vercel **READY**.
 - Sous-lot 2.2 : **audit documentaire uniquement**, donc aucun nouveau comportement n'est déclaré testé ou fonctionnel.
 - Sous-lot 2.3 : raccord `handleSaveRepas` publié dans `8372c91` ; tests ciblés **9/9** ; suite Jest **162/162** ; build Next.js réussi. Aucun changement UX n'est déclaré.
-- Sous-lot 2.4 : tests ciblés repas en cours/persistance/interface **15/15** ; suite Jest **168/168** ; build Next.js et réponse HTTP 200 de `/suivi` validés. Test fonctionnel authentifié encore requis.
+- Sous-lot 2.4 : tests ciblés repas en cours/persistance/interface **16/16** ; suite Jest **169/169** ; build Next.js, clic navigateur sur `Petit-déjeuner` et test fonctionnel authentifié validés. Le correctif d’ouverture de `RepasBloc` est publié dans `feee3b6`.
+- Validation utilisateur : une occurrence de deux aliments est comptabilisée dans les statistiques et l’assiette nommée apparaît parmi les repas composés réutilisables. L’affichage détaillé en deux lignes dans « Gérer mes repas » est conforme au stockage actuel ; son regroupement visuel futur est consigné dans `AMELIORATION_CONTINUE_DEVELOPPEMENT_APP.md`.
 
 ---
 
 ## 9. Règle de reprise du chantier
 
-Prochaine étape : **valider le parcours « Mon repas en cours » sur la prévisualisation authentifiée de la branche, puis clôturer le sous-lot 2.4 avant de raccorder séparément le chemin « Repas conforme au planning ».**
+Prochaine étape : **raccorder séparément le chemin « Repas conforme au planning » à la persistance commune, conformément à l’étape 8 du plan d’action consolidé.**
 
 Avant toute modification, vérifier la version courante des fichiers concernés. Avant chaque commit fonctionnel, documentaire ou correctif : rappeler explicitement le dépôt et la branche, présenter le périmètre et attendre l'autorisation de l'utilisatrice. Ne jamais pousser sur `main` sans autorisation explicite distincte.
 
