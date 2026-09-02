@@ -7,6 +7,7 @@ import { defisReferentiel } from '../lib/defisReferentiel';
 import { DEFIS_STATUS, getDefiMax, isDefiDisponible, isDefiEnCours, isDefiTermine } from '../lib/defisUtils';
 import { initDefisUser } from '../lib/initDefisUser';
 import { useRouter } from 'next/router';
+import { useDefis } from '../components/DefisContext';
 
 // Composant retour en arrière
 function RetourArriere() {
@@ -32,6 +33,7 @@ function RetourArriere() {
 const Defis = () => {
     const [defis, setDefis] = useState([]);
     const router = useRouter();
+    const { refreshDefis } = useDefis();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [tab, setTab] = useState('disponibles'); // onglet actif
@@ -109,6 +111,10 @@ const Defis = () => {
         }
     };
 
+    const synchroniserDefis = async () => {
+        await Promise.all([loadDefis(), refreshDefis()]);
+    };
+
     // useEffect pour charger les défis au montage
     useEffect(() => {
         loadDefis();
@@ -134,7 +140,7 @@ const Defis = () => {
             return;
         }
 
-        await loadDefis();
+        await synchroniserDefis();
         setActionLoading(false);
     };
 
@@ -166,7 +172,7 @@ const Defis = () => {
         }
 
         console.log('Défi supprimé, rechargement...');
-        await loadDefis();
+        await synchroniserDefis();
         setActionLoading(false);
         alert('✅ Défi supprimé avec succès !');
     };
@@ -202,13 +208,14 @@ const Defis = () => {
             return;
         }
 
+        await synchroniserDefis();
+
         if (estDefiPersonnalise) {
             setActionLoading(false);
             router.push(`/journal-defi/${defiId}`);
             return;
         }
 
-        await loadDefis();
         setActionLoading(false);
     };
 
@@ -224,7 +231,7 @@ const Defis = () => {
             return;
         }
 
-        await loadDefis();
+        await synchroniserDefis();
         setActionLoading(false);
     };
 
@@ -424,7 +431,7 @@ const Defis = () => {
             {tab === 'creer' && (
                 <>
                     <p>Créez vos propres défis personnalisés et suivez-les au quotidien.</p>
-                    <SaisieDefisDynamiques refreshDefis={loadDefis} />
+                    <SaisieDefisDynamiques refreshDefis={synchroniserDefis} />
                 </>
             )}
         </div>
