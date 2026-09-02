@@ -84,6 +84,16 @@ describe('Interface Mon repas en cours', () => {
     expect(source).toContain('obtenirDerniereOccurrenceRepas(repasSemaine');
   });
 
+  test('fait passer un repas composé réutilisé par le handler commun', () => {
+    const saisieComposee = lire('components/SaisieRepasCompose.js');
+    const repasBloc = lire('components/RepasBloc.js');
+
+    expect(saisieComposee).toContain('const resultat = await onSave(occurrences)');
+    expect(saisieComposee).toContain('if (!resultat?.ok)');
+    expect(saisieComposee).not.toContain("from('repas_reels').insert(occurrences)");
+    expect(repasBloc).toContain('onSave={onSave}');
+  });
+
   test('affiche les quatre lectures non punitives sans modifier RepasBloc', () => {
     const suivi = lire('pages/suivi.js');
     const repasBloc = lire('components/RepasBloc.js');

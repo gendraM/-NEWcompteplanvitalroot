@@ -75,7 +75,7 @@ L'étape 9B prolonge le socle mono/multi sans modifier son contrat de persistanc
 - `pages/suivi.js` applique la comparaison avant l'insertion. Le booléen historique `repas_planifie_respecte` est positionné automatiquement uniquement pour un repas aligné.
 - Les lignes retournées par l'insertion Supabase alimentent immédiatement l'état du suivi, sans attendre un rechargement manuel.
 - Le dernier repas saisi pour le jour et le type sélectionnés affiche automatiquement l'un des quatre libellés non punitifs.
-- `RepasBloc`, `SaisieRepasCompose` et le schéma Supabase restent inchangés.
+- Le schéma Supabase reste inchangé. `RepasBloc` transmet uniquement son callback `onSave` existant à `SaisieRepasCompose`.
 
 ### Validation technique
 
@@ -83,3 +83,16 @@ L'étape 9B prolonge le socle mono/multi sans modifier son contrat de persistanc
 - Suite Jest complète : **184/184 réussis**, répartis dans 22 suites.
 - Build Next.js : réussi, 36 pages générées.
 - Les avertissements locaux du cache Webpack restent non bloquants ; la compilation est réussie.
+
+## Correctif issu du test utilisateur — repas composé réutilisé
+
+Le test authentifié du 2 septembre 2026 a révélé une limite du premier raccord 9B : le bouton « Enregistrer tout le repas » de `SaisieRepasCompose` insérait encore directement les occurrences dans `repas_reels`. Ce chemin contournait donc la comparaison automatique de `handleSaveRepas` et son rafraîchissement de `repasSemaine`.
+
+Le correctif ciblé supprime cette insertion parallèle :
+
+- `RepasBloc` transmet son callback `onSave` à `SaisieRepasCompose` ;
+- `SaisieRepasCompose` attend `onSave(occurrences)` avant d'afficher le succès et de réinitialiser sa sélection ;
+- `pages/suivi.js` demeure l'unique orchestrateur de cette écriture et applique l'alignement à l'occurrence complète ;
+- le comportement mono-aliment et le schéma Supabase restent inchangés.
+
+Validation locale du correctif : tests ciblés **24/24**, suite Jest **185/185** dans 22 suites et build Next.js réussi avec 36 pages générées. Une validation fonctionnelle authentifiée reste nécessaire après déploiement.

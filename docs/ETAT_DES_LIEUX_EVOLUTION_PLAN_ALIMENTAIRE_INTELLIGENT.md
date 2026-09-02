@@ -193,8 +193,8 @@ Les suggestions dans `/plan` devront présenter la raison de la suggestion, la c
 7. **Finalisation multi-aliments — VALIDÉE** : `suivi.js` utilise le moteur `repasEnCours`, une occurrence commune et le handler de persistance du Lot 2.3 ; l'assiette nommée reste facultative et sa réutilisation a été vérifiée.
 8. **VALIDÉ** : faire converger le chemin « conforme au planning » vers la persistance commune, publié dans `6557d81`.
 9. **ÉTAPE 9A VALIDÉE** : conserver et afficher toutes les lignes d'un repas planifié composé, publié dans `0267735`.
-10. **ÉTAPE 9B VALIDÉE TECHNIQUEMENT** : reconstruire la dernière occurrence réelle et afficher automatiquement « Repas aligné », « Repas ajusté », « Repas spontané » ou « Repas libre », sans modifier le schéma Supabase ni `RepasBloc`.
-11. Faire converger `SaisieRepasCompose` vers le repas en cours au lieu de contourner les règles métier.
+10. **ÉTAPE 9B — SOCLE VALIDÉ TECHNIQUEMENT** : reconstruire la dernière occurrence réelle et afficher automatiquement « Repas aligné », « Repas ajusté », « Repas spontané » ou « Repas libre », sans modifier le schéma Supabase. Le test utilisateur du 2 septembre 2026 a toutefois révélé que `SaisieRepasCompose` contournait encore ce socle.
+11. **RACCORDEMENT DE `SaisieRepasCompose` VALIDÉ TECHNIQUEMENT** : les occurrences d'un repas composé réutilisé passent désormais par le même `handleSaveRepas` que les saisies mono/multi. L'insertion directe isolée a été supprimée ; l'alignement et les scores reçoivent immédiatement les lignes retournées par Supabase.
 12. Uniformiser les autres chemins de rafraîchissement après insertion.
 13. Reconstruire les occurrences avant les calculs de bilan.
 14. Produire S-1, puis les candidats go-to meals et les suggestions intelligentes.
@@ -232,13 +232,14 @@ Le premier raccordement ne doit **pas** changer l'expérience utilisateur. Il do
 - Sous-lot 2.4 : tests ciblés repas en cours/persistance/interface **16/16** ; suite Jest **169/169** ; build Next.js, clic navigateur sur `Petit-déjeuner` et test fonctionnel authentifié validés. Le correctif d’ouverture de `RepasBloc` est publié dans `feee3b6`.
 - Validation utilisateur : une occurrence de deux aliments est comptabilisée dans les statistiques et l’assiette nommée apparaît parmi les repas composés réutilisables. L’affichage détaillé en deux lignes dans « Gérer mes repas » est conforme au stockage actuel ; son regroupement visuel futur est consigné dans `AMELIORATION_CONTINUE_DEVELOPPEMENT_APP.md`.
 - Étape 9A : toutes les lignes d'un repas planifié composé sont conservées dans le suivi ; tests complets **173/173** et build Next.js réussis ; publication dans `0267735`.
-- Étape 9B : moteur d'alignement par occurrence, quatre lectures non punitives et retour immédiat après insertion ; tests ciblés **54/54**, suite Jest **184/184** et build Next.js réussi. Validation fonctionnelle authentifiée encore requise après déploiement.
+- Étape 9B : moteur d'alignement par occurrence, quatre lectures non punitives et retour immédiat après insertion ; le test utilisateur authentifié a révélé que le bouton « Enregistrer tout le repas » utilisait encore une insertion directe et ne déclenchait donc ni l'alignement ni l'actualisation des scores.
+- Raccord de `SaisieRepasCompose` : toutes les lignes sont désormais transmises au handler commun ; tests ciblés **24/24**, suite Jest **185/185** et build Next.js réussi. Validation fonctionnelle authentifiée encore requise après déploiement.
 
 ---
 
 ## 9. Règle de reprise du chantier
 
-Prochaine étape : **faire valider fonctionnellement l'étape 9B sur la branche de test**, puis reprendre l'étape 11 du plan consolidé sans élargir silencieusement le périmètre.
+Prochaine étape : **faire valider fonctionnellement le raccord de `SaisieRepasCompose` sur la branche de test**, puis reprendre l'étape 12 du plan consolidé sans élargir silencieusement le périmètre.
 
 Avant toute modification, vérifier la version courante des fichiers concernés. Avant chaque commit fonctionnel, documentaire ou correctif : rappeler explicitement le dépôt et la branche, présenter le périmètre et attendre l'autorisation de l'utilisatrice. Ne jamais pousser sur `main` sans autorisation explicite distincte.
 

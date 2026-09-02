@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { construireOccurrencesReelles, listerRepasComposes } from '../lib/repasComposes';
 
-export default function SaisieRepasCompose({ supabase, userId, date, type }) {
+export default function SaisieRepasCompose({ supabase, userId, date, type, onSave }) {
   const [modeles, setModeles] = useState([]);
   const [modeleId, setModeleId] = useState('');
   const [heure, setHeure] = useState(() => new Date().toTimeString().slice(0, 5));
@@ -26,8 +26,13 @@ export default function SaisieRepasCompose({ supabase, userId, date, type }) {
     if (!modele) return setFeedback('Choisis un repas composé.');
     const occurrences = construireOccurrencesReelles(modele, { userId, date, type, heure: heure || null, satiete, ressenti, note });
     setChargement(true); setFeedback('');
-    const { error } = await supabase.from('repas_reels').insert(occurrences);
-    if (error) setFeedback(`Enregistrement impossible : ${error.message}`);
+    if (!onSave) {
+      setFeedback("L'enregistrement du repas est indisponible.");
+      setChargement(false);
+      return;
+    }
+    const resultat = await onSave(occurrences);
+    if (!resultat?.ok) setFeedback(`Enregistrement impossible : ${resultat?.error?.message || 'erreur inconnue'}`);
     else { setFeedback(`${modele.nom} enregistré : ${occurrences.length} aliments ajoutés.`); setModeleId(''); setNote(''); }
     setChargement(false);
   };

@@ -727,7 +727,7 @@ function getSuggestionsFromNotes(repasList) {
         />
       </div>
 
-      <SaisieRepasCompose supabase={supabase} userId={userId} date={date} type={type} />
+      <SaisieRepasCompose supabase={supabase} userId={userId} date={date} type={type} onSave={onSave} />
 
   <form onSubmit={handleSubmit} style={{ background: "#fff", borderRadius: 12, padding: 20, marginBottom: 24 }}>
         {/* Affichage du message d’erreur Supabase */}
