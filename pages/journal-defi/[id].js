@@ -12,7 +12,7 @@ import { useDefis } from "../../components/DefisContext";
 export default function PageJournalDefi() {
   const router = useRouter();
   const { id } = router.query;
-  const { refreshDefis } = useDefis();
+  const { refreshDefis = async () => {} } = useDefis() || {};
 
   const [defi, setDefi] = useState(null);
   const [chargement, setChargement] = useState(true);
@@ -141,7 +141,6 @@ export default function PageJournalDefi() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
       <div className="container mx-auto px-4 py-6 max-w-5xl">
-        {/* En-tête avec bouton retour */}
         <div className="mb-8">
           <button
             onClick={retourDefis}
@@ -161,14 +160,12 @@ export default function PageJournalDefi() {
           </div>
         </div>
 
-        {/* Composant principal */}
         <JournalDefiPersonnalise
           defi={defi}
           jourActuel={jourActuel}
           onProgressionUpdate={handleProgressionUpdate}
         />
 
-        {/* Navigation entre les jours */}
         <div className="mt-8 flex flex-wrap justify-center items-center gap-4">
           <button
             onClick={() => setJourActuel(Math.max(1, jourActuel - 1))}
@@ -189,7 +186,6 @@ export default function PageJournalDefi() {
           </button>
         </div>
 
-        {/* Indicateur de progression */}
         <div className="mt-8 bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
           <div className="flex justify-between items-center mb-3">
             <span className="text-base font-semibold text-gray-800 flex items-center gap-2">
