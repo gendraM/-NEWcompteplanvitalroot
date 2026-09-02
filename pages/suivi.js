@@ -45,6 +45,7 @@ import {
   STATUTS_ALIGNEMENT_REPAS
 } from '../lib/alignementRepas';
 import { calculerProfilComplet } from '../lib/routeurPoids';
+import { calculerProgressionExtras } from '../lib/extrasProgression';
 import { 
   calculerExtrasSemaine, 
   genererMessageFeedback, 
@@ -167,7 +168,7 @@ const PROGRESSION_MILESTONES = [
   { streak: 2, message: "Bravo, deux semaines de suite ! Ta régularité paie : tu maîtrises de mieux en mieux tes envies d’extras. Garde ce cap, chaque semaine compte !" },
   { streak: 1, message: "Félicitations ! Tu as réussi à limiter tes extras à 1 cette semaine. Tu fais un grand pas vers l’équilibre, continue ainsi !" },
 ];
-const INTERRUPTION_VERBATIM = "Pas grave, chaque semaine est une nouvelle chance ! Tu as dépassé ton quota d’extras cette fois-ci, mais ce n’est qu’une étape. Reprends ta série, tu sais que tu peux y arriver !";
+const INTERRUPTION_VERBATIM = "Les extras ont été plus présents cette semaine. Ton palier reste inchangé et les semaines déjà acquises sont conservées.";
 const REGULAR_MOTIVATION = "Limiter ses extras, c’est se rapprocher de ses objectifs semaine après semaine. Garde le rythme !";
 
 function getWeeklyExtrasHistory(repasSemaine, selectedDate, nbWeeks = 16) {
@@ -187,14 +188,13 @@ function getWeeklyExtrasHistory(repasSemaine, selectedDate, nbWeeks = 16) {
     weekStart.setDate(monday.getDate() - (i*7));
     weekStart.setHours(0,0,0,0);
     let weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
-    let count = repasSemaine.filter(r => {
-      let d = new Date(r.date);
-      d.setHours(0,0,0,0);
-      return d >= weekStart && d <= weekEnd && r.est_extra;
-    }).length;
+    const weekStartKey = formatDate(weekStart, 'yyyy-MM-dd');
+    const extrasInfo = calculerExtrasSemaine(weekStartKey, repasSemaine);
     weeks.push({
-      weekStart: weekStart.toISOString().slice(0,10),
-      count,
+      weekStart: weekStartKey,
+      count: extrasInfo.count,
+      kcal: extrasInfo.kcalTotal,
+      details: extrasInfo.details,
       isCurrent: (i === 0),
     });
   }
@@ -308,7 +308,7 @@ function ZoneFeedbackHebdo({
     message = `Bravo, tu as limité tes extras à ${extrasThisWeek} cette semaine${extrasThisWeek <= 1 ? " !" : ""}`;
     color = "#43a047";
   } else {
-    message = `Tu as dépassé ton quota cette semaine (${extrasThisWeek}/${palier}). Tu peux faire mieux, penses à planifier tes extras pour t'aider à progresser !`;
+    message = `Les extras ont été plus présents cette semaine (${extrasThisWeek}/${palier}). Ton chemin reste visible pour t’aider à choisir la suite.`;
     color = "#f57c00";
   }
 
@@ -1061,13 +1061,20 @@ export default function Suivi() {
 
   // Calcul de l'historique hebdomadaire (client only pour éviter hydration error)
   const [weeklyHistory, setWeeklyHistory] = useState([]);
+  const [semainesProgressionExtras, setSemainesProgressionExtras] = useState([]);
+  const selectedWeekKey = formatDate(getMonday(selectedDate), 'yyyy-MM-dd');
   useEffect(() => {
     async function fetchHistory() {
       const history = getWeeklyExtrasHistory(repasSemaine, selectedDate, 16);
       // Récupérer les semaines validées depuis Supabase
-      const { data: semainesValidees } = await supabase
-  .from('semaines_validees')
-        .select('weekStart, validee');
+      let query = supabase
+        .from('semaines_validees')
+        .select('weekStart, validee, extras_count, kcal_extras, budget_extras, fiabilite_pourcent')
+        .order('weekStart', { ascending: true });
+      if (userId) query = query.eq('user_id', userId);
+      const { data: semainesValidees, error: semainesError } = await query;
+      if (semainesError) console.error('[EXTRAS] Lecture des semaines validées impossible:', semainesError);
+      setSemainesProgressionExtras(semainesValidees || []);
       // Fusionner le flag de validation
         const historyWithValidation = history.map(week => {
           const validRaw = semainesValidees?.find(s => s.weekStart === week.weekStart)?.validee;
@@ -1077,7 +1084,7 @@ export default function Suivi() {
       setWeeklyHistory(historyWithValidation);
     }
     fetchHistory();
-  }, [repasSemaine, selectedDate]);
+  }, [repasSemaine, selectedDate, userId]);
   // Définition de extrasThisWeek à partir de l'historique
   const extrasThisWeek = weeklyHistory[0]?.count ?? 0;
   // Définition de extrasLastWeek et variation pour le feedback
@@ -1086,13 +1093,19 @@ export default function Suivi() {
     ? weeklyHistory[0].count - weeklyHistory[1].count
     : 0;
 
-  // Calcul du palier et de l'objectif final
-  const currentPalier = 1; // Palier métier : 1 extra autorisé par semaine
+  const progressionExtras = useMemo(
+    () => calculerProgressionExtras(
+      semainesProgressionExtras.filter(semaine => semaine.weekStart && semaine.weekStart < selectedWeekKey)
+    ),
+    [semainesProgressionExtras, selectedWeekKey]
+  );
+  const currentPalier = progressionExtras.palier;
   const objectifFinal = 1;
+  const extrasRestants = Math.max(0, currentPalier - extrasThisWeek);
 
   // ----------- CALCUL DES EXTRAS HORS QUOTA -----------
-  // On considère hors quota si le nombre d'extras dépasse le palier
-  const extrasHorsQuota = repasSemaine.filter((r) => r.est_extra && extrasThisWeek > currentPalier);
+  // Seuls les moments situés après le palier sont signalés, pas tous les extras.
+  const extrasHorsQuota = (weeklyHistory[0]?.details || []).slice(currentPalier);
 
   // Calcul du score calorique du jour (en pourcentage)
   const scoreCalorique = (objectifCalorique && caloriesDuJour)
@@ -1252,7 +1265,7 @@ export default function Suivi() {
       // Calcul des extras juste avant la sauvegarde
       const extrasInfo = calculerExtrasSemaine(selectedWeekStart, repasData);
       // Génération du message feedback réel (ou valeur neutre si non utilisé)
-      const messageFeedback = genererMessageFeedback ? genererMessageFeedback(extrasInfo.count, 1) : '';
+      const messageFeedback = genererMessageFeedback ? genererMessageFeedback(extrasInfo.count, currentPalier) : '';
       
       // Calcul de la variation (extras semaine N vs N-1)
       // Récupérer la semaine précédente validée pour calculer la variation
@@ -1436,6 +1449,7 @@ export default function Suivi() {
       
       let insertOk = false;
       const bilanToInsert = {
+        user_id: userId,
         weekStart: selectedWeekStart,
         // weekEnd supprimé : la colonne n'existe pas dans la table (on calcule weekEnd = weekStart + 6 jours si besoin)
         validee: true,
@@ -1465,6 +1479,8 @@ export default function Suivi() {
         nb_repas_ressenti: nbRepasRessenti || 0,
         // PHASE 2 - Données ABC (Lectures A, B, C + Fragilités)
         bilan_abc: {
+          palierExtras: currentPalier,
+          progressionExtras,
           lectureA: lectureA || null,
           lectureB: lectureB || null,
           lectureC: lectureC || null,
@@ -1486,7 +1502,7 @@ export default function Suivi() {
         const { data: insertResult, error: insertError } = await supabase
           .from('semaines_validees')
           .upsert([bilanToInsert], {
-            onConflict: 'weekStart', // Utilise weekStart comme clé unique pour gérer les doublons
+            onConflict: 'user_id,weekStart',
             ignoreDuplicates: false   // Met à jour si existe déjà
           });
         if (insertError) {
@@ -1508,6 +1524,8 @@ export default function Suivi() {
           kcalExtras,
           extras: extrasInfo.count,
           budgetExtras,
+          palierExtras: currentPalier,
+          progressionExtras,
           variation,
           // Section 7 - Données ressenti
           satieteMoyenne,
@@ -1518,6 +1536,8 @@ export default function Suivi() {
           extrasHorsRepas: repartitionTemporelle,
           // PHASE 2 - Lectures A, B, C + Enrichissements (depuis bilan_abc)
           bilan_abc: {
+            palierExtras: currentPalier,
+            progressionExtras,
             lectureA: lectureA || null,
             lectureB: lectureB || null,
             lectureC: lectureC || null,
@@ -1722,175 +1742,17 @@ export default function Suivi() {
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════
-          BUDGET EXTRAS HEBDOMADAIRE (PHASE 3)
-          Affichage du budget calorique extras personnalisé
-          ═══════════════════════════════════════════════════════════ */}
-      <div style={{padding: '1rem', background: 'rgba(100,150,255,0.1)', borderRadius: 8, margin: '1rem 0', border: '2px dashed #6496ff'}}>
-        <div style={{
-          fontSize: '1.05rem',
-          fontWeight: 700,
-          color: '#fff',
-          background: 'linear-gradient(90deg, #6496ff 0%, #1976d2 100%)',
-          borderRadius: '8px',
-          padding: '6px 0',
-          marginBottom: '0.7rem',
-          textAlign: 'center',
-          letterSpacing: '0.5px',
-          boxShadow: '0 1px 4px rgba(100,150,255,0.10)'
-        }}>
-          📅 Semaine du {(() => {
-            const selectedDateObj = new Date(selectedDate);
-            const day = selectedDateObj.getDay();
-            const monday = new Date(selectedDateObj);
-            monday.setDate(selectedDateObj.getDate() - (day === 0 ? 6 : day - 1));
-            const sunday = new Date(monday);
-            sunday.setDate(monday.getDate() + 6);
-            function fmt(d) {
-              return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            }
-            return `${fmt(monday)} au ${fmt(sunday)}`;
-          })()}
-        </div>
-        <div style={{fontSize: '0.9rem', marginBottom: '0.5rem'}}>
-          🔍 <strong>DEBUG Budget Extras Card:</strong>
-        </div>
-        <div style={{fontSize: '0.85rem', fontFamily: 'monospace'}}>
-          • userId from Supabase: <strong>{userId || 'NULL (pas connecté)'}</strong><br/>
-          • Mode: <strong>{userId ? 'Authentifié' : 'localStorage (sans authentification)'}</strong><br/>
-          • Composant: <strong>{userId ? '✅ Mode authentifié' : '⚠️ Mode TEST (localStorage)'}</strong><br/>
-          <span style={{color:'#1976d2',fontWeight:600}}>
-            {calculsRouteur && calculsRouteur.budget_extras_kcal
-              ? `Budget extras personnalisé : ${calculsRouteur.budget_extras_kcal} kcal/semaine`
-              : 'Budget extras non disponible'}
-          </span>
-        </div>
-      </div>
-      {/* Afficher en mode localStorage (userId=null) ou authentifié */}
-      <BudgetExtrasCard userId={userId} selectedDate={selectedDate} />
-
-      {/* --------- ZONE 1 : Feedback immédiat --------- */}
-      <ZoneFeedbackHebdo
-        extrasThisWeek={extrasThisWeek}
-        extrasLastWeek={extrasLastWeek}
+      <BudgetExtrasCard
+        userId={userId}
+        selectedDate={selectedDate}
         palier={currentPalier}
-        objectifFinal={objectifFinal}
-        onInfoClick={() => setShowInfo(true)}
-        variation={variation}
+        progression={progressionExtras}
       />
-
-      {/* --------- Message objectif intermédiaire palier --------- */}
-      {objectifIntermediaire && (
-        <div style={{
-          background: '#e8f5e9',
-          border: '2px solid #43a047',
-          borderRadius: 14,
-          padding: '16px 22px',
-          margin: '18px 0',
-          boxShadow: '0 2px 8px #43a04733',
-          textAlign: 'center',
-          fontWeight: 700,
-          fontSize: 18,
-          color: '#43a047',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 16,
-          animation: 'fadeIn 0.7s',
-        }}>
-          <span style={{fontSize:32}}>➡️</span>
-          <span>{objectifIntermediaire.message}</span>
-        </div>
-      )}
-
-      {/* --------- Mini-badge et message de baisse de palier --------- */}
-      {typeof weeklyHistory[0]?.count === 'number' && typeof weeklyHistory[1]?.count === 'number' && currentPalier < weeklyHistory[1].count && (
-        <div style={{
-          background: '#fffde7',
-          border: '2px solid #ffd600',
-          borderRadius: 14,
-          padding: '16px 22px',
-          margin: '18px 0',
-          boxShadow: '0 2px 8px #ffd60033',
-          textAlign: 'center',
-          fontWeight: 700,
-          fontSize: 18,
-          color: '#fbc02d',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 16
-        }}>
-          <span style={{fontSize:32}}>🏅</span>
-          <span>Bravo ! Tu passes à <b>{currentPalier}</b> extras/semaine. Garde le cap pour descendre encore !</span>
-        </div>
-      )}
-
-      {/* --------- Bloc motivation dynamique --------- */}
-      {messageMotivation && (
-        <div style={{
-          background: '#e3f2fd',
-          borderRadius: 10,
-          padding: '14px 18px',
-          margin: '12px 0 18px',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-          fontSize: 17,
-          color: '#1976d2',
-          fontWeight: 600,
-          textAlign: 'center',
-        }}>
-          {messageMotivation}
-        </div>
-      )}
-
-      {/* --------- Comparaison hebdomadaire (uniquement le dernier jour) --------- */}
-      {showComparatif && Array.isArray(weeklyHistory) && weeklyHistory.length > 0 && (
-        <div style={{
-          background: '#e3f2fd',
-          borderRadius: 10,
-          padding: '14px 18px',
-          margin: '12px 0 18px',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-          fontSize: 16,
-          color: '#1976d2',
-          fontWeight: 500
-        }}>
-          {(() => {
-            function formatDateFr(dateStr) {
-              const d = new Date(dateStr);
-              return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
-            }
-            function getWeekRange(weekStartStr) {
-              const start = new Date(weekStartStr);
-              const end = new Date(start);
-              end.setDate(start.getDate() + 6);
-              return `du ${formatDateFr(start.toISOString())} au ${formatDateFr(end.toISOString())}`;
-            }
-            return (
-              <>
-                <div>
-                  <b>Semaine écoulée :</b> {weeklyHistory[0] ? `${getWeekRange(weeklyHistory[0].weekStart)} — ${weeklyHistory[0].count} extra${weeklyHistory[0].count>1?'s':''}` : '—'}
-                </div>
-                <div>
-                  <b>Semaine précédente :</b> {weeklyHistory[1] ? `${getWeekRange(weeklyHistory[1].weekStart)} — ${weeklyHistory[1].count} extra${weeklyHistory[1].count>1?'s':''}` : '—'}
-                </div>
-                <div style={{marginTop:6}}>
-                  {typeof weeklyHistory[0]?.count === 'number' && typeof weeklyHistory[1]?.count === 'number' ? (
-                    <span>
-                      <b>Évolution :</b> {weeklyHistory[0].count - weeklyHistory[1].count > 0 ? '+' : ''}{weeklyHistory[0].count - weeklyHistory[1].count} extra(s)
-                      {weeklyHistory[0].count < weeklyHistory[1].count ? <span style={{color:'#43a047', marginLeft:8}}>Bravo, tu progresses !</span> : weeklyHistory[0].count > weeklyHistory[1].count ? <span style={{color:'#e53935', marginLeft:8}}>Tu peux faire mieux la semaine prochaine !</span> : <span style={{color:'#888', marginLeft:8}}>Stable</span>}
-                    </span>
-                  ) : ''}
-                </div>
-              </>
-            );
-          })()}
-        </div>
-      )}
-
-
-  {/* --------- ZONE 2 : Progression / badges --------- */}
-  <ZoneBadgesProgression progression={progression} history={weeklyHistory} palier={currentPalier} />
+      <div style={{ textAlign: 'center', marginBottom: 14 }}>
+        <button type="button" onClick={() => setShowInfo(true)} style={{ background: 'transparent', color: '#1976d2', border: 'none', textDecoration: 'underline', cursor: 'pointer' }}>
+          Consulter la règle des extras
+        </button>
+      </div>
 
   {/* --------- Timeline visuelle façon Instagram/TikTok --------- */}
   <TimelineProgression history={weeklyHistory} />
@@ -1910,13 +1772,13 @@ export default function Suivi() {
             }}
             onClick={e => e.stopPropagation()}
           >
-            <h2 style={{fontWeight:700, fontSize:18, marginBottom:8}}>Règle des extras</h2>
+            <h2 style={{fontWeight:700, fontSize:18, marginBottom:8}}>Comment fonctionne le suivi des extras ?</h2>
             <div style={{fontSize:15, color:"#333"}}>
               <ul>
-                <li>Les extras sont limités à un quota hebdomadaire personnalisé.</li>
-                <li>Le quota est ajusté chaque semaine selon ta progression : plus tu progresses, plus il se rapproche de l’objectif final (1 extra/semaine).</li>
-                <li>Les extras au-delà du quota sont marqués <b>hors quota</b> et visibles.</li>
-                <li>Ta progression est récompensée par des badges et messages de félicitations à chaque jalon.</li>
+                <li>Chaque extra est lu de deux façons complémentaires : le nombre de moments et leur impact calorique.</li>
+                <li>Ton chemin évolue à travers les paliers 5, 3, 2 puis 1.</li>
+                <li>Une semaine validée fait progresser ton palier lorsque ton rythme et ton budget calorique sont tous les deux respectés.</li>
+                <li>Une semaine différente met la progression en pause, sans effacer les semaines déjà acquises.</li>
                 <li>L’historique complet de tes semaines reste accessible.</li>
               </ul>
               <button style={{
@@ -2365,7 +2227,7 @@ export default function Suivi() {
         </div>
       )}
 
-      {/* Hors quota – affichage léger */}
+      {/* Moments supplémentaires – affichage léger */}
       {extrasHorsQuota.length > 0 && (
         <div style={{
           marginTop: 18,
@@ -2376,7 +2238,7 @@ export default function Suivi() {
           color: "#ffa000"
         }}>
           <div style={{ fontWeight: 600 }}>
-            🟡 Extras hors quota cette semaine
+            🟡 Moments supplémentaires cette semaine
           </div>
           <ul>
             {extrasHorsQuota.map((extra, i) => (
@@ -2395,7 +2257,7 @@ export default function Suivi() {
         color: "#888",
         textAlign: "center"
       }}>
-        <span>Astuce : Cliquez sur un repas pour saisir ce que vous avez mangé.<br />Les extras sont limités à un quota dynamique par semaine, utilisez-les à bon escient !</span>
+        <span>Astuce : cliquez sur un repas pour saisir ce que vous avez mangé.<br />Ton palier suit la fréquence de tes moments extras ; leur impact calorique est suivi en parallèle.</span>
       </div>
 
       <div style={{
@@ -2496,7 +2358,7 @@ export default function Suivi() {
         message={feedbackData?.message}
         variation={feedbackData?.variation}
         dateValidation={feedbackData?.dateValidation}
-        quota={2}
+        palier={currentPalier}
       />
       
       {/* ═══════════════════════════════════════════════════════════

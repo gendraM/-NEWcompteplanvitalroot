@@ -6,6 +6,7 @@ import TimelineProgression from "../components/TimelineProgression";
 import BadgeCard from "../components/BadgeCard";
 import DrawerValidation from "../components/DrawerValidation";
 import { getSemainesNonValidees, calculerExtrasSemaine, genererMessageFeedback, calculerVariation } from "../lib/validationSemaine";
+import { calculerProgressionExtras } from "../lib/extrasProgression";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -34,7 +35,7 @@ function getMotivationMessage({ progression, extras, humeurCounts, tauxSatiete }
     return `🏆 ${progression.badge} : ${progression.message}`;
   }
   if (extras > 0 && extras <= progression.quota) {
-    return "💪 Tu respectes ton quota d'extras : continue comme ça !";
+    return "Tes moments extras restent dans le rythme de ton palier actuel.";
   }
   if (tauxSatiete > 70) {
     return "🥗 Tu manges majoritairement par faim réelle, c'est top !";
@@ -255,20 +256,17 @@ export default function TableauDeBord() {
     // 4. Extras sur la période
     const { data: extrasPeriod } = await supabase
       .from("repas_reels")
-      .select("est_extra")
+      .select("id, est_extra, occurrence_repas_id")
       .gte("date", debut.toISOString().slice(0,10))
       .lte("date", fin.toISOString().slice(0,10));
-    let quota = 3;
-    const { data: profil } = await supabase
-      .from("profil")
-      .select("delai")
-      .order("created_at", { ascending: false })
-      .limit(1);
-    if (profil?.[0]?.delai) {
-      quota = Math.max(1, Math.round(3 - profil[0].delai / 2));
-    }
+    const quota = calculerProgressionExtras(semainesValidees).palier;
+    const momentsExtras = new Set(
+      (extrasPeriod || [])
+        .filter(r => r.est_extra)
+        .map((r, index) => r.occurrence_repas_id || `historique:${r.id || index}`)
+    ).size;
     setExtrasData({
-      current: extrasPeriod?.filter((r) => r.est_extra)?.length || 0,
+      current: momentsExtras,
       quota,
     });
     // 5. Badges/défis
@@ -279,23 +277,18 @@ export default function TableauDeBord() {
     // 6. Progression/gamification
     let badge = null,
       message = "";
-    const extrasCount = extrasPeriod?.filter((r) => r.est_extra).length || 0;
+    const extrasCount = momentsExtras;
     if (extrasCount === 0) {
-      badge = periode === 'semaine' ? "Semaine parfaite" : periode === 'mois' ? "Mois parfait" : "Année parfaite";
+      badge = periode === 'semaine' ? "Semaine sans extra" : periode === 'mois' ? "Mois sans extra" : "Année sans extra";
       message =
         periode === 'semaine'
-          ? "Tu n'as pris aucun extra cette semaine. C'est la discipline maximale !"
+          ? "Cette semaine, tes choix ont suivi un rythme sans moment extra."
           : periode === 'mois'
-          ? "Aucun extra ce mois-ci, discipline exemplaire !"
-          : "Aucun extra cette année, record absolu !";
-    } else if (extrasCount <= quota && extrasCount > 0) {
-      badge = periode === 'semaine' ? "Semaine dans le quota" : periode === 'mois' ? "Mois dans le quota" : "Année dans le quota";
-      message =
-        periode === 'semaine'
-          ? "Tu as respecté ton quota d'extras, continue ainsi pour progresser !"
-          : periode === 'mois'
-          ? "Quota d'extras respecté ce mois-ci, continue ainsi !"
-          : "Quota d'extras respecté cette année, bravo !";
+          ? "Ce mois-ci, tes choix ont suivi un rythme sans moment extra."
+          : "Cette année, tes choix ont suivi un rythme sans moment extra.";
+    } else if (periode === 'semaine' && extrasCount <= quota && extrasCount > 0) {
+      badge = "Rythme du palier suivi";
+      message = "Tes moments extras restent dans la direction que tu veux créer.";
     }
     setProgression({ badge, message, quota });
     setLoading(false);
@@ -522,43 +515,43 @@ export default function TableauDeBord() {
         .gte('date', premiereLundi)
         .lte('date', dernierDimanche.toISOString().slice(0, 10));
 
-      // Charger le quota du palier actuel
-      const { data: palierData } = await supabase
-        .from('paliers_personnalises')
-        .select('quota_extras')
-        .eq('actif', true)
-        .single();
-      
-      const quota = palierData?.quota_extras || 5;
+      const { data: authData } = await supabase.auth.getUser();
+      const currentUserId = authData?.user?.id;
+      let historiqueProgression = [...semainesValidees];
 
       // Valider chaque semaine
       for (const weekStart of weekStartArray) {
-        const extrasCount = calculerExtrasSemaine(weekStart, repasReels || []);
-        const message = genererMessageFeedback(extrasCount, quota);
-        const variation = calculerVariation(extrasCount, semainesValidees, weekStart);
+        const palier = calculerProgressionExtras(historiqueProgression).palier;
+        const extrasInfo = calculerExtrasSemaine(weekStart, repasReels || []);
+        const message = genererMessageFeedback(extrasInfo.count, palier);
+        const variation = calculerVariation(extrasInfo.count, historiqueProgression, weekStart);
         
         // Calculer fin de semaine (dimanche)
         const finSemaine = new Date(weekStart);
         finSemaine.setDate(finSemaine.getDate() + 6);
         const finSemaineStr = finSemaine.toISOString().slice(0, 10);
         
-        const extrasDetails = (repasReels || [])
-          .filter(r => {
-            if (!r.date) return false;
-            return r.date >= weekStart && r.date <= finSemaineStr && 
-                   (r.categorie === 'fast-food' || r.tag?.includes('🍔'));
-          })
-          .map(r => ({ date: r.date, type: r.type }));
+        const { data: budgetSemaine } = await supabase
+          .from('extras_budget')
+          .select('budget_hebdo')
+          .eq('user_id', currentUserId)
+          .eq('date_semaine', weekStart)
+          .maybeSingle();
 
-        await supabase.from('semaines_validees').upsert({
-          semaine_debut: weekStart,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+        const semaineValidee = {
+          weekStart,
+          user_id: currentUserId,
+          validee: true,
           date_validation: new Date().toISOString(),
-          extras_count: extrasCount,
-          extras_details: extrasDetails,
+          extras_count: extrasInfo.count,
+          extras_details: JSON.stringify(extrasInfo.details),
+          kcal_extras: extrasInfo.kcalTotal,
+          budget_extras: Number(budgetSemaine?.budget_hebdo) || 0,
           message_feedback: message,
           variation: variation
-        });
+        };
+        await supabase.from('semaines_validees').upsert(semaineValidee, { onConflict: 'user_id,weekStart' });
+        historiqueProgression.push(semaineValidee);
       }
 
       // Rafraîchir les données
@@ -1001,12 +994,12 @@ export default function TableauDeBord() {
               margin: "1.1rem 0 0.2rem 0",
             }}
           >
-            {extrasData.current} / {extrasData.quota}
+            {extrasData.current} / {extrasData.quota} moments
           </p>
           <p>
             {extrasData.current <= extrasData.quota
-              ? "Bravo, tu es dans le quota !"
-              : "Attention, quota dépassé..."}
+              ? "Ton rythme reste dans ton palier actuel."
+              : "Les extras ont été plus présents sur cette période."}
           </p>
         </div>
 

@@ -775,38 +775,15 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
   if (!open) return null;
 
   // ...existing code...
-  // Génération du verbatim automatique métier pour la lecture des extras (strictement conforme aux 4 cas métier)
-  function getVerbatimLectureExtras(extras, kcalExtras, budgetExtras) {
+  // Une synthèse commune croise le palier de fréquence et le budget calorique.
+  function getVerbatimLectureExtras(extras, kcalExtras, budgetExtras, palier = 5) {
     if (typeof extras !== 'number' || typeof kcalExtras !== 'number' || typeof budgetExtras !== 'number') return '';
-    // Cas 1 : Peu d’extras, mais très caloriques (1–2 extras, kcal extras > budget)
-    if (extras >= 1 && extras <= 2 && kcalExtras > budgetExtras) {
-      return 'Cette semaine, les extras ont été peu nombreux mais très chargés. Leur impact vient surtout de leur intensité.';
-    }
-    // Cas 2 : Plusieurs extras, charge modérée (3–6 extras, kcal extras <= budget)
-    if (extras >= 3 && extras <= 6 && kcalExtras <= budgetExtras) {
-      return 'Cette semaine, les extras ont été fréquents mais répartis en petites quantités. Leur impact vient de l’accumulation.';
-    }
-    // Cas 3 : Plusieurs extras, charge élevée (5+ extras, kcal extras > budget)
-    if (extras >= 5 && kcalExtras > budgetExtras) {
-      return 'Cette semaine, les extras ont été à la fois fréquents et chargés. La répétition et l’intensité se sont additionnées.';
-    }
-    // Cas 4 : Extras maîtrisés (3 extras, kcal extras <= budget)
-    if (extras === 3 && kcalExtras <= budgetExtras) {
-      return 'Cette semaine, le nombre et la charge des extras sont restés dans le budget prévu.';
-    }
-    // Cas générique : si aucun cas strict ne correspond, phrase douce
-    if (extras === 0 || kcalExtras === 0) {
-      return 'Les extras ont été très limités cette semaine, leur impact est marginal.';
-    }
-    // Cas de dépassement modéré (autres situations)
-    if (kcalExtras > budgetExtras) {
-      return 'Cette semaine, les extras ont dépassé le budget prévu. À surveiller pour retrouver l’équilibre.';
-    }
-    // Cas de maintien modéré
-    if (kcalExtras <= budgetExtras) {
-      return 'Les extras sont restés dans une zone raisonnable cette semaine.';
-    }
-    return '';
+    const frequenceOk = extras <= palier;
+    const caloriesOk = kcalExtras <= budgetExtras;
+    if (frequenceOk && caloriesOk) return 'Ton rythme et l’impact de tes extras restent dans la direction que tu as choisie.';
+    if (frequenceOk) return 'Le nombre de moments reste dans ton palier. Leur impact calorique est plus élevé cette semaine.';
+    if (caloriesOk) return 'Les extras ont été plus présents cette semaine, tandis que leur impact calorique reste dans ton budget.';
+    return 'Les extras ont été plus présents et plus caloriques cette semaine. Cette observation t’aide à ajuster la suite, sans effacer le chemin déjà parcouru.';
   }
 
   return (
@@ -1001,7 +978,7 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
             </li>
           </ul>
           <div style={{marginTop: '0.7rem', fontStyle: 'italic', color: '#2563eb', fontSize: '1.04rem'}}>
-            {getVerbatimLectureExtras(bilan?.extras, bilan?.kcalExtras, bilan?.budgetExtras)}
+            {getVerbatimLectureExtras(bilan?.extras, bilan?.kcalExtras, bilan?.budgetExtras, bilan?.palierExtras || bilan?.bilan_abc?.palierExtras)}
           </div>
         </section>
         {/* Bloc En savoir plus (analyse croisée) */}

@@ -25,7 +25,7 @@ const rules = [
   {
     check: ({ estExtra, extrasRestants }) => estExtra && extrasRestants <= 0,
     type: "challenge",
-    message: "Tu as dépassé ton quota d'extras cette semaine. Prends un instant pour te demander : est-ce le bon moment pour ce plaisir ? Tu pourrais le planifier pour un autre moment, pour le savourer pleinement et sans culpabilité."
+    message: "Tous les moments prévus dans ton palier sont déjà utilisés cette semaine. Si tu choisis cet extra, il restera enregistré comme un moment supplémentaire avec son impact calorique, sans effacer ta progression."
   },
   {
     check: ({ satiete }) => satiete === "non",
@@ -716,7 +716,7 @@ function getSuggestionsFromNotes(repasList) {
   <div>
       {/* Compteur flipboard stylisé pour extras restants */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-        <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Extras restants</span>
+        <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Moments disponibles dans mon palier</span>
         <FlipNumbers
           height={40}
           width={30}
