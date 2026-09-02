@@ -36,6 +36,7 @@ import { supabase } from '../lib/supabaseClient';
 import { normaliserRepasPourPersistance } from '../lib/repasPersistence';
 import { construirePayloadRepasEnCoursDepuisLignes, creerCleRepasEnCours } from '../lib/repasEnCours';
 import { creerRepasCompose } from '../lib/repasComposes';
+import { grouperRepasPlanifiesParType } from '../lib/planificationRepas';
 import { calculerProfilComplet } from '../lib/routeurPoids';
 import { 
   calculerExtrasSemaine, 
@@ -782,6 +783,10 @@ export default function Suivi() {
   const [showNotesHistory, setShowNotesHistory] = useState(false);
   // Plan de repas du jour (repas planifiés)
   const [repasPlan, setRepasPlan] = useState({});
+  const repasPlanifieSelectionne = repasPlan[selectedType] || [];
+  const repasPlanifieUnique = repasPlanifieSelectionne.length === 1
+    ? repasPlanifieSelectionne[0]
+    : null;
 
   const cleRepasEnCours = creerCleRepasEnCours(selectedDate, selectedType);
   const alimentsRepasEnCours = cleRepasEnCours ? (repasEnCoursParCle[cleRepasEnCours] || []) : [];
@@ -958,12 +963,7 @@ export default function Suivi() {
         .select('*')
         .eq('date', selectedDate);
       if (!planError && Array.isArray(planData)) {
-        // Construire un objet { type: { aliment, categorie } }
-        const planObj = {};
-        planData.forEach(r => {
-          planObj[r.type] = { aliment: r.aliment, categorie: r.categorie };
-        });
-        setRepasPlan(planObj);
+        setRepasPlan(grouperRepasPlanifiesParType(planData));
       } else {
         setRepasPlan({});
       }
@@ -1083,8 +1083,13 @@ export default function Suivi() {
     if (r.repas_planifie_respecte) return true;
     // Si extra ou fast food, non aligné
     if (r.est_extra || r.isFastFood || r.fastFoodType) return false;
+    const lignesPlanifiees = Array.isArray(plan) ? plan : (plan ? [plan] : []);
+    // La comparaison d'une assiette composée sera réalisée au niveau de l'occurrence complète.
+    // Une ligne isolée ne doit pas suffire à déclarer tout le repas aligné.
+    if (lignesPlanifiees.length !== 1) return false;
+    const lignePlanifiee = lignesPlanifiees[0];
     // Si aliment modifié
-    if (plan && plan.aliment && r.aliment && plan.aliment.trim().toLowerCase() === r.aliment.trim().toLowerCase()) {
+    if (lignePlanifiee.aliment && r.aliment && lignePlanifiee.aliment.trim().toLowerCase() === r.aliment.trim().toLowerCase()) {
       return true;
     }
     return false;
@@ -2142,16 +2147,24 @@ export default function Suivi() {
                   }}
                 >
               <strong>Repas prévu :</strong>{" "}
-              {repasPlan[selectedType]?.aliment ? (
-                <>
-                  {repasPlan[selectedType]?.aliment}{" "}
-                  <span style={{
-                    background: "#eee", borderRadius: 8, padding: "2px 8px", marginLeft: 4,
-                    fontSize: 13, color: "#888"
-                  }}>
-                    {repasPlan[selectedType]?.categorie}
-                  </span>
-                </>
+              {repasPlanifieSelectionne.length > 0 ? (
+                <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, verticalAlign: 'top' }}>
+                  {repasPlanifieSelectionne.map((repas, index) => (
+                    <span key={repas.id || `${repas.aliment}-${index}`}>
+                      {repas.aliment || 'Aliment non renseigné'}{' '}
+                      {repas.categorie && (
+                        <span style={{
+                          background: "#eee", borderRadius: 8, padding: "2px 8px", marginLeft: 4,
+                          fontSize: 13, color: "#888"
+                        }}>
+                          {repas.categorie}
+                        </span>
+                      )}
+                      {repas.quantite ? ` · ${repas.quantite}` : ''}
+                      {repas.kcal !== null && repas.kcal !== undefined ? ` · ${repas.kcal} kcal` : ''}
+                    </span>
+                  ))}
+                </span>
               ) : (
                 <span style={{ color: "#bbb" }}>Non défini</span>
               )}
@@ -2163,13 +2176,13 @@ export default function Suivi() {
               onFinaliser={handleFinaliserRepasEnCours}
             />
             <RepasBloc
-              repasPrevu={typeof repasPlan[selectedType]?.aliment === 'string' ? repasPlan[selectedType].aliment : ''}
-              categoriePrevu={typeof repasPlan[selectedType]?.categorie === 'string' ? repasPlan[selectedType].categorie : ''}
-              quantitePrevu={typeof repasPlan[selectedType]?.quantite === 'string' || typeof repasPlan[selectedType]?.quantite === 'number' ? String(repasPlan[selectedType].quantite) : ''}
-              kcalPrevu={typeof repasPlan[selectedType]?.kcal === 'string' || typeof repasPlan[selectedType]?.kcal === 'number' ? String(repasPlan[selectedType].kcal) : ''}
+              repasPrevu={typeof repasPlanifieUnique?.aliment === 'string' ? repasPlanifieUnique.aliment : ''}
+              categoriePrevu={typeof repasPlanifieUnique?.categorie === 'string' ? repasPlanifieUnique.categorie : ''}
+              quantitePrevu={typeof repasPlanifieUnique?.quantite === 'string' || typeof repasPlanifieUnique?.quantite === 'number' ? String(repasPlanifieUnique.quantite) : ''}
+              kcalPrevu={typeof repasPlanifieUnique?.kcal === 'string' || typeof repasPlanifieUnique?.kcal === 'number' ? String(repasPlanifieUnique.kcal) : ''}
               type={selectedType}
               date={selectedDate}
-              planCategorie={repasPlan[selectedType]?.categorie}
+              planCategorie={repasPlanifieUnique?.categorie}
               extrasRestants={typeof extrasRestants === 'number' && !isNaN(extrasRestants) ? extrasRestants : 0}
               onSave={handleSaveRepas}
               onAjouterAlimentAuRepas={handleAjouterAlimentAuRepas}

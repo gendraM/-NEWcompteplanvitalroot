@@ -18,7 +18,7 @@ function chargerModules() {
     .replace(/import \{[\s\S]*?\} from '\.\/socleQuantitesCalories';/, 'const { calculerCaloriesAliment, extraireQuantiteReference, normaliserUnite } = __socle;')
     .replace(/export async function /g, 'async function ')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { normaliserNomAliment, trouverAlimentReferentiel, rechercherAlimentsReferentiel, obtenirSaisieParDefaut, serialiserQuantitePlanifiee, extraireQuantitePlanifiee, calculerKcalPlanifiees, construireComposantAssiette, construireAjoutSuggestion, construireOccurrencesAssiette, enregistrerAssiettePlanifiee, normaliserRepasPlanifie, calculerTotauxPlanning };');
+    .concat('\nmodule.exports = { normaliserNomAliment, trouverAlimentReferentiel, rechercherAlimentsReferentiel, obtenirSaisieParDefaut, serialiserQuantitePlanifiee, extraireQuantitePlanifiee, calculerKcalPlanifiees, construireComposantAssiette, construireAjoutSuggestion, construireOccurrencesAssiette, enregistrerAssiettePlanifiee, normaliserRepasPlanifie, grouperRepasPlanifiesParType, calculerTotauxPlanning };');
   vm.runInContext(planification, context, { filename: 'planificationRepas.js' });
   return context.module.exports;
 }
@@ -35,6 +35,7 @@ const {
   construireOccurrencesAssiette,
   enregistrerAssiettePlanifiee,
   normaliserRepasPlanifie,
+  grouperRepasPlanifiesParType,
   calculerTotauxPlanning
 } = chargerModules();
 
@@ -86,6 +87,20 @@ describe('Planification enrichie', () => {
       kcal_calculees: 99,
       donnees_completes: true
     });
+  });
+
+  test('conserve toutes les lignes d’un repas planifié composé', () => {
+    const lignes = [
+      { id: '1', type: 'Déjeuner', aliment: 'Poulet', quantite: '120 g' },
+      { id: '2', type: 'Déjeuner', aliment: 'Haricots verts', quantite: '200 g' },
+      { id: '3', type: 'Dîner', aliment: 'Soupe', quantite: '1 bol' }
+    ];
+
+    const groupes = grouperRepasPlanifiesParType(lignes);
+
+    expect(groupes['Déjeuner']).toHaveLength(2);
+    expect(groupes['Déjeuner'].map(repas => repas.aliment)).toEqual(['Poulet', 'Haricots verts']);
+    expect(groupes['Dîner']).toHaveLength(1);
   });
 
   test('calcule les totaux par repas et par journée en signalant les journées incomplètes', () => {

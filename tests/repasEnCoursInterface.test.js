@@ -64,4 +64,13 @@ describe('Interface Mon repas en cours', () => {
     expect(source).toContain('creerRepasCompose(supabase');
     expect(source).toContain('nombreAlimentsRepasEnCours={alimentsRepasEnCours.length}');
   });
+
+  test('affiche toutes les lignes planifiées sans préremplir un repas composé comme une ligne unique', () => {
+    const source = lire('pages/suivi.js');
+
+    expect(source).toContain('grouperRepasPlanifiesParType(planData)');
+    expect(source).toContain('repasPlanifieSelectionne.map((repas, index) =>');
+    expect(source).toContain('repasPlanifieSelectionne.length === 1');
+    expect(source).toContain('repasPrevu={typeof repasPlanifieUnique?.aliment');
+  });
 });
