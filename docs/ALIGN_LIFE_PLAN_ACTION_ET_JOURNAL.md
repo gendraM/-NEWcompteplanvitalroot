@@ -1,7 +1,7 @@
 # Align-Life — Plan d'action & journal de passation
 
 **Branche : `Align-Life`**  
-**Statut : P0-P3 terminés ; P4 implémenté puis corrigé après test UX ; correction prête à committer/tester.**
+**Statut : P0-P4 validés ; P4.5 reformulation IA My Way en cours ; P5 OBSERVE/GROW non commencé.**
 
 ## Principes verrouillés
 - Nom visible : **My Way** ; Boussole = concept interne.
@@ -13,7 +13,8 @@
 - GROW n'apparaît que lorsqu'il existe réellement une preuve à afficher.
 - LIVE réutilise les moteurs existants ; fait ≠ tendance ≠ transformation.
 - Journal spirituel reste Jeûne-only.
-- L'IA propose/formule ; l'utilisateur valide.
+- **L'IA est un miroir sémantique : elle propose/formule, l'utilisateur garde ses mots, modifie ou valide.**
+- Aucun remplacement silencieux du texte utilisateur par l'IA.
 - Aucun commit sans accord explicite ; le journal accompagne chaque changement.
 
 ## Plan actif
@@ -22,22 +23,25 @@ TERMINÉS. Fondation technique commit `9bdb761401fe9537a46e6a1b21537ede03321acc`
 
 ### P4 — My Way visible
 Premier commit P4 : `4fc25cb903e3d629fb187cbb725fd27e939c00a0`.
+Correction UX progressive : `4283c9a1166955caa442b00ec19c85835a724fa8`.
+**Validation utilisateur : OUI — test visuel/fonctionnel confirmé avant lancement P4.5.**
 
-**ANOMALIE UX détectée par test utilisateur :** le premier écran exposait simultanément Pourquoi, direction, aspiration, incarnation et un bloc GROW vide. Même facultatifs, ces blocs donnaient l'impression d'un questionnaire à compléter, en contradiction avec la conception progressive validée.
-
-**Correction préparée :**
-- premier accès sans contenu personnel : Pourquoi + une seule ouverture ;
-- choix explicite : « J'ai déjà une idée » ou « Je veux la découvrir en avançant » ;
-- voie découverte : aucun autre champ ; retour au parcours normal ;
-- voie « je sais » : seulement la direction s'ouvre ;
-- aspiration proposée seulement après qu'une direction existe et via une invitation légère ;
-- incarnation proposée seulement après qu'une aspiration existe ;
-- les éléments existants restent visibles et éditables ;
-- GROW totalement masqué s'il n'existe aucun élément GROW réel ;
-- aucune migration, aucun changement Supabase, aucun changement Navigation/Dashboard dans cette correction.
+### P4.5 — Reformulation IA de la direction
+**Périmètre minimal :**
+- uniquement `direction` / « Qui je choisis de devenir » ;
+- endpoint serveur authentifié par session Supabase ;
+- clé OpenAI uniquement serveur via `OPENAI_API_KEY` ;
+- modèle configurable via `OPENAI_MY_WAY_MODEL`, défaut coût-efficace ;
+- texte brut + Pourquoi facultatif envoyés au modèle ;
+- consigne stricte : clarifier sans inventer ni classifier automatiquement ;
+- proposition modifiable avant validation ;
+- choix explicites « Oui, ça me ressemble », « Garder mes mots », « Revenir » ;
+- pour un texte déjà enregistré : bouton « Clarifier avec My Way » ;
+- aucune nouvelle table, aucune migration Supabase, aucun chatbot ;
+- en cas d'indisponibilité IA, le parcours manuel reste utilisable.
 
 ### P5+
-NON COMMENCÉS. Ne pas passer à P5 avant validation utilisateur de P4 corrigé.
+OBSERVE/GROW, aspiration→Idéal et autres usages IA restent hors P4.5.
 
 ---
 # Journal chronologique
@@ -51,19 +55,26 @@ Commit `3ac4cf50c6e82b31cf1aed76b457951cd895481a`.
 Commit `9bdb761401fe9537a46e6a1b21537ede03321acc`.
 ## LOG 005 — P4 initial
 Commit `4fc25cb903e3d629fb187cbb725fd27e939c00a0`.
-
 ## LOG 006 — Correction UX P4 progressive
 **Date : 2 septembre 2026.**  
-**Branche : `Align-Life`.**  
 **HEAD avant : `4fc25cb903e3d629fb187cbb725fd27e939c00a0`.**  
-**Déclencheur :** test utilisateur : « tout est dedans » dès l'ouverture de My Way.  
-**Diagnostic :** concepts corrects mais exposés simultanément ; comportement non conforme au parcours progressif documenté.  
-**Accord utilisateur : OUI — « ok fais la correction ».**  
-**Fichiers inspectés :** `pages/my-way.js`, journal.  
-**Fichiers préparés :** `pages/my-way.js`, journal.  
-**Supabase/migration : AUCUN changement.**  
-**Comportement attendu après :** Pourquoi seul + choix de maturité ; dévoilement des dimensions uniquement lorsqu'elles deviennent pertinentes ou sont déjà renseignées ; GROW masqué tant qu'il est vide.  
-**Compatibilité données :** les items My Way déjà saisis ne sont ni supprimés ni transformés ; ils restent visibles selon leur type.  
-**Tests avant commit :** revue statique du flux et de la compatibilité API ; test navigateur nécessitera le déploiement Vercel après commit.  
-**Commit SHA / HEAD après :** en attente d'autorisation explicite de commit.  
-**Suite :** déployer/tester P4 corrigé ; aucune progression P5 avant validation.
+**Accord utilisateur : OUI — « ok fais la correction » puis « ok go ».**  
+**Commit après : `4283c9a1166955caa442b00ec19c85835a724fa8`.**  
+**Validation utilisateur : OUI — « ok cbon la suite ».**
+
+## LOG 007 — P4.5 Reformulation IA My Way
+**Date : 2 septembre 2026.**  
+**Branche : `Align-Life`.**  
+**HEAD avant : `4283c9a1166955caa442b00ec19c85835a724fa8`.**  
+**Déclencheur :** test utilisateur avec une direction libre longue et non structurée ; besoin que l'IA puisse la clarifier sans déposséder l'utilisateur de ses mots.  
+**Accord utilisateur : OUI — « ok go ».**  
+**Audit :** aucun dossier `pages/api` existant ; Next.js 15 déjà installé ; Supabase JS déjà disponible ; `my_way_items.source` accepte déjà `user`/`ai` ; aucune dépendance OpenAI existante.  
+**Choix technique :** appel direct à la Responses API depuis une route serveur Next.js afin d'éviter une dépendance supplémentaire ; authentification de la route avec le bearer Supabase de l'utilisateur ; aucune clé OpenAI côté navigateur.  
+**Fichiers :** ajout `pages/api/my-way/reformulate.js`, ajout `lib/myWayAI.js`, modification `pages/my-way.js`, mise à jour de ce journal.  
+**UX :** nouvelle direction → « M'aider à clarifier » ou « Garder mes mots » ; direction existante → « Clarifier avec My Way » ; proposition toujours éditable avant validation.  
+**Persistance :** texte utilisateur conservé si « Garder mes mots » ; proposition IA enregistrée uniquement après validation explicite (`source: ai`).  
+**Fallback :** si API non configurée ou indisponible, message non bloquant et saisie manuelle toujours disponible.  
+**Migration Supabase : AUCUNE.**  
+**Pré-requis déploiement :** variable serveur Vercel `OPENAI_API_KEY`; `OPENAI_MY_WAY_MODEL` facultative.  
+**Test à faire après commit :** build Vercel ; session authentifiée ; reformulation d'une direction existante ; retour JSON ; modification de proposition ; validation ; conservation des mots ; comportement quand clé absente.  
+**Commit SHA / HEAD après :** à renseigner après création du commit.

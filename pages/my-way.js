@@ -7,6 +7,7 @@ import {
   getMyWayItems,
   updateMyWayItem,
 } from '../lib/myWayAPI';
+import { reformulateMyWayDirection } from '../lib/myWayAI';
 
 const CONFIG = {
   direction: {
@@ -31,12 +32,14 @@ export default function MyWayPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [journeyChoice, setJourneyChoice] = useState(null); // know | discover | null
+  const [journeyChoice, setJourneyChoice] = useState(null);
   const [activeType, setActiveType] = useState(null);
   const [newContent, setNewContent] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingContent, setEditingContent] = useState('');
   const [saving, setSaving] = useState(false);
+  const [aiLoadingKey, setAiLoadingKey] = useState(null);
+  const [aiProposal, setAiProposal] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -65,16 +68,17 @@ export default function MyWayPage() {
 
   const hasPersonalContent = byType.direction.length > 0 || byType.aspiration.length > 0 || byType.incarnation.length > 0;
 
-  const handleCreate = async (type) => {
-    const content = newContent.trim();
+  const handleCreate = async (type, contentOverride = null, source = 'user') => {
+    const content = String(contentOverride ?? newContent).trim();
     if (!content || saving) return;
     setSaving(true);
     setError('');
     try {
-      const created = await createMyWayItem({ itemType: type, content });
+      const created = await createMyWayItem({ itemType: type, content, source });
       setItems((current) => [...current, created]);
       setNewContent('');
       setActiveType(null);
+      setAiProposal(null);
       if (!journeyChoice) setJourneyChoice('know');
     } catch (err) {
       console.error('Erreur ajout My Way:', err);
@@ -84,16 +88,19 @@ export default function MyWayPage() {
     }
   };
 
-  const handleUpdate = async (id) => {
-    const content = editingContent.trim();
+  const handleUpdate = async (id, contentOverride = null, source = undefined) => {
+    const content = String(contentOverride ?? editingContent).trim();
     if (!content || saving) return;
     setSaving(true);
     setError('');
     try {
-      const updated = await updateMyWayItem(id, { content });
+      const updates = { content };
+      if (source) updates.source = source;
+      const updated = await updateMyWayItem(id, updates);
       setItems((current) => current.map((item) => item.id === id ? updated : item));
       setEditingId(null);
       setEditingContent('');
+      setAiProposal(null);
     } catch (err) {
       console.error('Erreur modification My Way:', err);
       setError("La modification n'a pas pu être enregistrée.");
@@ -109,6 +116,7 @@ export default function MyWayPage() {
     try {
       const archived = await archiveMyWayItem(id);
       setItems((current) => current.map((item) => item.id === id ? archived : item));
+      if (aiProposal?.itemId === id) setAiProposal(null);
     } catch (err) {
       console.error('Erreur archivage My Way:', err);
       setError("L'élément n'a pas pu être archivé.");
@@ -117,8 +125,78 @@ export default function MyWayPage() {
     }
   };
 
+  const requestDirectionReformulation = async ({ original, itemId = null }) => {
+    const normalized = String(original || '').trim();
+    if (!normalized) return;
+
+    const key = itemId || 'new-direction';
+    setAiLoadingKey(key);
+    setError('');
+    setAiProposal(null);
+    try {
+      const proposal = await reformulateMyWayDirection({ content: normalized, pourquoi });
+      setAiProposal({
+        itemId,
+        original: normalized,
+        proposal,
+        editedProposal: proposal,
+      });
+    } catch (err) {
+      console.error('Erreur reformulation direction:', err);
+      setError(err?.message || "La reformulation n'est pas disponible pour le moment.");
+    } finally {
+      setAiLoadingKey(null);
+    }
+  };
+
+  const validateAiProposal = async () => {
+    if (!aiProposal) return;
+    const finalText = String(aiProposal.editedProposal || '').trim();
+    if (!finalText) return;
+
+    if (aiProposal.itemId) {
+      await handleUpdate(aiProposal.itemId, finalText, 'ai');
+    } else {
+      await handleCreate('direction', finalText, 'ai');
+    }
+  };
+
+  const renderAiProposal = ({ itemId = null }) => {
+    if (!aiProposal || aiProposal.itemId !== itemId) return null;
+
+    return (
+      <div style={aiPanelStyle}>
+        <div style={{ fontWeight: 800, color: '#4c3ca7', marginBottom: 6 }}>Voilà ce que My Way a compris</div>
+        <p style={{ ...helperStyle, marginBottom: 12 }}>Ce n'est qu'une proposition. Tu peux la modifier, garder tes mots ou la valider si elle te ressemble.</p>
+        <textarea
+          value={aiProposal.editedProposal}
+          onChange={(e) => setAiProposal((current) => ({ ...current, editedProposal: e.target.value }))}
+          rows={5}
+          style={textareaStyle}
+        />
+        <div style={buttonRowStyle}>
+          <button onClick={validateAiProposal} disabled={!aiProposal.editedProposal.trim() || saving} style={primaryButtonStyle}>
+            Oui, ça me ressemble
+          </button>
+          <button
+            onClick={() => {
+              if (itemId) setAiProposal(null);
+              else handleCreate('direction', aiProposal.original, 'user');
+            }}
+            disabled={saving}
+            style={secondaryButtonStyle}
+          >
+            Garder mes mots
+          </button>
+          <button onClick={() => setAiProposal(null)} disabled={saving} style={textButtonStyle}>Revenir</button>
+        </div>
+      </div>
+    );
+  };
+
   const renderItem = (item) => {
     const isEditing = editingId === item.id;
+    const isDirection = item.item_type === 'direction';
     return (
       <div key={item.id} style={itemStyle}>
         {isEditing ? (
@@ -133,9 +211,19 @@ export default function MyWayPage() {
           <>
             <div style={{ color: '#273043', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{item.content}</div>
             <div style={buttonRowStyle}>
-              <button onClick={() => { setEditingId(item.id); setEditingContent(item.content); }} style={textButtonStyle}>Modifier</button>
+              <button onClick={() => { setEditingId(item.id); setEditingContent(item.content); setAiProposal(null); }} style={textButtonStyle}>Modifier</button>
+              {isDirection && (
+                <button
+                  onClick={() => requestDirectionReformulation({ original: item.content, itemId: item.id })}
+                  disabled={aiLoadingKey === item.id || saving}
+                  style={aiButtonStyle}
+                >
+                  {aiLoadingKey === item.id ? 'My Way reformule…' : 'Clarifier avec My Way'}
+                </button>
+              )}
               <button onClick={() => handleArchive(item.id)} disabled={saving} style={archiveButtonStyle}>Archiver</button>
             </div>
+            {isDirection && renderAiProposal({ itemId: item.id })}
           </>
         )}
       </div>
@@ -144,15 +232,32 @@ export default function MyWayPage() {
 
   const renderAddForm = (type) => {
     const config = CONFIG[type];
-    return activeType === type ? (
+    if (activeType !== type) return null;
+
+    const isDirection = type === 'direction';
+    return (
       <div style={{ marginTop: 12 }}>
-        <textarea autoFocus value={newContent} onChange={(e) => setNewContent(e.target.value)} placeholder={config.placeholder} rows={4} style={textareaStyle} />
+        <textarea autoFocus value={newContent} onChange={(e) => { setNewContent(e.target.value); setAiProposal(null); }} placeholder={config.placeholder} rows={4} style={textareaStyle} />
         <div style={buttonRowStyle}>
-          <button onClick={() => handleCreate(type)} disabled={!newContent.trim() || saving} style={primaryButtonStyle}>Enregistrer</button>
-          <button onClick={() => { setActiveType(null); setNewContent(''); }} style={secondaryButtonStyle}>Pas maintenant</button>
+          {isDirection ? (
+            <>
+              <button
+                onClick={() => requestDirectionReformulation({ original: newContent })}
+                disabled={!newContent.trim() || aiLoadingKey === 'new-direction' || saving}
+                style={primaryButtonStyle}
+              >
+                {aiLoadingKey === 'new-direction' ? 'My Way reformule…' : 'M’aider à clarifier'}
+              </button>
+              <button onClick={() => handleCreate(type, newContent, 'user')} disabled={!newContent.trim() || saving} style={secondaryButtonStyle}>Garder mes mots</button>
+            </>
+          ) : (
+            <button onClick={() => handleCreate(type)} disabled={!newContent.trim() || saving} style={primaryButtonStyle}>Enregistrer</button>
+          )}
+          <button onClick={() => { setActiveType(null); setNewContent(''); setAiProposal(null); }} style={secondaryButtonStyle}>Pas maintenant</button>
         </div>
+        {isDirection && renderAiProposal({ itemId: null })}
       </div>
-    ) : null;
+    );
   };
 
   const renderSection = (type, showAdd = true) => {
@@ -163,7 +268,7 @@ export default function MyWayPage() {
         <p style={helperStyle}>{config.helper}</p>
         {byType[type].map(renderItem)}
         {showAdd && activeType !== type && (
-          <button onClick={() => { setActiveType(type); setNewContent(''); }} style={secondaryButtonStyle}>+ Ajouter</button>
+          <button onClick={() => { setActiveType(type); setNewContent(''); setAiProposal(null); }} style={secondaryButtonStyle}>+ Ajouter</button>
         )}
         {renderAddForm(type)}
       </section>
@@ -184,9 +289,7 @@ export default function MyWayPage() {
         <div style={{ margin: '20px 0 26px' }}>
           <div style={eyebrowStyle}>My Way</div>
           <h1 style={{ margin: '6px 0 8px', fontSize: 34, color: '#273043' }}>Ce qui compte pour moi et ce que je construis</h1>
-          <p style={{ margin: 0, color: '#667085', fontSize: 17, lineHeight: 1.6 }}>
-            My Way se construit avec toi. Tu n'as rien à compléter d'un seul coup.
-          </p>
+          <p style={{ margin: 0, color: '#667085', fontSize: 17, lineHeight: 1.6 }}>My Way se construit avec toi. Tu n'as rien à compléter d'un seul coup.</p>
         </div>
 
         {error && <div style={{ ...panelStyle, borderColor: '#fecaca', background: '#fff7f7', color: '#b42318' }}>{error}</div>}
@@ -261,6 +364,7 @@ const pageStyle = { minHeight: '100vh', background: '#f7f8fc', padding: '28px 20
 const panelStyle = { background: '#fff', border: '1px solid #eaecf0', borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 10px rgba(16, 24, 40, 0.04)' };
 const invitationStyle = { ...panelStyle, background: '#fafafa' };
 const itemStyle = { border: '1px solid #e4e7ec', borderRadius: 12, padding: 14, background: '#fff', marginBottom: 10 };
+const aiPanelStyle = { marginTop: 14, border: '1px solid #d9d6fe', borderRadius: 12, padding: 14, background: '#f8f7ff' };
 const textareaStyle = { width: '100%', boxSizing: 'border-box', borderRadius: 10, border: '1px solid #cbd5e1', padding: 12, fontSize: 15, resize: 'vertical' };
 const buttonRowStyle = { display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' };
 const sectionTitleStyle = { margin: '4px 0 8px', color: '#273043', fontSize: 22 };
@@ -269,6 +373,7 @@ const eyebrowStyle = { fontSize: 12, fontWeight: 800, textTransform: 'uppercase'
 const primaryButtonStyle = { background: '#5b5bd6', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 14px', fontWeight: 800, cursor: 'pointer' };
 const secondaryButtonStyle = { background: '#fff', color: '#475467', border: '1px solid #d0d5dd', borderRadius: 9, padding: '9px 14px', fontWeight: 700, cursor: 'pointer' };
 const textButtonStyle = { ...secondaryButtonStyle, padding: '6px 10px', fontSize: 13 };
+const aiButtonStyle = { ...textButtonStyle, color: '#5b5bd6', borderColor: '#c7c2ff', background: '#f8f7ff' };
 const archiveButtonStyle = { ...textButtonStyle, color: '#b54708', borderColor: '#fedf89', background: '#fffaeb' };
 const choiceButtonStyle = { textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 8, background: '#fff', border: '1px solid #d0d5dd', borderRadius: 14, padding: 18, cursor: 'pointer', color: '#344054', fontSize: 16 };
 const choiceTextStyle = { color: '#667085', lineHeight: 1.45, fontWeight: 400 };
