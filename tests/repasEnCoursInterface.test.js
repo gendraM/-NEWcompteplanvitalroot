@@ -94,6 +94,16 @@ describe('Interface Mon repas en cours', () => {
     expect(repasBloc).toContain('onSave={onSave}');
   });
 
+  test('permet d’ajuster les quantités avant de réutiliser une assiette', () => {
+    const source = lire('components/SaisieRepasCompose.js');
+
+    expect(source).toContain('Ajuster les quantités pour ce repas');
+    expect(source).toContain('ajusterCompositionRepas(modele.composition, quantites)');
+    expect(source).toContain('composition: ajustement.composition');
+    expect(source).toContain('Total ajusté');
+    expect(source).toContain('Quantité de ${item.nom}');
+  });
+
   test('affiche les quatre lectures non punitives sans modifier RepasBloc', () => {
     const suivi = lire('pages/suivi.js');
     const repasBloc = lire('components/RepasBloc.js');

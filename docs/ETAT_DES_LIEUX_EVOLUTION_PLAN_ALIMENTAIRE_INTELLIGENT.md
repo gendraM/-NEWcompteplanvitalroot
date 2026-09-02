@@ -194,7 +194,7 @@ Les suggestions dans `/plan` devront présenter la raison de la suggestion, la c
 8. **VALIDÉ** : faire converger le chemin « conforme au planning » vers la persistance commune, publié dans `6557d81`.
 9. **ÉTAPE 9A VALIDÉE** : conserver et afficher toutes les lignes d'un repas planifié composé, publié dans `0267735`.
 10. **ÉTAPE 9B — SOCLE VALIDÉ TECHNIQUEMENT** : reconstruire la dernière occurrence réelle et afficher automatiquement « Repas aligné », « Repas ajusté », « Repas spontané » ou « Repas libre », sans modifier le schéma Supabase. Le test utilisateur du 2 septembre 2026 a toutefois révélé que `SaisieRepasCompose` contournait encore ce socle.
-11. **RACCORDEMENT DE `SaisieRepasCompose` VALIDÉ TECHNIQUEMENT** : les occurrences d'un repas composé réutilisé passent désormais par le même `handleSaveRepas` que les saisies mono/multi. L'insertion directe isolée a été supprimée ; l'alignement et les scores reçoivent immédiatement les lignes retournées par Supabase.
+11. **RACCORDEMENT DE `SaisieRepasCompose` VALIDÉ TECHNIQUEMENT** : les occurrences d'un repas composé réutilisé passent désormais par le même `handleSaveRepas` que les saisies mono/multi. L'insertion directe isolée a été supprimée ; l'alignement et les scores reçoivent immédiatement les lignes retournées par Supabase. La quantité de chaque composant peut être ajustée ponctuellement avec recalcul des calories, sans modifier l'assiette enregistrée.
 12. Uniformiser les autres chemins de rafraîchissement après insertion.
 13. Reconstruire les occurrences avant les calculs de bilan.
 14. Produire S-1, puis les candidats go-to meals et les suggestions intelligentes.
@@ -234,6 +234,7 @@ Le premier raccordement ne doit **pas** changer l'expérience utilisateur. Il do
 - Étape 9A : toutes les lignes d'un repas planifié composé sont conservées dans le suivi ; tests complets **173/173** et build Next.js réussis ; publication dans `0267735`.
 - Étape 9B : moteur d'alignement par occurrence, quatre lectures non punitives et retour immédiat après insertion ; le test utilisateur authentifié a révélé que le bouton « Enregistrer tout le repas » utilisait encore une insertion directe et ne déclenchait donc ni l'alignement ni l'actualisation des scores.
 - Raccord de `SaisieRepasCompose` : toutes les lignes sont désormais transmises au handler commun ; tests ciblés **24/24**, suite Jest **185/185** et build Next.js réussi. Validation fonctionnelle authentifiée encore requise après déploiement.
+- Quantités à la réutilisation : chaque composant est ajustable à unité inchangée, le total calorique est recalculé et le modèle d'origine reste intact ; tests ciblés **36/36**, suite Jest **188/188** et build Next.js réussi. Validation fonctionnelle mobile encore requise après déploiement.
 
 ---
 

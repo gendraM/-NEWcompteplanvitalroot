@@ -15,7 +15,7 @@ function chargerModule() {
     .replace("import { serialiserQuantitePlanifiee } from './planificationRepas';", 'const { serialiserQuantitePlanifiee } = __planification;')
     .replace(/export async function /g, 'async function ')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { genererOccurrenceRepasId, normaliserComposantRepas, validerCompositionRepas, calculerResumeRepasCompose, construirePayloadRepasCompose, normaliserRepasCompose, construireOccurrencesPlanifiees, construireOccurrencesReelles };');
+    .concat('\nmodule.exports = { genererOccurrenceRepasId, normaliserComposantRepas, validerCompositionRepas, calculerResumeRepasCompose, ajusterCompositionRepas, construirePayloadRepasCompose, normaliserRepasCompose, construireOccurrencesPlanifiees, construireOccurrencesReelles };');
   vm.runInContext(source, context, { filename: 'repasComposes.js' });
   return context.module.exports;
 }
@@ -24,6 +24,7 @@ const {
   genererOccurrenceRepasId,
   validerCompositionRepas,
   calculerResumeRepasCompose,
+  ajusterCompositionRepas,
   construirePayloadRepasCompose,
   normaliserRepasCompose,
   construireOccurrencesPlanifiees,
@@ -44,6 +45,32 @@ describe('Repas composés réutilisables', () => {
 
   test('calcule les calories totales et le QN moyen pondéré', () => {
     expect(calculerResumeRepasCompose(composition)).toEqual({ kcalTotal: 353, qnMoyen: 3.85, nombreAliments: 3 });
+  });
+
+  test('ajuste les quantités et les calories sans modifier le modèle enregistré', () => {
+    const origine = JSON.parse(JSON.stringify(composition));
+    const resultat = ajusterCompositionRepas(composition, ['60', '100', '150']);
+
+    expect(resultat.valide).toBe(true);
+    expect(resultat.composition).toEqual([
+      expect.objectContaining({ nom: 'Poulet', quantite: 60, unite: 'g', kcal: 99 }),
+      expect.objectContaining({ nom: 'Riz', quantite: 100, unite: 'g', kcal: 130 }),
+      expect.objectContaining({ nom: 'Brocolis', quantite: 150, unite: 'g', kcal: 51 })
+    ]);
+    expect(resultat.resume.kcalTotal).toBe(280);
+    expect(composition).toEqual(origine);
+
+    const occurrences = construireOccurrencesReelles({ id: 'modele-1', nom: 'Assiette', composition: resultat.composition }, {
+      userId: 'user-1', date: '2026-09-02', type: 'Dîner'
+    });
+    expect(occurrences[0]).toMatchObject({ aliment: 'Poulet', quantite: '60 g', kcal: 99 });
+    expect(occurrences[1]).toMatchObject({ aliment: 'Riz', quantite: '100 g', kcal: 130 });
+  });
+
+  test('refuse une quantité vide, nulle ou négative', () => {
+    expect(ajusterCompositionRepas(composition, ['', '80', '150']).valide).toBe(false);
+    expect(ajusterCompositionRepas(composition, ['120', '0', '150']).valide).toBe(false);
+    expect(ajusterCompositionRepas(composition, ['120', '80', '-1']).valide).toBe(false);
   });
 
   test('construit le format canonique compatible avec la table existante', () => {

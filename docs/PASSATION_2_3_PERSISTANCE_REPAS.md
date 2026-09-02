@@ -96,3 +96,17 @@ Le correctif ciblé supprime cette insertion parallèle :
 - le comportement mono-aliment et le schéma Supabase restent inchangés.
 
 Validation locale du correctif : tests ciblés **24/24**, suite Jest **185/185** dans 22 suites et build Next.js réussi avec 36 pages générées. Une validation fonctionnelle authentifiée reste nécessaire après déploiement.
+
+## Finition du parcours — quantités ajustables à la réutilisation
+
+Une assiette enregistrée reste un modèle de référence. Lors de sa réutilisation dans le suivi, chaque quantité peut désormais être ajustée avant l'enregistrement :
+
+- l'unité du composant reste fixe afin de ne pas inventer de conversion ;
+- les calories sont recalculées proportionnellement à la quantité de référence et arrondies à l'unité ;
+- le total ajusté est affiché avant validation ;
+- une quantité vide, nulle ou négative bloque l'enregistrement ;
+- la composition stockée dans `repas_complets` n'est jamais modifiée ;
+- seules les occurrences créées dans `repas_reels` portent les quantités et calories ajustées ;
+- l'enregistrement continue de passer par `handleSaveRepas`, donc l'alignement et le rafraîchissement des scores restent actifs.
+
+Validation locale : tests ciblés **36/36**, suite Jest **188/188** dans 22 suites et build Next.js réussi avec 36 pages générées. Le contrôle fonctionnel authentifié sur mobile reste à effectuer après déploiement.
