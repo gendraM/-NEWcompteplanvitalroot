@@ -109,4 +109,23 @@ Une assiette enregistrée reste un modèle de référence. Lors de sa réutilisa
 - seules les occurrences créées dans `repas_reels` portent les quantités et calories ajustées ;
 - l'enregistrement continue de passer par `handleSaveRepas`, donc l'alignement et le rafraîchissement des scores restent actifs.
 
-Validation locale : tests ciblés **36/36**, suite Jest **188/188** dans 22 suites et build Next.js réussi avec 36 pages générées. Le contrôle fonctionnel authentifié sur mobile reste à effectuer après déploiement.
+Validation locale : tests ciblés **36/36**, suite Jest **188/188** dans 22 suites et build Next.js réussi avec 36 pages générées. Le contrôle fonctionnel authentifié sur mobile du 2 septembre 2026 confirme que l'ajustement des quantités fonctionne.
+
+## Étape 12 — audit des rafraîchissements
+
+L'inspection de la branche après le raccord de `SaisieRepasCompose` confirme que `pages/suivi.js` est l'unique orchestrateur actif des écritures dans `repas_reels`. Tous les parcours actifs passent par `handleSaveRepas`, puis ajoutent les lignes retournées par Supabase à `repasSemaine`. Les autres occurrences de `repas_reels` sont des lectures ; les insertions restantes concernent d'autres tables ou des fichiers de sauvegarde. Aucun changement de code n'était donc nécessaire pour clôturer l'étape 12.
+
+## Étape 13 — scores reconstruits par occurrence
+
+Les anciens scores journalier et hebdomadaire comptaient chaque ligne de `repas_reels`. Une assiette de trois aliments pouvait donc peser trois fois dans le score.
+
+Le calcul utilise désormais `calculerScoreAlignementParOccurrence` dans `lib/alignementRepas.js` :
+
+- les lignes partageant un `occurrence_repas_id` forment une seule occurrence ;
+- une occurrence confirmée ou automatiquement reconnue comme alignée compte une fois ;
+- un extra ou un fast-food reste non aligné, sauf confirmation historique déjà enregistrée ;
+- un repas sans planning reste libre et n'est pas transformé en repas aligné ;
+- chaque ancienne ligne sans identifiant reste une occurrence indépendante, sans regroupement rétroactif inventé ;
+- le calcul des calories demeure une somme des lignes et la régularité demeure calculée par type de repas.
+
+Validation locale : tests ciblés **26/26**, suite Jest **193/193** dans 22 suites avec `TZ=Europe/Paris` et build Next.js réussi avec 36 pages générées. Une exécution brute en UTC révèle un ancien test de formatage de date dépendant du fuseau (`validation-semaine.test.js`) ; il est extérieur à cette étape et n'a pas été modifié.

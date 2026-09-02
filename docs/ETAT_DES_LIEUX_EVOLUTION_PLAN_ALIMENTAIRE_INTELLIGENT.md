@@ -194,9 +194,9 @@ Les suggestions dans `/plan` devront présenter la raison de la suggestion, la c
 8. **VALIDÉ** : faire converger le chemin « conforme au planning » vers la persistance commune, publié dans `6557d81`.
 9. **ÉTAPE 9A VALIDÉE** : conserver et afficher toutes les lignes d'un repas planifié composé, publié dans `0267735`.
 10. **ÉTAPE 9B — SOCLE VALIDÉ TECHNIQUEMENT** : reconstruire la dernière occurrence réelle et afficher automatiquement « Repas aligné », « Repas ajusté », « Repas spontané » ou « Repas libre », sans modifier le schéma Supabase. Le test utilisateur du 2 septembre 2026 a toutefois révélé que `SaisieRepasCompose` contournait encore ce socle.
-11. **RACCORDEMENT DE `SaisieRepasCompose` VALIDÉ TECHNIQUEMENT** : les occurrences d'un repas composé réutilisé passent désormais par le même `handleSaveRepas` que les saisies mono/multi. L'insertion directe isolée a été supprimée ; l'alignement et les scores reçoivent immédiatement les lignes retournées par Supabase. La quantité de chaque composant peut être ajustée ponctuellement avec recalcul des calories, sans modifier l'assiette enregistrée.
-12. Uniformiser les autres chemins de rafraîchissement après insertion.
-13. Reconstruire les occurrences avant les calculs de bilan.
+11. **RACCORDEMENT DE `SaisieRepasCompose` VALIDÉ FONCTIONNELLEMENT** : les occurrences d'un repas composé réutilisé passent désormais par le même `handleSaveRepas` que les saisies mono/multi. L'insertion directe isolée a été supprimée ; l'alignement et les scores reçoivent immédiatement les lignes retournées par Supabase. La quantité de chaque composant peut être ajustée ponctuellement avec recalcul des calories, sans modifier l'assiette enregistrée. Le test mobile authentifié du 2 septembre 2026 est concluant.
+12. **AUDIT DE RAFRAÎCHISSEMENT TERMINÉ** : tous les chemins actifs d'enregistrement dans `repas_reels` convergent vers `handleSaveRepas`, qui injecte les lignes retournées par Supabase dans `repasSemaine`. Aucun raccord supplémentaire n'était nécessaire ; les autres références recensées sont des lectures, des écritures dans d'autres tables ou des sauvegardes historiques.
+13. **RECONSTRUCTION AVANT SCORES VALIDÉE TECHNIQUEMENT** : les scores d'alignement journalier et hebdomadaire sont désormais calculés par occurrence. Une assiette composée pèse une seule fois dans le numérateur et le dénominateur, tandis que les anciennes lignes sans `occurrence_repas_id` restent des occurrences indépendantes. La somme calorique ligne par ligne et la régularité par type de repas restent inchangées.
 14. Produire S-1, puis les candidats go-to meals et les suggestions intelligentes.
 15. Tests + build + passation à chaque sous-lot.
 
@@ -234,13 +234,14 @@ Le premier raccordement ne doit **pas** changer l'expérience utilisateur. Il do
 - Étape 9A : toutes les lignes d'un repas planifié composé sont conservées dans le suivi ; tests complets **173/173** et build Next.js réussis ; publication dans `0267735`.
 - Étape 9B : moteur d'alignement par occurrence, quatre lectures non punitives et retour immédiat après insertion ; le test utilisateur authentifié a révélé que le bouton « Enregistrer tout le repas » utilisait encore une insertion directe et ne déclenchait donc ni l'alignement ni l'actualisation des scores.
 - Raccord de `SaisieRepasCompose` : toutes les lignes sont désormais transmises au handler commun ; tests ciblés **24/24**, suite Jest **185/185** et build Next.js réussi. Validation fonctionnelle authentifiée encore requise après déploiement.
-- Quantités à la réutilisation : chaque composant est ajustable à unité inchangée, le total calorique est recalculé et le modèle d'origine reste intact ; tests ciblés **36/36**, suite Jest **188/188** et build Next.js réussi. Validation fonctionnelle mobile encore requise après déploiement.
+- Quantités à la réutilisation : chaque composant est ajustable à unité inchangée, le total calorique est recalculé et le modèle d'origine reste intact ; tests ciblés **36/36**, suite Jest **188/188** et build Next.js réussi. Validation fonctionnelle mobile authentifiée obtenue le 2 septembre 2026.
+- Étape 13 : calcul pur par occurrence raccordé aux scores journalier et hebdomadaire ; tests ciblés **26/26**, suite Jest **193/193** dans le fuseau fonctionnel `Europe/Paris` et build Next.js réussi avec 36 pages générées. L'exécution brute en UTC expose par ailleurs un ancien test de formatage de date dépendant du fuseau, sans rapport avec ce sous-lot et sans modification associée.
 
 ---
 
 ## 9. Règle de reprise du chantier
 
-Prochaine étape : **faire valider fonctionnellement le raccord de `SaisieRepasCompose` sur la branche de test**, puis reprendre l'étape 12 du plan consolidé sans élargir silencieusement le périmètre.
+Prochaine étape : **faire valider fonctionnellement les scores reconstruits par occurrence sur la branche de test**, puis reprendre l'étape 14 du plan consolidé sans élargir silencieusement le périmètre.
 
 Avant toute modification, vérifier la version courante des fichiers concernés. Avant chaque commit fonctionnel, documentaire ou correctif : rappeler explicitement le dépôt et la branche, présenter le périmètre et attendre l'autorisation de l'utilisatrice. Ne jamais pousser sur `main` sans autorisation explicite distincte.
 

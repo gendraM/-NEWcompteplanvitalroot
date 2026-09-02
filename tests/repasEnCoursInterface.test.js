@@ -84,6 +84,14 @@ describe('Interface Mon repas en cours', () => {
     expect(source).toContain('obtenirDerniereOccurrenceRepas(repasSemaine');
   });
 
+  test('calcule les scores journalier et hebdomadaire par occurrence', () => {
+    const source = lire('pages/suivi.js');
+
+    expect(source).toContain('calculerScoreAlignementParOccurrence(repasDuJour, repasPlan).score');
+    expect(source).toContain('calculerScoreAlignementParOccurrence(semaineDates, repasPlan).score');
+    expect(source).not.toContain('function isRepasAligne(r, plan)');
+  });
+
   test('fait passer un repas composé réutilisé par le handler commun', () => {
     const saisieComposee = lire('components/SaisieRepasCompose.js');
     const repasBloc = lire('components/RepasBloc.js');

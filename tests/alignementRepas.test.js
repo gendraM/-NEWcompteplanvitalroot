@@ -8,7 +8,7 @@ function chargerModule() {
   const source = fs.readFileSync(path.join(__dirname, '../lib/alignementRepas.js'), 'utf8')
     .replace(/export const /g, 'const ')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { STATUTS_ALIGNEMENT_REPAS, LIBELLES_ALIGNEMENT_REPAS, classifierAlignementRepas, regrouperRepasReelsParOccurrence, obtenirDerniereOccurrenceRepas };');
+    .concat('\nmodule.exports = { STATUTS_ALIGNEMENT_REPAS, LIBELLES_ALIGNEMENT_REPAS, classifierAlignementRepas, regrouperRepasReelsParOccurrence, calculerScoreAlignementParOccurrence, obtenirDerniereOccurrenceRepas };');
   vm.runInContext(source, context, { filename: 'alignementRepas.js' });
   return context.module.exports;
 }
@@ -17,6 +17,7 @@ const {
   STATUTS_ALIGNEMENT_REPAS,
   classifierAlignementRepas,
   regrouperRepasReelsParOccurrence,
+  calculerScoreAlignementParOccurrence,
   obtenirDerniereOccurrenceRepas
 } = chargerModule();
 
@@ -112,5 +113,44 @@ describe('Alignement automatique d’un repas', () => {
 
     expect(obtenirDerniereOccurrenceRepas(lignes, { date: '2026-09-02', type: 'Dîner' }))
       .toHaveLength(2);
+  });
+
+  test('compte une assiette composée comme une seule occurrence dans le score', () => {
+    const resultat = calculerScoreAlignementParOccurrence([
+      { id: 1, type: 'Dîner', aliment: 'Poisson', categorie: 'poisson', occurrence_repas_id: 'occ-1' },
+      { id: 2, type: 'Dîner', aliment: 'Haricots', categorie: 'légume', occurrence_repas_id: 'occ-1' },
+      { id: 3, type: 'Déjeuner', aliment: 'Pizza', categorie: 'fast-food', occurrence_repas_id: 'occ-2', est_extra: true }
+    ], {
+      Dîner: planCompose,
+      Déjeuner: [{ aliment: 'Soupe', categorie: 'légume' }]
+    });
+
+    expect(resultat).toEqual({ score: 50, occurrences: 2, alignees: 1 });
+  });
+
+  test('préserve chaque ligne historique sans identifiant comme une occurrence distincte', () => {
+    const resultat = calculerScoreAlignementParOccurrence([
+      { id: 10, type: 'Dîner', aliment: 'Soupe', repas_planifie_respecte: true },
+      { id: 11, type: 'Déjeuner', aliment: 'Pizza', est_extra: true }
+    ]);
+
+    expect(resultat).toEqual({ score: 50, occurrences: 2, alignees: 1 });
+  });
+
+  test('conserve la confirmation historique au niveau de toute l’occurrence', () => {
+    const resultat = calculerScoreAlignementParOccurrence([
+      { type: 'Dîner', aliment: 'Poisson', occurrence_repas_id: 'occ-confirmee', repas_planifie_respecte: true },
+      { type: 'Dîner', aliment: 'Haricots', occurrence_repas_id: 'occ-confirmee' }
+    ]);
+
+    expect(resultat).toEqual({ score: 100, occurrences: 1, alignees: 1 });
+  });
+
+  test('ne transforme pas un repas libre ou vide en repas aligné', () => {
+    expect(calculerScoreAlignementParOccurrence([
+      { id: 20, type: 'Dîner', aliment: 'Soupe' }
+    ], {})).toEqual({ score: 0, occurrences: 1, alignees: 0 });
+    expect(calculerScoreAlignementParOccurrence([], {}))
+      .toEqual({ score: 0, occurrences: 0, alignees: 0 });
   });
 });

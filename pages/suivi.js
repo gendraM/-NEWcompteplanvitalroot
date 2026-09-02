@@ -38,6 +38,7 @@ import { construirePayloadRepasEnCoursDepuisLignes, creerCleRepasEnCours } from 
 import { creerRepasCompose } from '../lib/repasComposes';
 import { grouperRepasPlanifiesParType } from '../lib/planificationRepas';
 import {
+  calculerScoreAlignementParOccurrence,
   classifierAlignementRepas,
   LIBELLES_ALIGNEMENT_REPAS,
   obtenirDerniereOccurrenceRepas,
@@ -1103,30 +1104,8 @@ export default function Suivi() {
   const repasDuJourRegularite = repasSemaine.filter(r => r.date === selectedDate);
   const nbRepasSaisis = repasTypes.reduce((acc, type) => acc + (repasDuJourRegularite.some(r => r.type === type) ? 1 : 0), 0);
   const scoreRegularite = Math.round((nbRepasSaisis / repasTypes.length) * 100);
-  // Fonction utilitaire pour score discipline
-  function isRepasAligne(r, plan) {
-    // Repas conforme au planning
-    if (r.repas_planifie_respecte) return true;
-    // Si extra ou fast food, non aligné
-    if (r.est_extra || r.isFastFood || r.fastFoodType) return false;
-    const lignesPlanifiees = Array.isArray(plan) ? plan : (plan ? [plan] : []);
-    // La comparaison d'une assiette composée sera réalisée au niveau de l'occurrence complète.
-    // Une ligne isolée ne doit pas suffire à déclarer tout le repas aligné.
-    if (lignesPlanifiees.length !== 1) return false;
-    const lignePlanifiee = lignesPlanifiees[0];
-    // Si aliment modifié
-    if (lignePlanifiee.aliment && r.aliment && lignePlanifiee.aliment.trim().toLowerCase() === r.aliment.trim().toLowerCase()) {
-      return true;
-    }
-    return false;
-  }
   const repasDuJour = repasSemaine.filter(r => r.date === selectedDate);
-  let nbAlignes = 0;
-  repasDuJour.forEach(r => {
-    const plan = repasPlan[r.type];
-    if (isRepasAligne(r, plan)) nbAlignes++;
-  });
-  const scoreJournalier = repasDuJour.length > 0 ? Math.round((nbAlignes / repasDuJour.length) * 100) : 0;
+  const scoreJournalier = calculerScoreAlignementParOccurrence(repasDuJour, repasPlan).score;
   // Score hebdomadaire (repas alignés sur la semaine)
   const semaineDates = repasSemaine.filter(r => {
     const d = new Date(r.date);
@@ -1135,12 +1114,7 @@ export default function Suivi() {
     const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
     return d >= monday && d <= sunday;
   });
-  let nbAlignesHebdo = 0;
-  semaineDates.forEach(r => {
-    const plan = repasPlan[r.type];
-    if (isRepasAligne(r, plan)) nbAlignesHebdo++;
-  });
-  const scoreHebdomadaire = semaineDates.length > 0 ? Math.round((nbAlignesHebdo / semaineDates.length) * 100) : 0;
+  const scoreHebdomadaire = calculerScoreAlignementParOccurrence(semaineDates, repasPlan).score;
   // Progression pour les badges
   const progression = getProgressionMessage(weeklyHistory, currentPalier);
 
