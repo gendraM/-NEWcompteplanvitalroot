@@ -7,10 +7,12 @@ import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabaseClient";
 import JournalDefiPersonnalise from "../../components/JournalDefiPersonnalise";
 import Navigation from "../../components/Navigation";
+import { useDefis } from "../../components/DefisContext";
 
 export default function PageJournalDefi() {
   const router = useRouter();
   const { id } = router.query;
+  const { refreshDefis } = useDefis();
 
   const [defi, setDefi] = useState(null);
   const [chargement, setChargement] = useState(true);
@@ -85,6 +87,8 @@ export default function PageJournalDefi() {
         setDefi(data);
         setJourActuel(calculerJourActuel(data));
       }
+
+      await refreshDefis();
     } catch (err) {
       console.error("Erreur rechargement défi:", err);
     }
