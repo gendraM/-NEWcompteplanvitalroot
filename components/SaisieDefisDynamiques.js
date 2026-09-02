@@ -79,11 +79,8 @@ function DefiFauxAllie({ defi, refreshDefis }) {
     const [aliment, setAliment] = useState('');
     const [categorie, setCategorie] = useState('');
     const [kcal, setKcal] = useState('');
-    // Import du référentiel alimentaire
     const referentielAliments = require('../data/referentiel.js').default || [];
-    // Suggestions d’aliments
     const alimentsFromReferentiel = Array.from(new Set(referentielAliments.map(a => a.nom).filter(Boolean)));
-    // Auto-remplissage catégorie/kcal/portion
     React.useEffect(() => {
         if (!aliment || aliment.trim() === '') return;
         const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.trim().toLowerCase());
@@ -142,19 +139,11 @@ function DefiFauxAllie({ defi, refreshDefis }) {
             </div>
             <div style={{ margin: '8px 0' }}>
                 Heure de prise du repas (optionnel) :
-                <input
-                    type="time"
-                    value={heureRepas}
-                    onChange={e => setHeureRepas(e.target.value)}
-                    style={{ marginLeft: 8, width: 110 }}
-                />
+                <input type="time" value={heureRepas} onChange={e => setHeureRepas(e.target.value)} style={{ marginLeft: 8, width: 110 }} />
                 <span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>(pré-rempli à l'heure actuelle, modifiable)</span>
             </div>
             <div style={{marginTop:8}}>
-                <label>
-                    <input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} />
-                    Aucun aliment gras n’a été pris pour compenser un extra aujourd’hui
-                </label>
+                <label><input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} /> Aucun aliment gras n’a été pris pour compenser un extra aujourd’hui</label>
             </div>
             {erreur && <p style={{color:'red'}}>{erreur}</p>}
             {message && <p style={{color:'green'}}>{message}</p>}
@@ -163,21 +152,17 @@ function DefiFauxAllie({ defi, refreshDefis }) {
     );
 }
 
-// Défi 7 : Je brise la chaîne (validation par jour, confirmation pas d’enchaînement sucre-gras)
+// Défi 7 : Je brise la chaîne
 function DefiBriseChaine({ defi, refreshDefis }) {
     const [confirmation, setConfirmation] = useState(false);
     const [message, setMessage] = useState('');
     const [erreur, setErreur] = useState('');
     const [date, setDate] = useState(new Date().toISOString().slice(0,10));
-    const getDefaultHeure = () => {
-        const now = new Date();
-        return now.toTimeString().slice(0,5);
-    };
+    const getDefaultHeure = () => new Date().toTimeString().slice(0,5);
     const [heureRepas, setHeureRepas] = useState(getDefaultHeure());
     const [aliment, setAliment] = useState('');
     const [categorie, setCategorie] = useState('');
     const [kcal, setKcal] = useState('');
-    // Import du référentiel alimentaire
     const referentielAliments = require('../data/referentiel.js').default || [];
     const alimentsFromReferentiel = Array.from(new Set(referentielAliments.map(a => a.nom).filter(Boolean)));
     React.useEffect(() => {
@@ -193,448 +178,113 @@ function DefiBriseChaine({ defi, refreshDefis }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage(''); setErreur('');
-        if (!aliment.trim()) {
-            setErreur('Merci de saisir un aliment.');
-            return;
-        }
-        if (!confirmation) {
-            setErreur('Merci de confirmer qu’aucun enchaînement sucre-gras n’a eu lieu aujourd’hui.');
-            return;
-        }
+        if (!aliment.trim()) return setErreur('Merci de saisir un aliment.');
+        if (!confirmation) return setErreur('Merci de confirmer qu’aucun enchaînement sucre-gras n’a eu lieu aujourd’hui.');
         const { validerEtapeDefi } = await import('../lib/defisUtils');
         const res = await validerEtapeDefi(defi);
         if (res.success) {
-            setMessage('Bravo ! Étape validée.');
-            refreshDefis();
-            setConfirmation(false);
-            setAliment('');
-            setCategorie('');
-            setKcal('');
-        } else {
-            setErreur(res.error || 'Erreur lors de la validation.');
-        }
+            setMessage('Bravo ! Étape validée.'); refreshDefis(); setConfirmation(false); setAliment(''); setCategorie(''); setKcal('');
+        } else setErreur(res.error || 'Erreur lors de la validation.');
     };
     return (
         <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#e1f5fe', borderRadius:10, padding:18}}>
-            <h3>{defi.nom}</h3>
-            <p>{defi.description}</p>
-            <div style={{ marginBottom: 10 }}>
-                <label>Aliment :
-                    <input list="alimentOptionsChaine" type="text" value={aliment} onChange={e => setAliment(e.target.value)} style={{ marginLeft: 8 }} />
-                    <datalist id="alimentOptionsChaine">
-                        {alimentsFromReferentiel.map(opt => <option key={opt} value={opt} />)}
-                    </datalist>
-                </label>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-                <label>Catégorie :
-                    <input type="text" value={categorie} onChange={e => setCategorie(e.target.value)} style={{ marginLeft: 8 }} />
-                </label>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-                <label>Kcal :
-                    <input type="number" value={kcal} onChange={e => setKcal(e.target.value)} style={{ marginLeft: 8, width: 80 }} />
-                </label>
-            </div>
-            <div>
-                <label>
-                    <input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} />
-                    Aucun enchaînement sucre-gras aujourd’hui
-                </label>
-            </div>
-            <div style={{ margin: '8px 0' }}>
-                Heure de prise du repas (optionnel) :
-                <input
-                    type="time"
-                    value={heureRepas}
-                    onChange={e => setHeureRepas(e.target.value)}
-                    style={{ marginLeft: 8, width: 110 }}
-                />
-                <span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>(pré-rempli à l'heure actuelle, modifiable)</span>
-            </div>
-            {erreur && <p style={{color:'red'}}>{erreur}</p>}
-            {message && <p style={{color:'green'}}>{message}</p>}
-            <button type="submit">Valider l’étape</button>
+            <h3>{defi.nom}</h3><p>{defi.description}</p>
+            <div style={{ marginBottom: 10 }}><label>Aliment :<input list="alimentOptionsChaine" type="text" value={aliment} onChange={e => setAliment(e.target.value)} style={{ marginLeft: 8 }} /><datalist id="alimentOptionsChaine">{alimentsFromReferentiel.map(opt => <option key={opt} value={opt} />)}</datalist></label></div>
+            <div style={{ marginBottom: 10 }}><label>Catégorie :<input type="text" value={categorie} onChange={e => setCategorie(e.target.value)} style={{ marginLeft: 8 }} /></label></div>
+            <div style={{ marginBottom: 10 }}><label>Kcal :<input type="number" value={kcal} onChange={e => setKcal(e.target.value)} style={{ marginLeft: 8, width: 80 }} /></label></div>
+            <div><label><input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} /> Aucun enchaînement sucre-gras aujourd’hui</label></div>
+            <div style={{ margin: '8px 0' }}>Heure de prise du repas (optionnel) :<input type="time" value={heureRepas} onChange={e => setHeureRepas(e.target.value)} style={{ marginLeft: 8, width: 110 }} /><span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>(pré-rempli à l'heure actuelle, modifiable)</span></div>
+            {erreur && <p style={{color:'red'}}>{erreur}</p>}{message && <p style={{color:'green'}}>{message}</p>}<button type="submit">Valider l’étape</button>
         </form>
     );
 }
 
-// Défi 8 : 1 vraie faim = 1 vrai repas (validation par envie, confirmation vérification de la faim)
 function DefiVraieFaim({ defi, refreshDefis }) {
-    const [confirmation, setConfirmation] = useState(false);
-    const [message, setMessage] = useState('');
-    const [erreur, setErreur] = useState('');
+    const [confirmation, setConfirmation] = useState(false); const [message, setMessage] = useState(''); const [erreur, setErreur] = useState('');
     if (!defi) return null;
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMessage(''); setErreur('');
-        if (!confirmation) {
-            setErreur('Merci de confirmer que tu as vérifié la vraie faim.');
-            return;
-        }
-        const { validerEtapeDefi } = await import('../lib/defisUtils');
-        const res = await validerEtapeDefi(defi);
-        if (res.success) {
-            setMessage('Bravo ! Étape validée.');
-            refreshDefis();
-            setConfirmation(false);
-        } else {
-            setErreur(res.error || 'Erreur lors de la validation.');
-        }
-    };
-    return (
-        <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#fff3e0', borderRadius:10, padding:18}}>
-            <h3>{defi.nom}</h3>
-            <p>{defi.description}</p>
-            <div>
-                <label>
-                    <input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} />
-                    J’ai vérifié que la faim était réelle avant de manger
-                </label>
-            </div>
-            {erreur && <p style={{color:'red'}}>{erreur}</p>}
-            {message && <p style={{color:'green'}}>{message}</p>}
-            <button type="submit">Valider l’étape</button>
-        </form>
-    );
+    const handleSubmit = async (e) => { e.preventDefault(); setMessage(''); setErreur(''); if (!confirmation) return setErreur('Merci de confirmer que tu as vérifié la vraie faim.'); const { validerEtapeDefi } = await import('../lib/defisUtils'); const res = await validerEtapeDefi(defi); if (res.success) { setMessage('Bravo ! Étape validée.'); refreshDefis(); setConfirmation(false); } else setErreur(res.error || 'Erreur lors de la validation.'); };
+    return <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#fff3e0', borderRadius:10, padding:18}}><h3>{defi.nom}</h3><p>{defi.description}</p><div><label><input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} /> J’ai vérifié que la faim était réelle avant de manger</label></div>{erreur && <p style={{color:'red'}}>{erreur}</p>}{message && <p style={{color:'green'}}>{message}</p>}<button type="submit">Valider l’étape</button></form>;
 }
 
-// Défi 9 : Je me programme du plaisir (validation unique, confirmation extra planifié)
 function DefiPlaisir({ defi, refreshDefis }) {
-    const [confirmation, setConfirmation] = useState(false);
-    const [message, setMessage] = useState('');
-    const [erreur, setErreur] = useState('');
+    const [confirmation, setConfirmation] = useState(false); const [message, setMessage] = useState(''); const [erreur, setErreur] = useState('');
     if (!defi) return null;
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMessage(''); setErreur('');
-        if (!confirmation) {
-            setErreur('Merci de confirmer que tu as planifié et profité de ton extra.');
-            return;
-        }
-        const { validerEtapeDefi } = await import('../lib/defisUtils');
-        const res = await validerEtapeDefi(defi);
-        if (res.success) {
-            setMessage('Bravo ! Étape validée.');
-            refreshDefis();
-            setConfirmation(false);
-        } else {
-            setErreur(res.error || 'Erreur lors de la validation.');
-        }
-    };
-    return (
-        <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#fce4ec', borderRadius:10, padding:18}}>
-            <h3>{defi.nom}</h3>
-            <p>{defi.description}</p>
-            <div>
-                <label>
-                    <input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} />
-                    J’ai planifié et profité de mon extra sans culpabilité
-                </label>
-            </div>
-            {erreur && <p style={{color:'red'}}>{erreur}</p>}
-            {message && <p style={{color:'green'}}>{message}</p>}
-            <button type="submit">Valider l’étape</button>
-        </form>
-    );
+    const handleSubmit = async (e) => { e.preventDefault(); setMessage(''); setErreur(''); if (!confirmation) return setErreur('Merci de confirmer que tu as planifié et profité de ton extra.'); const { validerEtapeDefi } = await import('../lib/defisUtils'); const res = await validerEtapeDefi(defi); if (res.success) { setMessage('Bravo ! Étape validée.'); refreshDefis(); setConfirmation(false); } else setErreur(res.error || 'Erreur lors de la validation.'); };
+    return <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#fce4ec', borderRadius:10, padding:18}}><h3>{defi.nom}</h3><p>{defi.description}</p><div><label><input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} /> J’ai planifié et profité de mon extra sans culpabilité</label></div>{erreur && <p style={{color:'red'}}>{erreur}</p>}{message && <p style={{color:'green'}}>{message}</p>}<button type="submit">Valider l’étape</button></form>;
 }
 
-// Défi 10 : 1 cru par jour (validation par jour, confirmation aliment cru ajouté)
 function DefiUnCru({ defi, refreshDefis }) {
-    const [confirmation, setConfirmation] = useState(false);
-    const [message, setMessage] = useState('');
-    const [erreur, setErreur] = useState('');
-    const [aliment, setAliment] = useState('');
-    const [categorie, setCategorie] = useState('');
-    const [kcal, setKcal] = useState('');
-    // Import du référentiel alimentaire
-    const referentielAliments = require('../data/referentiel.js').default || [];
-    const alimentsFromReferentiel = Array.from(new Set(referentielAliments.map(a => a.nom).filter(Boolean)));
-    React.useEffect(() => {
-        if (!aliment || aliment.trim() === '') return;
-        const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.trim().toLowerCase());
-        if (found) {
-            if (found.categorie) setCategorie(found.categorie);
-            if (found.kcal !== undefined && found.kcal !== null) setKcal(String(found.kcal));
-            if (found.portionDefaut) setQuantite(found.portionDefaut);
-        }
-    }, [aliment]);
+    const [confirmation, setConfirmation] = useState(false); const [message, setMessage] = useState(''); const [erreur, setErreur] = useState(''); const [aliment, setAliment] = useState(''); const [categorie, setCategorie] = useState(''); const [kcal, setKcal] = useState('');
+    const referentielAliments = require('../data/referentiel.js').default || []; const alimentsFromReferentiel = Array.from(new Set(referentielAliments.map(a => a.nom).filter(Boolean)));
+    React.useEffect(() => { if (!aliment || aliment.trim() === '') return; const found = referentielAliments.find(a => a.nom.toLowerCase() === aliment.trim().toLowerCase()); if (found) { if (found.categorie) setCategorie(found.categorie); if (found.kcal !== undefined && found.kcal !== null) setKcal(String(found.kcal)); if (found.portionDefaut) setQuantite(found.portionDefaut); } }, [aliment]);
     if (!defi) return null;
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMessage(''); setErreur('');
-        if (!aliment) {
-            setErreur('Merci de préciser l’aliment cru ajouté.');
-            return;
-        }
-        if (!confirmation) {
-            setErreur('Merci de confirmer que l’aliment était cru et non sucré.');
-            return;
-        }
-        const { validerEtapeDefi } = await import('../lib/defisUtils');
-        const res = await validerEtapeDefi(defi);
-        if (res.success) {
-            setMessage('Bravo ! Étape validée.');
-            refreshDefis();
-            setConfirmation(false);
-            setAliment('');
-            setCategorie('');
-            setKcal('');
-        } else {
-            setErreur(res.error || 'Erreur lors de la validation.');
-        }
-    };
-    return (
-        <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#e0f7fa', borderRadius:10, padding:18}}>
-            <h3>{defi.nom}</h3>
-            <p>{defi.description}</p>
-            <div style={{ marginBottom: 10 }}>
-                <label>Aliment :
-                    <input list="alimentOptionsCru" type="text" value={aliment} onChange={e => setAliment(e.target.value)} style={{marginRight:8}} />
-                    <datalist id="alimentOptionsCru">
-                        {alimentsFromReferentiel.map(opt => <option key={opt} value={opt} />)}
-                    </datalist>
-                </label>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-                <label>Catégorie :
-                    <input type="text" value={categorie} onChange={e => setCategorie(e.target.value)} style={{ marginLeft: 8 }} />
-                </label>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-                <label>Kcal :
-                    <input type="number" value={kcal} onChange={e => setKcal(e.target.value)} style={{ marginLeft: 8, width: 80 }} />
-                </label>
-            </div>
-            <div>
-                <label>
-                    <input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} />
-                    Aliment cru et non sucré ajouté aujourd’hui
-                </label>
-            </div>
-            {erreur && <p style={{color:'red'}}>{erreur}</p>}
-            {message && <p style={{color:'green'}}>{message}</p>}
-            <button type="submit">Valider l’étape</button>
-        </form>
-    );
+    const handleSubmit = async (e) => { e.preventDefault(); setMessage(''); setErreur(''); if (!aliment) return setErreur('Merci de préciser l’aliment cru ajouté.'); if (!confirmation) return setErreur('Merci de confirmer que l’aliment était cru et non sucré.'); const { validerEtapeDefi } = await import('../lib/defisUtils'); const res = await validerEtapeDefi(defi); if (res.success) { setMessage('Bravo ! Étape validée.'); refreshDefis(); setConfirmation(false); setAliment(''); setCategorie(''); setKcal(''); } else setErreur(res.error || 'Erreur lors de la validation.'); };
+    return <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#e0f7fa', borderRadius:10, padding:18}}><h3>{defi.nom}</h3><p>{defi.description}</p><div style={{ marginBottom: 10 }}><label>Aliment :<input list="alimentOptionsCru" type="text" value={aliment} onChange={e => setAliment(e.target.value)} style={{marginRight:8}} /><datalist id="alimentOptionsCru">{alimentsFromReferentiel.map(opt => <option key={opt} value={opt} />)}</datalist></label></div><div style={{ marginBottom: 10 }}><label>Catégorie :<input type="text" value={categorie} onChange={e => setCategorie(e.target.value)} style={{ marginLeft: 8 }} /></label></div><div style={{ marginBottom: 10 }}><label>Kcal :<input type="number" value={kcal} onChange={e => setKcal(e.target.value)} style={{ marginLeft: 8, width: 80 }} /></label></div><div><label><input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} /> Aliment cru et non sucré ajouté aujourd’hui</label></div>{erreur && <p style={{color:'red'}}>{erreur}</p>}{message && <p style={{color:'green'}}>{message}</p>}<button type="submit">Valider l’étape</button></form>;
 }
 import React, { useState } from 'react';
 import { useDefis } from './DefisContext';
 import { defisReferentiel } from '../lib/defisReferentiel';
 import { supabase } from '../lib/supabaseClient';
 
-// Note : supabase importé pour l'enregistrement des défis personnalisés
-
-// Sous-formulaires pour chaque défi (logique spécifique)
 function DefiPasDeDessert({ defi, refreshDefis }) {
-    const [confirmation, setConfirmation] = useState(false);
-    const [message, setMessage] = useState('');
-    const [erreur, setErreur] = useState('');
-    const [date, setDate] = useState(new Date().toISOString().slice(0,10));
+    const [confirmation, setConfirmation] = useState(false); const [message, setMessage] = useState(''); const [erreur, setErreur] = useState(''); const [date, setDate] = useState(new Date().toISOString().slice(0,10));
     if (!defi) return null;
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMessage(''); setErreur('');
-        if (!confirmation) {
-            setErreur('Merci de confirmer que tu as terminé ton déjeuner sans dessert.');
-            return;
-        }
-        const { validerEtapeDefi } = await import('../lib/defisUtils');
-        const res = await validerEtapeDefi(defi);
-        if (res.success) {
-            setMessage('Bravo ! Étape validée.');
-            refreshDefis();
-            setConfirmation(false);
-        } else {
-            setErreur(res.error || 'Erreur lors de la validation.');
-        }
-    };
-    return (
-        <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#e3f2fd', borderRadius:10, padding:18}}>
-            <h3>{defi.nom}</h3>
-            <p>{defi.description}</p>
-            <div>
-                <label>
-                    <input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} />
-                    J’ai terminé mon déjeuner sans dessert aujourd’hui
-                </label>
-            </div>
-            {erreur && <p style={{color:'red'}}>{erreur}</p>}
-            {message && <p style={{color:'green'}}>{message}</p>}
-            <button type="submit">Valider l’étape</button>
-        </form>
-    );
+    const handleSubmit = async (e) => { e.preventDefault(); setMessage(''); setErreur(''); if (!confirmation) return setErreur('Merci de confirmer que tu as terminé ton déjeuner sans dessert.'); const { validerEtapeDefi } = await import('../lib/defisUtils'); const res = await validerEtapeDefi(defi); if (res.success) { setMessage('Bravo ! Étape validée.'); refreshDefis(); setConfirmation(false); } else setErreur(res.error || 'Erreur lors de la validation.'); };
+    return <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#e3f2fd', borderRadius:10, padding:18}}><h3>{defi.nom}</h3><p>{defi.description}</p><div><label><input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} /> J’ai terminé mon déjeuner sans dessert aujourd’hui</label></div>{erreur && <p style={{color:'red'}}>{erreur}</p>}{message && <p style={{color:'green'}}>{message}</p>}<button type="submit">Valider l’étape</button></form>;
 }
 
-
-// Défi 4 : J’écoute mon ventre (validation par repas, confirmation satiété)
 function DefiEcouteVentre({ defi, refreshDefis }) {
-    const [confirmation, setConfirmation] = useState(false);
-    const [message, setMessage] = useState('');
-    const [erreur, setErreur] = useState('');
-    const [typeRepas, setTypeRepas] = useState('Déjeuner');
-    const getDefaultHeure = () => {
-        const now = new Date();
-        return now.toTimeString().slice(0,5);
-    };
-    const [heureRepas, setHeureRepas] = useState(getDefaultHeure());
+    const [confirmation, setConfirmation] = useState(false); const [message, setMessage] = useState(''); const [erreur, setErreur] = useState(''); const [typeRepas, setTypeRepas] = useState('Déjeuner');
+    const getDefaultHeure = () => new Date().toTimeString().slice(0,5); const [heureRepas, setHeureRepas] = useState(getDefaultHeure());
     if (!defi) return null;
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMessage(''); setErreur('');
-        if (!confirmation) {
-            setErreur('Merci de confirmer que tu t’es arrêté dès la satiété.');
-            return;
-        }
-        const { validerEtapeDefi } = await import('../lib/defisUtils');
-        const res = await validerEtapeDefi(defi);
-        if (res.success) {
-            setMessage('Bravo ! Étape validée.');
-            refreshDefis();
-            setConfirmation(false);
-        } else {
-            setErreur(res.error || 'Erreur lors de la validation.');
-        }
-    };
-    return (
-        <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#e8f5e9', borderRadius:10, padding:18}}>
-            <h3>{defi.nom}</h3>
-            <p>{defi.description}</p>
-            <div>
-                <label>Type de repas :
-                    <select value={typeRepas} onChange={e => setTypeRepas(e.target.value)} style={{marginLeft:8}}>
-                        <option>Petit-déjeuner</option>
-                        <option>Déjeuner</option>
-                        <option>Collation</option>
-                        <option>Dîner</option>
-                        <option>Autre</option>
-                    </select>
-                </label>
-            </div>
-            <div style={{ margin: '8px 0' }}>
-                Heure de prise du repas (optionnel) :
-                <input
-                    type="time"
-                    value={heureRepas}
-                    onChange={e => setHeureRepas(e.target.value)}
-                    style={{ marginLeft: 8, width: 110 }}
-                />
-                <span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>(pré-rempli à l'heure actuelle, modifiable)</span>
-            </div>
-            <div style={{marginTop:8}}>
-                <label>
-                    <input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} />
-                    Je me suis arrêté dès la satiété à ce repas
-                </label>
-            </div>
-            {erreur && <p style={{color:'red'}}>{erreur}</p>}
-            {message && <p style={{color:'green'}}>{message}</p>}
-            <button type="submit">Valider l’étape</button>
-        </form>
-    );
+    const handleSubmit = async (e) => { e.preventDefault(); setMessage(''); setErreur(''); if (!confirmation) return setErreur('Merci de confirmer que tu t’es arrêté dès la satiété.'); const { validerEtapeDefi } = await import('../lib/defisUtils'); const res = await validerEtapeDefi(defi); if (res.success) { setMessage('Bravo ! Étape validée.'); refreshDefis(); setConfirmation(false); } else setErreur(res.error || 'Erreur lors de la validation.'); };
+    return <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#e8f5e9', borderRadius:10, padding:18}}><h3>{defi.nom}</h3><p>{defi.description}</p><div><label>Type de repas :<select value={typeRepas} onChange={e => setTypeRepas(e.target.value)} style={{marginLeft:8}}><option>Petit-déjeuner</option><option>Déjeuner</option><option>Collation</option><option>Dîner</option><option>Autre</option></select></label></div><div style={{ margin: '8px 0' }}>Heure de prise du repas (optionnel) :<input type="time" value={heureRepas} onChange={e => setHeureRepas(e.target.value)} style={{ marginLeft: 8, width: 110 }} /><span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>(pré-rempli à l'heure actuelle, modifiable)</span></div><div style={{marginTop:8}}><label><input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} /> Je me suis arrêté dès la satiété à ce repas</label></div>{erreur && <p style={{color:'red'}}>{erreur}</p>}{message && <p style={{color:'green'}}>{message}</p>}<button type="submit">Valider l’étape</button></form>;
 }
 
-// Défi 6 : Chaud devant… mais doux ! (validation par dîner, choix cuisson)
 function DefiChaudDoux({ defi, refreshDefis }) {
-    const [cuisson, setCuisson] = useState('vapeur');
-    const [confirmation, setConfirmation] = useState(false);
-    const [message, setMessage] = useState('');
-    const [erreur, setErreur] = useState('');
-    const getDefaultHeure = () => {
-        const now = new Date();
-        return now.toTimeString().slice(0,5);
-    };
-    const [heureRepas, setHeureRepas] = useState(getDefaultHeure());
+    const [cuisson, setCuisson] = useState('vapeur'); const [confirmation, setConfirmation] = useState(false); const [message, setMessage] = useState(''); const [erreur, setErreur] = useState(''); const getDefaultHeure = () => new Date().toTimeString().slice(0,5); const [heureRepas, setHeureRepas] = useState(getDefaultHeure());
     if (!defi) return null;
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMessage(''); setErreur('');
-        if (!confirmation) {
-            setErreur('Merci de confirmer que tu as choisi une cuisson douce.');
-            return;
-        }
-        const { validerEtapeDefi } = await import('../lib/defisUtils');
-        const res = await validerEtapeDefi(defi);
-        if (res.success) {
-            setMessage('Bravo ! Étape validée.');
-            refreshDefis();
-            setConfirmation(false);
-        } else {
-            setErreur(res.error || 'Erreur lors de la validation.');
-        }
-    };
-    return (
-        <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#fffde7', borderRadius:10, padding:18}}>
-            <h3>{defi.nom}</h3>
-            <p>{defi.description}</p>
-            <div>
-                <label>Mode de cuisson :
-                    <select value={cuisson} onChange={e => setCuisson(e.target.value)} style={{marginLeft:8}}>
-                        <option value="vapeur">Vapeur</option>
-                        <option value="mijoté">Mijoté</option>
-                        <option value="cru">Cru</option>
-                        <option value="autre">Autre</option>
-                    </select>
-                </label>
-            </div>
-            <div style={{ margin: '8px 0' }}>
-                Heure de prise du repas (optionnel) :
-                <input
-                    type="time"
-                    value={heureRepas}
-                    onChange={e => setHeureRepas(e.target.value)}
-                    style={{ marginLeft: 8, width: 110 }}
-                />
-                <span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>(pré-rempli à l'heure actuelle, modifiable)</span>
-            </div>
-            <div style={{marginTop:8}}>
-                <label>
-                    <input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} />
-                    J’ai choisi une cuisson douce pour ce dîner
-                </label>
-            </div>
-            {erreur && <p style={{color:'red'}}>{erreur}</p>}
-            {message && <p style={{color:'green'}}>{message}</p>}
-            <button type="submit">Valider l’étape</button>
-        </form>
-    );
+    const handleSubmit = async (e) => { e.preventDefault(); setMessage(''); setErreur(''); if (!confirmation) return setErreur('Merci de confirmer que tu as choisi une cuisson douce.'); const { validerEtapeDefi } = await import('../lib/defisUtils'); const res = await validerEtapeDefi(defi); if (res.success) { setMessage('Bravo ! Étape validée.'); refreshDefis(); setConfirmation(false); } else setErreur(res.error || 'Erreur lors de la validation.'); };
+    return <form onSubmit={handleSubmit} style={{marginBottom:24, background:'#fffde7', borderRadius:10, padding:18}}><h3>{defi.nom}</h3><p>{defi.description}</p><div><label>Mode de cuisson :<select value={cuisson} onChange={e => setCuisson(e.target.value)} style={{marginLeft:8}}><option value="vapeur">Vapeur</option><option value="mijoté">Mijoté</option><option value="cru">Cru</option><option value="autre">Autre</option></select></label></div><div style={{ margin: '8px 0' }}>Heure de prise du repas (optionnel) :<input type="time" value={heureRepas} onChange={e => setHeureRepas(e.target.value)} style={{ marginLeft: 8, width: 110 }} /><span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>(pré-rempli à l'heure actuelle, modifiable)</span></div><div style={{marginTop:8}}><label><input type="checkbox" checked={confirmation} onChange={e => setConfirmation(e.target.checked)} /> J’ai choisi une cuisson douce pour ce dîner</label></div>{erreur && <p style={{color:'red'}}>{erreur}</p>}{message && <p style={{color:'green'}}>{message}</p>}<button type="submit">Valider l’étape</button></form>;
 }
 
-export default function SaisieDefisDynamiques() {
-    const { defisEnCours, refreshDefis } = useDefis();
-    // Hooks pour le formulaire personnalisé
+export default function SaisieDefisDynamiques({ refreshDefis: refreshDefisProp }) {
+    const contexteDefis = useDefis() || {};
+    const refreshDefis = refreshDefisProp || contexteDefis.refreshDefis || (async () => {});
     const [showForm, setShowForm] = useState(false);
     const [nom, setNom] = useState('');
     const [description, setDescription] = useState('');
     const [type, setType] = useState('alimentaire');
-    const [theme, setTheme] = useState('');
     const [duree, setDuree] = useState('');
     const [unite, setUnite] = useState('jour');
-    const [criteres, setCriteres] = useState('');
-    const [recurrence, setRecurrence] = useState('unique');
     const [erreur, setErreur] = useState('');
     const [message, setMessage] = useState('');
 
-    // Validation simple
-    const isValid = nom.trim() && description.trim() && duree.trim();
+    const isValid = nom.trim() && description.trim() && duree.trim() && Number(duree) > 0;
 
-    // Handler d'enregistrement avec insertion Supabase
     const handleSave = async (e) => {
         e.preventDefault();
         setErreur(''); setMessage('');
         if (!isValid) {
-            setErreur('Merci de remplir tous les champs obligatoires.');
+            setErreur('Merci de renseigner le nom, ce que tu veux accomplir et une durée supérieure à 0.');
             return;
         }
 
-        // Insertion dans Supabase
-        const { data, error: insertError } = await supabase
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        const userId = authData?.user?.id;
+        if (authError || !userId) {
+            setErreur('❌ Vous devez être connecté pour créer un défi.');
+            return;
+        }
+
+        const { error: insertError } = await supabase
             .from('defis')
             .insert([{
+                user_id: userId,
                 type: type || 'personnalise',
-                theme: theme || 'Défi perso',
-                nom,
-                description,
+                theme: 'Défi perso',
+                nom: nom.trim(),
+                description: description.trim(),
                 duree: parseInt(duree, 10),
                 unite: unite || 'jour',
                 status: 'disponible',
@@ -647,21 +297,11 @@ export default function SaisieDefisDynamiques() {
             return;
         }
 
-        setMessage('✅ Défi personnalisé créé avec succès !');
+        setMessage('✅ Ton défi est prêt. Retrouve-le dans « Défis disponibles » pour le commencer.');
         await refreshDefis();
 
-        // Réinitialisation après 2 secondes
         setTimeout(() => {
-            setNom('');
-            setDescription('');
-            setType('alimentaire');
-            setTheme('');
-            setDuree('');
-            setUnite('jour');
-            setCriteres('');
-            setRecurrence('unique');
-            setMessage('');
-            setShowForm(false);
+            setNom(''); setDescription(''); setType('alimentaire'); setDuree(''); setUnite('jour'); setMessage(''); setShowForm(false);
         }, 2000);
     };
 
@@ -673,63 +313,19 @@ export default function SaisieDefisDynamiques() {
             {showForm && (
                 <form onSubmit={handleSave} style={{background:'#f5f5f5', borderRadius:10, padding:18, marginBottom:24, boxShadow:'0 2px 8px #0001'}}>
                     <h3>Créer un défi personnalisé</h3>
+                    <div style={{marginBottom:10}}><label>Nom du défi* :<input type="text" value={nom} onChange={e => setNom(e.target.value)} style={{marginLeft:8, width:220}} required /></label></div>
+                    <div style={{marginBottom:10}}><label>Ce que je veux accomplir* :<br/><textarea value={description} onChange={e => setDescription(e.target.value)} style={{marginTop:4, width:320, minHeight:60}} placeholder="Ex. M'arrêter de manger dès que je ressens la satiété" required /></label></div>
+                    <div style={{marginBottom:10}}><label>Type :<select value={type} onChange={e => setType(e.target.value)} style={{marginLeft:8}}><option value="alimentaire">Alimentaire</option><option value="activité">Activité</option><option value="autre">Autre</option></select></label></div>
                     <div style={{marginBottom:10}}>
-                        <label>Nom du défi* :
-                            <input type="text" value={nom} onChange={e => setNom(e.target.value)} style={{marginLeft:8, width:220}} required />
-                        </label>
+                        <label>Durée :<input type="number" value={duree} onChange={e => setDuree(e.target.value)} style={{marginLeft:8, width:80}} min={1} required /></label>
+                        <label style={{marginLeft:16}}>Unité :<select value={unite} onChange={e => setUnite(e.target.value)} style={{marginLeft:8}}><option value="jour">Jour</option><option value="semaine">Semaine</option><option value="portion">Portion</option><option value="minute">Minute</option><option value="autre">Autre</option></select></label>
                     </div>
-                    <div style={{marginBottom:10}}>
-                        <label>Description* :<br/>
-                            <textarea value={description} onChange={e => setDescription(e.target.value)} style={{marginTop:4, width:320, minHeight:60}} required />
-                        </label>
-                    </div>
-                    <div style={{marginBottom:10}}>
-                        <label>Type :
-                            <select value={type} onChange={e => setType(e.target.value)} style={{marginLeft:8}}>
-                                <option value="alimentaire">Alimentaire</option>
-                                <option value="activité">Activité</option>
-                                <option value="autre">Autre</option>
-                            </select>
-                        </label>
-                    </div>
-                    <div style={{marginBottom:10}}>
-                        <label>Thème :
-                            <input type="text" value={theme} onChange={e => setTheme(e.target.value)} style={{marginLeft:8, width:180}} />
-                        </label>
-                    </div>
-                    <div style={{marginBottom:10}}>
-                        <label>Durée :
-                            <input type="number" value={duree} onChange={e => setDuree(e.target.value)} style={{marginLeft:8, width:80}} min={0} />
-                        </label>
-                        <label style={{marginLeft:16}}>Unité :
-                            <select value={unite} onChange={e => setUnite(e.target.value)} style={{marginLeft:8}}>
-                                <option value="jour">Jour</option>
-                                <option value="semaine">Semaine</option>
-                                <option value="portion">Portion</option>
-                                <option value="minute">Minute</option>
-                                <option value="autre">Autre</option>
-                            </select>
-                        </label>
-                    </div>
-                    <div style={{marginBottom:10}}>
-                        <label>Critères de validation :
-                            <input type="text" value={criteres} onChange={e => setCriteres(e.target.value)} style={{marginLeft:8, width:220}} placeholder="aliment, catégorie, kcal, portion…" />
-                        </label>
-                    </div>
-                    <div style={{marginBottom:10}}>
-                        <label>Récurrence :
-                            <select value={recurrence} onChange={e => setRecurrence(e.target.value)} style={{marginLeft:8}}>
-                                <option value="unique">Unique</option>
-                                <option value="quotidien">Quotidien</option>
-                                <option value="hebdomadaire">Hebdomadaire</option>
-                            </select>
-                        </label>
+                    <div style={{marginBottom:14, padding:'10px 12px', background:'#ede7f6', borderRadius:8, color:'#5e35b1'}}>
+                        📔 Le suivi se fera dans ton journal. Tu définiras tes engagements, puis tu confirmeras ceux que tu as tenus. Une journée progresse quand au moins 2 engagements sur 3 sont tenus.
                     </div>
                     {erreur && <p style={{color:'red'}}>{erreur}</p>}
                     {message && <p style={{color:'green'}}>{message}</p>}
-                    <button type="submit" style={{background:'#388e3c', color:'#fff', border:'none', borderRadius:6, padding:'8px 18px', fontWeight:600, marginTop:8}}>
-                        Enregistrer le défi
-                    </button>
+                    <button type="submit" style={{background:'#388e3c', color:'#fff', border:'none', borderRadius:6, padding:'8px 18px', fontWeight:600, marginTop:8}}>Créer mon défi</button>
                 </form>
             )}
         </div>
