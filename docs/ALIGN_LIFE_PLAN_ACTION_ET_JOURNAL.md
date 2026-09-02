@@ -1,72 +1,69 @@
 # Align-Life — Plan d'action & journal de passation
 
 **Branche : `Align-Life`**  
-**Statut : P0-P4 implémentés ; P4 = premier vertical slice My Way visible à tester ; P5+ non commencés.**
+**Statut : P0-P3 terminés ; P4 implémenté puis corrigé après test UX ; correction prête à committer/tester.**
 
 ## Principes verrouillés
 - Nom visible : **My Way** ; Boussole = concept interne.
 - Mon Pourquoi reste dans `profil.pourquoi` et n'est pas dupliqué.
 - My Way évolue sans formulaire obligatoire.
+- **Ne jamais exposer toutes les dimensions My Way d'un coup au premier accès.**
+- Parcours : graine → ouverture → « je sais déjà / je découvre en avançant » → dévoilement progressif.
 - Aspiration → Idéal uniquement sur choix explicite.
-- LIVE réutilise les moteurs existants ; GROW part de faits observables.
-- Fait ≠ tendance ≠ transformation ; `NO_INTERVENTION` reste légitime.
+- GROW n'apparaît que lorsqu'il existe réellement une preuve à afficher.
+- LIVE réutilise les moteurs existants ; fait ≠ tendance ≠ transformation.
 - Journal spirituel reste Jeûne-only.
 - L'IA propose/formule ; l'utilisateur valide.
 - Aucun commit sans accord explicite ; le journal accompagne chaque changement.
 
 ## Plan actif
-### P0 — Gouvernance
-TERMINÉ.
-### P1 — UX My Way
-TERMINÉ. Profil = graine ; Dashboard = entrée légère ; GROW contextuel.
-### P2 — Audit technique
-TERMINÉ sur `eda00ff29b60969876eba0ce60caa23e5036bbdc`.
-### P2.5 + P3 — Fondation technique My Way
-TERMINÉE. Commit `9bdb761401fe9537a46e6a1b21537ede03321acc`.
+### P0-P3
+TERMINÉS. Fondation technique commit `9bdb761401fe9537a46e6a1b21537ede03321acc`.
 
 ### P4 — My Way visible
-**IMPLÉMENTÉ — À TESTER EN CONDITIONS UTILISATEUR.**
+Premier commit P4 : `4fc25cb903e3d629fb187cbb725fd27e939c00a0`.
 
-Premier vertical slice :
-- entrée My Way visible uniquement sur le tableau de bord, sans nouvel onglet principal ;
-- écran `/my-way` ;
-- lecture de `profil.pourquoi` existant, sans duplication ;
-- trois dimensions librement renseignables : direction, aspiration, incarnation ;
-- ajout, modification et archivage ;
-- aucun champ obligatoire ; bouton « Pas maintenant » ;
-- GROW visible comme espace futur, sans permettre à l'utilisateur de s'auto-attribuer une transformation ;
-- aucune IA dans P4 ;
-- aucune conversion automatique aspiration → Idéal.
+**ANOMALIE UX détectée par test utilisateur :** le premier écran exposait simultanément Pourquoi, direction, aspiration, incarnation et un bloc GROW vide. Même facultatifs, ces blocs donnaient l'impression d'un questionnaire à compléter, en contradiction avec la conception progressive validée.
 
-Choix technique : l'entrée Dashboard est injectée par `_app.js` uniquement lorsque `router.pathname === '/tableau-de-bord'`. Cela évite de modifier le très gros fichier historique `pages/tableau-de-bord.js` pour ce premier vertical slice et réduit le risque de régression. Ce raccord pourra être déplacé directement dans le Dashboard lors d'un futur refactoring ciblé si nécessaire.
+**Correction préparée :**
+- premier accès sans contenu personnel : Pourquoi + une seule ouverture ;
+- choix explicite : « J'ai déjà une idée » ou « Je veux la découvrir en avançant » ;
+- voie découverte : aucun autre champ ; retour au parcours normal ;
+- voie « je sais » : seulement la direction s'ouvre ;
+- aspiration proposée seulement après qu'une direction existe et via une invitation légère ;
+- incarnation proposée seulement après qu'une aspiration existe ;
+- les éléments existants restent visibles et éditables ;
+- GROW totalement masqué s'il n'existe aucun élément GROW réel ;
+- aucune migration, aucun changement Supabase, aucun changement Navigation/Dashboard dans cette correction.
 
 ### P5+
-IA de reformulation, raccord Idéaux, OBSERVE, GROW, cycles et ADAPT à faire progressivement après validation utilisateur de P4.
+NON COMMENCÉS. Ne pas passer à P5 avant validation utilisateur de P4 corrigé.
 
 ---
 # Journal chronologique
 ## LOG 001 — Gouvernance
 Commit `d531ee315d9491c468b6865fc7d8f98e31a97b62`.
-## LOG 002 — UX et naming My Way
+## LOG 002 — UX et naming
 Commit `eda00ff29b60969876eba0ce60caa23e5036bbdc`.
 ## LOG 003 — Audit P2
 Commit `3ac4cf50c6e82b31cf1aed76b457951cd895481a`.
 ## LOG 004 — Fondation P2.5/P3
 Commit `9bdb761401fe9537a46e6a1b21537ede03321acc`.
+## LOG 005 — P4 initial
+Commit `4fc25cb903e3d629fb187cbb725fd27e939c00a0`.
 
-## LOG 005 — P4 premier My Way visible
+## LOG 006 — Correction UX P4 progressive
 **Date : 2 septembre 2026.**  
 **Branche : `Align-Life`.**  
-**HEAD avant : `9bdb761401fe9537a46e6a1b21537ede03321acc`.**  
-**Objectif :** rendre My Way réellement visible et testable sans ajouter une nouvelle navigation principale ni reconstruire les moteurs existants.  
-**Accord utilisateur : OUI — « ok go » après annonce explicite du démarrage de P4.**  
-**Fichiers inspectés :** `pages/tableau-de-bord.js`, `pages/_app.js`, `lib/myWayAPI.js`, journal Align-Life.  
-**Fichiers modifiés/créés :** `pages/_app.js`, `pages/my-way.js`, `components/MyWayDashboardEntry.js`, ce journal.  
-**Supabase/API/migration :** aucune migration ni changement de schéma dans P4 ; réutilisation de `profil.pourquoi` et `my_way_items` créés en P2.5/P3.  
-**Avant :** fondation My Way disponible mais aucune expérience visible.  
-**Après attendu :** carte My Way sur Dashboard → `/my-way` → Pourquoi existant → saisie facultative direction/aspiration/incarnation → édition/archivage.  
-**Tests techniques possibles dans ce contexte :** contrôle du HEAD avant changement, cohérence statique des imports et appels API, absence de changement Supabase, vérification GitHub des fichiers après commit.  
-**Tests utilisateur encore nécessaires :** ouvrir Dashboard connecté ; ouvrir My Way ; vérifier le Pourquoi ; ajouter/modifier/archiver chaque type ; recharger ; vérifier persistance ; vérifier « Pas maintenant » ; vérifier absence d'entrée My Way sur les autres pages.  
-**Limite :** aucun test navigateur réel n'a été exécuté depuis cette session ; ne pas considérer P4 comme validé fonctionnellement avant test utilisateur.  
-**Commit SHA / HEAD après :** à vérifier après création du commit.  
-**Suite :** corriger toute anomalie P4 avant P5 ; P5 non autorisé automatiquement.
+**HEAD avant : `4fc25cb903e3d629fb187cbb725fd27e939c00a0`.**  
+**Déclencheur :** test utilisateur : « tout est dedans » dès l'ouverture de My Way.  
+**Diagnostic :** concepts corrects mais exposés simultanément ; comportement non conforme au parcours progressif documenté.  
+**Accord utilisateur : OUI — « ok fais la correction ».**  
+**Fichiers inspectés :** `pages/my-way.js`, journal.  
+**Fichiers préparés :** `pages/my-way.js`, journal.  
+**Supabase/migration : AUCUN changement.**  
+**Comportement attendu après :** Pourquoi seul + choix de maturité ; dévoilement des dimensions uniquement lorsqu'elles deviennent pertinentes ou sont déjà renseignées ; GROW masqué tant qu'il est vide.  
+**Compatibilité données :** les items My Way déjà saisis ne sont ni supprimés ni transformés ; ils restent visibles selon leur type.  
+**Tests avant commit :** revue statique du flux et de la compatibilité API ; test navigateur nécessitera le déploiement Vercel après commit.  
+**Commit SHA / HEAD après :** en attente d'autorisation explicite de commit.  
+**Suite :** déployer/tester P4 corrigé ; aucune progression P5 avant validation.
