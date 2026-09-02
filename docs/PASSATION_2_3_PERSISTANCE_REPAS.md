@@ -50,3 +50,36 @@ Aucun changement UX n'a été introduit. `RepasBloc`, `SaisieRepasCompose` et le
 ## Suite du chantier
 
 Définir le point d'extension minimal permettant à `RepasBloc` d'alimenter progressivement « Mon repas en cours », avant tout changement d'interface ou de comportement utilisateur.
+
+---
+
+## Complément — étape 9B : alignement automatique du repas
+
+L'étape 9B prolonge le socle mono/multi sans modifier son contrat de persistance.
+
+### Comportement retenu
+
+- Les lignes réellement consommées sont reconstruites par `occurrence_repas_id` avant comparaison.
+- La comparaison porte sur le même jour et le même type de repas.
+- Le nom normalisé de l'aliment est prioritaire ; une substitution de même catégorie conserve l'intention du plan.
+- Un repas est **aligné** lorsque toute la structure planifiée est retrouvée. Un aliment réel supplémentaire ne détruit pas cet alignement.
+- Un repas est **ajusté** lorsqu'une partie seulement de la structure planifiée est retrouvée.
+- Un repas est **spontané** lorsqu'aucun aliment ni aucune catégorie du plan n'est retrouvé.
+- Un repas saisi sans planning est un **repas libre**.
+- Tant qu'aucun repas n'est saisi, aucun statut n'est affiché.
+- Les quantités et les calories restent suivies par leurs indicateurs dédiés et ne transforment pas, à elles seules, l'alignement en jugement binaire.
+
+### Raccord technique
+
+- `lib/alignementRepas.js` contient le moteur pur de classification et la reconstruction des occurrences.
+- `pages/suivi.js` applique la comparaison avant l'insertion. Le booléen historique `repas_planifie_respecte` est positionné automatiquement uniquement pour un repas aligné.
+- Les lignes retournées par l'insertion Supabase alimentent immédiatement l'état du suivi, sans attendre un rechargement manuel.
+- Le dernier repas saisi pour le jour et le type sélectionnés affiche automatiquement l'un des quatre libellés non punitifs.
+- `RepasBloc`, `SaisieRepasCompose` et le schéma Supabase restent inchangés.
+
+### Validation technique
+
+- Tests ciblés du parcours repas : **54/54 réussis**.
+- Suite Jest complète : **184/184 réussis**, répartis dans 22 suites.
+- Build Next.js : réussi, 36 pages générées.
+- Les avertissements locaux du cache Webpack restent non bloquants ; la compilation est réussie.

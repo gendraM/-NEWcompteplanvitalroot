@@ -73,4 +73,26 @@ describe('Interface Mon repas en cours', () => {
     expect(source).toContain('repasPlanifieSelectionne.length === 1');
     expect(source).toContain('repasPrevu={typeof repasPlanifieUnique?.aliment');
   });
+
+  test('raccorde la comparaison automatique à l’occurrence complète enregistrée', () => {
+    const source = lire('pages/suivi.js');
+
+    expect(source).toContain('classifierAlignementRepas(planDuRepas, repasPayloads)');
+    expect(source).toContain('repas_planifie_respecte: true');
+    expect(source).toContain('.insert(repasPayloadsAvecAlignement)');
+    expect(source).toContain(".select('*')");
+    expect(source).toContain('obtenirDerniereOccurrenceRepas(repasSemaine');
+  });
+
+  test('affiche les quatre lectures non punitives sans modifier RepasBloc', () => {
+    const suivi = lire('pages/suivi.js');
+    const repasBloc = lire('components/RepasBloc.js');
+
+    expect(suivi).toContain('LIBELLES_ALIGNEMENT_REPAS[alignementRepasSelectionne.statut]');
+    expect(suivi).toContain('Ton repas reste dans la direction que tu avais choisie.');
+    expect(suivi).toContain('Tu as conservé une partie de ton intention en l’adaptant.');
+    expect(suivi).toContain('Tu as fait un autre choix pour ce repas, sans jugement.');
+    expect(suivi).toContain('Aucun repas n’était planifié pour ce moment.');
+    expect(repasBloc).not.toContain('classifierAlignementRepas');
+  });
 });

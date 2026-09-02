@@ -37,6 +37,12 @@ import { normaliserRepasPourPersistance } from '../lib/repasPersistence';
 import { construirePayloadRepasEnCoursDepuisLignes, creerCleRepasEnCours } from '../lib/repasEnCours';
 import { creerRepasCompose } from '../lib/repasComposes';
 import { grouperRepasPlanifiesParType } from '../lib/planificationRepas';
+import {
+  classifierAlignementRepas,
+  LIBELLES_ALIGNEMENT_REPAS,
+  obtenirDerniereOccurrenceRepas,
+  STATUTS_ALIGNEMENT_REPAS
+} from '../lib/alignementRepas';
 import { calculerProfilComplet } from '../lib/routeurPoids';
 import { 
   calculerExtrasSemaine, 
@@ -748,13 +754,25 @@ export default function Suivi() {
         repasData,
         user?.id || null
       );
+      const premierRepas = repasPayloads[0];
+      const planDuRepas = premierRepas?.date === selectedDate
+        ? (repasPlan[premierRepas?.type] || [])
+        : [];
+      const alignementAutomatique = classifierAlignementRepas(planDuRepas, repasPayloads);
+      const repasPayloadsAvecAlignement = alignementAutomatique.statut === STATUTS_ALIGNEMENT_REPAS.ALIGNE
+        ? repasPayloads.map(repas => ({ ...repas, repas_planifie_respecte: true }))
+        : repasPayloads;
       // Enregistrement du repas dans Supabase
       const { data, error } = await supabase
         .from("repas_reels")
-        .insert(repasPayloads);
+        .insert(repasPayloadsAvecAlignement)
+        .select('*');
       if (error) {
         setSnackbar({ open: true, message: "Erreur Supabase : " + error.message, type: "error" });
         return { ok: false, error };
+      }
+      if (Array.isArray(data) && data.length > 0) {
+        setRepasSemaine(courant => [...courant, ...data]);
       }
       if (afficherSucces) {
         setSnackbar({ open: true, message: "Repas enregistré !", type: "success" });
@@ -787,6 +805,14 @@ export default function Suivi() {
   const repasPlanifieUnique = repasPlanifieSelectionne.length === 1
     ? repasPlanifieSelectionne[0]
     : null;
+  const derniereOccurrenceSelectionnee = useMemo(() => (
+    selectedType
+      ? obtenirDerniereOccurrenceRepas(repasSemaine, { date: selectedDate, type: selectedType })
+      : []
+  ), [repasSemaine, selectedDate, selectedType]);
+  const alignementRepasSelectionne = useMemo(() => (
+    classifierAlignementRepas(repasPlanifieSelectionne, derniereOccurrenceSelectionnee)
+  ), [repasPlanifieSelectionne, derniereOccurrenceSelectionnee]);
 
   const cleRepasEnCours = creerCleRepasEnCours(selectedDate, selectedType);
   const alimentsRepasEnCours = cleRepasEnCours ? (repasEnCoursParCle[cleRepasEnCours] || []) : [];
@@ -2167,6 +2193,28 @@ export default function Suivi() {
                 </span>
               ) : (
                 <span style={{ color: "#bbb" }}>Non défini</span>
+              )}
+              {alignementRepasSelectionne.statut !== STATUTS_ALIGNEMENT_REPAS.EN_ATTENTE && (
+                <div style={{
+                  marginTop: 8,
+                  color: {
+                    [STATUTS_ALIGNEMENT_REPAS.ALIGNE]: '#2e7d32',
+                    [STATUTS_ALIGNEMENT_REPAS.AJUSTE]: '#1565c0',
+                    [STATUTS_ALIGNEMENT_REPAS.SPONTANE]: '#7b1fa2',
+                    [STATUTS_ALIGNEMENT_REPAS.LIBRE]: '#616161'
+                  }[alignementRepasSelectionne.statut],
+                  fontWeight: 700
+                }}>
+                  {LIBELLES_ALIGNEMENT_REPAS[alignementRepasSelectionne.statut]}
+                  <span style={{ display: 'block', fontWeight: 400, fontSize: 13, marginTop: 2 }}>
+                    {{
+                      [STATUTS_ALIGNEMENT_REPAS.ALIGNE]: 'Ton repas reste dans la direction que tu avais choisie.',
+                      [STATUTS_ALIGNEMENT_REPAS.AJUSTE]: 'Tu as conservé une partie de ton intention en l’adaptant.',
+                      [STATUTS_ALIGNEMENT_REPAS.SPONTANE]: 'Tu as fait un autre choix pour ce repas, sans jugement.',
+                      [STATUTS_ALIGNEMENT_REPAS.LIBRE]: 'Aucun repas n’était planifié pour ce moment.'
+                    }[alignementRepasSelectionne.statut]}
+                  </span>
+                </div>
               )}
             </div>
             <RepasEnCours
