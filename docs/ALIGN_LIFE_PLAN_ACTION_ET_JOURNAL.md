@@ -1,7 +1,7 @@
 # Align-Life — Plan d'action & journal de passation
 
 **Branche : `Align-Life`**  
-**Statut : P0-P4 validés ; P4.5 reformulation IA My Way en cours ; P5 OBSERVE/GROW non commencé.**
+**Statut : P0-P4 validés ; P4.5 reformulation IA My Way en validation ; P5 OBSERVE/GROW non commencé.**
 
 ## Principes verrouillés
 - Nom visible : **My Way** ; Boussole = concept interne.
@@ -14,6 +14,7 @@
 - LIVE réutilise les moteurs existants ; fait ≠ tendance ≠ transformation.
 - Journal spirituel reste Jeûne-only.
 - **L'IA est un miroir sémantique : elle propose/formule, l'utilisateur garde ses mots, modifie ou valide.**
+- **Toute idée d'une reformulation IA doit être traçable au texte utilisateur ; le contexte Pourquoi ne doit pas enrichir la direction.**
 - Aucun remplacement silencieux du texte utilisateur par l'IA.
 - Aucun commit sans accord explicite ; le journal accompagne chaque changement.
 
@@ -34,6 +35,7 @@ Correction UX progressive : `4283c9a1166955caa442b00ec19c85835a724fa8`.
 - modèle configurable via `OPENAI_MY_WAY_MODEL`, défaut coût-efficace ;
 - texte brut + Pourquoi facultatif envoyés au modèle ;
 - consigne stricte : clarifier sans inventer ni classifier automatiquement ;
+- le texte direction est la source unique des idées ; Pourquoi sert seulement à lever une ambiguïté ;
 - proposition modifiable avant validation ;
 - choix explicites « Oui, ça me ressemble », « Garder mes mots », « Revenir » ;
 - pour un texte déjà enregistré : bouton « Clarifier avec My Way » ;
@@ -66,15 +68,13 @@ Commit `4fc25cb903e3d629fb187cbb725fd27e939c00a0`.
 **Date : 2 septembre 2026.**  
 **Branche : `Align-Life`.**  
 **HEAD avant : `4283c9a1166955caa442b00ec19c85835a724fa8`.**  
-**Déclencheur :** test utilisateur avec une direction libre longue et non structurée ; besoin que l'IA puisse la clarifier sans déposséder l'utilisateur de ses mots.  
-**Accord utilisateur : OUI — « ok go ».**  
-**Audit :** aucun dossier `pages/api` existant ; Next.js 15 déjà installé ; Supabase JS déjà disponible ; `my_way_items.source` accepte déjà `user`/`ai` ; aucune dépendance OpenAI existante.  
-**Choix technique :** appel direct à la Responses API depuis une route serveur Next.js afin d'éviter une dépendance supplémentaire ; authentification de la route avec le bearer Supabase de l'utilisateur ; aucune clé OpenAI côté navigateur.  
-**Fichiers :** ajout `pages/api/my-way/reformulate.js`, ajout `lib/myWayAI.js`, modification `pages/my-way.js`, mise à jour de ce journal.  
-**UX :** nouvelle direction → « M'aider à clarifier » ou « Garder mes mots » ; direction existante → « Clarifier avec My Way » ; proposition toujours éditable avant validation.  
-**Persistance :** texte utilisateur conservé si « Garder mes mots » ; proposition IA enregistrée uniquement après validation explicite (`source: ai`).  
-**Fallback :** si API non configurée ou indisponible, message non bloquant et saisie manuelle toujours disponible.  
+**Déclencheur :** direction libre longue et non structurée ; besoin que l'IA la clarifie sans déposséder l'utilisateur de ses mots.  
+**Accord utilisateur initial : OUI — « ok go ».**  
+**Commit d'intégration : `bc087f12d250c281a1aa82ee0170d9fb2e25bef5`.**  
+**Test réel :** appel authentifié Vercel → OpenAI fonctionnel après activation des crédits API ; une proposition a été retournée et affichée éditable.  
+**Anomalie qualité détectée :** la première proposition a ajouté des idées absentes de la direction (« accueillir les opportunités », « vivre pleinement la vie dont je rêve »).  
+**Décision :** resserrer le garde-fou : chaque idée doit être directement traçable au texte direction ; aucune aspiration, conséquence, opportunité, intention ou lien causal nouveau ; Pourquoi reste contexte de désambiguïsation uniquement.  
+**Accord utilisateur correction : OUI — « je suis ok go ».**  
+**Sécurité :** l'erreur fournisseur n'est plus journalisée avec son corps de réponse ; seul le statut est logué.  
 **Migration Supabase : AUCUNE.**  
-**Pré-requis déploiement :** variable serveur Vercel `OPENAI_API_KEY`; `OPENAI_MY_WAY_MODEL` facultative.  
-**Test à faire après commit :** build Vercel ; session authentifiée ; reformulation d'une direction existante ; retour JSON ; modification de proposition ; validation ; conservation des mots ; comportement quand clé absente.  
-**Commit SHA / HEAD après :** à renseigner après création du commit.
+**Suite :** redéployer puis rejouer le même texte pour valider la fidélité sémantique avant de clôturer P4.5.
