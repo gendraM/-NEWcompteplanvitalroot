@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import FormulaireProfil from '../components/FormulaireProfil'
-import { calculerProfilComplet, estProfilComplet } from '../lib/routeurPoids'
+import { calculerProfilComplet } from '../lib/routeurPoids'
 import Link from "next/link";
 
 function formatDateTime(dateString) {
@@ -33,45 +33,68 @@ export default function ProfilPage() {
   const [editMode, setEditMode] = useState(false)
   const [calculsRouteur, setCalculsRouteur] = useState(null)
 
-  // Fonction pour récupérer le dernier profil (utilisable partout)
+  const getCurrentUser = async () => {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error) throw error
+    return user || null
+  }
+
   const fetchDernierProfil = async () => {
-    const { data, error } = await supabase
-      .from('profil')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-    if (!error && data && data.length > 0) {
-      setDernierProfil(data[0])
-      if (!editMode) {
-        setPoidsDepart(data[0].poids_de_depart?.toString() || '')
-        setTaille(data[0].taille?.toString() || '')
-        setAge(data[0].age?.toString() || '')
-        setSexe(data[0].sexe || '')
-        setNiveauActivite(data[0].niveau_activite || '')
-        setObjectif(data[0].objectif?.toString() || '')
-        setPourquoi(data[0].pourquoi || '')
-        setDelai(data[0].delai?.toString() || '')
+    try {
+      const user = await getCurrentUser()
+      if (!user) {
+        setDernierProfil(null)
+        return
       }
+
+      const { data, error } = await supabase
+        .from('profil')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (!error && data && data.length > 0) {
+        setDernierProfil(data[0])
+        if (!editMode) {
+          setPoidsDepart(data[0].poids_de_depart?.toString() || '')
+          setTaille(data[0].taille?.toString() || '')
+          setAge(data[0].age?.toString() || '')
+          setSexe(data[0].sexe || '')
+          setNiveauActivite(data[0].niveau_activite || '')
+          setObjectif(data[0].objectif?.toString() || '')
+          setPourquoi(data[0].pourquoi || '')
+          setDelai(data[0].delai?.toString() || '')
+        }
+      } else if (!error) {
+        setDernierProfil(null)
+      }
+    } catch (error) {
+      console.error('Erreur chargement profil utilisateur:', error)
     }
   }
 
-  // Récupération du dernier poids saisi dans historique_poids
   useEffect(() => {
     const fetchPoidsActuel = async () => {
-      const { data, error } = await supabase
-        .from('historique_poids')
-        .select('poids')
-        .order('date', { ascending: false })
-        .limit(1)
-      if (!error && data && data.length > 0) {
-        const poids = parseFloat(data[0].poids)
-        setPoidsActuel(poids)
+      try {
+        const user = await getCurrentUser()
+        if (!user) return
+        const { data, error } = await supabase
+          .from('historique_poids')
+          .select('poids')
+          .eq('user_id', user.id)
+          .order('date', { ascending: false })
+          .limit(1)
+        if (!error && data && data.length > 0) {
+          setPoidsActuel(parseFloat(data[0].poids))
+        }
+      } catch (error) {
+        console.error('Erreur chargement poids utilisateur:', error)
       }
     }
     fetchPoidsActuel()
   }, [])
 
-  // Calcul besoin calorique entretien et objectif (pour femme)
   useEffect(() => {
     const poids = parseFloat(poidsDepart)
     const t = parseFloat(taille)
@@ -87,8 +110,7 @@ export default function ProfilPage() {
       if (!isNaN(obj) && !isNaN(nbSemaines) && nbSemaines > 0 && poids > obj) {
         const perte = poids - obj
         const deficitQuotidien = (perte * 7700) / (nbSemaines * 7)
-        const objectifCal = Math.round(entretien - deficitQuotidien)
-        setBesoinObjectif(objectifCal)
+        setBesoinObjectif(Math.round(entretien - deficitQuotidien))
       } else {
         setBesoinObjectif(null)
       }
@@ -97,31 +119,26 @@ export default function ProfilPage() {
       setBesoinObjectif(null)
     }
 
-    // Calcul routeur poids (nouveau)
     if (sexe && niveauActivite && !isNaN(poids) && !isNaN(t) && !isNaN(a) && obj) {
-      const profil = {
+      setCalculsRouteur(calculerProfilComplet({
         sexe,
         age: a,
         taille: t,
         poids_de_depart: poids,
         niveau_activite: niveauActivite,
         objectif: poids > obj ? 'perte' : (poids < obj ? 'prise' : 'maintien')
-      }
-      const calculs = calculerProfilComplet(profil)
-      setCalculsRouteur(calculs)
+      }))
     } else {
       setCalculsRouteur(null)
     }
   }, [poidsDepart, taille, age, sexe, niveauActivite, objectif, delai])
 
-  // Logique d’affichage dynamique
   useEffect(() => {
     const poidsD = parseFloat(poidsDepart)
     const obj = parseFloat(objectif)
     if (poidsActuel && poidsDepart && objectif && !isNaN(poidsD) && !isNaN(obj)) {
       const perte = poidsD - poidsActuel
       const reste = poidsActuel - obj
-
       if (perte >= 6) {
         setAfficherPoidsActuel(true)
         setTexteProgression(`Tu as déjà perdu ${perte.toFixed(1)} kg. Il te reste ${reste.toFixed(1)} kg pour atteindre ton objectif.`)
@@ -132,12 +149,10 @@ export default function ProfilPage() {
     }
   }, [poidsActuel, poidsDepart, objectif])
 
-  // Récupération du dernier profil enregistré pour affichage (avec délai)
   useEffect(() => {
     fetchDernierProfil()
   }, [message, editMode])
 
-  // Gestion de l'enregistrement ou modification du profil — MAJ intégrée ici !
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -152,11 +167,15 @@ export default function ProfilPage() {
       return
     }
 
-    // Calcul besoin calorique entretien pour femme
+    const user = await getCurrentUser()
+    if (!user) {
+      setMessage("Vous devez être connecté pour enregistrer votre profil.")
+      return
+    }
+
     const mb = Math.round(10 * poids + 6.25 * t - 5 * a - 161)
     const besoinCalorique = Math.round(mb * 1.5)
 
-    // Calcul objectif calorique perte de poids (c'est la valeur affichée "vise 1880 kcal par jour")
     let besoinObjectif = null
     const nbSemaines = parseFloat(d) * 4.345
     if (!isNaN(obj) && !isNaN(nbSemaines) && nbSemaines > 0 && poids > obj) {
@@ -168,14 +187,13 @@ export default function ProfilPage() {
     let errorProfil = null
 
     if (editMode && dernierProfil) {
-      // Mise à jour du profil existant
       const { error } = await supabase
         .from('profil')
         .update({
           poids_de_depart: poids,
           taille: t,
           age: a,
-          sexe: sexe,
+          sexe,
           niveau_activite: niveauActivite,
           objectif: obj,
           besoin_calorique: besoinCalorique,
@@ -184,14 +202,15 @@ export default function ProfilPage() {
           delai: d
         })
         .eq('id', dernierProfil.id)
+        .eq('user_id', user.id)
       errorProfil = error
     } else {
-      // Insertion dans la table profil
       const { error } = await supabase.from('profil').insert({
+        user_id: user.id,
         poids_de_depart: poids,
         taille: t,
         age: a,
-        sexe: sexe,
+        sexe,
         niveau_activite: niveauActivite,
         objectif: obj,
         besoin_calorique: besoinCalorique,
@@ -201,11 +220,13 @@ export default function ProfilPage() {
       })
       errorProfil = error
 
-      // Insertion dans la table historique_poids (uniquement à la création)
-      await supabase.from('historique_poids').insert({
-        poids: poids,
-        date: new Date().toISOString().slice(0, 10) // format YYYY-MM-DD
-      })
+      if (!errorProfil) {
+        await supabase.from('historique_poids').insert({
+          user_id: user.id,
+          poids,
+          date: new Date().toISOString().slice(0, 10)
+        })
+      }
     }
 
     if (errorProfil) {
@@ -213,154 +234,33 @@ export default function ProfilPage() {
     } else {
       setMessage("Profil enregistré avec succès !")
       setEditMode(false)
-      setTimeout(() => {
-        fetchDernierProfil()
-      }, 400) // délai pour laisser le temps à Supabase
+      setTimeout(() => fetchDernierProfil(), 400)
     }
   }
 
-  // Styles personnalisés (inchangés)
   const styles = {
-    container: {
-      padding: '2rem',
-      maxWidth: 600,
-      margin: '0 auto',
-      fontFamily: 'Arial, sans-serif',
-      background: '#f7fafc',
-      borderRadius: 16,
-      boxShadow: '0 2px 16px #e0e0e0'
-    },
-    title: {
-      color: '#2c3e50',
-      fontWeight: 'bold',
-      fontSize: '2.5rem',
-      marginBottom: '1.5rem',
-      textAlign: 'center'
-    },
-    sectionTitle: {
-      color: '#2980b9',
-      fontWeight: 'bold',
-      fontSize: '1.2rem',
-      margin: '1.5rem 0 0.5rem 0'
-    },
-    formBlock: {
-      background: '#fff',
-      borderRadius: 12,
-      padding: '1.5rem',
-      marginBottom: '1.5rem',
-      boxShadow: '0 1px 6px #e0e0e0'
-    },
-    button: {
-      background: 'linear-gradient(90deg, #27ae60 0%, #2980b9 100%)',
-      color: '#fff',
-      border: 'none',
-      borderRadius: 24,
-      padding: '0.8rem 2rem',
-      fontSize: '1.1rem',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      marginTop: '1rem',
-      marginBottom: '1rem',
-      boxShadow: '0 2px 8px #d0e6f7'
-    },
-    editButton: {
-      background: '#f39c12',
-      color: '#fff',
-      border: 'none',
-      borderRadius: 16,
-      padding: '0.5rem 1.2rem',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      marginLeft: '1rem'
-    },
-    message: {
-      fontWeight: 'bold',
-      padding: '0.7rem 1rem',
-      borderRadius: 8,
-      margin: '1rem 0',
-      background: message.includes('succès') ? '#eafaf1' : '#fdecea',
-      color: message.includes('succès') ? '#27ae60' : '#c0392b',
-      border: message.includes('succès') ? '1px solid #27ae60' : '1px solid #c0392b'
-    },
-    recapBlock: {
-      background: '#fff',
-      border: '2px solid #4CAF50',
-      borderRadius: '12px',
-      padding: '1.5rem',
-      marginTop: '2rem',
-      boxShadow: '0 2px 12px #e0e0e0'
-    },
-    recapTitle: {
-      color: '#4CAF50',
-      fontWeight: 'bold',
-      fontSize: '1.5rem',
-      marginBottom: '1rem'
-    },
-    recapList: {
-      listStyle: 'none',
-      padding: 0,
-      margin: 0
-    },
-    recapLabel: {
-      fontWeight: 'bold',
-      color: '#222'
-    },
-    recapDate: {
-      color: '#888',
-      fontStyle: 'italic',
-      marginTop: '0.5rem'
-    },
-    motivation: {
-      fontStyle: 'italic',
-      color: '#2980b9',
-      marginTop: '1rem',
-      fontSize: '1.1rem'
-    },
-    suivreButton: {
-      background: '#27ae60',
-      color: '#fff',
-      border: 'none',
-      borderRadius: 16,
-      padding: '0.7rem 1.5rem',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      marginTop: '1.5rem',
-      fontSize: '1.1rem'
-    }
+    container: { padding: '2rem', maxWidth: 600, margin: '0 auto', fontFamily: 'Arial, sans-serif', background: '#f7fafc', borderRadius: 16, boxShadow: '0 2px 16px #e0e0e0' },
+    title: { color: '#2c3e50', fontWeight: 'bold', fontSize: '2.5rem', marginBottom: '1.5rem', textAlign: 'center' },
+    sectionTitle: { color: '#2980b9', fontWeight: 'bold', fontSize: '1.2rem', margin: '1.5rem 0 0.5rem 0' },
+    formBlock: { background: '#fff', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 1px 6px #e0e0e0' },
+    button: { background: 'linear-gradient(90deg, #27ae60 0%, #2980b9 100%)', color: '#fff', border: 'none', borderRadius: 24, padding: '0.8rem 2rem', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', marginTop: '1rem', marginBottom: '1rem', boxShadow: '0 2px 8px #d0e6f7' },
+    editButton: { background: '#f39c12', color: '#fff', border: 'none', borderRadius: 16, padding: '0.5rem 1.2rem', fontWeight: 'bold', cursor: 'pointer', marginLeft: '1rem' },
+    message: { fontWeight: 'bold', padding: '0.7rem 1rem', borderRadius: 8, margin: '1rem 0', background: message.includes('succès') ? '#eafaf1' : '#fdecea', color: message.includes('succès') ? '#27ae60' : '#c0392b', border: message.includes('succès') ? '1px solid #27ae60' : '1px solid #c0392b' },
+    recapBlock: { background: '#fff', border: '2px solid #4CAF50', borderRadius: '12px', padding: '1.5rem', marginTop: '2rem', boxShadow: '0 2px 12px #e0e0e0' },
+    recapTitle: { color: '#4CAF50', fontWeight: 'bold', fontSize: '1.5rem', marginBottom: '1rem' },
+    recapList: { listStyle: 'none', padding: 0, margin: 0 },
+    recapLabel: { fontWeight: 'bold', color: '#222' },
+    recapDate: { color: '#888', fontStyle: 'italic', marginTop: '0.5rem' },
+    motivation: { fontStyle: 'italic', color: '#2980b9', marginTop: '1rem', fontSize: '1.1rem' },
+    suivreButton: { background: '#27ae60', color: '#fff', border: 'none', borderRadius: 16, padding: '0.7rem 1.5rem', fontWeight: 'bold', cursor: 'pointer', marginTop: '1.5rem', fontSize: '1.1rem' }
   }
 
-  // Navigation vers la page de suivi (à créer)
-  const goToSuivi = () => {
-    window.location.href = '/suivi-poids'
-  }
+  const goToSuivi = () => { window.location.href = '/suivi-poids' }
 
   return (
     <div style={styles.container}>
-      {/* Bouton de déconnexion en haut à droite */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
-        <button
-          onClick={async () => {
-            if (window && window.supabase) {
-              await window.supabase.auth.signOut();
-              window.location.href = '/';
-            } else if (typeof supabase !== 'undefined') {
-              await supabase.auth.signOut();
-              window.location.href = '/';
-            }
-          }}
-          style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #43cea2 100%)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '24px',
-            padding: '10px 22px',
-            fontSize: '1rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(67, 126, 234, 0.15)',
-            marginRight: '0.5rem'
-          }}
-        >
+        <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/'; }} style={{ background: 'linear-gradient(135deg, #667eea 0%, #43cea2 100%)', color: '#fff', border: 'none', borderRadius: '24px', padding: '10px 22px', fontSize: '1rem', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(67, 126, 234, 0.15)', marginRight: '0.5rem' }}>
           Se déconnecter
         </button>
       </div>
@@ -368,67 +268,31 @@ export default function ProfilPage() {
       {!dernierProfil || editMode ? (
         <div style={styles.formBlock}>
           <div style={styles.sectionTitle}>Informations de départ</div>
-          <FormulaireProfil
-            poids={poidsDepart}
-            setPoids={setPoidsDepart}
-            taille={taille}
-            setTaille={setTaille}
-            age={age}
-            setAge={setAge}
-            sexe={sexe}
-            setSexe={setSexe}
-            niveauActivite={niveauActivite}
-            setNiveauActivite={setNiveauActivite}
-            objectif={objectif}
-            setObjectif={setObjectif}
-            pourquoi={pourquoi}
-            setPourquoi={setPourquoi}
-            delai={delai}
-            setDelai={setDelai}
-            handleSubmit={handleSubmit}
-            buttonLabel={editMode ? "Mettre à jour mon profil" : "Enregistrer mon profil"}
-            buttonStyle={styles.button}
-          />
+          <FormulaireProfil poids={poidsDepart} setPoids={setPoidsDepart} taille={taille} setTaille={setTaille} age={age} setAge={setAge} sexe={sexe} setSexe={setSexe} niveauActivite={niveauActivite} setNiveauActivite={setNiveauActivite} objectif={objectif} setObjectif={setObjectif} pourquoi={pourquoi} setPourquoi={setPourquoi} delai={delai} setDelai={setDelai} handleSubmit={handleSubmit} buttonLabel={editMode ? "Mettre à jour mon profil" : "Enregistrer mon profil"} buttonStyle={styles.button} />
         </div>
       ) : null}
 
       {message && <div style={styles.message}>{message}</div>}
-
-      {besoinCaloriqueEntretien && (
-        <div style={styles.formBlock}>
-          <b style={styles.recapLabel}>Besoin calorique d'entretien :</b> {besoinCaloriqueEntretien} kcal
-        </div>
-      )}
-
-      {besoinObjectif && (
-        <div style={styles.formBlock}>
-          <b style={styles.recapLabel}>Pour atteindre ton objectif en {delai} mois, vise {besoinObjectif} kcal par jour.</b>
-        </div>
-      )}
+      {besoinCaloriqueEntretien && <div style={styles.formBlock}><b style={styles.recapLabel}>Besoin calorique d'entretien :</b> {besoinCaloriqueEntretien} kcal</div>}
+      {besoinObjectif && <div style={styles.formBlock}><b style={styles.recapLabel}>Pour atteindre ton objectif en {delai} mois, vise {besoinObjectif} kcal par jour.</b></div>}
 
       {calculsRouteur && (
         <div style={{...styles.formBlock, background: '#e8f5e9', border: '2px solid #4CAF50'}}>
-          <div style={{fontSize: '1.2rem', fontWeight: 'bold', color: '#2e7d32', marginBottom: '1rem'}}>
-            📊 Routeur Poids - Calculs personnalisés
-          </div>
+          <div style={{fontSize: '1.2rem', fontWeight: 'bold', color: '#2e7d32', marginBottom: '1rem'}}>📊 Routeur Poids - Calculs personnalisés</div>
           <ul style={styles.recapList}>
-            <li><span style={styles.recapLabel}>BMR (Métabolisme de base) :</span> {calculsRouteur.bmr} kcal/jour</li>
-            <li><span style={styles.recapLabel}>TDEE (Dépense totale) :</span> {calculsRouteur.tdee} kcal/jour</li>
+            <li><span style={styles.recapLabel}>BMR :</span> {calculsRouteur.bmr} kcal/jour</li>
+            <li><span style={styles.recapLabel}>TDEE :</span> {calculsRouteur.tdee} kcal/jour</li>
             <li><span style={styles.recapLabel}>Budget extras hebdo :</span> {calculsRouteur.budgetExtras} kcal/semaine</li>
             <li><span style={styles.recapLabel}>Apport calorique cible :</span> {calculsRouteur.apport_calorique_cible} kcal/jour</li>
           </ul>
-          <div style={{fontSize: '0.85rem', color: '#666', marginTop: '0.5rem', fontStyle: 'italic'}}>
-            {calculsRouteur.disclaimer}
-          </div>
+          <div style={{fontSize: '0.85rem', color: '#666', marginTop: '0.5rem', fontStyle: 'italic'}}>{calculsRouteur.disclaimer}</div>
         </div>
       )}
 
       {dernierProfil && !editMode && (
         <div style={styles.recapBlock}>
           <div style={styles.recapTitle}>Dernier profil enregistré</div>
-          <button style={{...styles.button, marginBottom: '1rem'}} onClick={() => setMasquerInfos(v => !v)}>
-            {masquerInfos ? 'Afficher les informations sensibles' : 'Masquer les informations sensibles'}
-          </button>
+          <button style={{...styles.button, marginBottom: '1rem'}} onClick={() => setMasquerInfos(v => !v)}>{masquerInfos ? 'Afficher les informations sensibles' : 'Masquer les informations sensibles'}</button>
           <ul style={styles.recapList}>
             <li><span style={styles.recapLabel}>Poids de départ :</span> {masquerInfos ? '••••' : `${dernierProfil.poids_de_depart} kg`}</li>
             <li><span style={styles.recapLabel}>Taille :</span> {masquerInfos ? '••••' : `${dernierProfil.taille} cm`}</li>
@@ -439,56 +303,18 @@ export default function ProfilPage() {
             <li><span style={styles.recapLabel}>Délai :</span> {masquerInfos ? '••••' : `${dernierProfil.delai} mois`}</li>
             <li><span style={styles.recapLabel}>Pourquoi :</span> {dernierProfil.pourquoi}</li>
             <li><span style={styles.recapLabel}>Besoin calorique :</span> {masquerInfos ? '••••' : `${dernierProfil.besoin_calorique} kcal`}</li>
-            {typeof dernierProfil.besoin_objectif === "number" && dernierProfil.besoin_objectif > 0 && (
-              <li><span style={styles.recapLabel}>Objectif calorique (perte de poids) :</span> {masquerInfos ? '••••' : `${dernierProfil.besoin_objectif} kcal`}</li>
-            )}
+            {typeof dernierProfil.besoin_objectif === "number" && dernierProfil.besoin_objectif > 0 && <li><span style={styles.recapLabel}>Objectif calorique :</span> {masquerInfos ? '••••' : `${dernierProfil.besoin_objectif} kcal`}</li>}
           </ul>
-          <div style={styles.recapDate}>
-            Profil créé le {formatDateTime(dernierProfil.created_at)}
-          </div>
-          <div style={styles.motivation}>
-            Courage ! En respectant ce plan, tu atteindras ton objectif de {masquerInfos ? '••••' : dernierProfil.objectif} kg en {masquerInfos ? '••••' : dernierProfil.delai} mois.
-          </div>
-          <button style={styles.editButton} onClick={() => setEditMode(true)}>
-            Modifier mon profil
-          </button>
-          <button style={styles.suivreButton} onClick={goToSuivi}>
-            Commencer mon suivi
-          </button>
-          <button
-            style={{
-              background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8,
-              padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginLeft: 12
-            }}
-            onClick={() => {
-              localStorage.setItem('modeTestParcoursJeune', 'true');
-              localStorage.setItem('modeTestDateVirtuelle', new Date().toISOString().slice(0, 10));
-              localStorage.removeItem('test_modeRepriseActif');
-              localStorage.setItem('repriseMode', 'normal');
-              window.location.href = '/preparation-jeune?modeTest=1';
-            }}
-          >
-            🧪 Mode test parcours jeûne
-          </button>
+          <div style={styles.recapDate}>Profil créé le {formatDateTime(dernierProfil.created_at)}</div>
+          <div style={styles.motivation}>Courage ! En respectant ce plan, tu atteindras ton objectif de {masquerInfos ? '••••' : dernierProfil.objectif} kg en {masquerInfos ? '••••' : dernierProfil.delai} mois.</div>
+          <button style={styles.editButton} onClick={() => setEditMode(true)}>Modifier mon profil</button>
+          <button style={styles.suivreButton} onClick={goToSuivi}>Commencer mon suivi</button>
+          <button style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginLeft: 12 }} onClick={() => { localStorage.setItem('modeTestParcoursJeune', 'true'); localStorage.setItem('modeTestDateVirtuelle', new Date().toISOString().slice(0, 10)); localStorage.removeItem('test_modeRepriseActif'); localStorage.setItem('repriseMode', 'normal'); window.location.href = '/preparation-jeune?modeTest=1'; }}>🧪 Mode test parcours jeûne</button>
         </div>
       )}
 
-      <Link href="/jeune">
-        <button style={{
-          background: "#1976d2", color: "#fff", border: "none", borderRadius: 8,
-          padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginRight: 12
-        }}>
-          Commencer un jeûne
-        </button>
-      </Link>
-      <Link href="/preparation-jeune">
-        <button style={{
-          background: "#388e3c", color: "#fff", border: "none", borderRadius: 8,
-          padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer"
-        }}>
-          Me préparer à jeûner
-        </button>
-      </Link>
+      <Link href="/jeune"><button style={{ background: "#1976d2", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginRight: 12 }}>Commencer un jeûne</button></Link>
+      <Link href="/preparation-jeune"><button style={{ background: "#388e3c", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>Me préparer à jeûner</button></Link>
     </div>
   )
 }
