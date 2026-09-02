@@ -15,6 +15,7 @@
 - Journal spirituel reste Jeûne-only.
 - **L'IA est un miroir sémantique : elle propose/formule, l'utilisateur garde ses mots, modifie ou valide.**
 - **Toute idée d'une reformulation IA doit être traçable au texte utilisateur ; le contexte Pourquoi ne doit pas enrichir la direction.**
+- **La valeur de la reformulation est de faire émerger la structure et de rendre une pensée spontanée claire, cohérente et mémorisable — pas seulement de corriger l'orthographe.**
 - Aucun remplacement silencieux du texte utilisateur par l'IA.
 - Aucun commit sans accord explicite ; le journal accompagne chaque changement.
 
@@ -36,6 +37,7 @@ Correction UX progressive : `4283c9a1166955caa442b00ec19c85835a724fa8`.
 - texte brut + Pourquoi facultatif envoyés au modèle ;
 - consigne stricte : clarifier sans inventer ni classifier automatiquement ;
 - le texte direction est la source unique des idées ; Pourquoi sert seulement à lever une ambiguïté ;
+- l'IA peut condenser, hiérarchiser, regrouper et relier les idées déjà présentes pour produire une direction plus lisible et mémorisable ;
 - proposition modifiable avant validation ;
 - choix explicites « Oui, ça me ressemble », « Garder mes mots », « Revenir » ;
 - pour un texte déjà enregistré : bouton « Clarifier avec My Way » ;
@@ -73,8 +75,9 @@ Commit `4fc25cb903e3d629fb187cbb725fd27e939c00a0`.
 **Commit d'intégration : `bc087f12d250c281a1aa82ee0170d9fb2e25bef5`.**  
 **Test réel :** appel authentifié Vercel → OpenAI fonctionnel après activation des crédits API ; une proposition a été retournée et affichée éditable.  
 **Anomalie qualité détectée :** la première proposition a ajouté des idées absentes de la direction (« accueillir les opportunités », « vivre pleinement la vie dont je rêve »).  
-**Décision :** resserrer le garde-fou : chaque idée doit être directement traçable au texte direction ; aucune aspiration, conséquence, opportunité, intention ou lien causal nouveau ; Pourquoi reste contexte de désambiguïsation uniquement.  
-**Accord utilisateur correction : OUI — « je suis ok go ».**  
+**Correction garde-fou :** commit `f64f3e9aea230e4fc92c4fab2b2ba2f35c5d5ef7` ; chaque idée doit être directement traçable au texte direction ; aucune aspiration, conséquence, opportunité, intention ou lien causal nouveau ; Pourquoi reste contexte de désambiguïsation uniquement.  
+**Nouvelle précision fonctionnelle validée :** la reformulation ne doit pas devenir une simple correction linguistique. Elle doit faire ressortir la structure du sens déjà présent et transformer une pensée spontanée en direction personnelle claire, cohérente et mémorisable. Elle peut condenser, hiérarchiser, regrouper et relier les idées existantes sans en créer de nouvelles.  
+**Accord utilisateur : OUI — « OK, fais la correction maintenant. »**  
 **Sécurité :** l'erreur fournisseur n'est plus journalisée avec son corps de réponse ; seul le statut est logué.  
 **Migration Supabase : AUCUNE.**  
-**Suite :** redéployer puis rejouer le même texte pour valider la fidélité sémantique avant de clôturer P4.5.
+**Suite :** rejouer le même texte après redéploiement pour valider simultanément la valeur de clarification et la fidélité sémantique avant de clôturer P4.5.
