@@ -3,67 +3,63 @@
 **Date d'initialisation : 1er septembre 2026**  
 **Branche de travail : `Align-Life`**  
 **Branche source : `plan-alimentaire-intelligent-chatgpt`**  
-**HEAD de création de la branche : `0f9be4e3c2b5278d4c1fadc4fcc63110a3a9d36e`**  
-**Statut : P0 gouvernance validé ; P1 expérience utilisateur validée ; P2 audit technique = prochaine priorité**
+**HEAD de création : `0f9be4e3c2b5278d4c1fadc4fcc63110a3a9d36e`**  
+**Statut : P0 terminé ; P1 terminé ; P2 terminé ; P2.5 = prochaine priorité ; P3+ non commencés.**
 
 ---
 
-# 1. RÈGLES DE GOUVERNANCE DU CHANTIER
+# 1. RÈGLES DE GOUVERNANCE
 
-Ces règles sont obligatoires pour tout travail effectué dans le périmètre Align-Life.
-
-1. **Aucun commit sans accord explicite préalable de l'utilisateur.**
-2. **Aucun commit hors de la branche `Align-Life` pour ce périmètre.**
-3. Avant toute modification applicative : audit ciblé des fichiers et comportements réellement concernés sur le HEAD courant de `Align-Life`.
-4. Aucun comportement existant ne doit être cassé pour introduire la nouvelle vision.
-5. Toute modification autorisée doit mettre à jour **ce fichier de suivi dans le même commit** que le changement concerné.
-6. Après chaque changement : documenter les tests techniques et fonctionnels réellement effectués, les résultats, anomalies et risques résiduels.
-7. Ne jamais documenter comme « fait » ce qui n'a pas été réellement implémenté ou vérifié.
+1. Aucun commit sans accord explicite préalable de l'utilisateur.
+2. Aucun commit hors de `Align-Life` pour ce périmètre.
+3. Avant toute modification applicative : audit ciblé du HEAD courant.
+4. Ne pas casser un comportement existant pour introduire Align-Life / My Way.
+5. Chaque modification autorisée met à jour ce journal dans le même commit.
+6. Documenter les tests réellement effectués, résultats, anomalies et risques résiduels.
+7. Ne jamais présenter comme fait ce qui n'a pas été implémenté ou vérifié.
 8. Tout changement Supabase, migration, RLS, API ou données doit être explicitement consigné.
-9. En cas d'échec, de rollback ou d'anomalie, l'événement doit être enregistré dans ce journal, au même titre qu'un succès.
-10. Ce fichier est la **source de reprise opérationnelle du chantier** : toute personne reprenant le projet doit pouvoir comprendre le dernier état fiable, le dernier commit, les décisions, les tests et la prochaine étape.
+9. Échecs, rollbacks et anomalies sont journalisés comme les succès.
+10. Ce fichier est la source de reprise opérationnelle du chantier.
 
 ---
 
-# 2. OBJECTIF PRODUIT ALIGN-LIFE
+# 2. OBJECTIF PRODUIT
 
-Construire un socle transversal qui permet à Mon Plan Vital de relier :
+Relier progressivement :
 
 **direction personnelle → aspirations → actions réelles → observation → adaptation → transformation visible.**
 
-Le socle ne doit pas créer une nouvelle application dans l'application. Il doit orchestrer et donner du sens aux capacités existantes : Mon Pourquoi, Suivi, Plan, Extras, Défis, Idéaux, poids et cycles.
+Le socle orchestre les capacités existantes au lieu de créer une application dans l'application.
 
-Boucle cible :
-
-**CREATE → ALIGN → LIVE → OBSERVE → ADAPT → GROW → enrichissement de la Boussole.**
+Boucle interne : **CREATE → ALIGN → LIVE → OBSERVE → ADAPT → GROW**.
 
 ## Nomenclature verrouillée
 
-- **Nom utilisateur de l'expérience : `My Way`**.
-- **Concept produit/fonctionnel interne : Boussole**.
-- **Notion de cap :** peut être utilisée à l'intérieur de My Way pour parler de direction, mais n'est pas le nom principal de l'expérience.
-- **Architecture interne :** CREATE → ALIGN → LIVE → OBSERVE → ADAPT → GROW.
-- **Branche de développement :** `Align-Life`.
-- **Sous-titre de travail :** « My Way — Ce qui compte pour moi et ce que je construis. » ; formulation révisable ultérieurement sans remettre en cause le naming validé `My Way`.
+- **Nom visible utilisateur : `My Way`.**
+- **Concept produit interne : Boussole.**
+- La notion de cap peut être utilisée dans les textes de My Way, mais n'est pas son nom principal.
+- Architecture interne : CREATE → ALIGN → LIVE → OBSERVE → ADAPT → GROW.
+- Branche : `Align-Life`.
+- Sous-titre de travail : « My Way — Ce qui compte pour moi et ce que je construis. »
 
-Principes verrouillés :
+## Principes verrouillés
 
-- Mon Pourquoi reste la graine initiale de la Boussole / My Way ;
+- Mon Pourquoi = graine initiale de My Way ;
 - une seule direction identitaire globale et évolutive ;
 - exprimer quand je sais / découvrir quand je ne sais pas ;
 - aucune obligation de compléter My Way ;
 - aspiration ≠ objectif ≠ Idéal ;
-- l'utilisateur choisit si une aspiration devient un projet concret ;
-- Idéaux transforme une aspiration concrète en trajectoire ;
+- aspiration → Idéal uniquement sur choix explicite ;
 - LIVE réutilise les moteurs existants ;
 - GROW part de faits vérifiés ;
 - fait ≠ tendance ≠ transformation ;
 - `NO_INTERVENTION` est un état fonctionnel ;
-- l'IA formule ou clarifie, elle ne décide pas qui est l'utilisateur ;
-- l'utilisateur valide toute formulation touchant à son identité ou sa vision ;
-- le Journal spirituel reste contextuel au Jeûne ;
+- l'IA formule/clarifie mais ne décide pas de l'identité ;
+- toute formulation identitaire ou de vision appartient à l'utilisateur et doit être validée par lui ;
+- Journal spirituel = Jeûne-only ;
 - GROW peut traverser Préparation → Jeûne → Reprise → Cristallisation → fonctionnement normal ;
-- l'autonomisation est une dimension importante du succès produit.
+- autonomisation = dimension importante du succès ;
+- on mesure des phénomènes utiles, on ne note pas la personne.
 
 ---
 
@@ -73,293 +69,196 @@ Principes verrouillés :
 
 **État : TERMINÉ.**
 
-Objectifs atteints :
-- branche `Align-Life` dédiée ;
-- règles de commit consignées ;
-- journal de passation opérationnel ;
-- interdiction de modification applicative avant audit et validation du parcours respectée.
+Branche dédiée, règles de commit et journal de passation établis.
 
-Critère de sortie atteint : ce fichier est présent sur `Align-Life` et devient obligatoire dans chaque futur commit autorisé.
+## P1 — Expérience utilisateur cible My Way
 
----
+**État : TERMINÉ.**
 
-## P1 — Figer l'expérience utilisateur cible Align-Life / My Way
+Parcours validé :
 
-**État : TERMINÉ — parcours fonctionnel + implantation UX cible + naming validés.**
+**Mon Pourquoi → My Way progressive → aspiration éventuelle → Idéaux sur choix explicite → LIVE → OBSERVE → GROW → éventuel ADAPT → My Way enrichie.**
 
-### P1A — Parcours fonctionnel validé
+Implantation UX cible :
+- Profil = naissance via objectif + Mon Pourquoi ;
+- My Way n'est pas enfermée dans Profil ;
+- Tableau de bord = entrée légère privilégiée ;
+- pas de nouvel onglet principal My Way par défaut ;
+- GROW apparaît aussi contextuellement là où le fait significatif se produit ;
+- My Way n'est pas un gestionnaire de tâches ;
+- Idéaux reste le moteur de concrétisation d'une aspiration.
 
-Parcours cible :
+Contenus candidats : pourquoi j'ai commencé ; ce qui compte ; direction identitaire si exprimée/validée ; aspirations ; éléments GROW validés.
 
-**Mon Pourquoi → My Way progressive → aspiration éventuelle → Idéaux si choix de concrétisation → LIVE dans les outils existants → OBSERVE → GROW → éventuel ADAPT → My Way enrichie.**
+## P2 — Audit technique ciblé du HEAD réel
 
-Règles fonctionnelles validées :
-- Mon Pourquoi reste la graine d'entrée ;
-- si l'utilisateur sait ce qu'il veut exprimer, il peut l'écrire directement ;
-- s'il ne sait pas, l'application ne l'interroge pas en boucle et il peut continuer à vivre son parcours ;
-- les éléments de My Way sont évolutifs et non obligatoires ;
-- une aspiration peut rester une aspiration ;
-- seule une décision explicite de l'utilisateur permet de la transmettre à Idéaux ;
-- `NO_INTERVENTION` / droit au silence sont conservés ;
-- GROW montre des faits/tendances/transformations observables sans attribuer automatiquement une identité à l'utilisateur.
+**État : TERMINÉ EN LECTURE SEULE le 2 septembre 2026.**
 
-### P1B — Implantation UX cible validée
+**HEAD audité : `eda00ff29b60969876eba0ce60caa23e5036bbdc`.**
 
-Décisions :
-- **`My Way` est le nom visible utilisateur.**
-- `Boussole` reste un terme interne et ne doit pas être présenté par défaut comme le nom d'un nouvel onglet utilisateur.
-- ne pas créer par défaut un nouvel onglet principal `My Way` dans la navigation ; l'audit technique P2 doit confirmer le raccord le moins intrusif ;
-- le **Profil** reste le point de naissance naturel via l'objectif + Mon Pourquoi ;
-- toute l'expérience My Way ne doit pas être enfermée dans le Profil ;
-- le **Tableau de bord** est la cible privilégiée pour une entrée légère et volontaire vers My Way ;
-- **GROW doit aussi apparaître contextuellement** là où le fait significatif se produit réellement : Suivi, Idéaux, Défi, Cristallisation, etc. ;
-- My Way sert à retrouver le sens et les éléments validés, pas à créer un nouveau tableau de tâches ;
-- Idéaux reste le moteur de concrétisation d'une aspiration et n'est pas remplacé par My Way.
+### Conclusion générale
 
-Contenus candidats de l'espace My Way, sans obligation de complétion :
-- pourquoi j'ai commencé ;
-- ce qui compte pour moi / ce que je veux vivre davantage ;
-- qui je choisis de devenir, uniquement si je l'ai exprimé ou validé ;
-- mes aspirations ;
-- ce que mon parcours m'a déjà montré via GROW.
+L'architecture My Way est compatible avec l'application actuelle. Il n'est pas nécessaire de reconstruire Profil, Dashboard, Suivi, Idéaux, Défis ou les cycles. Le raccord doit réutiliser leurs responsabilités existantes.
 
-**Critère de sortie atteint : l'expérience cible est suffisamment figée pour permettre l'audit technique P2 sans recommencer la conception fonctionnelle.**
+Le principal risque découvert est l'hétérogénéité de l'isolation utilisateur dans plusieurs tables historiques. Les nouvelles données My Way ne doivent pas reproduire cette dette.
 
----
+### Matrice de raccordement
 
-## P2 — Audit technique ciblé sur le HEAD réel de `Align-Life`
+| Capacité | Existant réel | Décision de raccord | Risque / préalable |
+|---|---|---|---|
+| Mon Pourquoi | `profil.pourquoi` existe et est utilisé | réutiliser comme graine ; ne pas dupliquer | sécuriser le chemin Profil avant My Way |
+| Entrée My Way | Dashboard déjà agrégateur | carte/entrée légère ultérieure | faible |
+| My Way | pas de stockage dédié | créer seulement les données nouvelles nécessaires | P2.5 puis P3 |
+| Aspiration → Idéaux | `ideaux` existe | transfert uniquement après choix explicite | Idéaux actuellement très orienté course + isolation |
+| LIVE / Suivi | `suivi.js` centralise déjà le vécu alimentaire et les cycles | réutiliser ses événements | bon socle |
+| Extras / retour | `repas_reels.est_extra` + chronologie | candidat prioritaire OBSERVE/GROW | faible sur isolation actuelle de `repas_reels` |
+| Défis | moteur existant | preuve d'accompagnement ; chercher ensuite transfert hors défi | isolation historique à traiter avant raccord |
+| Progression Idéaux | `seances_reelles` prévu/réel + métriques | excellent terrain GROW | sécurisation avant raccord |
+| Cristallisation | progression + tracking comportemental | futur terrain GROW | sécurisation avant raccord |
+| Journal spirituel | stockage séparé | aucune alimentation automatique de GROW/My Way | conforme au principe Jeûne-only |
 
-**État : PROCHAINE PRIORITÉ — aucun code applicatif à modifier pendant l'audit.**
+### Constats techniques vérifiés
 
-Auditer uniquement les zones qui doivent réellement se raccorder :
+#### Profil / Mon Pourquoi
+- table réelle : `profil` ;
+- colonne `pourquoi` existante et non nullable ;
+- `user_id` existe ;
+- le code historique charge notamment le dernier profil sans filtre propriétaire explicite dans le chemin audité ;
+- RLS est activée mais les policies observées sur `profil` autorisent actuellement largement l'accès (`true`) au lieu d'imposer `auth.uid() = user_id`.
 
-- `pages/profil.js` / Mon Pourquoi ;
-- `components/FormulaireProfil.js` ;
-- `pages/tableau-de-bord.js` ;
-- `pages/ideaux.js` ;
-- `pages/plan-action.js` ;
-- `lib/generateAnchoringPlan.js` ;
-- `pages/suivi.js` ;
-- flux Extras ;
-- Défis ;
-- dashboard/navigation ;
-- Auth / `user_id` ;
-- tables/RLS Supabase nécessaires ;
-- Préparation Jeûne ;
-- Jeûne ;
-- Reprise ;
-- Cristallisation.
+**Décision :** ne créer aucune copie `my_way_pourquoi`. My Way lira la graine existante après sécurisation ciblée.
 
-Livrable attendu : matrice
+#### Suivi / repas réels
+- `handleSaveRepas` récupère l'utilisateur Supabase ;
+- `normaliserRepasPourPersistance` renseigne `user_id` ;
+- `repas_reels` possède des policies propriétaire SELECT/INSERT/UPDATE/DELETE basées sur `auth.uid() = user_id` ;
+- audit de comptage : 1 400 lignes `repas_reels`, 1 400 avec `user_id` au moment de l'audit.
 
-**capacité → fichier actuel → données disponibles → modification nécessaire → dépendances → risque de régression → test requis.**
+**Décision :** ne pas recréer le moteur LIVE. Les repas/extras constituent un socle fiable pour de futurs événements OBSERVE.
 
-Objectif : raccorder au réel existant, pas recréer ce qui fonctionne déjà.
+#### Idéaux
+- table `ideaux` avec `user_id`, titre, description émotionnelle, indicateur, date cible, plan JSON et états de validation ;
+- générateur et écran actuels contiennent des valeurs/structures fortement orientées course : fréquence, durée, vitesse `7,6 km/h`, jours lundi/mercredi/samedi, `action_type: course` ;
+- `seances_reelles` contient notamment prévu/réel, fait, bonus, statut et `user_id` ;
+- policies actuelles de `ideaux` et `seances_reelles` sont permissives (`true`).
 
----
+**Décision :** My Way pourra transmettre une aspiration à Idéaux, mais la généralisation fonctionnelle et la sécurisation d'Idéaux restent nécessaires dans P6/P7.
 
-## P3 — Fondation de données de la Boussole / My Way
+#### Défis
+- table `defis` possède `user_id` ;
+- le contexte et la page audités chargent actuellement les défis sans filtre utilisateur explicite ;
+- policy RLS actuelle observée : permissive (`true`).
 
-**État : À FAIRE après audit.**
+**Décision :** ne pas utiliser les Défis comme preuve autonome de transformation. Le futur GROW cherchera notamment le transfert d'un comportement hors du cadre du Défi.
 
-Conserver le minimum nécessaire pour :
-- Mon Pourquoi existant ;
-- expressions libres ;
-- éléments validés ;
-- direction personnelle éventuellement exprimée ;
-- aspirations ;
-- principes d'incarnation éventuellement validés ;
-- provenance : utilisateur / proposition GROW / proposition IA ;
-- statut : brut / proposé / validé / refusé / archivé.
+#### Cycles
+- Préparation/Reprise utilisent déjà plusieurs raccords `user_id` ;
+- `reprises_alimentaires` possède des policies propriétaire correctes ;
+- `parcours_cristallisation` a RLS activée mais policy permissive actuelle ;
+- `parcours_jeune` possède `user_id` de type `text`, contient 25 lignes dont 22 avec `user_id` lors de l'audit, et **RLS est actuellement désactivée** ;
+- l'advisor sécurité Supabase remonte explicitement `parcours_jeune` comme table publique sans RLS ;
+- Journal spirituel utilise des requêtes liées à `user_id` et reste hors alimentation automatique de My Way/GROW.
 
-Contraintes :
-- isolation utilisateur explicite ;
-- stratégie de migration avant toute transformation des données existantes ;
-- ne pas créer des tables conceptuelles inutiles avant besoin réel.
+**Décision :** ne pas lancer maintenant une migration transversale de tous les cycles. Sécuriser chaque chemin au moment de son raccord, sauf vulnérabilité indépendante devant faire l'objet d'un chantier sécurité séparé.
 
----
+### Critère de sortie P2
+
+Atteint : le raccord My Way au réel est suffisamment cartographié pour définir un garde-fou de données ciblé avant la fondation P3.
+
+## P2.5 — Garde-fou données My Way
+
+**État : PROCHAINE PRIORITÉ — À CONCEVOIR/VALIDER AVANT TOUTE ÉCRITURE SUPABASE.**
+
+Objectif : garantir que My Way démarre sur une isolation utilisateur saine sans déclencher une refonte sécurité de toute l'application.
+
+Périmètre proposé :
+1. sécuriser le chemin strictement nécessaire `profil` / Mon Pourquoi ;
+2. définir la stratégie de compatibilité pour les 3 profils existants avant modification de policy ;
+3. définir les futures tables/colonnes My Way avec `user_id UUID NOT NULL` et RLS propriétaire dès leur création ;
+4. prévoir les policies SELECT/INSERT/UPDATE/DELETE avec propriété `auth.uid() = user_id` ;
+5. vérifier les contraintes et index utiles ;
+6. ne pas modifier Idéaux, Défis, cycles ou autres tables dans P2.5 sauf nécessité démontrée pour le premier flux My Way ;
+7. toute migration sera testée avant raccord UI et fera l'objet d'un accord utilisateur explicite.
+
+**Important : P2.5 n'autorise encore aucune migration.** Il prépare la modification minimale et son plan de test.
+
+## P3 — Fondation de données My Way
+
+**État : À FAIRE après P2.5.**
+
+Stocker uniquement ce qui n'existe pas déjà : expressions libres, éléments validés, direction éventuellement exprimée, aspirations, principes d'incarnation éventuellement validés, provenance et statut.
+
+Contraintes : isolation utilisateur explicite ; migration préparée ; pas de tables conceptuelles inutiles.
 
 ## P4 — My Way V1 sans dépendance forte à l'IA
 
 **État : À FAIRE.**
 
-Fonctions minimales :
-- consulter ;
-- ajouter ;
-- modifier ;
-- archiver/supprimer selon règle retenue ;
-- dire « je ne sais pas / pas maintenant » ;
-- continuer le parcours normalement.
+Consulter, ajouter, modifier, archiver/supprimer selon règle retenue, « je ne sais pas / pas maintenant », continuer normalement. Fonctionnement possible sans IA.
 
-La fonctionnalité doit rester utilisable si le service IA est indisponible.
-
----
-
-## P5 — IA V1 : « reformuler sans inventer »
+## P5 — IA V1 « reformuler sans inventer »
 
 **État : À FAIRE.**
 
-Flux cible :
+Flux : texte utilisateur → route serveur → contexte minimal → proposition structurée → Ça me ressemble / Je modifie / Je garde mes mots / Je refuse → seule la formulation validée devient référence.
 
-texte utilisateur → route serveur → contexte minimal → proposition structurée → affichage → **Ça me ressemble / Je modifie / Je garde mes mots / Je refuse** → seule la formulation validée est persistée comme référence.
-
-Avant implémentation : recalculer les coûts API actuels et documenter :
-- 1 personne en test ;
-- 20 utilisateurs actifs/mois ;
-- fréquence d'appels ;
-- volume moyen ;
-- coût moyen/utilisateur ;
-- modèle cible et fallback éventuel.
-
----
+Avant implémentation : recalculer coût API pour test personnel, 20 utilisateurs actifs/mois, fréquence/volume et coût moyen utilisateur.
 
 ## P6 — Raccord My Way → Idéaux
 
 **État : À FAIRE.**
 
-Règle : une aspiration ne devient jamais automatiquement un Idéal.
-
-Exemple :
-
-**My Way** : retrouver ma liberté physique  
-→ **aspiration** : recommencer à courir  
-→ choix utilisateur : **En faire quelque chose de concret**  
-→ **Idéaux prend le relais.**
-
-À définir : UX de passage, données transmises, possibilité de revenir/refuser, conservation du sens initial.
-
----
+Une aspiration ne devient jamais automatiquement un Idéal. UX, données transmises et retour/refus restent à définir au moment du raccord.
 
 ## P7 — Finalisation fonctionnelle d'Idéaux
 
 **État : À FAIRE après raccord P6.**
 
-Cible :
+Cible : aspiration concrète → objectif → Palier 1 → actions → observation → adaptation → palier suivant.
 
-**aspiration concrète → objectif → Palier 1 → actions → observation réelle → adaptation → palier suivant → progression vers l'idéal.**
-
-Points connus à réévaluer sur le code actuel avant changement :
-- généricité hors course ;
-- vrais multi-paliers ;
-- adaptation retard / avance ;
-- reprise après interruption ;
-- Plan B / alternatives ;
-- bonus ;
-- fiabilisation du défloutage ;
-- durée de palier ;
-- isolation utilisateur ;
-- raccord GROW.
-
-Aucune correction ne sera faite sur la seule base d'un ancien état des lieux : chaque point devra être revérifié sur `Align-Life`.
-
----
+À réévaluer sur le code courant : généricité hors course, multi-paliers, retard/avance, reprise après interruption, alternatives, bonus, durée, isolation utilisateur, raccord GROW.
 
 ## P8 — OBSERVE / moteur événementiel V1
 
 **État : À FAIRE.**
 
-Premiers signaux candidats :
-- retour après extra ;
-- retour après interruption ;
-- progression Idéaux ;
-- comportement maintenu après Défi si prouvable ;
-- événements pertinents de Cristallisation.
+Candidats : retour après extra, retour après interruption, progression Idéaux, transfert après Défi si prouvable, Cristallisation.
 
-Pipeline :
-
-**LIVE → OBSERVE → DETECT → DECIDE**
-
-avec `NO_INTERVENTION` lorsque la preuve, l'utilité ou le contexte ne justifie pas de message.
-
----
+Pipeline : **LIVE → OBSERVE → DETECT → DECIDE**, avec `NO_INTERVENTION` si preuve/utilité/contexte insuffisants.
 
 ## P9 — GROW V1
 
 **État : À FAIRE.**
 
-Hiérarchie de preuve retenue :
-- P0 donnée brute ;
-- P1 fait établi ;
-- P2 répétition ;
-- P3 tendance ;
-- P4 transfert ;
-- P5 autonomie.
+Preuve : P0 donnée brute → P1 fait → P2 répétition → P3 tendance → P4 transfert → P5 autonomie.
 
-Le langage de GROW ne peut jamais dépasser la force de la preuve.
-
-Candidat MVP prioritaire : **retour après écart / interruption**.
-
----
+Candidat MVP : retour après écart/interruption.
 
 ## P10 — GROW + Idéaux
 
 **État : À FAIRE.**
 
-Objectif : distinguer célébration de résultat et mise en sens de la progression.
-
-Exemple factuel :
-
-> « Il y a deux mois, 12 minutes étaient difficiles. Aujourd'hui tu en fais 28. »
-
-Puis, uniquement si un élément validé dans My Way le permet :
-
-> « Tu avais associé cela au fait de retrouver ta liberté physique. Cette liberté commence à prendre une forme concrète. »
-
----
+Distinguer résultat mesuré et mise en sens. La reconnexion à My Way n'est permise que si l'utilisateur a validé l'élément de direction concerné.
 
 ## P11 — Raccord aux cycles
 
 **État : À FAIRE.**
 
-Préparation → Jeûne → Reprise → Cristallisation restent des expériences contextuelles distinctes.
+Préparation → Jeûne → Reprise → Cristallisation restent distincts. GROW peut traverser les phases ; Journal spirituel reste Jeûne-only ; transfert d'une prise de conscience spirituelle uniquement volontaire.
 
-Règles :
-- GROW peut traverser les phases ;
-- Journal spirituel reste Jeûne-only ;
-- aucune analyse automatique du contenu spirituel dans le socle global ;
-- un éventuel transfert de prise de conscience doit être volontaire ;
-- Cristallisation est un terrain privilégié pour distinguer comportement accompagné, consolidation, transfert et autonomie.
+## P12 — ADAPT / orchestration avancée
 
----
+**État : À FAIRE EN DERNIER.**
 
-## P12 — ADAPT et orchestration avancée
-
-**État : À FAIRE en dernier.**
-
-Routage cible selon le besoin :
-- besoin alimentaire → Plan / Suivi ;
-- trajectoire Idéaux inadéquate → Idéaux adapte ;
-- utilisateur mobilisable → Défi ;
-- future dérive profonde / fermeture → Capsule/Porte si ce chantier est un jour validé ;
-- rien de pertinent → `NO_INTERVENTION`.
-
-ADAPT n'est pas un nouvel écran ni un module autonome.
+Router vers l'outil légitime : Plan/Suivi, Idéaux, Défi, future Capsule/Porte ; sinon `NO_INTERVENTION`. ADAPT n'est pas un écran autonome.
 
 ---
 
-# 4. FORMAT OBLIGATOIRE DU JOURNAL DE CHANGEMENTS
+# 4. FORMAT OBLIGATOIRE DU JOURNAL
 
-Pour chaque futur changement autorisé, ajouter une entrée contenant au minimum :
+Chaque changement autorisé consigne : date/heure ; branche ; HEAD avant ; objectif ; accord utilisateur ; fichiers inspectés ; fichiers modifiés ; Supabase/API/migration ; comportement avant/après ; tests ; résultats ; régressions/anomalies/limites ; décisions ; commit SHA ; HEAD après ; prochaine étape autorisée ou non.
 
-- **Date / heure** ;
-- **Branche** ;
-- **HEAD avant changement** ;
-- **Objectif du changement** ;
-- **Accord utilisateur reçu** ;
-- **Fichiers inspectés** ;
-- **Fichiers modifiés** ;
-- **Supabase / API / migration concernée ou non** ;
-- **Comportement avant** ;
-- **Comportement attendu après** ;
-- **Tests réalisés** ;
-- **Résultats des tests** ;
-- **Régressions / anomalies / limites** ;
-- **Décisions prises** ;
-- **Commit SHA** ;
-- **HEAD après commit** ;
-- **Prochaine étape autorisée / non autorisée**.
-
-Note technique : le SHA d'un commit ne peut pas être connu avant sa création. Le SHA du commit courant doit donc être vérifié immédiatement après création et reporté dans le récapitulatif externe ; il sera également consolidé dans ce journal au prochain commit autorisé, sans créer un commit documentaire artificiel uniquement pour auto-référencer son propre SHA.
+Le SHA du commit courant, inconnu avant sa création, est vérifié immédiatement après et consolidé dans l'entrée suivante autorisée.
 
 ---
 
@@ -369,37 +268,47 @@ Note technique : le SHA d'un commit ne peut pas être connu avant sa création. 
 
 **Date : 1er septembre 2026**  
 **Branche : `Align-Life`**  
-**HEAD avant changement : `0f9be4e3c2b5278d4c1fadc4fcc63110a3a9d36e`**  
-**Objectif :** créer le plan d'action priorisé et la source unique de passation du chantier Align-Life.  
-**Accord utilisateur : OUI — « ok go » après présentation explicite du contenu et de la règle de commit.**  
-**Fichiers inspectés :** documentation de cadrage Boussole/GROW déjà présente sur la branche source avant création de `Align-Life`.  
-**Fichier modifié/créé :** `docs/ALIGN_LIFE_PLAN_ACTION_ET_JOURNAL.md`.  
-**Supabase / API / migration :** non concerné.  
-**Code applicatif :** aucun changement.  
-**Comportement utilisateur :** aucun changement.  
-**Tests :** vérification de la création du fichier et du commit sur `Align-Life` uniquement.  
+**HEAD avant : `0f9be4e3c2b5278d4c1fadc4fcc63110a3a9d36e`**  
+**Objectif :** créer le plan d'action et la source de passation.  
+**Accord utilisateur : OUI — « ok go ».**  
+**Fichier créé :** `docs/ALIGN_LIFE_PLAN_ACTION_ET_JOURNAL.md`.  
+**Supabase/API/migration :** non.  
+**Code/comportement utilisateur :** aucun changement.  
+**Tests :** vérification fichier + commit sur `Align-Life`.  
 **Résultat :** succès.  
-**Commit SHA / HEAD après :** `d531ee315d9491c468b6865fc7d8f98e31a97b62`.  
-**Prochaine étape :** P1 — figer l'expérience utilisateur cible Align-Life avant toute modification applicative.
-
----
+**Commit / HEAD après : `d531ee315d9491c468b6865fc7d8f98e31a97b62`.**  
+**Suite :** P1.
 
 ## LOG 002 — Validation du parcours UX et du naming My Way
 
 **Date : 1er septembre 2026**  
 **Branche : `Align-Life`**  
-**HEAD avant changement : `d531ee315d9491c468b6865fc7d8f98e31a97b62`**  
-**Objectif :** figer dans la source de passation les décisions P1 déjà validées en conversation : expérience utilisateur cible, implantation UX de principe et naming `My Way`.  
-**Accord utilisateur : OUI — « go » après explication explicite que l'autorisation concernait uniquement la mise à jour documentaire du journal, et non des modifications applicatives.**  
-**Fichiers inspectés pendant l'audit UX ciblé :** `components/Navigation.js`, `pages/profil.js`, `pages/tableau-de-bord.js`, `pages/suivi.js`, `pages/ideaux.js`, `docs/ALIGN_LIFE_PLAN_ACTION_ET_JOURNAL.md`.  
-**Fichier modifié :** `docs/ALIGN_LIFE_PLAN_ACTION_ET_JOURNAL.md` uniquement.  
-**Supabase / API / migration :** non concerné. Aucun changement de schéma, donnée, RLS ou API.  
-**Comportement avant :** My Way/Boussole n'est pas implémenté ; la documentation P1 restait marquée « à faire ».  
-**Comportement attendu après :** aucun changement visible dans l'application ; la documentation devient la référence de passation pour le naming et l'UX cible validés.  
-**Tests réalisés avant commit :** vérification du HEAD `Align-Life`, lecture du journal existant, contrôle ciblé des fichiers UX concernés.  
-**Résultats :** les décisions sont compatibles avec l'architecture visible actuelle : navigation courte, Mon Pourquoi dans Profil, dashboard agrégateur, Suivi comme centre vivant, Idéaux comme moteur de concrétisation.  
-**Régressions / anomalies / limites :** aucune régression applicative possible sur ce commit documentaire ; P2 n'est pas encore réalisé ; My Way n'est pas encore implémenté ; le sous-titre est une formulation de travail.  
-**Décisions prises :** nom utilisateur `My Way` ; Boussole = concept interne ; pas de nouvel onglet principal par défaut ; graine via Mon Pourquoi/Profil ; entrée vivante privilégiée depuis le Tableau de bord ; GROW contextuel ; aspiration → Idéaux uniquement sur choix explicite ; droit au silence / `NO_INTERVENTION` conservé.  
-**Commit SHA :** à vérifier immédiatement après création de ce commit, puis à consolider au prochain commit autorisé.  
-**HEAD après commit :** à vérifier immédiatement après création de ce commit.  
-**Prochaine étape :** P2 — audit technique ciblé en lecture seule. **Aucune modification applicative n'est autorisée par ce commit.**
+**HEAD avant : `d531ee315d9491c468b6865fc7d8f98e31a97b62`**  
+**Objectif :** figer P1, implantation UX et naming `My Way`.  
+**Accord utilisateur : OUI — autorisation documentaire uniquement.**  
+**Fichiers inspectés :** Navigation, Profil, Dashboard, Suivi, Idéaux, journal.  
+**Fichier modifié :** journal uniquement.  
+**Supabase/API/migration :** non.  
+**Comportement utilisateur :** aucun changement.  
+**Résultat :** P1 validé.  
+**Commit / HEAD après : `eda00ff29b60969876eba0ce60caa23e5036bbdc`.**  
+**Suite :** P2 lecture seule.
+
+## LOG 003 — Audit technique P2 et définition du garde-fou P2.5
+
+**Date / heure : 2 septembre 2026, après audit P2.**  
+**Branche : `Align-Life`.**  
+**HEAD avant : `eda00ff29b60969876eba0ce60caa23e5036bbdc`.**  
+**Objectif :** consigner l'audit technique réel de My Way, ses raccords, les risques d'isolation utilisateur et introduire P2.5 avant P3.  
+**Accord utilisateur : OUI — « ok vasi » après restitution de P2 et proposition explicite de documenter P2 + P2.5 avant développement.**  
+**Fichiers inspectés pendant P2 :** notamment `components/Navigation.js`, `pages/profil.js`, `pages/tableau-de-bord.js`, `pages/suivi.js`, `pages/ideaux.js`, `pages/defis.js`, `components/DefisContext.js`, `lib/repasPersistence.js`, `pages/preparation-jeune.js`, `lib/preparationsJeune.js`, `lib/parcoursJeuneAPI.js`, `lib/cristallisationAPI.js`, `lib/journalSpirituelAPI.js`, `lib/supabaseClient.js`, documentation Align-Life.  
+**Fichier modifié par ce changement :** `docs/ALIGN_LIFE_PLAN_ACTION_ET_JOURNAL.md` uniquement.  
+**Supabase/API/migration :** Supabase a été interrogé **en lecture seule** pour vérifier tables, colonnes, RLS, policies, volumétrie ciblée et advisor sécurité. **Aucune donnée, policy, table, migration ou fonction n'a été modifiée.**  
+**Comportement avant :** P2 était marqué à faire ; aucune matrice fiable ne distinguait les raccords déjà sains des dettes historiques.  
+**Comportement attendu après :** aucun changement visible dans l'application ; le journal devient la référence technique pour P2 et interdit de démarrer P3 avant le garde-fou P2.5.  
+**Tests/vérifications :** HEAD contrôlé ; code réel inspecté ; schéma/policies RLS interrogés ; comptages ciblés effectués ; advisor sécurité Supabase exécuté.  
+**Résultats :** `repas_reels` est correctement propriétaire et 1 400/1 400 lignes ont `user_id` ; `profil`, `ideaux`, `defis`, `seances_reelles`, `parcours_cristallisation` ont des policies permissives observées ; `parcours_jeune` a RLS désactivée et 22/25 lignes avec `user_id` ; Idéaux reste orienté course ; My Way peut réutiliser l'existant sans recréer les moteurs.  
+**Régressions/anomalies/limites :** aucune régression car documentation uniquement ; aucune migration testée ; P2.5 n'est pas encore exécuté ; l'audit sécurité complet de toute l'application n'est pas dans ce périmètre.  
+**Décisions :** réutiliser `profil.pourquoi` ; ne pas dupliquer Mon Pourquoi ; Dashboard comme entrée légère ; Suivi comme LIVE ; GROW au-dessus de faits existants ; sécurisation progressive des raccords ; créer les futures données My Way avec ownership strict dès l'origine ; ne pas lancer une refonte globale des RLS dans ce chantier.  
+**Commit SHA / HEAD après :** à vérifier immédiatement après création du présent commit et à consolider au prochain commit autorisé.  
+**Prochaine étape : P2.5 à concevoir précisément. Aucune migration ni modification applicative n'est autorisée par ce commit.**
