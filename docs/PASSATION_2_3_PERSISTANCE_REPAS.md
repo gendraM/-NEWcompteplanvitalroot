@@ -170,3 +170,20 @@ La correction reste indépendante du moteur d'alignement et ne modifie pas le sc
 Le regroupement d'une assiette planifiée ne repose pas sur une approximation rétroactive : seules les lignes marquées `combo_valide = true` qui partagent exactement la date, le type et le `created_at` sont déplacées ensemble. L'audit en lecture seule de la table `repas_planifies` a confirmé que les insertions composées existantes partagent bien ces valeurs. Les lignes anciennes ou simples restent autonomes.
 
 Validation locale : tests ciblés **31/31**, suite Jest complète **218/218** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Une validation fonctionnelle authentifiée sur mobile reste requise après déploiement de branche.
+
+### Correctif de préservation de l'expérience historique
+
+Le premier affichage responsive remplaçait la vue hebdomadaire globale par sept grandes sections détaillées et limitait le glisser-déposer à une poignée masquée sur mobile. Cette interprétation constituait une régression par rapport au calendrier existant.
+
+Le correctif conserve désormais les acquis des deux versions :
+
+- toute la carte du repas redevient la zone de prise du glisser-déposer sur ordinateur et mobile ;
+- le bouton de déplacement avec choix explicite de la date reste disponible ;
+- la semaine présente ses sept jours simultanément en colonnes compactes sur ordinateur ;
+- sur mobile, les sept jours deviennent des lignes compactes qui conservent les repas, aliments, quantités et calories ;
+- un seul jour peut être développé pour afficher les actions de suppression, de déplacement et de planification ;
+- les autres jours restent compacts afin de préserver la vision hebdomadaire ;
+- les vues quinze jours et mois restent inchangées ;
+- le déplacement d'une assiette composée reste groupé.
+
+Validation locale du correctif : tests ciblés **33/33**, suite Jest complète **220/220** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Une validation fonctionnelle authentifiée sur mobile reste requise après déploiement de branche.

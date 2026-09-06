@@ -29,7 +29,7 @@ function titrePeriode(periode) {
   return `${debut} – ${fin}`;
 }
 
-function CarteRepas({ groupe, index, referentiel, onMove, onDelete }) {
+function CarteRepas({ groupe, index, referentiel, onMove, onDelete, actionsVisibles = true, compact = false }) {
   const [deplacementOuvert, setDeplacementOuvert] = useState(false);
   const [nouvelleDate, setNouvelleDate] = useState(groupe.date || '');
   const type = TYPES_REPAS[groupe.type] || { emoji: '🍽️', couleur: '#f5f5f5' };
@@ -43,13 +43,13 @@ function CarteRepas({ groupe, index, referentiel, onMove, onDelete }) {
         <article
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`carte-repas ${snapshot.isDragging ? 'en-deplacement' : ''}`}
+          {...provided.dragHandleProps}
+          className={`carte-repas ${compact ? 'carte-repas-compacte' : ''} ${snapshot.isDragging ? 'en-deplacement' : ''}`}
           style={{ background: type.couleur, ...provided.draggableProps.style }}
+          aria-label={`${groupe.type}, carte déplaçable`}
         >
           <div className="entete-repas">
-            <button className="poignee" type="button" aria-label={`Déplacer ${groupe.type} par glisser-déposer`} {...provided.dragHandleProps}>
-              ☰
-            </button>
+            <span className="poignee" aria-hidden="true">☰</span>
             <strong>{type.emoji} {groupe.type}</strong>
             {estCompose && <span className="badge-assiette">Assiette · {lignes.length} aliments</span>}
           </div>
@@ -64,39 +64,123 @@ function CarteRepas({ groupe, index, referentiel, onMove, onDelete }) {
                     {ligne.kcal_calculees !== null ? ` · ${ligne.kcal_calculees} kcal` : ' · Calories non renseignées'}
                   </small>
                 </span>
-                <button type="button" className="supprimer" onClick={() => onDelete(ligne)} aria-label={`Supprimer ${ligne.aliment}`}>
-                  🗑️
-                </button>
+                {actionsVisibles && (
+                  <button type="button" className="supprimer" onClick={() => onDelete(ligne)} aria-label={`Supprimer ${ligne.aliment}`}>
+                    🗑️
+                  </button>
+                )}
               </div>
             ))}
           </div>
 
           {total > 0 && <div className="total-repas">Total : {total} kcal</div>}
 
-          <button type="button" className="ouvrir-deplacement" onClick={() => setDeplacementOuvert(ouvert => !ouvert)}>
-            {deplacementOuvert ? 'Annuler le déplacement' : estCompose ? 'Déplacer toute l’assiette' : 'Déplacer ce repas'}
-          </button>
-          {deplacementOuvert && (
-            <div className="choix-deplacement">
-              <label>
-                Nouveau jour
-                <input type="date" value={nouvelleDate} onChange={event => setNouvelleDate(event.target.value)} />
-              </label>
-              <button
-                type="button"
-                disabled={!nouvelleDate || nouvelleDate === groupe.date}
-                onClick={async () => {
-                  const reussi = await onMove(groupe.lignes, nouvelleDate);
-                  if (reussi) setDeplacementOuvert(false);
-                }}
-              >
-                Confirmer
+          {actionsVisibles && (
+            <>
+              <button type="button" className="ouvrir-deplacement" onClick={() => setDeplacementOuvert(ouvert => !ouvert)}>
+                {deplacementOuvert ? 'Annuler le déplacement' : estCompose ? 'Déplacer toute l’assiette' : 'Déplacer ce repas'}
               </button>
-            </div>
+              {deplacementOuvert && (
+                <div className="choix-deplacement">
+                  <label>
+                    Nouveau jour
+                    <input type="date" value={nouvelleDate} onChange={event => setNouvelleDate(event.target.value)} />
+                  </label>
+                  <button
+                    type="button"
+                    disabled={!nouvelleDate || nouvelleDate === groupe.date}
+                    onClick={async () => {
+                      const reussi = await onMove(groupe.lignes, nouvelleDate);
+                      if (reussi) setDeplacementOuvert(false);
+                    }}
+                  >
+                    Confirmer
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </article>
       )}
     </Draggable>
+  );
+}
+
+function JourSemaineCompact({
+  date,
+  repas,
+  ouvert,
+  selectedDate,
+  referentiel,
+  totalJour,
+  onToggle,
+  onSelectDate,
+  onMove,
+  onDelete
+}) {
+  const groupes = useMemo(() => regrouperRepasPlanifies(repas), [repas]);
+  const jour = new Date(`${date}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+
+  return (
+    <section className={`jour-semaine ${ouvert ? 'jour-semaine-ouvert' : ''} ${selectedDate === date ? 'jour-semaine-selectionne' : ''}`}>
+      <button type="button" className="entete-jour-semaine" onClick={onToggle} aria-expanded={ouvert}>
+        <span><strong>{jour}</strong><small>{groupes.length ? `${groupes.length} repas` : 'Journée libre'}</small></span>
+        <span aria-hidden="true">{ouvert ? '−' : '+'}</span>
+      </button>
+      <Droppable droppableId={date}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={`zone-semaine ${snapshot.isDraggingOver ? 'zone-active' : ''}`}
+          >
+            {groupes.map((groupe, index) => (
+              <CarteRepas
+                key={groupe.cle}
+                groupe={groupe}
+                index={index}
+                referentiel={referentiel}
+                onMove={onMove}
+                onDelete={onDelete}
+                actionsVisibles={ouvert}
+                compact
+              />
+            ))}
+            {!groupes.length && <p className="jour-vide-compact">Dépose un repas ici</p>}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+      {repas.length > 0 && <div className="total-semaine">{totalJour?.totalJour || 0} kcal{!totalJour?.complet ? ' · partiel' : ''}</div>}
+      {ouvert && (
+        <button type="button" className="planifier-jour" onClick={() => onSelectDate(date)}>
+          {selectedDate === date ? 'Ajouter un repas à ce jour' : 'Planifier ce jour'}
+        </button>
+      )}
+    </section>
+  );
+}
+
+function VueSemaine({ periode, planning, selectedDate, referentiel, totauxPlanning, onSelectDate, onMove, onDelete }) {
+  const [dateOuverte, setDateOuverte] = useState(selectedDate);
+  return (
+    <div className="grille-semaine">
+      {periode.dates.map(date => (
+        <JourSemaineCompact
+          key={date}
+          date={date}
+          repas={planning[date] || []}
+          ouvert={dateOuverte === date}
+          selectedDate={selectedDate}
+          referentiel={referentiel}
+          totalJour={totauxPlanning[date]}
+          onToggle={() => setDateOuverte(courante => courante === date ? null : date)}
+          onSelectDate={onSelectDate}
+          onMove={onMove}
+          onDelete={onDelete}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -236,6 +320,17 @@ export default function HorizonPlanning({
             selectedDate={selectedDate}
             onSelectDate={onSelectDate}
           />
+        ) : mode === MODES_HORIZON_PLANNING.SEMAINE ? (
+          <VueSemaine
+            periode={periode}
+            planning={planning}
+            selectedDate={selectedDate}
+            referentiel={referentiel}
+            totauxPlanning={totauxPlanning}
+            onSelectDate={onSelectDate}
+            onMove={onMove}
+            onDelete={onDelete}
+          />
         ) : (
           <div className="liste-jours">
             {periode.dates.map(date => (
@@ -266,6 +361,16 @@ export default function HorizonPlanning({
         .navigation-periode strong { min-width: 220px; text-align: center; }
         .navigation-periode .aujourdhui { background: #f3e5f5; color: #6a1b9a; }
         .liste-jours { display: grid; gap: 14px; }
+        .grille-semaine { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; align-items: start; }
+        .jour-semaine { min-width: 0; border: 1px solid #bbdefb; border-radius: 11px; background: white; overflow: hidden; }
+        .jour-semaine-selectionne { box-shadow: 0 0 0 2px #d1c4e9; }
+        .entete-jour-semaine { width: 100%; min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 5px; border: 0; padding: 8px; background: #e3f2fd; color: #0d47a1; text-transform: capitalize; text-align: left; }
+        .entete-jour-semaine > span:first-child { min-width: 0; display: grid; }
+        .entete-jour-semaine small { color: #607d8b; font-size: 11px; font-weight: 600; }
+        .zone-semaine { min-height: 52px; display: grid; gap: 6px; padding: 6px; border: 2px dashed transparent; transition: background .15s, border-color .15s; }
+        .jour-vide-compact { min-height: 38px; display: grid; place-items: center; margin: 0; border: 1px dashed #b0bec5; border-radius: 7px; padding: 5px; color: #607d8b; font-size: 11px; text-align: center; }
+        .total-semaine { padding: 3px 7px 7px; color: #455a64; font-size: 11px; font-weight: 700; text-align: right; }
+        .planifier-jour { width: calc(100% - 12px); min-height: 36px; margin: 0 6px 7px; border: 0; border-radius: 8px; padding: 6px; background: #ede7f6; color: #6a1b9a; font-size: 12px; font-weight: 700; }
         .jours-semaine, .grille-mois { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
         .jours-semaine { text-align: center; color: #546e7a; margin-bottom: 5px; font-size: 13px; }
         .hors-mois { min-height: 66px; }
@@ -283,7 +388,7 @@ export default function HorizonPlanning({
         :global(.zone-depot) { min-height: 76px; display: grid; gap: 9px; border: 2px dashed transparent; border-radius: 11px; transition: background .15s, border-color .15s; }
         :global(.zone-depot.zone-active), .zone-active { background: #e8f5e9; border-color: #43a047; }
         :global(.jour-vide) { min-height: 72px; display: grid; place-items: center; margin: 0; border: 2px dashed #cfd8dc; border-radius: 10px; padding: 10px; color: #607d8b; text-align: center; }
-        :global(.carte-repas) { border: 1px solid #cfd8dc; border-radius: 10px; padding: 10px; color: #263238; }
+        :global(.carte-repas) { border: 1px solid #cfd8dc; border-radius: 10px; padding: 10px; color: #263238; cursor: grab; }
         :global(.carte-repas.en-deplacement) { box-shadow: 0 8px 24px rgba(0,0,0,.18); }
         :global(.entete-repas) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
         :global(.poignee) { border: 0; background: transparent; color: #546e7a; font-size: 20px; line-height: 1; cursor: grab; }
@@ -300,12 +405,27 @@ export default function HorizonPlanning({
         :global(.choix-deplacement input), :global(.choix-deplacement button) { min-height: 40px; border: 1px solid #b0bec5; border-radius: 8px; padding: 7px 10px; background: white; }
         :global(.choix-deplacement button) { border: 0; background: #1976d2; color: white; font-weight: 700; }
         :global(.choix-deplacement button:disabled) { background: #b0bec5; }
+        :global(.carte-repas-compacte) { padding: 7px; font-size: 12px; }
+        :global(.carte-repas-compacte .entete-repas) { gap: 4px; }
+        :global(.carte-repas-compacte .poignee) { font-size: 15px; }
+        :global(.carte-repas-compacte .badge-assiette) { width: 100%; padding: 2px 5px; font-size: 10px; }
+        :global(.carte-repas-compacte .ligne-repas) { padding: 4px 0; }
+        :global(.carte-repas-compacte .ligne-repas small) { font-size: 10px; }
+        :global(.carte-repas-compacte .total-repas) { font-size: 11px; }
         @media (max-width: 600px) {
           .choix-horizon { grid-template-columns: 1fr; }
           .navigation-periode strong { order: -1; width: 100%; }
+          .grille-semaine { grid-template-columns: 1fr; gap: 7px; }
+          .jour-semaine { display: grid; grid-template-columns: minmax(96px, .3fr) 1fr auto; align-items: start; }
+          .jour-semaine-ouvert { grid-template-columns: 1fr; }
+          .entete-jour-semaine { height: 100%; min-height: 58px; }
+          .jour-semaine-ouvert .entete-jour-semaine { height: auto; }
+          .zone-semaine { min-height: 58px; padding: 4px; }
+          .total-semaine { align-self: center; padding: 7px; white-space: nowrap; }
+          .jour-semaine-ouvert .total-semaine { padding: 3px 7px 7px; }
+          :global(.carte-repas-compacte .lignes-repas) { margin-top: 4px; }
           :global(.jour-detaille > header) { align-items: flex-start; }
           :global(.jour-detaille > header button) { max-width: 130px; }
-          :global(.poignee) { display: none; }
           :global(.choix-deplacement > *) { width: 100%; }
           .jour-mois, .hors-mois { min-height: 52px; }
         }

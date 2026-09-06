@@ -12,6 +12,16 @@ describe('Interface mobile du planning alimentaire', () => {
     expect(horizon).toContain('15 prochains jours');
     expect(horizon).toContain('Aperçu du mois');
     expect(horizon).toContain('grid-template-columns: repeat(7');
+    expect(horizon).toContain('<VueSemaine');
+    expect(horizon).toContain('grille-semaine');
+  });
+
+  test('conserve les sept jours et leurs repas dans une vue hebdomadaire compacte', () => {
+    expect(horizon).toContain('JourSemaineCompact');
+    expect(horizon).toContain('actionsVisibles={ouvert}');
+    expect(horizon).toContain('jour-vide-compact');
+    expect(horizon).toContain('.grille-semaine { display: grid; grid-template-columns: repeat(7');
+    expect(horizon).toContain('.grille-semaine { grid-template-columns: 1fr');
   });
 
   test('rend chaque journée vide utilisable comme zone de dépôt', () => {
@@ -24,6 +34,12 @@ describe('Interface mobile du planning alimentaire', () => {
     expect(horizon).toContain('Déplacer toute l’assiette');
     expect(horizon).toContain('onMove(groupe.lignes, nouvelleDate)');
     expect(page).toContain('deplacerRepasPlanifie(supabase, lignes, nouvelleDate, userId)');
+  });
+
+  test('rend de nouveau toute la carte déplaçable sans supprimer le bouton avec date', () => {
+    expect(horizon).toMatch(/<article[\s\S]*?\.\.\.provided\.dragHandleProps/);
+    expect(horizon).toContain("cursor: grab");
+    expect(horizon).toContain('Nouveau jour');
   });
 
   test('retire l’ancien tableau mensuel large et le faux score de repas respectés', () => {

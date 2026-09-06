@@ -538,7 +538,11 @@ export default function Plan() {
       />
 
       <div className="repere-periode">
-        {loading ? 'Chargement du planning…' : `${nbJoursPlanifies} jour${nbJoursPlanifies > 1 ? 's ont' : ' a'} déjà un repère dans cette période.`}
+        {loading
+          ? 'Chargement du planning…'
+          : nbJoursPlanifies === 0
+            ? 'Aucun jour n’a encore de repère dans cette période.'
+            : `${nbJoursPlanifies} jour${nbJoursPlanifies > 1 ? 's ont' : ' a'} déjà un repère dans cette période.`}
       </div>
 
       {erreurPlanning && <div role="alert" className="message-planning erreur-planning">{erreurPlanning}</div>}
