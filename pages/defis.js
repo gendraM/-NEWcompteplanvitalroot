@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { defisReferentiel } from '../lib/defisReferentiel';
 import { DEFIS_STATUS, getDefiMax, isDefiDisponible, isDefiEnCours, isDefiTermine } from '../lib/defisUtils';
 import { initDefisUser } from '../lib/initDefisUser';
-import { useRouter } from '../node_modules/next/router';
+import { useRouter } from 'next/router';
 import { useDefis } from '../components/DefisContext';
 
 function RetourArriere() {
