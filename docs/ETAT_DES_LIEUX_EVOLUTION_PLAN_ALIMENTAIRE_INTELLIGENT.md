@@ -197,8 +197,9 @@ Les suggestions dans `/plan` devront présenter la raison de la suggestion, la c
 11. **RACCORDEMENT DE `SaisieRepasCompose` VALIDÉ FONCTIONNELLEMENT** : les occurrences d'un repas composé réutilisé passent désormais par le même `handleSaveRepas` que les saisies mono/multi. L'insertion directe isolée a été supprimée ; l'alignement et les scores reçoivent immédiatement les lignes retournées par Supabase. La quantité de chaque composant peut être ajustée ponctuellement avec recalcul des calories, sans modifier l'assiette enregistrée. Le test mobile authentifié du 2 septembre 2026 est concluant.
 12. **AUDIT DE RAFRAÎCHISSEMENT TERMINÉ** : tous les chemins actifs d'enregistrement dans `repas_reels` convergent vers `handleSaveRepas`, qui injecte les lignes retournées par Supabase dans `repasSemaine`. Aucun raccord supplémentaire n'était nécessaire ; les autres références recensées sont des lectures, des écritures dans d'autres tables ou des sauvegardes historiques.
 13. **RECONSTRUCTION AVANT SCORES VALIDÉE TECHNIQUEMENT** : les scores d'alignement journalier et hebdomadaire sont désormais calculés par occurrence. Une assiette composée pèse une seule fois dans le numérateur et le dénominateur, tandis que les anciennes lignes sans `occurrence_repas_id` restent des occurrences indépendantes. La somme calorique ligne par ligne et la régularité par type de repas restent inchangées.
-14. Produire S-1, puis les candidats go-to meals et les suggestions intelligentes.
-15. Tests + build + passation à chaque sous-lot.
+14. **SOCLE DE DÉTECTION DES REPAS REPÈRES IMPLÉMENTÉ** : `lib/repasReperes.js` analyse les quinze derniers jours, reconstruit uniquement les occurrences identifiées et composées, rapproche les compositions indépendamment de l'ordre des aliments, exige au moins trois occurrences dont deux avec un signal positif, et exclut les extras/fast-foods. Le moteur restitue la composition réelle la plus récente avec ses quantités/calories connues et n'invente aucune suggestion lorsque les preuves sont insuffisantes. Aucun raccord à `/plan` n'est inclus dans ce sous-lot.
+15. Raccorder les candidats qualifiés aux suggestions de `/plan`, avec leur raison factuelle et l'ajout de l'assiette complète au planning.
+16. Tests + build + passation à chaque sous-lot.
 
 ### Principe de sécurité du sous-lot 2.3
 

@@ -129,3 +129,21 @@ Le calcul utilise désormais `calculerScoreAlignementParOccurrence` dans `lib/al
 - le calcul des calories demeure une somme des lignes et la régularité demeure calculée par type de repas.
 
 Validation locale : tests ciblés **26/26**, suite Jest **193/193** dans 22 suites avec `TZ=Europe/Paris` et build Next.js réussi avec 36 pages générées. Une exécution brute en UTC révèle un ancien test de formatage de date dépendant du fuseau (`validation-semaine.test.js`) ; il est extérieur à cette étape et n'a pas été modifié.
+
+## Étape 14 — socle de détection des repas repères
+
+Le moteur pur `lib/repasReperes.js` prépare les futures suggestions intelligentes sans encore modifier `/plan` :
+
+- fenêtre inclusive des quinze derniers jours ;
+- reconstruction exclusivement par `occurrence_repas_id`, sans regroupement inventé de l'historique ;
+- occurrences composées d'au moins deux aliments ;
+- composition comparable indépendamment de l'ordre des aliments, sans imposer les mêmes quantités ;
+- seuil de trois occurrences comparables et d'au moins deux occurrences présentant un signal positif ;
+- signaux admis : repas aligné, satiété respectée ou ressenti favorable explicitement reconnu ;
+- exclusion des extras et fast-foods ;
+- restitution de la composition de l'occurrence positive la plus récente, en conservant uniquement les quantités, calories, catégories et QN réellement connus ;
+- absence de candidat lorsque les preuves sont insuffisantes.
+
+Le moteur ne modifie ni Supabase, ni `pages/plan.js`, ni le comportement actuel des suggestions. Le raccord visuel et l'action « Ajouter cette assiette à mon planning » constituent le sous-lot suivant.
+
+Validation locale : tests ciblés du moteur et du regroupement **22/22**, suite Jest complète **202/202** dans 23 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur.
