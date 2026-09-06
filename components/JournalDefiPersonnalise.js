@@ -17,6 +17,9 @@ export default function JournalDefiPersonnalise({ defi, jourActuel, onProgressio
     let actif = true;
     const charger = async () => {
       setJournalCharge(false);
+      setNotePersonnelle("");
+      setEtapeValidee(false);
+      setReussi(null);
       setMessage("");
       try {
         const journal = await chargerJournalDefi(defi.id, jourActuel);
