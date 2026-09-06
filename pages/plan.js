@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import useUserReferentiel from "../lib/useUserReferentiel";
 import {
   calculerKcalPlanifiees,
   calculerTotauxPlanning,
-  normaliserRepasPlanifie,
+  deplacerRepasPlanifie,
   serialiserQuantitePlanifiee,
   trouverAlimentReferentiel
 } from "../lib/planificationRepas";
+import {
+  MODES_HORIZON_PLANNING,
+  naviguerDansPlanning,
+  obtenirPeriodePlanning
+} from "../lib/horizonPlanning";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
+import HorizonPlanning from "../components/HorizonPlanning";
 import PlanificateurRepas from "../components/PlanificateurRepas";
 import ListeCoursesGeneralePlan from "../components/ListeCoursesGeneralePlan";
 import { CONTEXTE_LISTE_GENERAL, construireContexteCristallisation } from "../lib/contexteListeCourses";
@@ -55,20 +60,20 @@ function toYYYYMMDD(date) {
 
 export default function Plan() {
   const router = useRouter();
-  // Etat navigation
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
+  const dateDuJour = toYYYYMMDD(today);
+  const [modeAffichage, setModeAffichage] = useState(MODES_HORIZON_PLANNING.SEMAINE);
+  const [dateAncrage, setDateAncrage] = useState(dateDuJour);
 
   // Etat planning
   const [planning, setPlanning] = useState({});
   const [type, setType] = useState(typesRepas[0].nom);
-  const [selectedDate, setSelectedDate] = useState(toYYYYMMDD(today));
+  const [selectedDate, setSelectedDate] = useState(dateDuJour);
   const [suggestions, setSuggestions] = useState([]);
   const [erreurPlanning, setErreurPlanning] = useState("");
   const [loading, setLoading] = useState(false);
   const [importFeedback, setImportFeedback] = useState("");
-  const [comparaison, setComparaison] = useState({ semaineActuelle: 0, semainePrecedente: 0 });
+  const [feedbackPlanning, setFeedbackPlanning] = useState("");
 
   // Etat motivation/mois
   const [mantra, setMantra] = useState("");
@@ -127,17 +132,21 @@ export default function Plan() {
     }
   }, []);
 
+  const periode = obtenirPeriodePlanning(modeAffichage, dateAncrage);
+  const dateAncrageObjet = new Date(`${dateAncrage}T12:00:00`);
+  const year = dateAncrageObjet.getFullYear();
+  const month = dateAncrageObjet.getMonth();
   const days = getDaysInMonth(year, month);
 
-  // Récupère les repas planifiés du mois
+  // Récupère seulement la période actuellement affichée.
   const fetchPlanning = async () => {
     if (!userId) {
       setPlanning({});
       return;
     }
     setLoading(true);
-    const start = toYYYYMMDD(new Date(year, month, 1));
-    const end = toYYYYMMDD(new Date(year, month + 1, 0));
+    const start = periode.debut;
+    const end = periode.fin;
     const { data, error } = await supabase
       .from("repas_planifies")
       .select("*")
@@ -160,7 +169,7 @@ export default function Plan() {
     return { data: data || [], error: null };
   };
 
-  useEffect(() => { fetchPlanning(); }, [year, month, userId]);
+  useEffect(() => { fetchPlanning(); }, [periode.debut, periode.fin, userId]);
 
   // Suggestions personnalisées (bons ressentis)
   useEffect(() => {
@@ -193,17 +202,55 @@ export default function Plan() {
     });
   };
 
-  // Drag & drop (déplacement d'un repas d'une date à une autre)
-  const onDragEnd = async (result) => {
-    if (!result.destination) return;
-    const { draggableId, source, destination } = result;
-    if (source.droppableId === destination.droppableId) return;
-    await supabase
+  const choisirDate = date => {
+    setSelectedDate(date);
+    setFeedbackPlanning(`Le ${new Date(`${date}T12:00:00`).toLocaleDateString('fr-FR')} est prêt à être planifié.`);
+    setTimeout(() => document.getElementById('planificateur-repas')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  };
+
+  const changerHorizon = mode => {
+    setModeAffichage(mode);
+    setFeedbackPlanning('');
+  };
+
+  const naviguer = direction => {
+    const nouvelleDate = naviguerDansPlanning(modeAffichage, dateAncrage, direction);
+    if (nouvelleDate) setDateAncrage(nouvelleDate);
+    setFeedbackPlanning('');
+  };
+
+  const revenirAujourdhui = () => {
+    setDateAncrage(dateDuJour);
+    setSelectedDate(dateDuJour);
+    setFeedbackPlanning('');
+  };
+
+  const deplacerRepas = async (lignes, nouvelleDate) => {
+    setErreurPlanning('');
+    setFeedbackPlanning('');
+    const { error } = await deplacerRepasPlanifie(supabase, lignes, nouvelleDate, userId);
+    if (error) {
+      setErreurPlanning(`Le repas n’a pas pu être déplacé : ${error.message}`);
+      return false;
+    }
+    await fetchPlanning();
+    setFeedbackPlanning(`${lignes.length > 1 ? 'Toute l’assiette a' : 'Le repas a'} été déplacé${lignes.length > 1 ? 'e' : ''} au ${new Date(`${nouvelleDate}T12:00:00`).toLocaleDateString('fr-FR')}.`);
+    return true;
+  };
+
+  const supprimerLignePlanifiee = async ligne => {
+    setErreurPlanning('');
+    const { error } = await supabase
       .from("repas_planifies")
-      .update({ date: destination.droppableId })
-      .eq("id", draggableId)
+      .delete()
+      .eq("id", ligne.id)
       .eq("user_id", userId);
-    fetchPlanning();
+    if (error) {
+      setErreurPlanning(`L’aliment n’a pas pu être supprimé : ${error.message}`);
+      return;
+    }
+    await fetchPlanning();
+    setFeedbackPlanning(`${ligne.aliment} a été retiré du planning.`);
   };
 
   // Validation et sauvegarde des infos du mois
@@ -216,7 +263,7 @@ export default function Plan() {
     setValideInfos({ mantra, objectif, theme });
   };
 
-  const nbJoursPlanifies = days.filter(d => planning[toYYYYMMDD(d)]?.length).length;
+  const nbJoursPlanifies = periode.dates.filter(date => planning[date]?.length).length;
   const totauxPlanning = calculerTotauxPlanning(planning, referentielComplet);
 
   // EXPORT MODELE (CSV/XLSX) avec toutes colonnes utiles
@@ -354,15 +401,8 @@ export default function Plan() {
     setLoading(false);
   };
 
-  // ----------- CALENDRIER -----------
-  // Calcul du premier jour du mois (0 = dimanche)
-  const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 = Dim, 1 = Lun, ..., 6 = Sam
-  // Nombre de semaines à afficher (6 lignes max)
-  const nbCells = firstDayOfMonth + days.length;
-  const nbWeeks = Math.ceil(nbCells / 7);
-
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: 24 }}>
+    <div className="page-planning" style={{ maxWidth: 1200, margin: "0 auto", padding: 24 }}>
       {/* 1. Bouton retour */}
       <button 
         onClick={() => window.history.back()}
@@ -381,10 +421,10 @@ export default function Plan() {
       </button>
 
       {/* 2. Titre */}
-      <h1 style={{ textAlign: "center", marginBottom: 8 }}>🌟 Planning alimentaire du mois</h1>
+      <h1 style={{ textAlign: "center", marginBottom: 8 }}>🌟 Mon planning alimentaire</h1>
 
       {/* 3. Import/export */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, marginBottom: 16 }}>
+      <div className="outils-import-export" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, marginBottom: 16 }}>
         <input
           type="file"
           accept=".csv, .xlsx, .xls"
@@ -481,14 +521,28 @@ export default function Plan() {
         </div>
       </div>
 
-      {/* 5. Navigation mois */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 16 }}>
-        <button onClick={() => setMonth(m => m === 0 ? 11 : m - 1)}>⬅️ Mois précédent</button>
-        <span style={{ fontWeight: 600, fontSize: 18 }}>
-          {moisNoms[month]} {year}
-        </span>
-        <button onClick={() => setMonth(m => m === 11 ? 0 : m + 1)}>Mois suivant ➡️</button>
+      <HorizonPlanning
+        mode={modeAffichage}
+        periode={periode}
+        planning={planning}
+        selectedDate={selectedDate}
+        referentiel={referentielComplet}
+        totauxPlanning={totauxPlanning}
+        onModeChange={changerHorizon}
+        onPrevious={() => naviguer(-1)}
+        onNext={() => naviguer(1)}
+        onToday={revenirAujourdhui}
+        onSelectDate={choisirDate}
+        onMove={deplacerRepas}
+        onDelete={supprimerLignePlanifiee}
+      />
+
+      <div className="repere-periode">
+        {loading ? 'Chargement du planning…' : `${nbJoursPlanifies} jour${nbJoursPlanifies > 1 ? 's ont' : ' a'} déjà un repère dans cette période.`}
       </div>
+
+      {erreurPlanning && <div role="alert" className="message-planning erreur-planning">{erreurPlanning}</div>}
+      {feedbackPlanning && <div role="status" className="message-planning succes-planning">{feedbackPlanning}</div>}
 
       <div id="planificateur-repas">
         <PlanificateurRepas
@@ -499,7 +553,10 @@ export default function Plan() {
           type={type}
           suggestions={suggestions}
           reglesGestion={reglesGestion}
-          onChangeDate={setSelectedDate}
+          onChangeDate={date => {
+            setSelectedDate(date);
+            setDateAncrage(date);
+          }}
           onChangeType={setType}
           onReferentielChange={refreshReferentiel}
           onPlanningRecorded={afficherLignesEnregistrees}
@@ -507,175 +564,12 @@ export default function Plan() {
         />
       </div>
 
-      {erreurPlanning && <div role="alert" style={{ margin: "0 0 16px", padding: 10, borderRadius: 8, color: "#b71c1c", background: "#ffebee", fontWeight: 700 }}>{erreurPlanning}</div>}
-
       <ListeCoursesGeneralePlan
         supabase={supabase}
         userId={userId}
         referentiel={referentielComplet}
         contexte={contexteListeCourses}
       />
-
-      {/* 8. Progression mois */}
-      <div style={{ marginBottom: 16, textAlign: "center" }}>
-        <span style={{
-          background: "#f8bbd0",
-          borderRadius: 8,
-          padding: "6px 18px",
-          fontWeight: 600,
-          color: "#ad1457"
-        }}>
-          {nbJoursPlanifies}/{days.length} jours planifiés ce mois-ci
-        </span>
-      </div>
-      <div style={{ textAlign: "center", margin: "24px 0", fontWeight: 600 }}>
-        <span>📊 Repas respectés cette semaine : {comparaison.semaineActuelle} <br />
-          Semaine dernière : {comparaison.semainePrecedente}</span>
-      </div>
-
-      {/* 9. Calendrier corrigé */}
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{
-            minWidth: 700,
-            width: "100%",
-            borderCollapse: "collapse",
-            background: "#fafafa",
-            borderRadius: 12,
-            boxShadow: "0 2px 12px rgba(0,0,0,0.04)"
-          }}>
-            <thead>
-              <tr>
-                {joursSemaine.map(j => (
-                  <th key={j} style={{
-                    padding: 8,
-                    background: "#e3f2fd",
-                    border: "1px solid #90caf9",
-                    fontWeight: 700,
-                    fontSize: 16
-                  }}>{j}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[...Array(nbWeeks)].map((_, week) => (
-                <tr key={week}>
-                  {joursSemaine.map((_, dayIdx) => {
-                    // Calcul du numéro du jour du mois (1-based)
-                    const dayOfMonth = week * 7 + dayIdx - firstDayOfMonth + 1;
-                    const dateObj = new Date(year, month, dayOfMonth);
-                    const dateStr = toYYYYMMDD(dateObj);
-                    const isCurrentMonth = dayOfMonth > 0 && dayOfMonth <= days.length;
-                    return (
-                      <td
-                        key={dayIdx}
-                        style={{
-                          minWidth: 120,
-                          minHeight: 80,
-                          border: "1px solid #e0e0e0",
-                          background: isCurrentMonth ? "#fff" : "#f0f0f0",
-                          verticalAlign: "top",
-                          position: "relative"
-                        }}
-                      >
-                        {isCurrentMonth && (
-                          <>
-                            <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                              {dateObj.getDate()} <span style={{ fontSize: 12, color: "#888" }}>({joursSemaine[dayIdx]})</span>
-                            </div>
-                            <Droppable droppableId={dateStr}>
-                              {(provided) => (
-                                <div ref={provided.innerRef} {...provided.droppableProps}>
-                                  {(planning[dateStr] || []).map((r, idx) => {
-                                    const repasType = typesRepas.find(t => t.nom === r.type);
-                                    const repasAffiche = normaliserRepasPlanifie(r, referentielComplet);
-                                    return (
-                                      <Draggable key={r.id} draggableId={r.id} index={idx}>
-                                        {(provided) => (
-                                          <div
-                                            ref={provided.innerRef}
-                                            {...provided.draggableProps}
-                                            {...provided.dragHandleProps}
-                                            style={{
-                                              background: repasType?.color || "#fff",
-                                              border: "1px solid #ccc",
-                                              borderRadius: 8,
-                                              padding: 6,
-                                              marginBottom: 6,
-                                              fontSize: 14,
-                                              color: "#1976d2",
-                                              display: "flex",
-                                              alignItems: "center",
-                                              gap: 8,
-                                              ...provided.draggableProps.style
-                                            }}
-                                          >
-                                            <span style={{ fontSize: 18 }}>{repasType?.emoji}</span>
-                                            <span style={{ flex: 1 }}>
-                                              <b>{r.type}</b> : {r.aliment}
-                                              <span style={{ display: "block", fontSize: 12, color: "#455a64", marginTop: 2 }}>
-                                                {repasAffiche.quantite_affichee || "Quantité non renseignée"}
-                                                {repasAffiche.kcal_calculees !== null
-                                                  ? ` • ${repasAffiche.kcal_calculees} kcal`
-                                                  : " • Calories non renseignées"}
-                                              </span>
-                                            </span>
-                                            <button
-                                              onClick={async (e) => {
-                                                e.stopPropagation();
-                                                await supabase.from("repas_planifies").delete().eq("id", r.id).eq("user_id", userId);
-                                                fetchPlanning();
-                                              }}
-                                              style={{
-                                                background: "none",
-                                                border: "none",
-                                                color: "#c62828",
-                                                cursor: "pointer",
-                                                fontSize: 18,
-                                                marginLeft: 4
-                                              }}
-                                              title="Supprimer ce repas"
-                                            >
-                                              🗑️
-                                            </button>
-                                          </div>
-                                        )}
-                                      </Draggable>
-                                    );
-                                  })}
-                                  {provided.placeholder}
-                                  {Object.entries(totauxPlanning[dateStr]?.parType || {}).map(([typeRepas, total]) => (
-                                    <div key={typeRepas} style={{ fontSize: 12, color: "#37474f", marginTop: 3 }}>
-                                      {typeRepas} : <b>{total} kcal</b>
-                                    </div>
-                                  ))}
-                                  {(planning[dateStr] || []).length > 0 && (
-                                    <div style={{
-                                      borderTop: "1px solid #cfd8dc",
-                                      marginTop: 6,
-                                      paddingTop: 5,
-                                      color: totauxPlanning[dateStr]?.complet ? "#2e7d32" : "#ef6c00",
-                                      fontSize: 12,
-                                      fontWeight: 700
-                                    }}>
-                                      Total jour : {totauxPlanning[dateStr]?.totalJour || 0} kcal
-                                      {!totauxPlanning[dateStr]?.complet && " (partiel)"}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </Droppable>
-                          </>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </DragDropContext>
 
       {/* 10. Export planning rempli */}
       <button
@@ -734,13 +628,29 @@ export default function Plan() {
 
       {/* 12. Responsive style */}
       <style jsx global>{`
-        .dragged-success {
-          animation: pop 0.4s;
+        .repere-periode {
+          width: fit-content;
+          max-width: 100%;
+          margin: 0 auto 14px;
+          border-radius: 20px;
+          padding: 7px 16px;
+          background: #f3e5f5;
+          color: #6a1b9a;
+          font-weight: 700;
+          text-align: center;
         }
-        @keyframes pop {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.08); }
-          100% { transform: scale(1); }
+        .message-planning {
+          margin: 0 0 14px;
+          border-radius: 9px;
+          padding: 10px;
+          font-weight: 700;
+        }
+        .erreur-planning { color: #b71c1c; background: #ffebee; }
+        .succes-planning { color: #1b5e20; background: #e8f5e9; }
+        @media (max-width: 700px) {
+          .page-planning { padding: 14px !important; }
+          .outils-import-export { flex-direction: column; align-items: stretch !important; gap: 9px !important; }
+          .outils-import-export > * { width: 100%; margin: 0 !important; }
         }
       `}</style>
     </div>

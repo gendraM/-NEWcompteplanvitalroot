@@ -147,3 +147,26 @@ Le moteur pur `lib/repasReperes.js` prépare les futures suggestions intelligent
 Le moteur ne modifie ni Supabase, ni `pages/plan.js`, ni le comportement actuel des suggestions. Le raccord visuel et l'action « Ajouter cette assiette à mon planning » constituent le sous-lot suivant.
 
 Validation locale : tests ciblés du moteur et du regroupement **22/22**, suite Jest complète **202/202** dans 23 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur.
+
+## Pause ergonomique — planification semaine / quinze jours
+
+Le retour mobile a montré que la grande grille mensuelle n'était pas adaptée à une planification concrète et qu'un jour vide ne recevait pas le glisser-déposer : son conteneur sans contenu ni hauteur s'effondrait, puis `react-beautiful-dnd` retournait une destination nulle. L'ancien traitement déplaçait aussi une seule ligne, au risque de séparer les aliments d'une assiette composée.
+
+La correction reste indépendante du moteur d'alignement et ne modifie pas le schéma Supabase :
+
+- vue principale à la semaine, du lundi au dimanche ;
+- vue secondaire sur quinze jours glissants ;
+- mois conservé comme aperçu compact, sans tableau large à défilement horizontal ;
+- chaque jour vide garde une zone de dépôt d'une hauteur explicite ;
+- sélection directe d'un jour avant d'utiliser le planificateur existant ;
+- bouton « Déplacer » avec choix de date, utilisable sur mobile ;
+- glisser-déposer conservé sur ordinateur ;
+- déplacement commun de toutes les lignes d'une assiette composée ;
+- anciennes lignes et repas simples toujours traités séparément ;
+- contrôle du propriétaire par `user_id` et vérification du nombre de lignes réellement retournées par Supabase ;
+- suppression historique conservée aliment par aliment ;
+- retrait du score fictif « repas respectés » qui n'était alimenté par aucune donnée réelle.
+
+Le regroupement d'une assiette planifiée ne repose pas sur une approximation rétroactive : seules les lignes marquées `combo_valide = true` qui partagent exactement la date, le type et le `created_at` sont déplacées ensemble. L'audit en lecture seule de la table `repas_planifies` a confirmé que les insertions composées existantes partagent bien ces valeurs. Les lignes anciennes ou simples restent autonomes.
+
+Validation locale : tests ciblés **31/31**, suite Jest complète **218/218** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Une validation fonctionnelle authentifiée sur mobile reste requise après déploiement de branche.

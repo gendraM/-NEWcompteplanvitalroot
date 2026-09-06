@@ -198,8 +198,9 @@ Les suggestions dans `/plan` devront présenter la raison de la suggestion, la c
 12. **AUDIT DE RAFRAÎCHISSEMENT TERMINÉ** : tous les chemins actifs d'enregistrement dans `repas_reels` convergent vers `handleSaveRepas`, qui injecte les lignes retournées par Supabase dans `repasSemaine`. Aucun raccord supplémentaire n'était nécessaire ; les autres références recensées sont des lectures, des écritures dans d'autres tables ou des sauvegardes historiques.
 13. **RECONSTRUCTION AVANT SCORES VALIDÉE TECHNIQUEMENT** : les scores d'alignement journalier et hebdomadaire sont désormais calculés par occurrence. Une assiette composée pèse une seule fois dans le numérateur et le dénominateur, tandis que les anciennes lignes sans `occurrence_repas_id` restent des occurrences indépendantes. La somme calorique ligne par ligne et la régularité par type de repas restent inchangées.
 14. **SOCLE DE DÉTECTION DES REPAS REPÈRES IMPLÉMENTÉ** : `lib/repasReperes.js` analyse les quinze derniers jours, reconstruit uniquement les occurrences identifiées et composées, rapproche les compositions indépendamment de l'ordre des aliments, exige au moins trois occurrences dont deux avec un signal positif, et exclut les extras/fast-foods. Le moteur restitue la composition réelle la plus récente avec ses quantités/calories connues et n'invente aucune suggestion lorsque les preuves sont insuffisantes. Aucun raccord à `/plan` n'est inclus dans ce sous-lot.
-15. Raccorder les candidats qualifiés aux suggestions de `/plan`, avec leur raison factuelle et l'ajout de l'assiette complète au planning.
-16. Tests + build + passation à chaque sous-lot.
+15. **PAUSE ERGONOMIQUE DU PLAN VALIDÉE TECHNIQUEMENT** : `/plan` s'ouvre désormais sur la semaine, propose un horizon glissant de quinze jours et conserve le mois comme aperçu compact. Chaque journée, même vide, est une destination de déplacement. Une action explicite est disponible sur mobile et une assiette composée est déplacée en bloc à partir de ses lignes Supabase fiables (`combo_valide`, date, type et `created_at`). Aucun schéma ni comportement de saisie n'est modifié.
+16. Raccorder les candidats qualifiés aux suggestions de `/plan`, avec leur raison factuelle et l'ajout de l'assiette complète au planning.
+17. Tests + build + passation à chaque sous-lot.
 
 ### Principe de sécurité du sous-lot 2.3
 
@@ -237,12 +238,13 @@ Le premier raccordement ne doit **pas** changer l'expérience utilisateur. Il do
 - Raccord de `SaisieRepasCompose` : toutes les lignes sont désormais transmises au handler commun ; tests ciblés **24/24**, suite Jest **185/185** et build Next.js réussi. Validation fonctionnelle authentifiée encore requise après déploiement.
 - Quantités à la réutilisation : chaque composant est ajustable à unité inchangée, le total calorique est recalculé et le modèle d'origine reste intact ; tests ciblés **36/36**, suite Jest **188/188** et build Next.js réussi. Validation fonctionnelle mobile authentifiée obtenue le 2 septembre 2026.
 - Étape 13 : calcul pur par occurrence raccordé aux scores journalier et hebdomadaire ; tests ciblés **26/26**, suite Jest **193/193** dans le fuseau fonctionnel `Europe/Paris` et build Next.js réussi avec 36 pages générées. L'exécution brute en UTC expose par ailleurs un ancien test de formatage de date dépendant du fuseau, sans rapport avec ce sous-lot et sans modification associée.
+- Pause ergonomique du planning : horizons semaine / quinze jours / mois, jours vides déplaçables et déplacement atomique des assiettes composées ; tests ciblés **31/31**, suite Jest **218/218** dans 25 suites avec `TZ=Europe/Paris`, `git diff --check` sans erreur et build Next.js réussi avec 36 pages générées. Le score fictif « repas respectés » et la pression « x jours sur tout le mois » ont été retirés de `/plan` ; l'alignement réel reste calculé dans le suivi.
 
 ---
 
 ## 9. Règle de reprise du chantier
 
-Prochaine étape : **faire valider fonctionnellement les scores reconstruits par occurrence sur la branche de test**, puis reprendre l'étape 14 du plan consolidé sans élargir silencieusement le périmètre.
+Prochaine étape après validation fonctionnelle mobile de la nouvelle navigation : reprendre le raccord des repas repères qualifiés dans `/plan`, avec leur raison factuelle et l'ajout de l'assiette complète, sans élargir silencieusement le périmètre.
 
 Avant toute modification, vérifier la version courante des fichiers concernés. Avant chaque commit fonctionnel, documentaire ou correctif : rappeler explicitement le dépôt et la branche, présenter le périmètre et attendre l'autorisation de l'utilisatrice. Ne jamais pousser sur `main` sans autorisation explicite distincte.
 
