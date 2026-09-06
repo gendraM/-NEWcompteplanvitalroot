@@ -7,7 +7,7 @@ import {
   getMyWayItems,
   updateMyWayItem,
 } from '../lib/myWayAPI';
-import { reformulateMyWayDirection } from '../lib/myWayAI';
+import { proposeMyWayIncarnations, reformulateMyWayDirection } from '../lib/myWayAI';
 
 const CONFIG = {
   direction: {
@@ -21,9 +21,9 @@ const CONFIG = {
     placeholder: 'Ex. Retrouver plus de liberté physique dans mon quotidien.',
   },
   incarnation: {
-    title: 'Comment cette personne vit',
-    helper: "Une manière de vivre ou de revenir à toi, pas une liste de tâches.",
-    placeholder: 'Ex. Elle revient après un écart au lieu de tout abandonner.',
+    title: 'Comment je choisis de le vivre',
+    helper: "Une manière de vivre ta direction dans le réel, pas une liste de tâches.",
+    placeholder: 'Ex. Après un écart, je reprends simplement au prochain repas au lieu d’abandonner.',
   },
 };
 
@@ -40,6 +40,10 @@ export default function MyWayPage() {
   const [saving, setSaving] = useState(false);
   const [aiLoadingKey, setAiLoadingKey] = useState(null);
   const [aiProposal, setAiProposal] = useState(null);
+  const [incarnationOpen, setIncarnationOpen] = useState(false);
+  const [incarnationLoading, setIncarnationLoading] = useState(false);
+  const [incarnationProposals, setIncarnationProposals] = useState([]);
+  const [realityChoice, setRealityChoice] = useState({});
 
   const loadData = async () => {
     setLoading(true);
@@ -51,9 +55,7 @@ export default function MyWayPage() {
     } catch (err) {
       console.error('Erreur chargement My Way:', err);
       setError("Impossible de charger My Way pour le moment.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { loadData(); }, []);
@@ -65,54 +67,42 @@ export default function MyWayPage() {
     incarnation: visibleItems.filter((item) => item.item_type === 'incarnation'),
     grow: visibleItems.filter((item) => item.item_type === 'grow'),
   }), [visibleItems]);
-
   const hasPersonalContent = byType.direction.length > 0 || byType.aspiration.length > 0 || byType.incarnation.length > 0;
+  const currentDirection = byType.direction[byType.direction.length - 1]?.content || '';
 
   const handleCreate = async (type, contentOverride = null, source = 'user') => {
     const content = String(contentOverride ?? newContent).trim();
     if (!content || saving) return;
-    setSaving(true);
-    setError('');
+    setSaving(true); setError('');
     try {
       const created = await createMyWayItem({ itemType: type, content, source });
       setItems((current) => [...current, created]);
-      setNewContent('');
-      setActiveType(null);
-      setAiProposal(null);
+      setNewContent(''); setActiveType(null); setAiProposal(null);
       if (!journeyChoice) setJourneyChoice('know');
     } catch (err) {
       console.error('Erreur ajout My Way:', err);
       setError("L'élément n'a pas pu être enregistré.");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const handleUpdate = async (id, contentOverride = null, source = undefined) => {
     const content = String(contentOverride ?? editingContent).trim();
     if (!content || saving) return;
-    setSaving(true);
-    setError('');
+    setSaving(true); setError('');
     try {
-      const updates = { content };
-      if (source) updates.source = source;
+      const updates = { content }; if (source) updates.source = source;
       const updated = await updateMyWayItem(id, updates);
       setItems((current) => current.map((item) => item.id === id ? updated : item));
-      setEditingId(null);
-      setEditingContent('');
-      setAiProposal(null);
+      setEditingId(null); setEditingContent(''); setAiProposal(null);
     } catch (err) {
       console.error('Erreur modification My Way:', err);
       setError("La modification n'a pas pu être enregistrée.");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const handleArchive = async (id) => {
     if (saving) return;
-    setSaving(true);
-    setError('');
+    setSaving(true); setError('');
     try {
       const archived = await archiveMyWayItem(id);
       setItems((current) => current.map((item) => item.id === id ? archived : item));
@@ -120,244 +110,140 @@ export default function MyWayPage() {
     } catch (err) {
       console.error('Erreur archivage My Way:', err);
       setError("L'élément n'a pas pu être archivé.");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const requestDirectionReformulation = async ({ original, itemId = null }) => {
-    const normalized = String(original || '').trim();
-    if (!normalized) return;
-
-    const key = itemId || 'new-direction';
-    setAiLoadingKey(key);
-    setError('');
-    setAiProposal(null);
+    const normalized = String(original || '').trim(); if (!normalized) return;
+    const key = itemId || 'new-direction'; setAiLoadingKey(key); setError(''); setAiProposal(null);
     try {
       const proposal = await reformulateMyWayDirection({ content: normalized, pourquoi });
-      setAiProposal({
-        itemId,
-        original: normalized,
-        proposal,
-        editedProposal: proposal,
-      });
+      setAiProposal({ itemId, original: normalized, editedProposal: proposal });
     } catch (err) {
       console.error('Erreur reformulation direction:', err);
       setError(err?.message || "La reformulation n'est pas disponible pour le moment.");
-    } finally {
-      setAiLoadingKey(null);
-    }
+    } finally { setAiLoadingKey(null); }
   };
 
   const validateAiProposal = async () => {
     if (!aiProposal) return;
-    const finalText = String(aiProposal.editedProposal || '').trim();
-    if (!finalText) return;
+    const finalText = String(aiProposal.editedProposal || '').trim(); if (!finalText) return;
+    if (aiProposal.itemId) await handleUpdate(aiProposal.itemId, finalText, 'ai');
+    else await handleCreate('direction', finalText, 'ai');
+  };
 
-    if (aiProposal.itemId) {
-      await handleUpdate(aiProposal.itemId, finalText, 'ai');
-    } else {
-      await handleCreate('direction', finalText, 'ai');
-    }
+  const requestIncarnations = async () => {
+    if (!currentDirection || incarnationLoading) return;
+    setIncarnationLoading(true); setError('');
+    try {
+      const proposals = await proposeMyWayIncarnations({ direction: currentDirection });
+      setIncarnationProposals(proposals); setIncarnationOpen(true);
+    } catch (err) {
+      console.error('Erreur propositions incarnation:', err);
+      setError(err?.message || "My Way n'a pas pu proposer de traduction concrète.");
+    } finally { setIncarnationLoading(false); }
+  };
+
+  const validateIncarnation = async (proposal, index) => {
+    if (!realityChoice[index]) return;
+    await handleCreate('incarnation', proposal, 'ai');
+    setIncarnationProposals((current) => current.filter((_, i) => i !== index));
+    setRealityChoice({});
   };
 
   const renderAiProposal = ({ itemId = null }) => {
     if (!aiProposal || aiProposal.itemId !== itemId) return null;
-
-    return (
-      <div style={aiPanelStyle}>
-        <div style={{ fontWeight: 800, color: '#4c3ca7', marginBottom: 6 }}>Voilà ce que My Way a compris</div>
-        <p style={{ ...helperStyle, marginBottom: 12 }}>Ce n'est qu'une proposition. Tu peux la modifier, garder tes mots ou la valider si elle te ressemble.</p>
-        <textarea
-          value={aiProposal.editedProposal}
-          onChange={(e) => setAiProposal((current) => ({ ...current, editedProposal: e.target.value }))}
-          rows={5}
-          style={textareaStyle}
-        />
-        <div style={buttonRowStyle}>
-          <button onClick={validateAiProposal} disabled={!aiProposal.editedProposal.trim() || saving} style={primaryButtonStyle}>
-            Oui, ça me ressemble
-          </button>
-          <button
-            onClick={() => {
-              if (itemId) setAiProposal(null);
-              else handleCreate('direction', aiProposal.original, 'user');
-            }}
-            disabled={saving}
-            style={secondaryButtonStyle}
-          >
-            Garder mes mots
-          </button>
-          <button onClick={() => setAiProposal(null)} disabled={saving} style={textButtonStyle}>Revenir</button>
-        </div>
+    return <div style={aiPanelStyle}>
+      <div style={{ fontWeight: 800, color: '#4c3ca7', marginBottom: 6 }}>Voilà ce que My Way a compris</div>
+      <p style={{ ...helperStyle, marginBottom: 12 }}>Ce n'est qu'une proposition. Tu peux la modifier, garder tes mots ou la valider si elle te ressemble.</p>
+      <textarea value={aiProposal.editedProposal} onChange={(e) => setAiProposal((current) => ({ ...current, editedProposal: e.target.value }))} rows={5} style={textareaStyle} />
+      <div style={buttonRowStyle}>
+        <button onClick={validateAiProposal} disabled={!aiProposal.editedProposal.trim() || saving} style={primaryButtonStyle}>Oui, ça me ressemble</button>
+        <button onClick={() => { if (itemId) setAiProposal(null); else handleCreate('direction', aiProposal.original, 'user'); }} disabled={saving} style={secondaryButtonStyle}>Garder mes mots</button>
+        <button onClick={() => setAiProposal(null)} disabled={saving} style={textButtonStyle}>Revenir</button>
       </div>
-    );
+    </div>;
   };
 
   const renderItem = (item) => {
-    const isEditing = editingId === item.id;
-    const isDirection = item.item_type === 'direction';
-    return (
-      <div key={item.id} style={itemStyle}>
-        {isEditing ? (
-          <>
-            <textarea value={editingContent} onChange={(e) => setEditingContent(e.target.value)} rows={3} style={textareaStyle} />
-            <div style={buttonRowStyle}>
-              <button onClick={() => handleUpdate(item.id)} disabled={saving} style={primaryButtonStyle}>Enregistrer</button>
-              <button onClick={() => { setEditingId(null); setEditingContent(''); }} style={secondaryButtonStyle}>Annuler</button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{ color: '#273043', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{item.content}</div>
-            <div style={buttonRowStyle}>
-              <button onClick={() => { setEditingId(item.id); setEditingContent(item.content); setAiProposal(null); }} style={textButtonStyle}>Modifier</button>
-              {isDirection && (
-                <button
-                  onClick={() => requestDirectionReformulation({ original: item.content, itemId: item.id })}
-                  disabled={aiLoadingKey === item.id || saving}
-                  style={aiButtonStyle}
-                >
-                  {aiLoadingKey === item.id ? 'My Way reformule…' : 'Clarifier avec My Way'}
-                </button>
-              )}
-              <button onClick={() => handleArchive(item.id)} disabled={saving} style={archiveButtonStyle}>Archiver</button>
-            </div>
-            {isDirection && renderAiProposal({ itemId: item.id })}
-          </>
-        )}
-      </div>
-    );
+    const isEditing = editingId === item.id; const isDirection = item.item_type === 'direction';
+    return <div key={item.id} style={itemStyle}>
+      {isEditing ? <>
+        <textarea value={editingContent} onChange={(e) => setEditingContent(e.target.value)} rows={3} style={textareaStyle} />
+        <div style={buttonRowStyle}><button onClick={() => handleUpdate(item.id)} disabled={saving} style={primaryButtonStyle}>Enregistrer</button><button onClick={() => { setEditingId(null); setEditingContent(''); }} style={secondaryButtonStyle}>Annuler</button></div>
+      </> : <>
+        <div style={{ color: '#273043', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{item.content}</div>
+        <div style={buttonRowStyle}>
+          <button onClick={() => { setEditingId(item.id); setEditingContent(item.content); setAiProposal(null); }} style={textButtonStyle}>Modifier</button>
+          {isDirection && <button onClick={() => requestDirectionReformulation({ original: item.content, itemId: item.id })} disabled={aiLoadingKey === item.id || saving} style={aiButtonStyle}>{aiLoadingKey === item.id ? 'My Way reformule…' : 'Clarifier avec My Way'}</button>}
+          <button onClick={() => handleArchive(item.id)} disabled={saving} style={archiveButtonStyle}>Archiver</button>
+        </div>
+        {isDirection && renderAiProposal({ itemId: item.id })}
+      </>}
+    </div>;
   };
 
   const renderAddForm = (type) => {
-    const config = CONFIG[type];
-    if (activeType !== type) return null;
-
-    const isDirection = type === 'direction';
-    return (
-      <div style={{ marginTop: 12 }}>
-        <textarea autoFocus value={newContent} onChange={(e) => { setNewContent(e.target.value); setAiProposal(null); }} placeholder={config.placeholder} rows={4} style={textareaStyle} />
-        <div style={buttonRowStyle}>
-          {isDirection ? (
-            <>
-              <button
-                onClick={() => requestDirectionReformulation({ original: newContent })}
-                disabled={!newContent.trim() || aiLoadingKey === 'new-direction' || saving}
-                style={primaryButtonStyle}
-              >
-                {aiLoadingKey === 'new-direction' ? 'My Way reformule…' : 'M’aider à clarifier'}
-              </button>
-              <button onClick={() => handleCreate(type, newContent, 'user')} disabled={!newContent.trim() || saving} style={secondaryButtonStyle}>Garder mes mots</button>
-            </>
-          ) : (
-            <button onClick={() => handleCreate(type)} disabled={!newContent.trim() || saving} style={primaryButtonStyle}>Enregistrer</button>
-          )}
-          <button onClick={() => { setActiveType(null); setNewContent(''); setAiProposal(null); }} style={secondaryButtonStyle}>Pas maintenant</button>
-        </div>
-        {isDirection && renderAiProposal({ itemId: null })}
+    const config = CONFIG[type]; if (activeType !== type) return null; const isDirection = type === 'direction';
+    return <div style={{ marginTop: 12 }}>
+      <textarea autoFocus value={newContent} onChange={(e) => { setNewContent(e.target.value); setAiProposal(null); }} placeholder={config.placeholder} rows={4} style={textareaStyle} />
+      <div style={buttonRowStyle}>
+        {isDirection ? <><button onClick={() => requestDirectionReformulation({ original: newContent })} disabled={!newContent.trim() || aiLoadingKey === 'new-direction' || saving} style={primaryButtonStyle}>{aiLoadingKey === 'new-direction' ? 'My Way reformule…' : 'M’aider à clarifier'}</button><button onClick={() => handleCreate(type, newContent, 'user')} disabled={!newContent.trim() || saving} style={secondaryButtonStyle}>Garder mes mots</button></> : <button onClick={() => handleCreate(type)} disabled={!newContent.trim() || saving} style={primaryButtonStyle}>Enregistrer</button>}
+        <button onClick={() => { setActiveType(null); setNewContent(''); setAiProposal(null); }} style={secondaryButtonStyle}>Pas maintenant</button>
       </div>
-    );
+      {isDirection && renderAiProposal({ itemId: null })}
+    </div>;
   };
 
   const renderSection = (type, showAdd = true) => {
     const config = CONFIG[type];
-    return (
-      <section style={panelStyle}>
-        <h2 style={sectionTitleStyle}>{config.title}</h2>
-        <p style={helperStyle}>{config.helper}</p>
-        {byType[type].map(renderItem)}
-        {showAdd && activeType !== type && (
-          <button onClick={() => { setActiveType(type); setNewContent(''); setAiProposal(null); }} style={secondaryButtonStyle}>+ Ajouter</button>
-        )}
-        {renderAddForm(type)}
-      </section>
-    );
+    return <section style={panelStyle}><h2 style={sectionTitleStyle}>{config.title}</h2><p style={helperStyle}>{config.helper}</p>{byType[type].map(renderItem)}{showAdd && activeType !== type && <button onClick={() => { setActiveType(type); setNewContent(''); setAiProposal(null); }} style={secondaryButtonStyle}>+ Ajouter</button>}{renderAddForm(type)}</section>;
   };
 
   if (loading) return <main style={pageStyle}><div style={panelStyle}>Chargement de My Way…</div></main>;
-
   const showDirection = hasPersonalContent || journeyChoice === 'know';
-  const showAspiration = byType.aspiration.length > 0 || byType.direction.length > 0;
-  const showIncarnation = byType.incarnation.length > 0 || byType.aspiration.length > 0;
 
-  return (
-    <main style={pageStyle}>
-      <div style={{ maxWidth: 860, margin: '0 auto' }}>
-        <Link href="/tableau-de-bord" style={{ color: '#5b5bd6', textDecoration: 'none', fontWeight: 700 }}>← Retour au tableau de bord</Link>
+  return <main style={pageStyle}><div style={{ maxWidth: 860, margin: '0 auto' }}>
+    <Link href="/tableau-de-bord" style={{ color: '#5b5bd6', textDecoration: 'none', fontWeight: 700 }}>← Retour au tableau de bord</Link>
+    <div style={{ margin: '20px 0 26px' }}><div style={eyebrowStyle}>My Way</div><h1 style={{ margin: '6px 0 8px', fontSize: 34, color: '#273043' }}>Ce qui compte pour moi et ce que je construis</h1><p style={{ margin: 0, color: '#667085', fontSize: 17, lineHeight: 1.6 }}>My Way se construit avec toi. Tu n'as rien à compléter d'un seul coup.</p></div>
+    {error && <div style={{ ...panelStyle, borderColor: '#fecaca', background: '#fff7f7', color: '#b42318' }}>{error}</div>}
+    <section style={{ ...panelStyle, background: 'linear-gradient(135deg, #f8f5ff 0%, #eef7ff 100%)', borderColor: '#ddd6fe' }}><div style={eyebrowStyle}>Le point de départ</div><h2 style={sectionTitleStyle}>Pourquoi j'ai commencé</h2>{pourquoi ? <p style={{ fontSize: 18, lineHeight: 1.6, color: '#344054', marginBottom: 0 }}>{pourquoi}</p> : <p style={helperStyle}>Ton Pourquoi n'est pas encore renseigné dans ton profil.</p>}</section>
 
-        <div style={{ margin: '20px 0 26px' }}>
-          <div style={eyebrowStyle}>My Way</div>
-          <h1 style={{ margin: '6px 0 8px', fontSize: 34, color: '#273043' }}>Ce qui compte pour moi et ce que je construis</h1>
-          <p style={{ margin: 0, color: '#667085', fontSize: 17, lineHeight: 1.6 }}>My Way se construit avec toi. Tu n'as rien à compléter d'un seul coup.</p>
-        </div>
+    {!hasPersonalContent && journeyChoice === null && <section style={panelStyle}><h2 style={sectionTitleStyle}>Et derrière cet objectif, qu'est-ce que tu veux construire ?</h2><p style={helperStyle}>Tu n'as pas besoin d'avoir la réponse aujourd'hui.</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}><button onClick={() => { setJourneyChoice('know'); setActiveType('direction'); }} style={choiceButtonStyle}><strong>J'ai déjà une idée</strong><span style={choiceTextStyle}>Je veux poser une première direction avec mes mots.</span></button><button onClick={() => setJourneyChoice('discover')} style={choiceButtonStyle}><strong>Je veux la découvrir en avançant</strong><span style={choiceTextStyle}>Je continue mon parcours sans me forcer à définir tout maintenant.</span></button></div></section>}
+    {journeyChoice === 'discover' && !hasPersonalContent && <section style={{ ...panelStyle, borderColor: '#d1fadf', background: '#f6fef9' }}><h2 style={sectionTitleStyle}>Alors on avance comme ça.</h2><p style={helperStyle}>Continue à vivre ton parcours. Quand quelque chose deviendra plus clair ou qu'un changement réel apparaîtra, My Way pourra s'enrichir sans te demander de tout définir à l'avance.</p><Link href="/tableau-de-bord" style={{ ...primaryButtonStyle, display: 'inline-block', textDecoration: 'none' }}>Continuer mon parcours</Link></section>}
 
-        {error && <div style={{ ...panelStyle, borderColor: '#fecaca', background: '#fff7f7', color: '#b42318' }}>{error}</div>}
+    {showDirection && renderSection('direction')}
 
-        <section style={{ ...panelStyle, background: 'linear-gradient(135deg, #f8f5ff 0%, #eef7ff 100%)', borderColor: '#ddd6fe' }}>
-          <div style={eyebrowStyle}>Le point de départ</div>
-          <h2 style={sectionTitleStyle}>Pourquoi j'ai commencé</h2>
-          {pourquoi ? <p style={{ fontSize: 18, lineHeight: 1.6, color: '#344054', marginBottom: 0 }}>{pourquoi}</p> : <p style={helperStyle}>Ton Pourquoi n'est pas encore renseigné dans ton profil.</p>}
-        </section>
-
-        {!hasPersonalContent && journeyChoice === null && (
-          <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>Et derrière cet objectif, qu'est-ce que tu veux construire ?</h2>
-            <p style={helperStyle}>Tu n'as pas besoin d'avoir la réponse aujourd'hui.</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-              <button onClick={() => { setJourneyChoice('know'); setActiveType('direction'); }} style={choiceButtonStyle}>
-                <strong>J'ai déjà une idée</strong>
-                <span style={choiceTextStyle}>Je veux poser une première direction avec mes mots.</span>
-              </button>
-              <button onClick={() => setJourneyChoice('discover')} style={choiceButtonStyle}>
-                <strong>Je veux la découvrir en avançant</strong>
-                <span style={choiceTextStyle}>Je continue mon parcours sans me forcer à définir tout maintenant.</span>
-              </button>
-            </div>
-          </section>
-        )}
-
-        {journeyChoice === 'discover' && !hasPersonalContent && (
-          <section style={{ ...panelStyle, borderColor: '#d1fadf', background: '#f6fef9' }}>
-            <h2 style={sectionTitleStyle}>Alors on avance comme ça.</h2>
-            <p style={helperStyle}>Continue à vivre ton parcours. Quand quelque chose deviendra plus clair ou qu'un changement réel apparaîtra, My Way pourra s'enrichir sans te demander de tout définir à l'avance.</p>
-            <Link href="/tableau-de-bord" style={{ ...primaryButtonStyle, display: 'inline-block', textDecoration: 'none' }}>Continuer mon parcours</Link>
-          </section>
-        )}
-
-        {showDirection && renderSection('direction')}
-
-        {showDirection && byType.direction.length > 0 && !showAspiration && (
-          <section style={invitationStyle}>
-            <div style={{ fontWeight: 800, color: '#344054', marginBottom: 6 }}>Tu veux aller un peu plus loin ?</div>
-            <div style={helperStyle}>Seulement si quelque chose te vient déjà.</div>
-            <button onClick={() => setActiveType('aspiration')} style={secondaryButtonStyle}>J'ai une aspiration à poser</button>
-          </section>
-        )}
-
-        {showAspiration && (byType.aspiration.length > 0 || activeType === 'aspiration') && renderSection('aspiration')}
-
-        {showAspiration && byType.aspiration.length > 0 && !showIncarnation && (
-          <section style={invitationStyle}>
-            <div style={{ fontWeight: 800, color: '#344054', marginBottom: 6 }}>Et si c'est déjà clair pour toi…</div>
-            <div style={helperStyle}>Tu peux poser une manière de vivre qui correspond à cette direction. Sinon, tu peux t'arrêter ici.</div>
-            <button onClick={() => setActiveType('incarnation')} style={secondaryButtonStyle}>J'ai une manière de vivre à poser</button>
-          </section>
-        )}
-
-        {showIncarnation && (byType.incarnation.length > 0 || activeType === 'incarnation') && renderSection('incarnation')}
-
-        {byType.grow.length > 0 && (
-          <section style={panelStyle}>
-            <div style={eyebrowStyle}>Grow</div>
-            <h2 style={sectionTitleStyle}>Ce que mon parcours m'a déjà montré</h2>
-            <p style={helperStyle}>Ces éléments viennent de faits observés dans ton parcours.</p>
-            {byType.grow.map(renderItem)}
-          </section>
-        )}
+    {byType.direction.length > 0 && <section style={invitationStyle}>
+      <div style={{ fontWeight: 800, color: '#344054', marginBottom: 6 }}>Et dans ta vraie vie ?</div>
+      <p style={helperStyle}>Si tu sais déjà comment tu aimerais vivre cette direction, My Way peut t'aider à la traduire. Sinon, continue simplement ton parcours : ce que tu vis pourra aussi la préciser plus tard.</p>
+      <div style={buttonRowStyle}>
+        <button onClick={requestIncarnations} disabled={incarnationLoading || saving} style={aiButtonStyle}>{incarnationLoading ? 'My Way prépare…' : 'Voir comment je pourrais la vivre'}</button>
+        <Link href="/tableau-de-bord" style={{ ...secondaryButtonStyle, textDecoration: 'none' }}>Continuer mon parcours</Link>
       </div>
-    </main>
-  );
+    </section>}
+
+    {incarnationOpen && incarnationProposals.length > 0 && <section style={{ ...panelStyle, borderColor: '#d9d6fe', background: '#fbfaff' }}>
+      <div style={eyebrowStyle}>Align</div><h2 style={sectionTitleStyle}>Ce que cette direction pourrait changer dans le réel</h2>
+      <p style={helperStyle}>Ce sont des pistes, pas des vérités sur toi. Pour chacune, dis simplement où tu en es aujourd'hui. Mon Plan Vital ne suppose pas qu'il existe un problème.</p>
+      {incarnationProposals.map((proposal, index) => <div key={`${proposal}-${index}`} style={itemStyle}>
+        <div style={{ color: '#273043', lineHeight: 1.55 }}>{proposal}</div>
+        <div style={{ marginTop: 12, fontWeight: 700, color: '#475467' }}>Aujourd'hui, cette manière de vivre…</div>
+        <div style={buttonRowStyle}>{[
+          ['already', 'Je la vis déjà souvent'], ['sometimes', 'Parfois'], ['build', 'Pas encore vraiment'], ['unknown', 'Je ne sais pas']
+        ].map(([value, label]) => <button key={value} onClick={() => setRealityChoice((current) => ({ ...current, [index]: value }))} style={realityChoice[index] === value ? selectedChoiceStyle : secondaryButtonStyle}>{label}</button>)}</div>
+        {realityChoice[index] && <div style={{ ...buttonRowStyle, marginTop: 14 }}><button onClick={() => validateIncarnation(proposal, index)} disabled={saving} style={primaryButtonStyle}>Oui, c'est une manière dont je veux vivre ma direction</button><button onClick={() => setIncarnationProposals((current) => current.filter((_, i) => i !== index))} style={textButtonStyle}>Ça ne me correspond pas</button></div>}
+      </div>)}
+      <button onClick={() => { setIncarnationOpen(false); setIncarnationProposals([]); setRealityChoice({}); }} style={secondaryButtonStyle}>Pas maintenant</button>
+    </section>}
+
+    {byType.incarnation.length > 0 && renderSection('incarnation')}
+
+    {byType.direction.length > 0 && <section style={invitationStyle}><div style={{ fontWeight: 800, color: '#344054', marginBottom: 6 }}>Une envie concrète existe déjà ?</div><p style={helperStyle}>Tu peux aussi poser quelque chose que tu veux vivre davantage. Une aspiration n'a pas besoin de devenir un objectif.</p>{activeType !== 'aspiration' && <button onClick={() => setActiveType('aspiration')} style={secondaryButtonStyle}>J'ai une aspiration à poser</button>}{activeType === 'aspiration' && renderAddForm('aspiration')}</section>}
+    {byType.aspiration.length > 0 && renderSection('aspiration')}
+
+    {byType.grow.length > 0 && <section style={panelStyle}><div style={eyebrowStyle}>Grow</div><h2 style={sectionTitleStyle}>Ce que mon parcours m'a déjà montré</h2><p style={helperStyle}>Ces éléments viennent de faits observés dans ton parcours.</p>{byType.grow.map(renderItem)}</section>}
+  </div></main>;
 }
 
 const pageStyle = { minHeight: '100vh', background: '#f7f8fc', padding: '28px 20px 60px', fontFamily: 'Arial, sans-serif' };
@@ -372,6 +258,7 @@ const helperStyle = { marginTop: 0, color: '#667085', lineHeight: 1.55 };
 const eyebrowStyle = { fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.7, color: '#6d5bbd' };
 const primaryButtonStyle = { background: '#5b5bd6', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 14px', fontWeight: 800, cursor: 'pointer' };
 const secondaryButtonStyle = { background: '#fff', color: '#475467', border: '1px solid #d0d5dd', borderRadius: 9, padding: '9px 14px', fontWeight: 700, cursor: 'pointer' };
+const selectedChoiceStyle = { ...secondaryButtonStyle, color: '#4c3ca7', borderColor: '#8b83e6', background: '#f3f1ff' };
 const textButtonStyle = { ...secondaryButtonStyle, padding: '6px 10px', fontSize: 13 };
 const aiButtonStyle = { ...textButtonStyle, color: '#5b5bd6', borderColor: '#c7c2ff', background: '#f8f7ff' };
 const archiveButtonStyle = { ...textButtonStyle, color: '#b54708', borderColor: '#fedf89', background: '#fffaeb' };
