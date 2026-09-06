@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import FormulaireProfil from '../components/FormulaireProfil'
 import { calculerProfilComplet, estProfilComplet } from '../lib/routeurPoids'
 import Link from "next/link";
+import { outilsModeTestDisponibles } from "../lib/modeTestClock";
 
 function formatDateTime(dateString) {
   if (!dateString) return ''
@@ -455,6 +456,7 @@ export default function ProfilPage() {
           <button style={styles.suivreButton} onClick={goToSuivi}>
             Commencer mon suivi
           </button>
+          {outilsModeTestDisponibles() && (
           <button
             style={{
               background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8,
@@ -470,6 +472,7 @@ export default function ProfilPage() {
           >
             🧪 Mode test parcours jeûne
           </button>
+          )}
         </div>
       )}
 

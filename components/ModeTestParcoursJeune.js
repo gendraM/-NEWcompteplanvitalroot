@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
 import { createParcoursJeune, demarrerPhaseJeune } from '../lib/parcoursJeuneAPI';
 import { savePreparationJeuneSupabase } from '../lib/preparationsJeune';
-import { avancerDateModeTest, getDateMetierISO, initialiserDateModeTest } from '../lib/modeTestClock';
+import { avancerDateModeTest, getDateMetierISO, initialiserDateModeTest, outilsModeTestDisponibles } from '../lib/modeTestClock';
 
 const lireJson = cle => {
   try { return JSON.parse(localStorage.getItem(cle) || 'null'); }
@@ -16,22 +16,32 @@ export default function ModeTestParcoursJeune() {
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState('');
   const [dateVirtuelle, setDateVirtuelle] = useState(null);
+  const outilsTestActifs = outilsModeTestDisponibles();
 
   useEffect(() => {
+    if (!outilsTestActifs) {
+      localStorage.removeItem('modeTestParcoursJeune');
+      localStorage.removeItem('modeTestDateVirtuelle');
+      localStorage.removeItem('test_modeRepriseActif');
+      localStorage.setItem('repriseMode', 'normal');
+      setActif(false);
+      return;
+    }
     const actifDansUrl = router.query.modeTest === '1';
     if (actifDansUrl) localStorage.setItem('modeTestParcoursJeune', 'true');
     const modeActif = actifDansUrl || localStorage.getItem('modeTestParcoursJeune') === 'true';
     setActif(modeActif);
     if (modeActif) setDateVirtuelle(initialiserDateModeTest());
-  }, [router.asPath, router.query.modeTest]);
+  }, [outilsTestActifs, router.asPath, router.query.modeTest]);
 
   useEffect(() => {
+    if (!outilsTestActifs) return undefined;
     const actualiserDate = () => setDateVirtuelle(initialiserDateModeTest());
     window.addEventListener('mode-test-date-change', actualiserDate);
     return () => window.removeEventListener('mode-test-date-change', actualiserDate);
-  }, []);
+  }, [outilsTestActifs]);
 
-  if (!actif) return null;
+  if (!outilsTestActifs || !actif) return null;
 
   const estPreparation = router.pathname === '/preparation-jeune';
   const estJeune = router.pathname === '/jeune';

@@ -8,7 +8,8 @@ function chargerHorloge() {
     .concat('\nmodule.exports={avancerDateModeTest,estModeTestActif,getDateMetier,getDateMetierISO,initialiserDateModeTest,positionnerDateModeTestMinimum};');
   const context = {
     module: { exports: {} }, exports: {}, Map, Date,
-    window: global.window, localStorage: global.localStorage
+    window: global.window, localStorage: global.localStorage,
+    process: { env: { NODE_ENV: 'test' } }
   };
   vm.createContext(context);
   vm.runInContext(source, context);
