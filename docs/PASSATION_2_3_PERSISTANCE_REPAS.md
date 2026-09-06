@@ -187,3 +187,19 @@ Le correctif conserve désormais les acquis des deux versions :
 - le déplacement d'une assiette composée reste groupé.
 
 Validation locale du correctif : tests ciblés **33/33**, suite Jest complète **220/220** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Une validation fonctionnelle authentifiée sur mobile reste requise après déploiement de branche.
+
+### Correction de l'aperçu mensuel après test mobile
+
+Le test authentifié a confirmé la vue hebdomadaire, mais a montré que l'aperçu du mois n'apportait pas assez d'information : un jour rempli affichait seulement un nombre suivi d'un point, un jour vide affichait un signe « + » ambigu et le toucher sélectionnait immédiatement la date du formulaire situé plus bas.
+
+Le correctif redonne à chaque horizon un rôle clair :
+
+- chaque case du mois indique désormais le nombre de repas, le total calorique connu ou « Libre » ;
+- toucher une date ouvre un résumé sous le calendrier, sans déclencher la planification ;
+- le résumé restitue les repas, aliments, quantités, calories et totaux réellement disponibles ;
+- une journée vide indique explicitement qu'aucun repas n'est prévu ;
+- une action séparée « Voir cette journée dans ma semaine » ou « Planifier cette journée » ouvre ensuite la semaine correspondante ;
+- le formulaire de planification n'est donc plus la conséquence implicite d'un simple toucher dans l'aperçu mensuel ;
+- aucune donnée, règle métier ou structure Supabase n'est modifiée.
+
+Validation locale : tests ciblés **34/34**, suite Jest complète **221/221** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Une validation fonctionnelle authentifiée sur mobile reste requise après déploiement de branche.

@@ -228,9 +228,13 @@ function JourDetaille({ date, repas, selectedDate, referentiel, totalJour, onSel
   );
 }
 
-function ApercuMois({ periode, planning, selectedDate, onSelectDate }) {
+function ApercuMois({ periode, planning, referentiel, totauxPlanning, onOpenDate }) {
+  const [dateApercu, setDateApercu] = useState(null);
   const premierJour = new Date(`${periode.debut}T12:00:00`).getDay();
   const cellulesVides = (premierJour + 6) % 7;
+  const lignesApercu = dateApercu ? planning[dateApercu] || [] : [];
+  const groupesApercu = regrouperRepasPlanifies(lignesApercu);
+
   return (
     <div className="apercu-mois">
       <div className="jours-semaine">{JOURS_COURTS.map(jour => <b key={jour}>{jour}</b>)}</div>
@@ -238,30 +242,69 @@ function ApercuMois({ periode, planning, selectedDate, onSelectDate }) {
         {Array.from({ length: cellulesVides }, (_, index) => <span className="hors-mois" key={`vide-${index}`} />)}
         {periode.dates.map(date => {
           const groupes = regrouperRepasPlanifies(planning[date] || []);
+          const totalJour = totauxPlanning[date]?.totalJour || 0;
           return (
-            <Droppable droppableId={date} key={date}>
-              {(provided, snapshot) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className={`jour-mois ${selectedDate === date ? 'jour-mois-selectionne' : ''} ${snapshot.isDraggingOver ? 'zone-active' : ''}`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => onSelectDate(date)}
-                    aria-label={`${dateLocale(date)}, ${groupes.length} repas planifié${groupes.length > 1 ? 's' : ''}`}
-                  >
-                    <strong>{Number(date.slice(-2))}</strong>
-                    <span>{groupes.length ? `${groupes.length} ·` : '＋'}</span>
-                  </button>
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
+            <div className={`jour-mois ${dateApercu === date ? 'jour-mois-selectionne' : ''}`} key={date}>
+              <button
+                type="button"
+                onClick={() => setDateApercu(courante => courante === date ? null : date)}
+                aria-expanded={dateApercu === date}
+                aria-controls="detail-jour-mois"
+                aria-label={`${dateLocale(date)}, ${groupes.length ? `${groupes.length} repas planifié${groupes.length > 1 ? 's' : ''}, ${totalJour} kilocalories` : 'journée libre'}`}
+              >
+                <strong>{Number(date.slice(-2))}</strong>
+                <span>{groupes.length ? `${groupes.length} repas` : 'Libre'}</span>
+                {groupes.length > 0 && <small>{totalJour} kcal</small>}
+              </button>
+            </div>
           );
         })}
       </div>
-      <p className="aide-mois">Choisis un jour pour le planifier. Les détails restent disponibles dans les vues semaine et 15 jours.</p>
+      <p className="aide-mois">Choisis un jour pour consulter son contenu. La planification détaillée reste dans la vue semaine.</p>
+
+      {dateApercu && (
+        <section className="detail-jour-mois" id="detail-jour-mois" aria-live="polite">
+          <header>
+            <div>
+              <h3>{dateLocale(dateApercu)}</h3>
+              <span>{groupesApercu.length ? `${groupesApercu.length} repas prévu${groupesApercu.length > 1 ? 's' : ''}` : 'Journée libre'}</span>
+            </div>
+            <button type="button" className="fermer-detail-mois" onClick={() => setDateApercu(null)} aria-label="Fermer le résumé du jour">×</button>
+          </header>
+
+          {groupesApercu.length ? (
+            <div className="repas-detail-mois">
+              {groupesApercu.map(groupe => {
+                const type = TYPES_REPAS[groupe.type] || { emoji: '🍽️' };
+                const lignes = groupe.lignes.map(ligne => normaliserRepasPlanifie(ligne, referentiel));
+                const totalRepas = lignes.reduce((somme, ligne) => somme + Number(ligne.kcal_calculees || 0), 0);
+                return (
+                  <article key={groupe.cle}>
+                    <strong>{type.emoji} {groupe.type}</strong>
+                    {lignes.map(ligne => (
+                      <div className="ligne-detail-mois" key={ligne.id}>
+                        <span>{ligne.aliment}</span>
+                        <small>
+                          {ligne.quantite_affichee || 'Quantité non renseignée'}
+                          {ligne.kcal_calculees !== null ? ` · ${ligne.kcal_calculees} kcal` : ' · Calories non renseignées'}
+                        </small>
+                      </div>
+                    ))}
+                    {totalRepas > 0 && <b className="total-detail-repas">Total du repas : {totalRepas} kcal</b>}
+                  </article>
+                );
+              })}
+              <div className="total-detail-jour">Total du jour : {totauxPlanning[dateApercu]?.totalJour || 0} kcal{!totauxPlanning[dateApercu]?.complet ? ' (partiel)' : ''}</div>
+            </div>
+          ) : (
+            <p className="aucun-repas-mois">Aucun repas n’est encore prévu pour cette journée.</p>
+          )}
+
+          <button type="button" className="ouvrir-semaine-mois" onClick={() => onOpenDate(dateApercu)}>
+            {groupesApercu.length ? 'Voir cette journée dans ma semaine' : 'Planifier cette journée'}
+          </button>
+        </section>
+      )}
     </div>
   );
 }
@@ -317,8 +360,12 @@ export default function HorizonPlanning({
           <ApercuMois
             periode={periode}
             planning={planning}
-            selectedDate={selectedDate}
-            onSelectDate={onSelectDate}
+            referentiel={referentiel}
+            totauxPlanning={totauxPlanning}
+            onOpenDate={date => {
+              onSelectDate(date);
+              onModeChange(MODES_HORIZON_PLANNING.SEMAINE);
+            }}
           />
         ) : mode === MODES_HORIZON_PLANNING.SEMAINE ? (
           <VueSemaine
@@ -374,11 +421,25 @@ export default function HorizonPlanning({
         .jours-semaine, .grille-mois { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
         .jours-semaine { text-align: center; color: #546e7a; margin-bottom: 5px; font-size: 13px; }
         .hors-mois { min-height: 66px; }
-        .jour-mois { min-width: 0; min-height: 66px; display: grid; border: 1px solid #cfd8dc; border-radius: 9px; background: white; color: #263238; }
-        .jour-mois button { min-width: 0; display: grid; align-content: center; justify-items: center; gap: 2px; border: 0; border-radius: inherit; background: transparent; color: inherit; }
+        .jour-mois { min-width: 0; min-height: 72px; display: grid; border: 1px solid #cfd8dc; border-radius: 9px; background: white; color: #263238; }
+        .jour-mois button { min-width: 0; display: grid; align-content: center; justify-items: center; gap: 2px; border: 0; border-radius: inherit; padding: 4px 2px; background: transparent; color: inherit; }
         .jour-mois span { color: #1976d2; font-size: 12px; }
+        .jour-mois small { color: #546e7a; font-size: 10px; }
         .jour-mois-selectionne { outline: 3px solid #7e57c2; border-color: transparent; }
         .aide-mois { color: #607d8b; text-align: center; font-size: 14px; }
+        .detail-jour-mois { max-width: 720px; margin: 14px auto 0; border: 1px solid #bbdefb; border-left: 7px solid #42a5f5; border-radius: 14px; padding: 14px; background: white; }
+        .detail-jour-mois > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+        .detail-jour-mois h3 { margin: 0; text-transform: capitalize; }
+        .detail-jour-mois header span { display: block; margin-top: 3px; color: #607d8b; font-size: 14px; }
+        .fermer-detail-mois { min-width: 40px; min-height: 40px; border: 0; border-radius: 50%; background: #eceff1; color: #37474f; font-size: 22px !important; }
+        .repas-detail-mois { display: grid; gap: 9px; }
+        .repas-detail-mois article { border-radius: 9px; padding: 10px; background: #f5f7f8; }
+        .ligne-detail-mois { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding-top: 5px; }
+        .ligne-detail-mois small { color: #546e7a; text-align: right; }
+        .total-detail-repas { display: block; margin-top: 6px; color: #455a64; text-align: right; font-size: 13px; }
+        .total-detail-jour { color: #37474f; text-align: right; font-weight: 700; }
+        .aucun-repas-mois { margin: 0 0 10px; color: #607d8b; }
+        .ouvrir-semaine-mois { width: 100%; min-height: 44px; margin-top: 12px; border: 0; border-radius: 9px; padding: 9px 12px; background: #1976d2; color: white; font-weight: 700; }
         :global(.jour-detaille) { border: 1px solid #bbdefb; border-left: 7px solid #42a5f5; border-radius: 14px; padding: 14px; background: white; }
         :global(.jour-detaille.jour-selectionne) { box-shadow: 0 0 0 3px #d1c4e9; }
         :global(.jour-detaille > header) { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
@@ -427,7 +488,11 @@ export default function HorizonPlanning({
           :global(.jour-detaille > header) { align-items: flex-start; }
           :global(.jour-detaille > header button) { max-width: 130px; }
           :global(.choix-deplacement > *) { width: 100%; }
-          .jour-mois, .hors-mois { min-height: 52px; }
+          .jour-mois, .hors-mois { min-height: 66px; }
+          .jour-mois span { font-size: 10px; }
+          .jour-mois small { font-size: 9px; }
+          .ligne-detail-mois { grid-template-columns: 1fr; gap: 1px; }
+          .ligne-detail-mois small { text-align: left; }
         }
       `}</style>
     </section>

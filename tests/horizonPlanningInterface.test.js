@@ -42,6 +42,18 @@ describe('Interface mobile du planning alimentaire', () => {
     expect(horizon).toContain('Nouveau jour');
   });
 
+  test('rend l’aperçu mensuel informatif sans envoyer directement vers le formulaire', () => {
+    expect(horizon).toContain("groupes.length ? `${groupes.length} repas` : 'Libre'");
+    expect(horizon).toContain("<small>{totalJour} kcal</small>");
+    expect(horizon).toContain('detail-jour-mois');
+    expect(horizon).toContain('Quantité non renseignée');
+    expect(horizon).toContain('Voir cette journée dans ma semaine');
+    expect(horizon).toContain('Planifier cette journée');
+    expect(horizon).toContain('onModeChange(MODES_HORIZON_PLANNING.SEMAINE)');
+    expect(horizon).not.toContain("onClick={() => onSelectDate(date)}\n                    aria-label={`${dateLocale(date)}");
+    expect(horizon).not.toContain("groupes.length ? `${groupes.length} ·` : '＋'");
+  });
+
   test('retire l’ancien tableau mensuel large et le faux score de repas respectés', () => {
     expect(page).not.toContain('minWidth: 700');
     expect(page).not.toContain('Repas respectés cette semaine');
