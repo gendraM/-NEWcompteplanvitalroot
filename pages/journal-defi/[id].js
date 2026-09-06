@@ -138,6 +138,9 @@ export default function PageJournalDefi() {
     );
   }
 
+  const jourDebloque = calculerJourActuel(defi);
+  const peutVoirJourSuivant = jourActuel < jourDebloque && jourActuel < defi.duree;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
       <div className="container mx-auto px-4 py-6 max-w-5xl">
@@ -178,8 +181,8 @@ export default function PageJournalDefi() {
             Jour {jourActuel} / {defi.duree}
           </div>
           <button
-            onClick={() => setJourActuel(Math.min(defi.duree, jourActuel + 1))}
-            disabled={jourActuel >= defi.duree}
+            onClick={() => setJourActuel(Math.min(jourDebloque, jourActuel + 1))}
+            disabled={!peutVoirJourSuivant}
             className="px-6 py-3 bg-white shadow-md text-gray-700 rounded-lg hover:shadow-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium transition-all"
           >
             Jour suivant →
