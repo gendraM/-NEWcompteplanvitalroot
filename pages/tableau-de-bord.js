@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 import { Line, Pie, Doughnut } from "react-chartjs-2";
 import TimelineProgression from "../components/TimelineProgression";
 import BadgeCard from "../components/BadgeCard";
+import ExtrasBadgesSection from "../components/ExtrasBadgesSection";
 import DrawerValidation from "../components/DrawerValidation";
 import { getSemainesNonValidees, calculerExtrasSemaine, genererMessageFeedback, calculerVariation } from "../lib/validationSemaine";
 import { calculerProgressionExtras } from "../lib/extrasProgression";
@@ -270,9 +271,11 @@ export default function TableauDeBord() {
       quota,
     });
     // 5. Badges/défis
-    const { data: badgesList } = await supabase
-      .from("badges")
-      .select("*");
+    const { data: authData } = await supabase.auth.getUser();
+    const currentUserId = authData?.user?.id;
+    const { data: badgesList } = currentUserId
+      ? await supabase.from("badges").select("*").eq('user_id', currentUserId).order('date_obtention', { ascending: false })
+      : { data: [] };
     setBadges(badgesList || []);
     // 6. Progression/gamification
     let badge = null,
@@ -1038,6 +1041,7 @@ export default function TableauDeBord() {
         {/* --- Section Succès / Badges --- */}
       {/* --- Timeline visuelle façon Instagram/TikTok --- */}
       <TimelineProgression history={weeklyHistory} />
+        <ExtrasBadgesSection badges={badges.filter(badge => badge.type === 'extras_palier')} />
         <div
           style={{
             padding: "1.5rem",

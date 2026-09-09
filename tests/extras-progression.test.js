@@ -17,13 +17,20 @@ function semaine(index, extras, kcal = 300, budget = 450, autres = {}) {
 describe('progression extras 5 → 3 → 2 → 1', () => {
   test('démarre au palier 5', () => expect(calculerProgressionExtras([])).toMatchObject({ palier: 5, prochainPalier: 3, semainesRestantes: 4 }));
   test('passe au palier 3 après 4 semaines acquises', () => {
-    expect(calculerProgressionExtras([semaine(0, 5), semaine(7, 4), semaine(14, 3), semaine(21, 5)])).toMatchObject({ palier: 3, prochainPalier: 2, semainesRestantes: 8 });
+    const resultat = calculerProgressionExtras([semaine(0, 5), semaine(7, 4), semaine(14, 3), semaine(21, 5)]);
+    expect(resultat).toMatchObject({ palier: 3, prochainPalier: 2, semainesRestantes: 8 });
+    expect(resultat.transitions[0]).toMatchObject({ code: 'extras-palier-3', nom: 'Nouveau rythme', palierDepart: 5, palierAtteint: 3, semainesRequises: 4, semaineDecisive: '2026-01-22' });
+    expect(resultat.transitions[0].semaines).toHaveLength(4);
   });
   test('un dépassement met en pause sans remettre les acquis à zéro', () => {
     expect(calculerProgressionExtras([semaine(0, 4), semaine(7, 6), semaine(14, 5), semaine(21, 4)])).toMatchObject({ palier: 5, semainesAcquises: 3, semainesRestantes: 1 });
   });
   test('fréquence et calories doivent rester dans le cadre', () => {
     expect(evaluerSemaineExtras(semaine(0, 3, 700, 450), 5)).toMatchObject({ frequenceRespectee: true, caloriesRespectees: false, comptePourProgression: false });
+  });
+  test('une semaine hors budget ne figure pas dans les preuves du badge', () => {
+    const resultat = calculerProgressionExtras([semaine(0, 4), semaine(7, 4, 700, 450), semaine(14, 4), semaine(21, 4), semaine(28, 4)]);
+    expect(resultat.transitions[0].semaines.map(item => item.weekStart)).not.toContain('2026-01-08');
   });
   test('une semaine non clôturée ne compte pas', () => expect(evaluerSemaineExtras(semaine(0, 3, 300, 450, { validee: false }), 5).comptePourProgression).toBe(false));
   test('produit le verbatim validé', () => {

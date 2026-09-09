@@ -32,7 +32,9 @@ import PopupBilanMensuel from '../components/PopupBilanMensuel';
 import BilanMensuelModal from '../components/BilanMensuelModal';
 import { fetchRepasPeriode } from '../lib/repasUtils';
 import BudgetExtrasCard from '../components/BudgetExtrasCard';
+import ExtrasBadgeCelebrationModal from '../components/ExtrasBadgeCelebrationModal';
 import { supabase } from '../lib/supabaseClient';
+import { enregistrerBadgePalierExtras } from '../lib/extrasBadges';
 import { normaliserRepasPourPersistance } from '../lib/repasPersistence';
 import { construirePayloadRepasEnCoursDepuisLignes, creerCleRepasEnCours } from '../lib/repasEnCours';
 import { creerRepasCompose } from '../lib/repasComposes';
@@ -473,6 +475,8 @@ export default function Suivi() {
   // Bilan hebdo : état modal et données
   const [showBilanModal, setShowBilanModal] = useState(false);
   const [bilanData, setBilanData] = useState(null);
+  const [badgeExtrasEnAttente, setBadgeExtrasEnAttente] = useState(null);
+  const [showExtrasBadgeModal, setShowExtrasBadgeModal] = useState(false);
   // Bilan mensuel : pop-up + modal
   const [showPopupBilanMensuel, setShowPopupBilanMensuel] = useState(false);
   const [showBilanMensuelModal, setShowBilanMensuelModal] = useState(false);
@@ -1515,6 +1519,23 @@ export default function Suivi() {
         console.error('[LOG BILAN] Exception JS lors de l’insert bilan Supabase :', err);
       }
       if (insertOk) {
+        const historiqueAvecSemaine = [
+          ...semainesProgressionExtras.filter(semaine => semaine.weekStart !== selectedWeekStart),
+          bilanToInsert,
+        ];
+        const progressionApresValidation = calculerProgressionExtras(historiqueAvecSemaine);
+        const transition = progressionApresValidation.transitions.find(item => item.semaineDecisive === selectedWeekStart && item.palierDepart === currentPalier);
+        if (transition) {
+          const { badge, nouveau, error: badgeError } = await enregistrerBadgePalierExtras(userId, transition, bilanToInsert.date_validation);
+          if (badgeError) {
+            console.error('[BADGE EXTRAS] Enregistrement impossible :', badgeError);
+            setSnackbar({ open: true, message: 'La semaine est validée, mais le badge n’a pas pu être conservé.', type: 'error' });
+          } else if (nouveau) {
+            setBadgeExtrasEnAttente(badge);
+          }
+        }
+        setSemainesProgressionExtras(historiqueAvecSemaine);
+
         // Ouverture de la modale BilanHebdoModal (Section 1 complète)
         console.log('[DEBUG setBilanData] nbRepasSatiete:', nbRepasSatiete, 'nbRepasRessenti:', nbRepasRessenti);
         setBilanData({
@@ -2391,14 +2412,19 @@ export default function Suivi() {
       {/* MODALE BILAN HEBDO ALIMENTAIRE */}
       <BilanHebdoModal
         open={showBilanModal}
-        onClose={() => setShowBilanModal(false)}
+        onClose={() => {
+          setShowBilanModal(false);
+          if (badgeExtrasEnAttente) setShowExtrasBadgeModal(true);
+        }}
         bilan={bilanData}
         selectedDate={selectedDate} // On transmet explicitement la date sélectionnée
         onLearnMore={() => {
           setShowBilanModal(false);
+          if (badgeExtrasEnAttente) setShowExtrasBadgeModal(true);
           // TODO: ouvrir la section "en savoir plus" ou naviguer vers l’historique détaillé
         }}
       />
+      <ExtrasBadgeCelebrationModal open={showExtrasBadgeModal} badge={badgeExtrasEnAttente} onClose={() => { setShowExtrasBadgeModal(false); setBadgeExtrasEnAttente(null); }} />
     </div>
   );
 }
