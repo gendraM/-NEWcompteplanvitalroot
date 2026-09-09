@@ -774,17 +774,30 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
 
   if (!open) return null;
 
-  // ...existing code...
   // Une synthèse commune croise le palier de fréquence et le budget calorique.
   function getVerbatimLectureExtras(extras, kcalExtras, budgetExtras, palier = 5) {
-    if (typeof extras !== 'number' || typeof kcalExtras !== 'number' || typeof budgetExtras !== 'number') return '';
+    if (typeof extras !== 'number' || typeof palier !== 'number') {
+      return 'Le repère du nombre de moments n’a pas été enregistré pour cette semaine.';
+    }
+    if (typeof kcalExtras !== 'number' || typeof budgetExtras !== 'number' || budgetExtras <= 0) {
+      return 'Le rythme de cette semaine reste visible, mais son repère calorique historique n’a pas été enregistré.';
+    }
     const frequenceOk = extras <= palier;
     const caloriesOk = kcalExtras <= budgetExtras;
-    if (frequenceOk && caloriesOk) return 'Ton rythme et l’impact de tes extras restent dans la direction que tu as choisie.';
+    const prochainPalier = bilan?.bilan_abc?.progressionExtras?.prochainPalier;
+    if (frequenceOk && caloriesOk) {
+      return `Cette semaine a construit ton chemin. Tes moments et leur impact calorique respectent les deux repères de cette semaine.${typeof prochainPalier === 'number' ? ` Tu avances vers le palier ${prochainPalier}.` : ''}`;
+    }
     if (frequenceOk) return 'Le nombre de moments reste dans ton palier. Leur impact calorique est plus élevé cette semaine.';
     if (caloriesOk) return 'Les extras ont été plus présents cette semaine, tandis que leur impact calorique reste dans ton budget.';
     return 'Les extras ont été plus présents et plus caloriques cette semaine. Cette observation t’aide à ajuster la suite, sans effacer le chemin déjà parcouru.';
   }
+
+  const palierExtrasHistorique = Number(bilan?.palierExtras ?? bilan?.bilan_abc?.palierExtras);
+  const palierExtrasDisponible = Number.isFinite(palierExtrasHistorique) && palierExtrasHistorique > 0;
+  const extrasDisponibles = typeof bilan?.extras === 'number';
+  const kcalExtrasDisponibles = typeof bilan?.kcalExtras === 'number';
+  const budgetExtrasDisponible = typeof bilan?.budgetExtras === 'number' && bilan.budgetExtras > 0;
 
   return (
     <>
@@ -960,25 +973,37 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
             {/* Bloc rétractable/accordion */}
             <AccordionTendance />
           </div>
-        {/* Lecture des extras de la semaine */}
+        {/* Lecture des extras de la semaine : repères enregistrés lors de la validation */}
         <section style={{marginBottom: '2rem', background: '#fffef6', borderRadius: 10, padding: '1.1rem 1.3rem', boxShadow: '0 1px 4px #fde68a'}}>
-          <h3 style={{color: '#b45309', marginBottom: '0.7rem', fontSize: '1.13rem'}}>Lecture des extras de la semaine</h3>
+          <h3 style={{color: '#b45309', marginBottom: '0.7rem', fontSize: '1.13rem'}}>Mes extras cette semaine</h3>
           <div style={{fontStyle: 'italic', color: '#444', marginBottom: '0.7rem', fontSize: '1.01rem'}}>
-            Ici, on regarde comment les extras se sont exprimés cette semaine : par leur nombre et par leur poids calorique total.
+            Cette lecture conserve les repères appliqués au moment où la semaine a été validée.
           </div>
           <ul style={{listStyle: 'none', padding: 0, margin: 0, fontSize: '1.07rem'}}>
             <li style={{marginBottom: 7}}>
-              <span style={{fontWeight:600}}>Nombre d’extras consommés&nbsp;:</span> <span style={{fontWeight:700, color:'#b45309'}}>{typeof bilan?.extras === 'number' ? bilan.extras : '—'}</span>
+              <span style={{fontWeight:600}}>Palier appliqué&nbsp;:</span>{' '}
+              <span style={{fontWeight:700, color:'#b45309'}}>{palierExtrasDisponible ? `${palierExtrasHistorique} moment${palierExtrasHistorique > 1 ? 's' : ''}` : 'Non enregistré'}</span>
             </li>
             <li style={{marginBottom: 7}}>
-              <span style={{fontWeight:600}}>Total kcal consommées via extras&nbsp;:</span> <span style={{fontWeight:700, color:'#eab308'}}>{typeof bilan?.kcalExtras === 'number' ? bilan.kcalExtras : '—'}</span> kcal
+              <span style={{fontWeight:600}}>Moments observés&nbsp;:</span>{' '}
+              <span style={{fontWeight:700, color:'#b45309'}}>{extrasDisponibles ? bilan.extras : 'Non enregistré'}</span>
             </li>
             <li style={{marginBottom: 7}}>
-              <span style={{fontWeight:600}}>Budget extras hebdo&nbsp;:</span> <span style={{fontWeight:700, color:'#2563eb'}}>{typeof bilan?.budgetExtras === 'number' ? bilan.budgetExtras : '—'}</span> kcal
+              <span style={{fontWeight:600}}>Impact calorique&nbsp;:</span>{' '}
+              <span style={{fontWeight:700, color:'#eab308'}}>{kcalExtrasDisponibles ? `${bilan.kcalExtras} kcal` : 'Non enregistré'}</span>
+            </li>
+            <li style={{marginBottom: 7}}>
+              <span style={{fontWeight:600}}>Budget enregistré pour cette semaine&nbsp;:</span>{' '}
+              <span style={{fontWeight:700, color:'#2563eb'}}>{budgetExtrasDisponible ? `${bilan.budgetExtras} kcal` : 'Non enregistré'}</span>
             </li>
           </ul>
           <div style={{marginTop: '0.7rem', fontStyle: 'italic', color: '#2563eb', fontSize: '1.04rem'}}>
-            {getVerbatimLectureExtras(bilan?.extras, bilan?.kcalExtras, bilan?.budgetExtras, bilan?.palierExtras || bilan?.bilan_abc?.palierExtras)}
+            {getVerbatimLectureExtras(
+              extrasDisponibles ? bilan.extras : null,
+              kcalExtrasDisponibles ? bilan.kcalExtras : null,
+              budgetExtrasDisponible ? bilan.budgetExtras : null,
+              palierExtrasDisponible ? palierExtrasHistorique : null
+            )}
           </div>
         </section>
         {/* Bloc En savoir plus (analyse croisée) */}
