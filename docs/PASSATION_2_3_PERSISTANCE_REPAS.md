@@ -203,3 +203,22 @@ Le correctif redonne à chaque horizon un rôle clair :
 - aucune donnée, règle métier ou structure Supabase n'est modifiée.
 
 Validation locale : tests ciblés **34/34**, suite Jest complète **221/221** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Une validation fonctionnelle authentifiée sur mobile reste requise après déploiement de branche.
+
+## Étape 15 — raccord des repas repères au planning
+
+Le moteur de l’étape 14 est désormais raccordé à `/plan` sans écriture automatique et sans changement de schéma Supabase :
+
+- lecture des repas réels du compte connecté sur les quinze derniers jours ;
+- affichage de la proposition la mieux classée uniquement ;
+- accès volontaire à deux autres propositions au maximum ;
+- aucune carte lorsque les preuves sont insuffisantes ;
+- « Prévoir cette assiette » charge tous ses aliments dans le planificateur existant ;
+- la date, le moment et toutes les quantités restent modifiables avant la validation habituelle ;
+- « Pas cette semaine » masque le bloc jusqu’au lundi suivant dans le navigateur courant ;
+- l’utilisation d’une proposition la masque également pour éviter une répétition immédiate ;
+- aucune modification de `RepasBloc`, `SaisieRepasCompose`, des tables ou des politiques Supabase ;
+- vues semaine, quinze jours et mois, glisser-déposer et déplacement explicite conservés.
+
+Le masquage hebdomadaire est associé à l’identifiant du compte dans `localStorage`. Il évite toute migration de données, mais reste donc propre au navigateur utilisé.
+
+Validation locale : tests ciblés **42/42**, suite Jest complète **228/228** dans 26 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Une validation fonctionnelle authentifiée sur mobile reste requise après déploiement de branche.

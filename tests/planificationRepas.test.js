@@ -18,7 +18,7 @@ function chargerModules() {
     .replace(/import \{[\s\S]*?\} from '\.\/socleQuantitesCalories';/, 'const { calculerCaloriesAliment, extraireQuantiteReference, normaliserUnite } = __socle;')
     .replace(/export async function /g, 'async function ')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { normaliserNomAliment, trouverAlimentReferentiel, rechercherAlimentsReferentiel, obtenirSaisieParDefaut, serialiserQuantitePlanifiee, extraireQuantitePlanifiee, calculerKcalPlanifiees, construireComposantAssiette, construireAjoutSuggestion, construireOccurrencesAssiette, enregistrerAssiettePlanifiee, deplacerRepasPlanifie, normaliserRepasPlanifie, grouperRepasPlanifiesParType, calculerTotauxPlanning };');
+    .concat('\nmodule.exports = { normaliserNomAliment, trouverAlimentReferentiel, rechercherAlimentsReferentiel, obtenirSaisieParDefaut, serialiserQuantitePlanifiee, extraireQuantitePlanifiee, calculerKcalPlanifiees, construireComposantAssiette, construireAjoutSuggestion, construireAssietteDepuisRepere, construireOccurrencesAssiette, enregistrerAssiettePlanifiee, deplacerRepasPlanifie, normaliserRepasPlanifie, grouperRepasPlanifiesParType, calculerTotauxPlanning };');
   vm.runInContext(planification, context, { filename: 'planificationRepas.js' });
   return context.module.exports;
 }
@@ -32,6 +32,7 @@ const {
   calculerKcalPlanifiees,
   construireComposantAssiette,
   construireAjoutSuggestion,
+  construireAssietteDepuisRepere,
   construireOccurrencesAssiette,
   enregistrerAssiettePlanifiee,
   deplacerRepasPlanifie,
@@ -141,6 +142,30 @@ describe('Planification enrichie', () => {
       erreur: 'Œuf est déjà dans ce repas.',
       composant: null
     });
+  });
+
+  test('charge toute une assiette repère avec des quantités encore modifiables', () => {
+    const resultat = construireAssietteDepuisRepere(referentiel, {
+      composition: [
+        { aliment: 'Poulet', quantite: '60 g' },
+        { aliment: 'Œuf', quantite: '2 unités' }
+      ]
+    });
+
+    expect(resultat.erreur).toBeNull();
+    expect(resultat.composition).toEqual([
+      expect.objectContaining({ nom: 'Poulet', quantite: 60, unite: 'g', kcal: 99 }),
+      expect.objectContaining({ nom: 'Œuf', quantite: 2, unite: 'unité', kcal: 160 })
+    ]);
+  });
+
+  test('ne charge pas partiellement une assiette repère devenue incomplète', () => {
+    expect(construireAssietteDepuisRepere(referentiel, {
+      composition: [
+        { aliment: 'Poulet', quantite: '60 g' },
+        { aliment: 'Aliment supprimé', quantite: '1 unité' }
+      ]
+    })).toMatchObject({ composition: [], erreur: expect.stringContaining('n’est plus disponible') });
   });
 
   test('prépare toutes les lignes du repas pour un enregistrement immédiat dans le planning', () => {

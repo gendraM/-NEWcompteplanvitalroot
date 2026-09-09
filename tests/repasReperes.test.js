@@ -21,12 +21,16 @@ function chargerModule() {
     .replace("import { regrouperRepasReelsParOccurrence } from './alignementRepas';", 'const { regrouperRepasReelsParOccurrence } = __alignement;')
     .replace(/export const /g, 'const ')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { CONFIG_REPAS_REPERES, detecterCandidatsRepasReperes };');
+    .concat('\nmodule.exports = { CONFIG_REPAS_REPERES, obtenirFenetreRepasReperes, obtenirCleSemaineRepasReperes, detecterCandidatsRepasReperes };');
   vm.runInContext(source, contexte, { filename: 'repasReperes.js' });
   return contexte.module.exports;
 }
 
-const { detecterCandidatsRepasReperes } = chargerModule();
+const {
+  detecterCandidatsRepasReperes,
+  obtenirCleSemaineRepasReperes,
+  obtenirFenetreRepasReperes
+} = chargerModule();
 
 function occurrence(id, date, aliments, contexte = {}) {
   return aliments.map((aliment, index) => ({
@@ -49,6 +53,12 @@ const assiette = [
 ];
 
 describe('Détection des repas repères', () => {
+  test('calcule la fenêtre de quinze jours et la semaine du lundi au dimanche', () => {
+    expect(obtenirFenetreRepasReperes('2026-09-06')).toEqual({ debut: '2026-08-23', fin: '2026-09-06' });
+    expect(obtenirCleSemaineRepasReperes('2026-09-06')).toBe('2026-08-31');
+    expect(obtenirCleSemaineRepasReperes('2026-09-07')).toBe('2026-09-07');
+  });
+
   test('ne propose rien avant trois occurrences comparables', () => {
     const lignes = [
       ...occurrence('occ-1', '2026-09-01', assiette, { satiete: 'oui' }),

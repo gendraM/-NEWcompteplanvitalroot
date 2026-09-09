@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   calculerKcalPlanifiees,
   construireAjoutSuggestion,
+  construireAssietteDepuisRepere,
   construireComposantAssiette,
   construireOccurrencesAssiette,
   enregistrerAssiettePlanifiee,
@@ -33,6 +34,7 @@ export default function PlanificateurRepas({
   date,
   type,
   suggestions = [],
+  repasRepereACharger = null,
   reglesGestion = {},
   onChangeDate,
   onChangeType,
@@ -94,6 +96,23 @@ export default function PlanificateurRepas({
     const resultat = calculerKcalPlanifiees(alimentSelectionne, quantite, unite);
     setKcal(resultat.statut === 'ok' ? resultat.kcal : null);
   }, [alimentSelectionne, quantite, unite]);
+
+  useEffect(() => {
+    if (!repasRepereACharger?.chargementId) return;
+    const resultat = construireAssietteDepuisRepere(referentiel, repasRepereACharger);
+    if (resultat.erreur) {
+      setErreur(resultat.erreur);
+      setFeedback('');
+      return;
+    }
+    setAssiette(resultat.composition);
+    setRecherche('');
+    setModeleCharge(null);
+    setEnregistrerModele(false);
+    setNomModele('');
+    setErreur('');
+    setFeedback('Ton assiette repère est chargée. Choisis le jour et le moment, puis ajuste les quantités si tu le souhaites.');
+  }, [repasRepereACharger?.chargementId, referentiel]);
 
   const choisirAliment = aliment => {
     setRecherche(aliment.nom);

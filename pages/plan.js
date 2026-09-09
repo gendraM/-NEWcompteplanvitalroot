@@ -18,8 +18,14 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import HorizonPlanning from "../components/HorizonPlanning";
 import PlanificateurRepas from "../components/PlanificateurRepas";
+import RepasReperesPlanning from "../components/RepasReperesPlanning";
 import ListeCoursesGeneralePlan from "../components/ListeCoursesGeneralePlan";
 import { CONTEXTE_LISTE_GENERAL, construireContexteCristallisation } from "../lib/contexteListeCourses";
+import {
+  detecterCandidatsRepasReperes,
+  obtenirCleSemaineRepasReperes,
+  obtenirFenetreRepasReperes
+} from "../lib/repasReperes";
 
 const typesRepas = [
   { nom: "Petit-déjeuner", emoji: "🥐", color: "#ffe082" },
@@ -70,6 +76,9 @@ export default function Plan() {
   const [type, setType] = useState(typesRepas[0].nom);
   const [selectedDate, setSelectedDate] = useState(dateDuJour);
   const [suggestions, setSuggestions] = useState([]);
+  const [repasReperes, setRepasReperes] = useState([]);
+  const [repasRepereACharger, setRepasRepereACharger] = useState(null);
+  const [repasReperesMasques, setRepasReperesMasques] = useState(false);
   const [erreurPlanning, setErreurPlanning] = useState("");
   const [loading, setLoading] = useState(false);
   const [importFeedback, setImportFeedback] = useState("");
@@ -186,6 +195,54 @@ export default function Plan() {
     };
     fetchSuggestions();
   }, [userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      setRepasReperes([]);
+      setRepasReperesMasques(false);
+      return;
+    }
+
+    let actif = true;
+    const cleSemaine = obtenirCleSemaineRepasReperes(dateDuJour);
+    const cleStockage = `plan-vital:repas-reperes:${userId}`;
+    setRepasReperesMasques(
+      typeof window !== 'undefined' && localStorage.getItem(cleStockage) === cleSemaine
+    );
+
+    const chargerRepasReperes = async () => {
+      const fenetre = obtenirFenetreRepasReperes(dateDuJour);
+      const { data, error } = await supabase
+        .from('repas_reels')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('date', fenetre.debut)
+        .lte('date', fenetre.fin);
+      if (!actif) return;
+      if (error) {
+        setRepasReperes([]);
+        return;
+      }
+      setRepasReperes(detecterCandidatsRepasReperes(data || [], { dateReference: dateDuJour }));
+    };
+
+    chargerRepasReperes();
+    return () => { actif = false; };
+  }, [userId, dateDuJour]);
+
+  const masquerRepasReperesCetteSemaine = () => {
+    if (!userId) return;
+    const cleSemaine = obtenirCleSemaineRepasReperes(dateDuJour);
+    localStorage.setItem(`plan-vital:repas-reperes:${userId}`, cleSemaine);
+    setRepasReperesMasques(true);
+  };
+
+  const utiliserRepasRepere = repere => {
+    setRepasRepereACharger({ ...repere, chargementId: `${repere.cleComposition}-${Date.now()}` });
+    masquerRepasReperesCetteSemaine();
+    setFeedbackPlanning('L’assiette repère est prête à être adaptée dans le planificateur. Rien n’est encore enregistré.');
+    setTimeout(() => document.getElementById('planificateur-repas')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  };
 
   const afficherLignesEnregistrees = lignes => {
     if (!Array.isArray(lignes) || !lignes.length) return;
@@ -548,6 +605,14 @@ export default function Plan() {
       {erreurPlanning && <div role="alert" className="message-planning erreur-planning">{erreurPlanning}</div>}
       {feedbackPlanning && <div role="status" className="message-planning succes-planning">{feedbackPlanning}</div>}
 
+      {!repasReperesMasques && (
+        <RepasReperesPlanning
+          candidats={repasReperes}
+          onUse={utiliserRepasRepere}
+          onDismiss={masquerRepasReperesCetteSemaine}
+        />
+      )}
+
       <div id="planificateur-repas">
         <PlanificateurRepas
           supabase={supabase}
@@ -556,6 +621,7 @@ export default function Plan() {
           date={selectedDate}
           type={type}
           suggestions={suggestions}
+          repasRepereACharger={repasRepereACharger}
           reglesGestion={reglesGestion}
           onChangeDate={date => {
             setSelectedDate(date);
