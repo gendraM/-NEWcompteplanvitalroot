@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { obtenirPropositionDefiIntelligente } from '../lib/defisContexteUtilisateur';
-import { enregistrerReponseProposition, propositionEnPause } from '../lib/defisSolicitations';
+import { enregistrerReponseProposition } from '../lib/defisSolicitations';
 
 export default function PropositionDefiIntelligente({ onAccepter }) {
   const [decision, setDecision] = useState(null);
@@ -13,9 +13,7 @@ export default function PropositionDefiIntelligente({ onAccepter }) {
     const charger = async () => {
       try {
         const resultat = await obtenirPropositionDefiIntelligente();
-        if (!actif || !resultat?.proposition) return;
-        const enPause = await propositionEnPause(resultat.proposition.defi.id);
-        if (actif && !enPause) setDecision(resultat);
+        if (actif) setDecision(resultat);
       } catch (error) {
         console.warn('Proposition défi intelligente indisponible :', error);
       } finally {
