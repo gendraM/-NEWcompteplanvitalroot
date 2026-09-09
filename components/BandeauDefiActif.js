@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import { useDefis } from './DefisContext';
 import { getDefiMax } from '../lib/defisUtils';
 import { defisReferentiel } from '../lib/defisReferentiel';
+import { construireProgressionDuree } from '../lib/defisCycleDuree';
+import { getValidationConfig, PROGRESSION_MODEL } from '../lib/defisValidationReferentiel';
 
 // Source de vérité unique : le bandeau affiche uniquement un défi réellement
 // en cours pour l'utilisateur authentifié, fourni par DefisContext.
@@ -14,6 +16,13 @@ export default function BandeauDefiActif() {
   if (loading || !defi) return null;
 
   const max = getDefiMax(defi);
+  const validationConfig = getValidationConfig(defi);
+  const estDefiDuree = validationConfig.progressionModel === PROGRESSION_MODEL.DURATION;
+  const cycle = estDefiDuree ? construireProgressionDuree(defi) : null;
+  const progressionLabel = estDefiDuree && cycle?.libelle
+    ? cycle.libelle
+    : `Progression : ${defi.progress || 0} / ${max}`;
+
   const estAvecJournal =
     defi.type === 'personnalise' ||
     defi.type === 'alimentaire' ||
@@ -22,7 +31,12 @@ export default function BandeauDefiActif() {
   return (
     <div style={{ background: '#e3f2fd', padding: 16, borderRadius: 10, marginBottom: 16 }}>
       <h2 style={{ margin: 0 }}>{defi.nom}</h2>
-      <div>Progression : {defi.progress || 0} / {max}</div>
+      <div>{progressionLabel}</div>
+      {estDefiDuree && (
+        <div style={{ marginTop: 4, fontSize: 14 }}>
+          Tes actions du jour alimentent ton bilan sans accélérer les jours du défi.
+        </div>
+      )}
       <div style={{ margin: '8px 0', color: '#1976d2' }}>Reste motivé, tu es sur la bonne voie !</div>
       <button
         onClick={() => estAvecJournal ? router.push(`/journal-defi/${defi.id}`) : router.push('/defis')}
