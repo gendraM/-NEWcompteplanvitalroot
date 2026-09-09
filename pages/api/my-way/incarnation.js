@@ -15,6 +15,15 @@ function parseJsonObject(text) {
   return JSON.parse(cleaned);
 }
 
+function sanitizeObservations(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => ({
+    id: String(item?.id || '').slice(0, 80),
+    family: String(item?.family || '').slice(0, 40),
+    text: String(item?.text || '').trim().slice(0, 500),
+  })).filter((item) => item.text).slice(0, 4);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -36,10 +45,14 @@ export default async function handler(req, res) {
   if (authError || !user) return res.status(401).json({ error: 'Session utilisateur invalide.' });
 
   const direction = String(req.body?.direction || '').trim();
+  const observations = sanitizeObservations(req.body?.observations);
   if (!direction) return res.status(400).json({ error: 'Une direction validée est nécessaire.' });
   if (direction.length > 2500) return res.status(400).json({ error: 'La direction est trop longue.' });
 
   try {
+    const factsBlock = observations.length
+      ? observations.map((item, index) => `${index + 1}. ${item.text}`).join('\n')
+      : 'Aucun fait OBSERVE suffisamment fiable disponible.';
     const response = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: { Authorization: `Bearer ${openAiKey}`, 'Content-Type': 'application/json' },
@@ -47,7 +60,9 @@ export default async function handler(req, res) {
         model: process.env.OPENAI_MY_WAY_MODEL || 'gpt-5.6-luna',
         instructions: [
           "Tu aides Mon Plan Vital à traduire une direction personnelle validée en incarnations possibles dans la vie réelle.",
-          "Tu ne diagnostiques pas la personne et tu ne prétends jamais savoir ce qu'elle fait déjà.",
+          "Tu reçois éventuellement des FAITS OBSERVE déterministes. Ils sont du contexte factuel, pas une interprétation de la personne.",
+          "Tu peux t'appuyer sur un fait uniquement s'il est directement pertinent pour une idée explicitement présente dans la direction. Sinon ignore-le.",
+          "Ne transforme jamais un fait en trait de personnalité, diagnostic, intention ou transformation acquise. Ne dis jamais qu'un comportement non mesuré est observé.",
           "Propose 2 à 4 manières concrètes et simples dont cette direction POURRAIT se vivre. Ce sont des hypothèses à valider, jamais des vérités sur l'utilisateur.",
           "Chaque proposition doit être directement reliée à une idée explicitement présente dans la direction. N'ajoute aucune nouvelle valeur, aspiration, objectif ou domaine de vie.",
           "Une incarnation est un principe de manière de vivre, de choisir ou de revenir à soi. Ce n'est ni une tâche, ni une habitude chiffrée, ni un challenge, ni une règle alimentaire imposée.",
@@ -55,7 +70,7 @@ export default async function handler(req, res) {
           "Utilise la première personne, un français naturel et adulte. Une phrase courte par proposition.",
           "Retourne uniquement un JSON valide de la forme {\"proposals\":[\"...\",\"...\"]}, sans markdown ni commentaire."
         ].join('\n'),
-        input: `DIRECTION VALIDÉE — Qui je choisis de devenir :\n${direction}`,
+        input: `DIRECTION VALIDÉE — Qui je choisis de devenir :\n${direction}\n\nFAITS OBSERVE DISPONIBLES :\n${factsBlock}`,
         max_output_tokens: 400
       })
     });
