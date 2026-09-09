@@ -255,25 +255,48 @@ Les modifications doivent être testées avant validation. Aucun regroupement r�
 
 ## 10. Feuille de route restante — Plan alimentaire intelligent et courses
 
-### Étape 16 — Synthèse S-1 utile à la planification
+### Étape 16 — Point d'ajustement utile à la planification
 
-- Construire une lecture pure de la semaine précédente à partir des repas réellement consommés.
-- Exploiter seulement les informations connues : catégories, calories, QN présent, satiété, ressenti, horaires et extras.
-- Afficher cette aide dans `/plan` uniquement le mercredi, afin de donner une tendance exploitable sans répéter le bilan du dimanche.
-- Ne rien afficher si les données sont insuffisantes et ne pas bloquer la planification.
+- Construire une lecture factuelle des trois premiers jours complets de la semaine en cours, du lundi au mercredi, à partir des repas réellement consommés.
+- Exploiter seulement les informations connues : catégories, calories, QN présent, satiété, ressenti, horaires, extras et notes réellement saisies.
+- Utiliser l'historique récent uniquement pour confirmer qu'un élément est répété ; le point d'ajustement ne doit pas présenter une occurrence isolée comme une tendance.
+- Rendre ce point disponible dans `/plan` à la première ouverture comprise entre le jeudi et le samedi. Il n'est généré qu'une fois par semaine, ne se rouvre pas à chaque visite et disparaît au profit du bilan existant le dimanche.
+- Présenter dans une même carte, lorsque les données le permettent : ce qui fonctionne, ce qui mérite l'attention et ce qui peut être ajusté pour les jours restants.
+- Ne rien afficher si les données sont insuffisantes et ne jamais bloquer la planification.
+- Le bilan du dimanche conserve son rôle de clôture de la semaine ; le point du jeudi au samedi sert uniquement à ajuster la semaine encore en cours.
+
+#### Contrat d'utilisation de l'IA
+
+- L'application calcule les faits structurés ; l'IA n'a pas à recalculer les scores ni à inventer des données.
+- L'IA est utile lorsqu'elle rapproche le sens de notes formulées avec des mots différents, hiérarchise les constats fiables et les restitue naturellement.
+- L'IA restitue ce que la personne a écrit et l'aide à l'observer ; elle ne décide pas à sa place de ce qui est vrai.
+- Les faits mesurés sont formulés directement. Une association reste présentée comme une association et jamais comme une causalité.
+- Aucune interprétation psychologique, médicale ou morale n'est autorisée.
 
 ### Étape 17 — Ajustements facultatifs et explicables
 
-- Transformer les constats fiables de S-1 en un petit nombre de propositions concrètes.
+- Transformer les constats fiables du point d'ajustement en un petit nombre de propositions concrètes pour les jours restants ou les prochains jours planifiés.
+- Écarter les repas qui fonctionnent déjà, localiser le véritable point de difficulté et éviter de demander de tout améliorer.
 - Expliquer chaque suggestion par un fait observé, sans score inventé.
+- Formuler les constats directement, mais présenter l'action comme un conseil et jamais comme une injonction.
+- Transformer la prise de conscience en une expérimentation limitée et mesurable, puis prévoir une comparaison lors du point suivant.
 - Permettre à l'utilisateur d'accepter, d'ignorer ou de modifier la proposition avant tout enregistrement.
+- Ne jamais modifier automatiquement un planning déjà rempli.
+- L'IA ne peut pas inventer librement un conseil alimentaire : elle sélectionne, ou non, une action dans une liste fermée construite à partir des fonctions réellement disponibles dans Mon Plan Vital.
 - Réutiliser le planificateur et la liste de courses existants : une suggestion acceptée modifie le plan, puis la liste est recalculée par son moteur actuel.
 
 ### Étape 18 — Vigilances répétées, non punitives
 
-- Rechercher uniquement des associations répétées entre composition, portion, horaire, ressenti difficile ou extras.
-- Exiger plusieurs occurrences comparables avant d'afficher un signal.
+- Rechercher uniquement des associations répétées entre composition, portion, horaire, ressenti difficile, extras ou éléments explicitement présents dans les notes.
+- Exiger plusieurs occurrences comparables avant d'afficher un signal ; le seuil exact devra être validé avant l'implémentation.
+- Rapprocher plusieurs formulations écrites lorsqu'elles décrivent réellement une même situation, tout en conservant les faits qui justifient ce rapprochement.
+- Intégrer la vigilance dans la carte du point d'ajustement au lieu de créer une alerte ou une notification séparée.
+- Ne pas afficher cette partie lorsqu'aucune vigilance fiable n'est disponible.
 - Présenter ces observations comme des pistes à examiner, jamais comme une cause certaine ni comme une interdiction.
+
+### Vocabulaire visible validé
+
+L'expression visible `Mes valeurs sûres` remplace `repas repères` ou `go-to meals` dans l'expérience utilisateur. Les anciens termes peuvent rester dans l'historique documentaire et, provisoirement, dans les noms techniques internes afin d'éviter une refonte sans valeur fonctionnelle.
 
 ### Étape 19 — Regroupement visuel dans « Gérer mes repas »
 
