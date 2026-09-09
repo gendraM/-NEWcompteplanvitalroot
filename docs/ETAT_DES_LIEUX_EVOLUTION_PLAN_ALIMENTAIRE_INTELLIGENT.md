@@ -2,7 +2,7 @@
 
 ## Statut
 
-Audit technique terminé. **Lot 1, sous-lots 2.1, 2.3 et 2.4 validés ; audit d'architecture du sous-lot 2.2 terminé et documenté** sur la branche `plan-alimentaire-intelligent-chatgpt`.
+Le socle technique et fonctionnel mono/multi est terminé. **Lot 1, sous-lots 2.1 à 2.4, alignement par occurrence, scores, ergonomie du planning et raccord des repas repères sont validés** sur la branche `plan-alimentaire-intelligent-chatgpt`. Le test authentifié mobile du repas repère a été validé le 9 septembre 2026.
 
 Cet état des lieux constitue la source de vérité du chantier : faire évoluer la saisie réelle des repas afin de reconnaître fiablement une occurrence de repas complète, sans supprimer le détail alimentaire ni casser les comportements existants.
 
@@ -199,8 +199,8 @@ Les suggestions dans `/plan` devront présenter la raison de la suggestion, la c
 13. **RECONSTRUCTION AVANT SCORES VALIDÉE TECHNIQUEMENT** : les scores d'alignement journalier et hebdomadaire sont désormais calculés par occurrence. Une assiette composée pèse une seule fois dans le numérateur et le dénominateur, tandis que les anciennes lignes sans `occurrence_repas_id` restent des occurrences indépendantes. La somme calorique ligne par ligne et la régularité par type de repas restent inchangées.
 14. **SOCLE DE DÉTECTION DES REPAS REPÈRES IMPLÉMENTÉ** : `lib/repasReperes.js` analyse les quinze derniers jours, reconstruit uniquement les occurrences identifiées et composées, rapproche les compositions indépendamment de l'ordre des aliments, exige au moins trois occurrences dont deux avec un signal positif, et exclut les extras/fast-foods. Le moteur restitue la composition réelle la plus récente avec ses quantités/calories connues et n'invente aucune suggestion lorsque les preuves sont insuffisantes. Aucun raccord à `/plan` n'est inclus dans ce sous-lot.
 15. **PAUSE ERGONOMIQUE DU PLAN VALIDÉE TECHNIQUEMENT** : `/plan` s'ouvre désormais sur la semaine, propose un horizon glissant de quinze jours et conserve le mois comme aperçu compact. Chaque journée, même vide, est une destination de déplacement. Une action explicite est disponible sur mobile et une assiette composée est déplacée en bloc à partir de ses lignes Supabase fiables (`combo_valide`, date, type et `created_at`). Aucun schéma ni comportement de saisie n'est modifié.
-16. Raccorder les candidats qualifiés aux suggestions de `/plan`, avec leur raison factuelle et l'ajout de l'assiette complète au planning.
-17. Tests + build + passation à chaque sous-lot.
+16. **RACCORDEMENT DES REPAS REPÈRES VALIDÉ FONCTIONNELLEMENT** : les candidats qualifiés sont proposés dans `/plan` avec leur raison factuelle et leur composition complète. L'utilisateur choisit volontairement de les planifier, puis peut encore modifier la date, le moment et les quantités. Tests **228/228**, build réussi et test mobile authentifié concluant le 9 septembre 2026.
+17. **VALIDATION ET PASSATION DU SOCLE TERMINÉES** : les tests, le build et la passation ont été réalisés à chaque sous-lot. Les évolutions suivantes constituent une nouvelle séquence du Plan alimentaire intelligent et ne rouvrent pas le contrat de persistance du lot 2.3.
 
 ### Principe de sécurité du sous-lot 2.3
 
@@ -239,13 +239,55 @@ Le premier raccordement ne doit **pas** changer l'expérience utilisateur. Il do
 - Quantités à la réutilisation : chaque composant est ajustable à unité inchangée, le total calorique est recalculé et le modèle d'origine reste intact ; tests ciblés **36/36**, suite Jest **188/188** et build Next.js réussi. Validation fonctionnelle mobile authentifiée obtenue le 2 septembre 2026.
 - Étape 13 : calcul pur par occurrence raccordé aux scores journalier et hebdomadaire ; tests ciblés **26/26**, suite Jest **193/193** dans le fuseau fonctionnel `Europe/Paris` et build Next.js réussi avec 36 pages générées. L'exécution brute en UTC expose par ailleurs un ancien test de formatage de date dépendant du fuseau, sans rapport avec ce sous-lot et sans modification associée.
 - Pause ergonomique du planning : horizons semaine / quinze jours / mois, jours vides déplaçables et déplacement atomique des assiettes composées ; tests ciblés **31/31**, suite Jest **218/218** dans 25 suites avec `TZ=Europe/Paris`, `git diff --check` sans erreur et build Next.js réussi avec 36 pages générées. Le score fictif « repas respectés » et la pression « x jours sur tout le mois » ont été retirés de `/plan` ; l'alignement réel reste calculé dans le suivi.
+- Étape 15 : raccord des repas repères publié dans `1aaec59` ; tests ciblés **42/42**, suite Jest **228/228**, build réussi et test fonctionnel authentifié sur mobile validé le 9 septembre 2026.
 
 ---
 
 ## 9. Règle de reprise du chantier
 
-Prochaine étape après validation fonctionnelle mobile de la nouvelle navigation : reprendre le raccord des repas repères qualifiés dans `/plan`, avec leur raison factuelle et l'ajout de l'assiette complète, sans élargir silencieusement le périmètre.
+Le sous-lot 2.3 et le raccord des repas repères sont clôturés. La reprise doit maintenant suivre la feuille de route restante ci-dessous, sans réintroduire un second planificateur, un second générateur de courses ou un regroupement approximatif des anciennes données.
 
 Avant toute modification, vérifier la version courante des fichiers concernés. Avant chaque commit fonctionnel, documentaire ou correctif : rappeler explicitement le dépôt et la branche, présenter le périmètre et attendre l'autorisation de l'utilisatrice. Ne jamais pousser sur `main` sans autorisation explicite distincte.
 
 Les modifications doivent être testées avant validation. Aucun regroupement rétroactif approximatif des anciennes données ne doit être effectué.
+
+---
+
+## 10. Feuille de route restante — Plan alimentaire intelligent et courses
+
+### Étape 16 — Synthèse S-1 utile à la planification
+
+- Construire une lecture pure de la semaine précédente à partir des repas réellement consommés.
+- Exploiter seulement les informations connues : catégories, calories, QN présent, satiété, ressenti, horaires et extras.
+- Afficher cette aide dans `/plan` uniquement le mercredi, afin de donner une tendance exploitable sans répéter le bilan du dimanche.
+- Ne rien afficher si les données sont insuffisantes et ne pas bloquer la planification.
+
+### Étape 17 — Ajustements facultatifs et explicables
+
+- Transformer les constats fiables de S-1 en un petit nombre de propositions concrètes.
+- Expliquer chaque suggestion par un fait observé, sans score inventé.
+- Permettre à l'utilisateur d'accepter, d'ignorer ou de modifier la proposition avant tout enregistrement.
+- Réutiliser le planificateur et la liste de courses existants : une suggestion acceptée modifie le plan, puis la liste est recalculée par son moteur actuel.
+
+### Étape 18 — Vigilances répétées, non punitives
+
+- Rechercher uniquement des associations répétées entre composition, portion, horaire, ressenti difficile ou extras.
+- Exiger plusieurs occurrences comparables avant d'afficher un signal.
+- Présenter ces observations comme des pistes à examiner, jamais comme une cause certaine ni comme une interdiction.
+
+### Étape 19 — Regroupement visuel dans « Gérer mes repas »
+
+- Afficher une seule carte par `occurrence_repas_id`, avec aliments et total calorique.
+- Conserver les lignes détaillées en base et le comportement historique des lignes sans occurrence.
+- Décider explicitement, avant implémentation, si modifier ou supprimer agit sur un aliment ou sur l'assiette complète.
+
+### Étape 20 — Coût réel de la liste de courses
+
+- Définir d'abord une source de prix fiable, datée et séparée du référentiel nutritionnel.
+- Calculer ensuite automatiquement une estimation ; ne jamais demander à l'utilisateur d'inventer cette estimation.
+- Conserver le total réellement payé de façon facultative et construire son historique.
+- Reporter magasin, type de commerce, origine et qualité à un sous-lot ultérieur tant que les données ne sont pas comparables.
+
+### Ordre de réalisation
+
+Chaque étape constitue un sous-lot séparé : audit du code courant, définition des règles, proposition de l'expérience utilisateur, autorisation, implémentation minimale, tests ciblés, suite complète, build, test fonctionnel puis passation. Aucun sous-lot ne doit modifier silencieusement `RepasBloc`, `SaisieRepasCompose`, le schéma Supabase ou les comportements historiques validés.

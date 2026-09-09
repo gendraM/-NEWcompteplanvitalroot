@@ -169,7 +169,7 @@ La correction reste indépendante du moteur d'alignement et ne modifie pas le sc
 
 Le regroupement d'une assiette planifiée ne repose pas sur une approximation rétroactive : seules les lignes marquées `combo_valide = true` qui partagent exactement la date, le type et le `created_at` sont déplacées ensemble. L'audit en lecture seule de la table `repas_planifies` a confirmé que les insertions composées existantes partagent bien ces valeurs. Les lignes anciennes ou simples restent autonomes.
 
-Validation locale : tests ciblés **31/31**, suite Jest complète **218/218** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Une validation fonctionnelle authentifiée sur mobile reste requise après déploiement de branche.
+Validation locale : tests ciblés **31/31**, suite Jest complète **218/218** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Le test mobile suivant a révélé une régression de la vision hebdomadaire et du glisser-déposer, traitée dans le correctif ci-dessous.
 
 ### Correctif de préservation de l'expérience historique
 
@@ -186,7 +186,7 @@ Le correctif conserve désormais les acquis des deux versions :
 - les vues quinze jours et mois restent inchangées ;
 - le déplacement d'une assiette composée reste groupé.
 
-Validation locale du correctif : tests ciblés **33/33**, suite Jest complète **220/220** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Une validation fonctionnelle authentifiée sur mobile reste requise après déploiement de branche.
+Validation locale du correctif : tests ciblés **33/33**, suite Jest complète **220/220** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Le test mobile a confirmé la restitution de la semaine et a ensuite révélé l'insuffisance de l'aperçu mensuel, corrigée ci-dessous.
 
 ### Correction de l'aperçu mensuel après test mobile
 
@@ -202,7 +202,7 @@ Le correctif redonne à chaque horizon un rôle clair :
 - le formulaire de planification n'est donc plus la conséquence implicite d'un simple toucher dans l'aperçu mensuel ;
 - aucune donnée, règle métier ou structure Supabase n'est modifiée.
 
-Validation locale : tests ciblés **34/34**, suite Jest complète **221/221** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Une validation fonctionnelle authentifiée sur mobile reste requise après déploiement de branche.
+Validation locale : tests ciblés **34/34**, suite Jest complète **221/221** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. La correction de l'aperçu mensuel a ensuite été validée fonctionnellement sur mobile avant le passage aux repas repères.
 
 ## Étape 15 — raccord des repas repères au planning
 
@@ -221,4 +221,17 @@ Le moteur de l’étape 14 est désormais raccordé à `/plan` sans écriture au
 
 Le masquage hebdomadaire est associé à l’identifiant du compte dans `localStorage`. Il évite toute migration de données, mais reste donc propre au navigateur utilisé.
 
-Validation locale : tests ciblés **42/42**, suite Jest complète **228/228** dans 26 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Une validation fonctionnelle authentifiée sur mobile reste requise après déploiement de branche.
+Validation locale : tests ciblés **42/42**, suite Jest complète **228/228** dans 26 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur.
+
+La validation fonctionnelle authentifiée sur mobile a été obtenue le **9 septembre 2026** : une assiette qualifiée comme repas repère est bien proposée dans `/plan`, l'action « Prévoir cette assiette » charge sa composition complète dans le planificateur et le parcours d'enregistrement fonctionne. L'étape 15 et le chantier technique de persistance mono/multi sont donc clôturés.
+
+## Suite séparée du Plan alimentaire intelligent
+
+La clôture du sous-lot 2.3 ne signifie pas que toute la vision du Plan alimentaire intelligent est terminée. Les évolutions restantes sont reprises dans `ETAT_DES_LIEUX_EVOLUTION_PLAN_ALIMENTAIRE_INTELLIGENT.md` et coordonnées avec la liste de courses :
+
+1. synthèse facultative de la semaine précédente, présentée le mercredi et jamais en doublon du bilan du dimanche ;
+2. suggestions de planification explicables et modifiables à partir des seules données réellement connues ;
+3. analyse progressive des catégories, du QN connu, de la satiété, du ressenti, des horaires et des extras ;
+4. signaux de vigilance fondés sur plusieurs occurrences, sans présenter une corrélation comme une causalité ;
+5. regroupement d'affichage des occurrences dans « Gérer mes repas », sans fusion ni réécriture des lignes Supabase ;
+6. enrichissements futurs de la liste de courses, notamment l'estimation automatique et l'historique des coûts lorsqu'une source de prix fiable aura été définie.

@@ -3,7 +3,8 @@
 **Date :** 24 août 2026  
 **Branche de travail :** liste-courses-generale-plan-chatgpt  
 **Branche source :** finalisation-reprise-jeune-alimentaire-chatgpt  
-**Statut :** lots 0 à 7 publiés ; sécurisation du lot 7 appliquée dans Supabase ; lot 8 en validation locale
+**Branche de consolidation actuelle :** plan-alimentaire-intelligent-chatgpt
+**Statut consolidé au 9 septembre 2026 :** lots 0 à 8 publiés et présents sur la branche actuelle ; sécurisation du lot 7 appliquée dans Supabase ; corrections du test réel du lot 9 publiées dans `8e70aa3`. Le socle pratique des courses est opérationnel. Les fonctions intelligentes et financières avancées restent des sous-lots distincts.
 
 ## 1. Objet du chantier
 
@@ -1348,3 +1349,30 @@ Après la stabilisation du plan et de la liste, le chantier pourra être prolong
 8. permettre plus tard l’analyse du coût selon le magasin, le type de commerce, les formats achetés et la qualité connue des produits.
 
 Ces fonctions devront distinguer clairement les faits mesurés, les hypothèses et les recommandations. Elles ne devront pas déduire une causalité à partir d’une seule occurrence.
+
+## 27. Consolidation sur la branche du Plan alimentaire intelligent — 9 septembre 2026
+
+### 27.1 Fonctionnalités réellement disponibles
+
+- une seule liste calculée depuis les repas de `/plan` ;
+- quantités agrégées sans double comptage des assiettes composées ;
+- distinction entre besoin nutritionnel et conditionnement acheté ;
+- statuts `À acheter`, `Dans mon panier` et `Déjà chez moi` ;
+- conservation des états lors du recalcul de la liste ;
+- sauvegarde et restauration Supabase par utilisateur, période et contexte ;
+- bouton explicite d'enregistrement pendant les courses ;
+- total réellement payé facultatif ;
+- catégorie et QN affichés uniquement lorsqu'ils sont réellement connus ;
+- réutilisation du même plan et de la même liste dans le contexte de cristallisation.
+
+### 27.2 Limites assumées
+
+- aucun prix estimé automatique tant qu'une source fiable et datée n'existe pas ;
+- aucun prix inventé à partir des calories, des portions ou d'un conditionnement supposé ;
+- aucun historique financier complet à ce stade ;
+- aucune comparaison de magasin, d'origine ou de qualité ;
+- aucune recommandation nutritionnelle avancée produite directement par le moteur de courses.
+
+### 27.3 Raccord avec la suite du Plan alimentaire intelligent
+
+Les étapes suivantes doivent rester séquentielles : synthèse S-1 le mercredi, ajustements facultatifs, vigilances répétées, puis enrichissement financier de la liste. Une proposition acceptée passe toujours par le planificateur existant ; la liste de courses se contente ensuite de refléter le plan modifié et conserve ses règles actuelles de recalcul et de persistance.
