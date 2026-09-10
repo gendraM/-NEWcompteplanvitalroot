@@ -19,7 +19,6 @@ import * as XLSX from "xlsx";
 import HorizonPlanning from "../components/HorizonPlanning";
 import PlanificateurRepas from "../components/PlanificateurRepas";
 import RepasReperesPlanning from "../components/RepasReperesPlanning";
-import PointAjustementPlanning from "../components/PointAjustementPlanning";
 import ListeCoursesGeneralePlan from "../components/ListeCoursesGeneralePlan";
 import { CONTEXTE_LISTE_GENERAL, construireContexteCristallisation } from "../lib/contexteListeCourses";
 import {
@@ -27,11 +26,6 @@ import {
   obtenirCleSemaineRepasReperes,
   obtenirFenetreRepasReperes
 } from "../lib/repasReperes";
-import {
-  ACTIONS_POINT_AJUSTEMENT_AUTORISEES,
-  obtenirFenetrePointAjustementAlimentaire
-} from "../lib/pointAjustementAlimentaire";
-import { obtenirPointAjustementAlimentaire } from "../lib/pointAjustementClient";
 
 const typesRepas = [
   { nom: "Petit-déjeuner", emoji: "🥐", color: "#ffe082" },
@@ -89,7 +83,6 @@ export default function Plan() {
   const [loading, setLoading] = useState(false);
   const [importFeedback, setImportFeedback] = useState("");
   const [feedbackPlanning, setFeedbackPlanning] = useState("");
-  const [pointAjustement, setPointAjustement] = useState(null);
 
   // Etat motivation/mois
   const [mantra, setMantra] = useState("");
@@ -238,37 +231,30 @@ export default function Plan() {
   }, [userId, dateDuJour]);
 
   useEffect(() => {
-    if (!userId || typeof window === 'undefined') {
-      setPointAjustement(null);
-      return;
-    }
+    if (!router.isReady || typeof window === 'undefined') return;
+    const source = Array.isArray(router.query.source) ? router.query.source[0] : router.query.source;
+    if (source !== 'point-ajustement') return;
 
-    const fenetre = obtenirFenetrePointAjustementAlimentaire(dateDuJour);
-    if (!fenetre?.disponible) {
-      setPointAjustement(null);
-      return;
-    }
-
-    const cleStockage = `plan-vital:point-ajustement:${userId}`;
-    const cleSemaine = fenetre.observation.debut;
-    if (localStorage.getItem(cleStockage) === cleSemaine) {
-      setPointAjustement(null);
-      return;
-    }
-
-    let actif = true;
-    obtenirPointAjustementAlimentaire(dateDuJour)
-      .then(resultat => {
-        if (!actif) return;
-        localStorage.setItem(cleStockage, cleSemaine);
-        setPointAjustement(resultat?.status === 'FACTS' ? resultat.carte : null);
-      })
-      .catch(() => {
-        if (actif) setPointAjustement(null);
+    const cleTransfert = 'plan-vital:point-ajustement:valeur-sure';
+    try {
+      const valeurSure = JSON.parse(sessionStorage.getItem(cleTransfert) || 'null');
+      if (!valeurSure?.cle || !Array.isArray(valeurSure?.composition) || valeurSure.composition.length === 0) {
+        sessionStorage.removeItem(cleTransfert);
+        return;
+      }
+      setRepasRepereACharger({
+        cleComposition: valeurSure.cle,
+        composition: valeurSure.composition,
+        kcalTotal: valeurSure.kcalTotal ?? null,
+        chargementId: `${valeurSure.cle}-${Date.now()}`
       });
-
-    return () => { actif = false; };
-  }, [userId, dateDuJour]);
+      setFeedbackPlanning('Ta valeur sûre est prête à être adaptée dans le planificateur. Rien n’est encore enregistré.');
+      sessionStorage.removeItem(cleTransfert);
+      setTimeout(() => document.getElementById('planificateur-repas')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+    } catch (_) {
+      sessionStorage.removeItem(cleTransfert);
+    }
+  }, [router.isReady, router.query.source]);
 
   const masquerRepasReperesCetteSemaine = () => {
     if (!userId) return;
@@ -282,26 +268,6 @@ export default function Plan() {
     masquerRepasReperesCetteSemaine();
     setFeedbackPlanning('Ta valeur sûre est prête à être adaptée dans le planificateur. Rien n’est encore enregistré.');
     setTimeout(() => document.getElementById('planificateur-repas')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
-  };
-
-  const agirDepuisPointAjustement = proposition => {
-    if (!proposition) return;
-    if (
-      proposition.action === ACTIONS_POINT_AJUSTEMENT_AUTORISEES.UTILISER_VALEUR_SURE
-      && proposition.valeurSure
-    ) {
-      utiliserRepasRepere({
-        cleComposition: proposition.valeurSure.cle,
-        composition: proposition.valeurSure.composition,
-        kcalTotal: proposition.valeurSure.kcalTotal
-      });
-      setPointAjustement(null);
-      return;
-    }
-    if (proposition.action === ACTIONS_POINT_AJUSTEMENT_AUTORISEES.AJUSTER_REPAS_PLANIFIE) {
-      document.getElementById('planning-alimentaire-horizon')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    setPointAjustement(null);
   };
 
   const afficherLignesEnregistrees = lignes => {
@@ -637,12 +603,6 @@ export default function Plan() {
           <b>Thème :</b> {valideInfos.theme}
         </div>
       </div>
-
-      <PointAjustementPlanning
-        carte={pointAjustement}
-        onAction={agirDepuisPointAjustement}
-        onDismiss={() => setPointAjustement(null)}
-      />
 
       <div id="planning-alimentaire-horizon">
         <HorizonPlanning

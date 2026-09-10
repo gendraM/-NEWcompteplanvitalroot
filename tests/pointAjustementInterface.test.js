@@ -1,21 +1,25 @@
 const fs = require('fs');
 const path = require('path');
 
-describe('Raccord du point d’ajustement dans le planning', () => {
-  const page = fs.readFileSync(path.join(__dirname, '../pages/plan.js'), 'utf8');
+describe('Raccord du point d’ajustement après la saisie d’un repas', () => {
+  const suivi = fs.readFileSync(path.join(__dirname, '../pages/suivi.js'), 'utf8');
+  const plan = fs.readFileSync(path.join(__dirname, '../pages/plan.js'), 'utf8');
   const carte = fs.readFileSync(path.join(__dirname, '../components/PointAjustementPlanning.js'), 'utf8');
   const client = fs.readFileSync(path.join(__dirname, '../lib/pointAjustementClient.js'), 'utf8');
   const api = fs.readFileSync(path.join(__dirname, '../pages/api/plan/point-ajustement.js'), 'utf8');
 
   test('n’appelle le point que du jeudi au samedi et le mémorise par semaine et par utilisateur', () => {
-    expect(page).toContain('obtenirFenetrePointAjustementAlimentaire(dateDuJour)');
-    expect(page).toContain('if (!fenetre?.disponible)');
-    expect(page).toContain('plan-vital:point-ajustement:${userId}');
-    expect(page).toContain('localStorage.setItem(cleStockage, cleSemaine)');
+    expect(suivi).toContain('obtenirFenetrePointAjustementAlimentaire(dateDuJour)');
+    expect(suivi).toContain('if (!fenetre?.disponible) return');
+    expect(suivi).toContain('plan-vital:point-ajustement:${userIdActif}');
+    expect(suivi).toContain('localStorage.setItem(cleStockage, cleSemaine)');
   });
 
-  test('affiche une seule carte avec uniquement les rubriques justifiées', () => {
-    expect(page).toContain('<PointAjustementPlanning');
+  test('affiche la carte dans le suivi uniquement après une sauvegarde réussie', () => {
+    expect(suivi).toContain('<PointAjustementPlanning');
+    expect(suivi).toContain('void essayerAfficherPointAjustement(user?.id || userId)');
+    expect(suivi.indexOf('if (error) {')).toBeLessThan(suivi.indexOf('void essayerAfficherPointAjustement(user?.id || userId)'));
+    expect(plan).not.toContain('<PointAjustementPlanning');
     expect(carte).toContain('Mon point d’ajustement');
     expect(carte).toContain('{carte.ceQuiFonctionne && (');
     expect(carte).toContain('{carte.pointAttention && (');
@@ -39,10 +43,13 @@ describe('Raccord du point d’ajustement dans le planning', () => {
   });
 
   test('réutilise les actions du planning sans écrire automatiquement', () => {
-    expect(page).toContain('agirDepuisPointAjustement');
-    expect(page).toContain('UTILISER_VALEUR_SURE');
-    expect(page).toContain('AJUSTER_REPAS_PLANIFIE');
-    expect(page).toContain("document.getElementById('planning-alimentaire-horizon')");
+    expect(suivi).toContain('agirDepuisPointAjustement');
+    expect(suivi).toContain('UTILISER_VALEUR_SURE');
+    expect(suivi).toContain('AJUSTER_REPAS_PLANIFIE');
+    expect(suivi).toContain("router.push('/plan#planning-alimentaire-horizon')");
+    expect(suivi).toContain("router.push('/plan?source=point-ajustement')");
+    expect(plan).toContain("sessionStorage.getItem(cleTransfert)");
+    expect(plan).toContain('setRepasRepereACharger({');
     expect(carte).not.toMatch(/supabase|\.insert\(|\.update\(/);
   });
 });
