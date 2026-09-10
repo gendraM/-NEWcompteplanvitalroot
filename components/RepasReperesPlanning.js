@@ -9,7 +9,7 @@ function descriptionComposition(repere) {
 function CarteRepere({ repere, principale = false, onUse }) {
   return (
     <article className={principale ? 'carte-repere principale' : 'carte-repere secondaire'}>
-      {principale && <span className="surtitre">🌿 Une assiette qui semble bien te convenir</span>}
+      {principale && <span className="surtitre">🌿 Une de tes valeurs sûres</span>}
       <strong>{descriptionComposition(repere)}</strong>
       {repere.kcalTotal !== null && repere.kcalTotal !== undefined && Number.isFinite(Number(repere.kcalTotal)) && (
         <small>{repere.kcalTotal} kcal au total</small>
@@ -27,13 +27,13 @@ export default function RepasReperesPlanning({ candidats = [], onUse, onDismiss 
 
   const [principale, ...autres] = propositions;
   return (
-    <section className="repas-reperes" aria-label="Assiettes repères">
+    <section className="repas-reperes" aria-label="Mes valeurs sûres">
       <CarteRepere repere={principale} principale onUse={onUse} />
 
       <div className="actions-reperes">
         {autres.length > 0 && (
           <button type="button" className="autres" onClick={() => setVoirAutres(visible => !visible)}>
-            {voirAutres ? 'Masquer les autres idées' : `Voir ${autres.length} autre${autres.length > 1 ? 's' : ''} assiette${autres.length > 1 ? 's' : ''} repérée${autres.length > 1 ? 's' : ''}`}
+            {voirAutres ? 'Masquer les autres valeurs sûres' : `Voir ${autres.length} autre${autres.length > 1 ? 's' : ''} valeur${autres.length > 1 ? 's' : ''} sûre${autres.length > 1 ? 's' : ''}`}
           </button>
         )}
         <button type="button" className="plus-tard" onClick={onDismiss}>Pas cette semaine</button>
