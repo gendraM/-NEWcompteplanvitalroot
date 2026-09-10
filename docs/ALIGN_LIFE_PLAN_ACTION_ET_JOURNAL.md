@@ -1,7 +1,7 @@
 # Align-Life — Plan d'action & journal de passation
 
 **Branche : `Align-Life`**  
-**Statut : P0-P4.5 validés ; P5 Incarnation/ALIGN implémenté ; P5.1 OBSERVE → ALIGN implémenté, validation Vercel à faire ; GROW comportemental non commencé.**
+**Statut : P0-P4.5 validés ; P5 Incarnation/ALIGN implémenté ; P5.1 OBSERVE déterministe implémenté ; P5.2 tendance longitudinale Idéaux implémentée ; validations Vercel à faire ; GROW comportemental non commencé.**
 
 ## Principes verrouillés
 - Nom visible : **My Way** ; Boussole = concept interne.
@@ -13,12 +13,14 @@
 - **Direction → Incarnation est un chemin direct ; l'aspiration n'est pas un prérequis.**
 - **ALIGN montre à la fois ce qui est déjà vécu et ce qui reste à construire ; il ne fabrique pas un problème.**
 - **OBSERVE établit des faits neutres et traçables ; il ne déduit ni identité, ni intention, ni transformation.**
-- **`NO_INTERVENTION` est valide quand les données sont absentes, insuffisantes ou non fiables.**
+- **OBSERVE n'a pas vocation à raconter les données de l'application. Il doit faire émerger ce que l'utilisateur ne peut pas facilement voir lui-même dans ces données.**
+- **Les faits P1 sont des briques internes. Un insight visible doit apporter une valeur supplémentaire : évolution temporelle, croisement transversal, contradiction utile, lien avec un objectif ou une direction My Way, ou information susceptible de changer la compréhension ou la décision. Sinon : `NO_INTERVENTION`.**
+- **`NO_INTERVENTION` est valide quand les données sont absentes, insuffisantes, non fiables ou n'apportent rien de plus.**
 - **Les sources OBSERVE sont toujours requêtées avec le `user_id` authentifié, même si une ancienne policy RLS est permissive.**
 - **L'IA P5 reçoit uniquement des faits OBSERVE déjà déterminés ; elle ne produit pas elle-même les faits.**
 - Aspiration → Idéal uniquement sur choix explicite.
 - GROW n'apparaît que lorsqu'il existe réellement une preuve à afficher.
-- LIVE réutilise les moteurs existants ; fait ≠ tendance ≠ transformation.
+- LIVE réutilise les moteurs existants ; fait ≠ répétition ≠ tendance ≠ transformation.
 - Journal spirituel reste Jeûne-only.
 - **L'IA P4.5 est un miroir sémantique : elle propose/formule, l'utilisateur garde ses mots, modifie ou valide.**
 - **Toute idée d'une reformulation P4.5 doit être traçable au texte utilisateur ; le contexte Pourquoi ne doit pas enrichir la direction.**
@@ -67,7 +69,21 @@ TERMINÉS et validés.
 
 **Point sécurité découvert pendant l'implémentation :** la base live a bien RLS activé sur les 4 tables, mais `historique_poids`, `ideaux` et `seances_reelles` possèdent encore des policies permissives historiques. P5.1 ne s'appuie donc pas sur ces policies : il impose `.eq('user_id', userId)` dans chaque requête. Une ancienne ligne `historique_poids` sans `user_id` existe et est volontairement exclue d'OBSERVE.
 
-**Limite P5.1 :** le moteur et le raccord IA sont prêts, mais l'affichage séparé « Ce que ton parcours montre déjà » dans `pages/my-way.js` reste à raccorder dans l'étape UI suivante afin d'éviter de réécrire la page sans validation Vercel du socle. Les faits ne sont pas persistés en base à ce stade.
+**Orientation corrigée après P5.1 :** les faits P1 ne doivent pas être affichés mécaniquement dans My Way. Ils restent des briques internes. L'ancienne suite prévoyant un affichage séparé des faits OBSERVE est abandonnée. L'affichage utilisateur ne sera envisagé que pour des insights apportant une valeur supplémentaire réelle ; sinon OBSERVE reste silencieux.
+
+### P5.2 — Tendance longitudinale Idéaux : reprise après interruption
+**Implémenté ; aucune UI ni intégration automatique à My Way.**
+- détecteur pur `buildIdeauxRecoveryTrends` dans `lib/myWayObserve.js` ;
+- un Idéal analysé à la fois sur une fenêtre de 56 jours : 28 jours précédents vs 28 jours récents ;
+- seules les séances arrivées à échéance sont retenues ; les séances futures sont exclues ;
+- seule la condition stricte `fait === true` constitue une réalisation ; `statut === 'fait'` n'est jamais utilisé comme preuve ;
+- un épisode = une ou plusieurs séances prévues non réalisées suivies d'une séance réellement réalisée ;
+- mesure = moyenne des séances non réalisées avant reprise ;
+- minimum 2 épisodes dans chaque période ;
+- changement retenu seulement si variation absolue >= 0,5 séance ET variation relative >= 25 % ;
+- directions neutres : `faster` ou `slower` ; niveau de preuve P3 ;
+- aucun vocabulaire identitaire ou psychologique ;
+- le détecteur n'est pas intégré à `collectMyWayObservations` en P5.2 afin de préserver la distinction P1/P3 et d'éviter de transformer automatiquement une tendance en message utilisateur final.
 
 ### P6+
 - La vie que je veux créer / aspirations.
@@ -117,4 +133,18 @@ Commits `bc087f12d250c281a1aa82ee0170d9fb2e25bef5`, `f64f3e9aea230e4fc92c4fab2b2
 **IA :** reçoit les faits uniquement comme contexte facultatif et ne peut les transformer en vérité psychologique.  
 **Migration Supabase : AUCUNE.**  
 **Tests automatisés :** fichiers de tests ajoutés ; exécution CI/Vercel à vérifier après commit.  
-**Suite :** vérifier build/tests puis raccorder l'affichage des faits OBSERVE dans My Way avant d'élargir les familles ou de démarrer GROW.
+**Suite corrigée :** ne pas afficher mécaniquement les faits OBSERVE dans My Way. Les P1 sont des briques internes ; seuls des insights apportant une valeur supplémentaire réelle pourront devenir visibles. Sinon `NO_INTERVENTION`.
+
+## LOG 010 — P5.2 Tendance longitudinale Idéaux / reprise après interruption
+**Date : 10 septembre 2026.**  
+**Branche : `Align-Life`.**  
+**HEAD avant : `53a5bce7ab22b2eb9c71ef5ddb0f81789f5f0b29`.**  
+**Accord utilisateur pour commit : OUI — « tu peux commit P5.2 ».**  
+**Objectif :** premier détecteur longitudinal OBSERVE à valeur ajoutée, mesurant factuellement l'évolution du nombre moyen de séances non réalisées avant reprise, sans inférence psychologique.  
+**Fichiers modifiés :** `lib/myWayObserve.js`, `tests/myWayObserve.test.js`, `docs/ALIGN_LIFE_PLAN_ACTION_ET_JOURNAL.md`.  
+**Tests ajoutés :** reprise plus rapide ; minimum de 2 épisodes par période ; seuils absolu/relatif ; exclusion du futur ; preuve stricte `fait === true` ; incohérence `statut='fait'`/`fait=false` ; reprise plus lente ; absence de vocabulaire psychologique/identitaire.  
+**Tests réellement exécutés au moment de la création du commit : NON — le connecteur GitHub utilisé ici permet l'écriture et l'inspection du dépôt mais n'exécute pas localement Jest. Les statuts CI éventuels doivent être vérifiés après commit.**  
+**Migration Supabase : AUCUNE.**  
+**UI : AUCUNE.**  
+**IA : AUCUNE.**  
+**Intégration collecteur :** volontairement différée ; P5.2 ajoute le détecteur P3 sans remplacer ni exposer silencieusement les faits P1 existants.

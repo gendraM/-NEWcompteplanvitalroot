@@ -1,4 +1,4 @@
-import { buildIdeauxObservations, buildMealObservation, buildWeightObservation } from '../lib/myWayObserve';
+import { buildIdeauxObservations, buildIdeauxRecoveryTrends, buildMealObservation, buildWeightObservation } from '../lib/myWayObserve';
 
 describe('P5.1 OBSERVE déterministe', () => {
   test('regroupe les lignes aliments d’un même repas avant de compter les extras', () => {
@@ -40,5 +40,96 @@ describe('P5.1 OBSERVE déterministe', () => {
     );
     expect(facts).toHaveLength(1);
     expect(facts[0].metrics).toEqual({ idealId: 'ideal-1', plannedCount: 2, completedCount: 1 });
+  });
+});
+
+const NOW = new Date('2026-09-10T12:00:00Z');
+const IDEAL = [{ id: 'ideal-1', titre: 'Bouger régulièrement' }];
+const s = (date_prevue, fait, extra = {}) => ({ ideal_id: 'ideal-1', date_prevue, fait, ...extra });
+
+describe('P5.2 tendance de reprise après interruption', () => {
+  test('détecte une reprise plus rapide', () => {
+    const trend = buildIdeauxRecoveryTrends(IDEAL, [
+      s('2026-07-18', false), s('2026-07-19', false), s('2026-07-20', false), s('2026-07-21', true),
+      s('2026-07-27', false), s('2026-07-28', false), s('2026-07-29', true),
+      s('2026-08-18', false), s('2026-08-19', true),
+      s('2026-08-28', false), s('2026-08-29', true),
+    ], NOW)[0];
+    expect(trend.direction).toBe('faster');
+    expect(trend.evidenceLevel).toBe('P3');
+    expect(trend.metrics.previousEpisodeCount).toBe(2);
+    expect(trend.metrics.recentEpisodeCount).toBe(2);
+    expect(trend.metrics.previousAverageMissedBeforeRecovery).toBe(2.5);
+    expect(trend.metrics.recentAverageMissedBeforeRecovery).toBe(1);
+  });
+
+  test('retourne aucun trend si une période a moins de 2 épisodes', () => {
+    expect(buildIdeauxRecoveryTrends(IDEAL, [
+      s('2026-07-18', false), s('2026-07-19', false), s('2026-07-20', true),
+      s('2026-08-18', false), s('2026-08-19', true),
+      s('2026-08-28', false), s('2026-08-29', true),
+    ], NOW)).toEqual([]);
+  });
+
+  test('retourne aucun trend sous les seuils de changement', () => {
+    expect(buildIdeauxRecoveryTrends(IDEAL, [
+      s('2026-07-18', false), s('2026-07-19', false), s('2026-07-20', true),
+      s('2026-07-27', false), s('2026-07-28', false), s('2026-07-29', true),
+      s('2026-08-18', false), s('2026-08-19', false), s('2026-08-20', true),
+      s('2026-08-28', false), s('2026-08-29', false), s('2026-08-30', true),
+    ], NOW)).toEqual([]);
+  });
+
+  test('exclut les séances futures', () => {
+    const trends = buildIdeauxRecoveryTrends(IDEAL, [
+      s('2026-07-18', false), s('2026-07-19', false), s('2026-07-20', true),
+      s('2026-07-27', false), s('2026-07-28', false), s('2026-07-29', true),
+      s('2026-08-18', false), s('2026-08-19', true),
+      s('2026-08-28', false), s('2026-08-29', true),
+      s('2026-09-11', false), s('2026-09-12', false), s('2026-09-13', true),
+    ], NOW);
+    expect(trends[0].metrics.recentEpisodeCount).toBe(2);
+  });
+
+  test('utilise uniquement fait === true comme preuve de réalisation', () => {
+    const trends = buildIdeauxRecoveryTrends(IDEAL, [
+      s('2026-07-18', false), s('2026-07-19', false), s('2026-07-20', true),
+      s('2026-07-27', false), s('2026-07-28', false), s('2026-07-29', true),
+      s('2026-08-18', false, { statut: 'fait' }), s('2026-08-19', true),
+      s('2026-08-28', false, { statut: 'fait' }), s('2026-08-29', true),
+    ], NOW);
+    expect(trends[0].metrics.recentAverageMissedBeforeRecovery).toBe(1);
+  });
+
+  test('statut fait avec fait=false ne constitue pas une reprise', () => {
+    const trends = buildIdeauxRecoveryTrends(IDEAL, [
+      s('2026-07-18', false), s('2026-07-19', false), s('2026-07-20', true),
+      s('2026-07-27', false), s('2026-07-28', false), s('2026-07-29', true),
+      s('2026-08-18', false), s('2026-08-19', false, { statut: 'fait' }), s('2026-08-20', true),
+      s('2026-08-28', false), s('2026-08-29', false, { statut: 'fait' }), s('2026-08-30', true),
+    ], NOW);
+    expect(trends).toEqual([]);
+  });
+
+  test('détecte aussi une reprise plus lente', () => {
+    const trend = buildIdeauxRecoveryTrends(IDEAL, [
+      s('2026-07-18', false), s('2026-07-19', true),
+      s('2026-07-27', false), s('2026-07-28', true),
+      s('2026-08-18', false), s('2026-08-19', false), s('2026-08-20', true),
+      s('2026-08-28', false), s('2026-08-29', false), s('2026-08-30', false), s('2026-08-31', true),
+    ], NOW)[0];
+    expect(trend.direction).toBe('slower');
+    expect(trend.metrics.previousAverageMissedBeforeRecovery).toBe(1);
+    expect(trend.metrics.recentAverageMissedBeforeRecovery).toBe(2.5);
+  });
+
+  test('reste factuel sans vocabulaire psychologique ou identitaire', () => {
+    const trend = buildIdeauxRecoveryTrends(IDEAL, [
+      s('2026-07-18', false), s('2026-07-19', false), s('2026-07-20', true),
+      s('2026-07-27', false), s('2026-07-28', false), s('2026-07-29', true),
+      s('2026-08-18', false), s('2026-08-19', true),
+      s('2026-08-28', false), s('2026-08-29', true),
+    ], NOW)[0];
+    expect(trend.text).not.toMatch(/bravo|constance|volonté|transformation|identité|motivation|psycholog/i);
   });
 });
