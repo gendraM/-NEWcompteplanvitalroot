@@ -1,7 +1,7 @@
 # Align-Life — Plan d'action & journal de passation
 
 **Branche : `Align-Life`**  
-**Statut : P0-P4.5 validés ; P5 Incarnation/ALIGN implémenté ; P5.1 OBSERVE déterministe implémenté ; P5.2 tendance longitudinale Idéaux implémentée ; validations Vercel à faire ; GROW comportemental non commencé.**
+**Statut : P0-P4.5 validés ; P5 Incarnation/ALIGN implémenté ; P5.1 OBSERVE déterministe implémenté ; P5.2 tendance longitudinale Idéaux implémentée ; P5.3 Idéaux × poids cadré ; validations Vercel à faire ; GROW comportemental non commencé.**
 
 ## Principes verrouillés
 - Nom visible : **My Way** ; Boussole = concept interne.
@@ -15,6 +15,8 @@
 - **OBSERVE établit des faits neutres et traçables ; il ne déduit ni identité, ni intention, ni transformation.**
 - **OBSERVE n'a pas vocation à raconter les données de l'application. Il doit faire émerger ce que l'utilisateur ne peut pas facilement voir lui-même dans ces données.**
 - **Les faits P1 sont des briques internes. Un insight visible doit apporter une valeur supplémentaire : évolution temporelle, croisement transversal, contradiction utile, lien avec un objectif ou une direction My Way, ou information susceptible de changer la compréhension ou la décision. Sinon : `NO_INTERVENTION`.**
+- **Un croisement transversal constate des évolutions coexistantes ; il ne transforme jamais une corrélation temporelle en causalité.**
+- **Une variation de poids n'est pas automatiquement qualifiée de progrès ou de régression par OBSERVE.**
 - **`NO_INTERVENTION` est valide quand les données sont absentes, insuffisantes, non fiables ou n'apportent rien de plus.**
 - **Les sources OBSERVE sont toujours requêtées avec le `user_id` authentifié, même si une ancienne policy RLS est permissive.**
 - **L'IA P5 reçoit uniquement des faits OBSERVE déjà déterminés ; elle ne produit pas elle-même les faits.**
@@ -85,6 +87,21 @@ TERMINÉS et validés.
 - aucun vocabulaire identitaire ou psychologique ;
 - le détecteur n'est pas intégré à `collectMyWayObservations` en P5.2 afin de préserver la distinction P1/P3 et d'éviter de transformer automatiquement une tendance en message utilisateur final.
 
+### P5.3 — Cadrage transversal Idéaux × poids
+**Cadrage produit/technique verrouillé ; implémentation du détecteur à venir.**
+- premier croisement transversal retenu : évolution d'un Idéal × évolution du poids ;
+- finalité : révéler une coexistence temporelle difficile à voir directement, jamais expliquer une évolution par l'autre ;
+- analyse Idéal par Idéal ; seules les séances arrivées à échéance sont éligibles et seule `fait === true` prouve une réalisation ;
+- la composante Idéal doit être longitudinale : comparer une période précédente et une période récente plutôt que répéter un taux brut déjà visible ;
+- la composante poids doit reposer sur plusieurs mesures user-scopées et sur des périodes comparables ;
+- un candidat n'est émis que si les deux phénomènes disposent d'assez de données et présentent une évolution suffisamment significative ;
+- absence ou insuffisance de pesées, insuffisance de séances, périodes non comparables, variations négligeables ou simple répétition d'une statistique visible => `NO_INTERVENTION` ;
+- vocabulaire autorisé : coexistence factuelle (« tandis que », « sur la même période », « parallèlement ») ;
+- vocabulaire causal interdit : « grâce à », « parce que », « a permis », « entraîne », « provoque » ;
+- une baisse ou une hausse de poids reste une variation factuelle : OBSERVE ne la qualifie automatiquement ni de progrès, ni de réussite, ni de régression ;
+- le futur détecteur doit conserver les sources, métriques, périodes, Idéal concerné et niveau de preuve pour auditabilité ;
+- aucune UI, aucun appel OpenAI, aucun raccord automatique à My Way à ce stade.
+
 ### P6+
 - La vie que je veux créer / aspirations.
 - Raccordement sélectif aspiration → Idéaux sur choix utilisateur.
@@ -148,3 +165,16 @@ Commits `bc087f12d250c281a1aa82ee0170d9fb2e25bef5`, `f64f3e9aea230e4fc92c4fab2b2
 **UI : AUCUNE.**  
 **IA : AUCUNE.**  
 **Intégration collecteur :** volontairement différée ; P5.2 ajoute le détecteur P3 sans remplacer ni exposer silencieusement les faits P1 existants.
+
+## LOG 011 — P5.3 Cadrage Idéaux × poids
+**Date : 10 septembre 2026.**  
+**Branche : `Align-Life`.**  
+**HEAD avant : `ac7bb50828a5f9c21f8965ede01a4fda0d4ced7d`.**  
+**Accord utilisateur pour commit : OUI — « ok tu peux commit p.5 ».**  
+**Objectif :** verrouiller le contrat produit/technique du premier insight transversal avant d'écrire le détecteur afin d'éviter toute causalité ou interprétation abusive.  
+**Décision :** Idéaux × poids est le premier croisement retenu ; il doit comparer des évolutions temporelles suffisamment documentées et n'émettre qu'une coexistence factuelle.  
+**Code métier : NON modifié dans ce commit de cadrage.**  
+**Tests :** aucun test ajouté car aucun comportement exécutable n'est modifié.  
+**Migration Supabase : AUCUNE.**  
+**UI : AUCUNE.**  
+**IA : AUCUNE.**
