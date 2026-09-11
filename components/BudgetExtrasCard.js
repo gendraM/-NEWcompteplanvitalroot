@@ -2,27 +2,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { calculerProfilComplet } from '../lib/routeurPoids';
-import { calculerExtrasSemaine } from '../lib/validationSemaine';
+import { calculerExtrasSemaine, getWeekBounds } from '../lib/validationSemaine';
 import { getVerbatimProgressionExtras } from '../lib/extrasProgression';
-
-function formatLocalDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function getWeek(dateValue) {
-  const ref = dateValue ? new Date(dateValue) : new Date();
-  ref.setHours(12, 0, 0, 0);
-  const monday = new Date(ref);
-  monday.setDate(ref.getDate() + (ref.getDay() === 0 ? -6 : 1 - ref.getDay()));
-  monday.setHours(0, 0, 0, 0);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  sunday.setHours(23, 59, 59, 999);
-  return { monday, sunday, start: formatLocalDate(monday), end: formatLocalDate(sunday) };
-}
 
 function construireSynthese(extrasCount, palier, kcal, budget) {
   const frequenceOk = extrasCount <= palier;
@@ -91,7 +72,7 @@ export default function BudgetExtrasCard({ userId, selectedDate, palier = 5, pro
           throw new Error('Budget extras indisponible.');
         }
 
-        const week = getWeek(selectedDate);
+        const week = getWeekBounds(selectedDate || new Date());
         const { data: repas, error: repasError } = await supabase
           .from('repas_reels')
           .select('id, kcal, date, aliment, type, est_extra, occurrence_repas_id')
@@ -106,7 +87,7 @@ export default function BudgetExtrasCard({ userId, selectedDate, palier = 5, pro
         let budgetHebdo = Number(calculs.budgetExtras);
         let budgetReserve = 0;
         let estimationHistorique = false;
-        const semaineCourante = week.start === getWeek(new Date()).start;
+        const semaineCourante = week.start === getWeekBounds(new Date()).start;
 
         const { data: budgetExistant, error: budgetError } = await supabase
           .from('extras_budget')

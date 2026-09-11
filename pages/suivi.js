@@ -460,7 +460,7 @@ export default function Suivi() {
   
   // ----------- HOOKS PRINCIPAUX (ordre strict selon la checklist) -----------
   // Initialiser selectedDate AVANT tout usage dans un useEffect ou une variable calculée
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0,10));
+  const [selectedDate, setSelectedDate] = useState(() => formatDate(new Date(), 'yyyy-MM-dd'));
   // Hook pour l'affichage de l'alerte calorique (DOIT ÊTRE DÉCLARÉ AVANT SON UTILISATION dans useEffect)
   const [repasSemaine, setRepasSemaine] = useState([]);
   // Hook pour userId (nécessaire pour BudgetExtrasCard)

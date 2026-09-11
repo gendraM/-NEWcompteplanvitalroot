@@ -6,7 +6,7 @@ import TimelineProgression from "../components/TimelineProgression";
 import BadgeCard from "../components/BadgeCard";
 import ExtrasBadgesSection from "../components/ExtrasBadgesSection";
 import DrawerValidation from "../components/DrawerValidation";
-import { getSemainesNonValidees, calculerExtrasSemaine, genererMessageFeedback, calculerVariation } from "../lib/validationSemaine";
+import { getSemainesNonValidees, calculerExtrasSemaine, genererMessageFeedback, calculerVariation, formatDate } from "../lib/validationSemaine";
 import { calculerProgressionExtras } from "../lib/extrasProgression";
 import {
   Chart as ChartJS,
@@ -132,13 +132,15 @@ export default function TableauDeBord() {
   // Fonction de refresh manuel
   const handleRefresh = async () => {
   const { debut, fin } = getPeriodeDates();
+    const debutISO = formatDate(debut, 'yyyy-MM-dd');
+    const finISO = formatDate(fin, 'yyyy-MM-dd');
     // Rafraîchir l’historique fast food à chaque refresh manuel
     const { data: ffData } = await supabase
       .from('repas_reels')
       .select('*')
       .or('categorie.eq.fast-food,tag.not.is.null')
-      .gte('date', debut.toISOString().slice(0,10))
-      .lte('date', fin.toISOString().slice(0,10))
+      .gte('date', debutISO)
+      .lte('date', finISO)
       .order('date', { ascending: false });
     setFastFoodHistory(ffData || []);
     setFastFoodCount(ffData?.length || 0);
@@ -163,7 +165,7 @@ export default function TableauDeBord() {
         const d = new Date(debut);
         d.setDate(d.getDate() + i);
         const label = d.toLocaleDateString('fr-FR', { weekday: 'short' });
-        const count = repasReels?.filter(r => r.est_extra && r.date === d.toISOString().slice(0,10)).length || 0;
+        const count = repasReels?.filter(r => r.est_extra && r.date === formatDate(d, 'yyyy-MM-dd')).length || 0;
         evoExtras.push({ label, count });
       }
     } else if (periode === 'mois') {
@@ -175,7 +177,7 @@ export default function TableauDeBord() {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
         const label = `Sem. ${week}`;
-        const count = repasReels?.filter(r => r.est_extra && r.date >= weekStart.toISOString().slice(0,10) && r.date <= weekEnd.toISOString().slice(0,10)).length || 0;
+        const count = repasReels?.filter(r => r.est_extra && r.date >= formatDate(weekStart, 'yyyy-MM-dd') && r.date <= formatDate(weekEnd, 'yyyy-MM-dd')).length || 0;
         evoExtras.push({ label, count });
         current.setDate(current.getDate() + 7);
         week++;
@@ -186,7 +188,7 @@ export default function TableauDeBord() {
         const monthStart = new Date(debut.getFullYear(), m, 1);
         const monthEnd = new Date(debut.getFullYear(), m + 1, 0);
         const label = monthStart.toLocaleDateString('fr-FR', { month: 'short' });
-        const count = repasReels?.filter(r => r.est_extra && r.date >= monthStart.toISOString().slice(0,10) && r.date <= monthEnd.toISOString().slice(0,10)).length || 0;
+        const count = repasReels?.filter(r => r.est_extra && r.date >= formatDate(monthStart, 'yyyy-MM-dd') && r.date <= formatDate(monthEnd, 'yyyy-MM-dd')).length || 0;
         evoExtras.push({ label, count });
       }
     }
@@ -233,23 +235,23 @@ export default function TableauDeBord() {
     const { data: poidsHistory } = await supabase
       .from("historique_poids")
       .select("date, poids")
-      .gte("date", debut.toISOString().slice(0,10))
-      .lte("date", fin.toISOString().slice(0,10))
+      .gte("date", debutISO)
+      .lte("date", finISO)
       .order("date", { ascending: true });
     setPoidsData(poidsHistory || []);
     // 2. Humeurs sur la période
     const { data: humeurs } = await supabase
       .from("humeur_checkin")
       .select("humeur")
-      .gte("date", debut.toISOString().slice(0,10))
-      .lte("date", fin.toISOString().slice(0,10));
+      .gte("date", debutISO)
+      .lte("date", finISO);
     setHumeurData(humeurs || []);
     // 3. Satiété (repas pris par faim)
     const { data: repasReelsData, count: totalRepas } = await supabase
       .from("repas_reels")
       .select("*", { count: "exact" })
-      .gte("date", debut.toISOString().slice(0,10))
-      .lte("date", fin.toISOString().slice(0,10));
+      .gte("date", debutISO)
+      .lte("date", finISO);
     setRepasReels(repasReelsData || []);
     const repasParFaim =
       repasReelsData?.filter((r) => r.raison_manger === "J'avais faim").length || 0;
@@ -258,8 +260,8 @@ export default function TableauDeBord() {
     const { data: extrasPeriod } = await supabase
       .from("repas_reels")
       .select("id, est_extra, occurrence_repas_id")
-      .gte("date", debut.toISOString().slice(0,10))
-      .lte("date", fin.toISOString().slice(0,10));
+      .gte("date", debutISO)
+      .lte("date", finISO);
     const quota = calculerProgressionExtras(semainesValidees).palier;
     const momentsExtras = new Set(
       (extrasPeriod || [])
@@ -328,14 +330,15 @@ export default function TableauDeBord() {
             weekStart.setHours(0,0,0,0);
             let weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
             // Récupérer la validation depuis l’état local semainesValidees
-            let semaineValidee = semainesValidees?.find(sv => sv.weekStart === weekStart.toISOString().slice(0,10) && sv.validee === true);
+            const weekStartKey = formatDate(weekStart, 'yyyy-MM-dd');
+            let semaineValidee = semainesValidees?.find(sv => sv.weekStart === weekStartKey && sv.validee === true);
             let count = repas.filter(r => {
               let d = new Date(r.date);
               d.setHours(0,0,0,0);
               return d >= weekStart && d <= weekEnd && r.est_extra;
             }).length;
             weeks.push({
-              weekStart: weekStart.toISOString().slice(0,10),
+              weekStart: weekStartKey,
               count,
               isCurrent: (i === 0),
               validee: !!semaineValidee
@@ -516,7 +519,7 @@ export default function TableauDeBord() {
         .from('repas_reels')
         .select('*')
         .gte('date', premiereLundi)
-        .lte('date', dernierDimanche.toISOString().slice(0, 10));
+        .lte('date', formatDate(dernierDimanche, 'yyyy-MM-dd'));
 
       const { data: authData } = await supabase.auth.getUser();
       const currentUserId = authData?.user?.id;
@@ -532,7 +535,7 @@ export default function TableauDeBord() {
         // Calculer fin de semaine (dimanche)
         const finSemaine = new Date(weekStart);
         finSemaine.setDate(finSemaine.getDate() + 6);
-        const finSemaineStr = finSemaine.toISOString().slice(0, 10);
+        const finSemaineStr = formatDate(finSemaine, 'yyyy-MM-dd');
         
         const { data: budgetSemaine } = await supabase
           .from('extras_budget')
