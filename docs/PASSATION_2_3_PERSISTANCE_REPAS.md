@@ -235,3 +235,7 @@ La clôture du sous-lot 2.3 ne signifie pas que toute la vision du Plan alimenta
 4. signaux de vigilance fondés sur plusieurs occurrences, sans présenter une corrélation comme une causalité ;
 5. regroupement d'affichage des occurrences dans « Gérer mes repas », sans fusion ni réécriture des lignes Supabase ;
 6. enrichissements futurs de la liste de courses, notamment l'estimation automatique et l'historique des coûts lorsqu'une source de prix fiable aura été définie.
+
+## Traçabilité du déploiement
+
+Le 12 septembre 2026, un nouveau push documentaire a été effectué sur la branche `plan-alimentaire-intelligent-chatgpt` afin de redéclencher l’aperçu Vercel après l’absence de déploiement automatique des commits de raccordement du point d’ajustement dans `/suivi`.
