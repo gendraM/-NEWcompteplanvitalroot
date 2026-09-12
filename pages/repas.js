@@ -1,6 +1,7 @@
 import BandeauDefiActif from '../components/BandeauDefiActif';
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { estRepasExtra } from "../lib/validationSemaine";
 
 // ═══════════════════════════════════════════════════════════
 // FONCTIONS UTILITAIRES - FORMATAGE DATES
@@ -261,6 +262,7 @@ export default function Repas() {
           categorie: form.categorie,
           quantite: form.quantite,
           kcal: form.kcal,
+          est_extra: form.est_extra === true || String(form.categorie || '').trim().toLowerCase() === 'extra',
         })
         .eq("id", editRepas.id);
     }
@@ -494,7 +496,7 @@ export default function Repas() {
             
             // Filtre par type
             if (filtre === 'extras') {
-              repasFiltres = repasFiltres.filter(r => r.est_extra === true);
+              repasFiltres = repasFiltres.filter(estRepasExtra);
             } else if (filtre === 'fastfood') {
               repasFiltres = repasFiltres.filter(r => r.tag || r.categorie === 'fast-food');
             }
@@ -632,7 +634,11 @@ export default function Repas() {
                 <td style={{ padding: 8, border: "1px solid #ddd" }}>
                   {r.aliment ? (
                     <span>
-                      {r.est_extra && <span style={{ marginRight: 6, fontSize: '1.2em' }} title="Extra">⭐</span>}
+                      {estRepasExtra(r) && (
+                        <span style={{ marginRight: 6, color: '#d97706', fontWeight: 700, whiteSpace: 'nowrap' }} title="Extra">
+                          ⭐ Extra
+                        </span>
+                      )}
                       {r.aliment}
                       {r.planifie && (
                         <span style={{ marginLeft: 6, color: '#1976d2', fontWeight: 600, fontSize: '0.95em', background: '#e3f2fd', borderRadius: 4, padding: '2px 6px' }} title="Repas planifié">Planifié</span>

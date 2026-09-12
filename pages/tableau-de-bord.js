@@ -6,7 +6,7 @@ import TimelineProgression from "../components/TimelineProgression";
 import BadgeCard from "../components/BadgeCard";
 import ExtrasBadgesSection from "../components/ExtrasBadgesSection";
 import DrawerValidation from "../components/DrawerValidation";
-import { getSemainesNonValidees, calculerExtrasSemaine, genererMessageFeedback, calculerVariation, formatDate } from "../lib/validationSemaine";
+import { getSemainesNonValidees, calculerExtrasSemaine, genererMessageFeedback, calculerVariation, formatDate, estRepasExtra } from "../lib/validationSemaine";
 import { calculerProgressionExtras } from "../lib/extrasProgression";
 import {
   Chart as ChartJS,
@@ -165,7 +165,7 @@ export default function TableauDeBord() {
         const d = new Date(debut);
         d.setDate(d.getDate() + i);
         const label = d.toLocaleDateString('fr-FR', { weekday: 'short' });
-        const count = repasReels?.filter(r => r.est_extra && r.date === formatDate(d, 'yyyy-MM-dd')).length || 0;
+        const count = repasReels?.filter(r => estRepasExtra(r) && r.date === formatDate(d, 'yyyy-MM-dd')).length || 0;
         evoExtras.push({ label, count });
       }
     } else if (periode === 'mois') {
@@ -177,7 +177,7 @@ export default function TableauDeBord() {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
         const label = `Sem. ${week}`;
-        const count = repasReels?.filter(r => r.est_extra && r.date >= formatDate(weekStart, 'yyyy-MM-dd') && r.date <= formatDate(weekEnd, 'yyyy-MM-dd')).length || 0;
+        const count = repasReels?.filter(r => estRepasExtra(r) && r.date >= formatDate(weekStart, 'yyyy-MM-dd') && r.date <= formatDate(weekEnd, 'yyyy-MM-dd')).length || 0;
         evoExtras.push({ label, count });
         current.setDate(current.getDate() + 7);
         week++;
@@ -188,7 +188,7 @@ export default function TableauDeBord() {
         const monthStart = new Date(debut.getFullYear(), m, 1);
         const monthEnd = new Date(debut.getFullYear(), m + 1, 0);
         const label = monthStart.toLocaleDateString('fr-FR', { month: 'short' });
-        const count = repasReels?.filter(r => r.est_extra && r.date >= formatDate(monthStart, 'yyyy-MM-dd') && r.date <= formatDate(monthEnd, 'yyyy-MM-dd')).length || 0;
+        const count = repasReels?.filter(r => estRepasExtra(r) && r.date >= formatDate(monthStart, 'yyyy-MM-dd') && r.date <= formatDate(monthEnd, 'yyyy-MM-dd')).length || 0;
         evoExtras.push({ label, count });
       }
     }
@@ -259,13 +259,13 @@ export default function TableauDeBord() {
     // 4. Extras sur la période
     const { data: extrasPeriod } = await supabase
       .from("repas_reels")
-      .select("id, est_extra, occurrence_repas_id")
+      .select("id, categorie, est_extra, occurrence_repas_id")
       .gte("date", debutISO)
       .lte("date", finISO);
     const quota = calculerProgressionExtras(semainesValidees).palier;
     const momentsExtras = new Set(
       (extrasPeriod || [])
-        .filter(r => r.est_extra)
+        .filter(estRepasExtra)
         .map((r, index) => r.occurrence_repas_id || `historique:${r.id || index}`)
     ).size;
     setExtrasData({
@@ -335,7 +335,7 @@ export default function TableauDeBord() {
             let count = repas.filter(r => {
               let d = new Date(r.date);
               d.setHours(0,0,0,0);
-              return d >= weekStart && d <= weekEnd && r.est_extra;
+              return d >= weekStart && d <= weekEnd && estRepasExtra(r);
             }).length;
             weeks.push({
               weekStart: weekStartKey,

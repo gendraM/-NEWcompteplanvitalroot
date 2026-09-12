@@ -75,9 +75,8 @@ export default function BudgetExtrasCard({ userId, selectedDate, palier = 5, pro
         const week = getWeekBounds(selectedDate || new Date());
         const { data: repas, error: repasError } = await supabase
           .from('repas_reels')
-          .select('id, kcal, date, aliment, type, est_extra, occurrence_repas_id')
+          .select('id, kcal, date, aliment, type, categorie, est_extra, occurrence_repas_id')
           .eq('user_id', userId)
-          .eq('est_extra', true)
           .gte('date', week.start)
           .lte('date', week.end);
 

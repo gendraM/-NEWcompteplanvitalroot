@@ -10,6 +10,7 @@ import FormAjoutAliment from './FormAjoutAliment';
 import { evaluerRespectPortionRepas } from '../lib/validerCriterePreparation';
 import { calculerCaloriesAliment } from '../lib/socleQuantitesCalories';
 import SaisieRepasCompose from './SaisieRepasCompose';
+import { estRepasExtra } from '../lib/validationSemaine';
 // import FlipNumbers from 'react-flip-numbers'
 
 // 🐛 DEBUG: Vérifier le référentiel chargé
@@ -482,7 +483,7 @@ function getSuggestionsFromNotes(repasList) {
       categorie: categorie === 'Jeûne' ? 'Jeûne' : (isFastFood ? 'fast-food' : categorie),
       quantite: categorie === 'Jeûne' ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite)),
       kcal: categorie === 'Jeûne' ? null : (kcal === '' ? null : isNaN(Number(kcal)) ? kcal : Number(kcal)),
-      est_extra: estExtra,
+      est_extra: estExtra || estRepasExtra({ categorie }),
       regle_respectee: regleRespectee,
       satiete,
       pourquoi,
@@ -588,7 +589,7 @@ function getSuggestionsFromNotes(repasList) {
         categorie: isJeune ? 'Jeûne' : (isFastFood ? 'fast-food' : categorieFinal),
         quantite: isJeune ? null : (quantiteFinal === '' ? null : isNaN(Number(quantiteFinal)) ? quantiteFinal : Number(quantiteFinal)),
         kcal: isJeune ? null : (kcalFinal === '' ? null : isNaN(Number(kcalFinal)) ? kcalFinal : Number(kcalFinal)),
-        est_extra: false,
+        est_extra: estExtra || estRepasExtra({ categorie: categorieFinal }),
         regle_respectee: regleRespectee,
         satiete,
         pourquoi,

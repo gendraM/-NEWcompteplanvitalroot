@@ -28,4 +28,20 @@ describe('lecture unifiée des moments extras', () => {
     expect(resultat.count).toBe(2);
     expect(resultat.kcalTotal).toBe(380);
   });
+
+  test('reconnaît les anciennes lignes dont la catégorie affichée est extra', () => {
+    const resultat = calculerExtrasSemaine('2026-09-07', [
+      { id: 1, date: '2026-09-07', aliment: 'Brioche', categorie: 'viennoiserie', kcal: 194, est_extra: true, occurrence_repas_id: 'occ-1' },
+      { id: 2, date: '2026-09-08', aliment: 'Pizza (part)', categorie: 'extra', kcal: 500, est_extra: false, occurrence_repas_id: 'occ-2' },
+      { id: 3, date: '2026-09-10', aliment: 'Biscuits fourrés (BN)', categorie: ' EXTRA ', kcal: 180, est_extra: false, occurrence_repas_id: 'occ-3' },
+    ]);
+
+    expect(resultat.count).toBe(3);
+    expect(resultat.kcalTotal).toBe(874);
+    expect(resultat.details.map(extra => extra.nom)).toEqual([
+      'Brioche',
+      'Pizza (part)',
+      'Biscuits fourrés (BN)',
+    ]);
+  });
 });
