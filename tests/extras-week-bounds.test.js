@@ -1,3 +1,4 @@
+// Régression couverte : la date réelle du repas reste distincte de la clé technique du lundi.
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
