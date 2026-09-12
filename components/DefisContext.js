@@ -20,6 +20,8 @@ export function DefisProvider({ children }) {
             setLoading(false);
             return;
         }
+        const { error: closeError } = await supabase.rpc('clore_defis_duree');
+        if (closeError) console.warn('Clôture automatique des défis durée indisponible:', closeError);
         const { data, error: fetchError } = await supabase.from('defis').select('*').eq('user_id', userId);
         if (fetchError) {
             setError('Erreur lors du chargement des défis');
