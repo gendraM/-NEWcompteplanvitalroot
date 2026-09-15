@@ -10,6 +10,7 @@ import FormAjoutAliment from './FormAjoutAliment';
 import { evaluerRespectPortionRepas } from '../lib/validerCriterePreparation';
 import { calculerCaloriesAliment } from '../lib/socleQuantitesCalories';
 import SaisieRepasCompose from './SaisieRepasCompose';
+import { estRepasExtra } from '../lib/validationSemaine';
 // import FlipNumbers from 'react-flip-numbers'
 
 // 🐛 DEBUG: Vérifier le référentiel chargé
@@ -25,7 +26,7 @@ const rules = [
   {
     check: ({ estExtra, extrasRestants }) => estExtra && extrasRestants <= 0,
     type: "challenge",
-    message: "Tu as dépassé ton quota d'extras cette semaine. Prends un instant pour te demander : est-ce le bon moment pour ce plaisir ? Tu pourrais le planifier pour un autre moment, pour le savourer pleinement et sans culpabilité."
+    message: "Tous les moments prévus dans ton palier sont déjà utilisés cette semaine. Si tu choisis cet extra, il restera enregistré comme un moment supplémentaire avec son impact calorique, sans effacer ta progression."
   },
   {
     check: ({ satiete }) => satiete === "non",
@@ -482,7 +483,7 @@ function getSuggestionsFromNotes(repasList) {
       categorie: categorie === 'Jeûne' ? 'Jeûne' : (isFastFood ? 'fast-food' : categorie),
       quantite: categorie === 'Jeûne' ? null : (quantite === '' ? null : isNaN(Number(quantite)) ? quantite : Number(quantite)),
       kcal: categorie === 'Jeûne' ? null : (kcal === '' ? null : isNaN(Number(kcal)) ? kcal : Number(kcal)),
-      est_extra: estExtra,
+      est_extra: estExtra || estRepasExtra({ categorie }),
       regle_respectee: regleRespectee,
       satiete,
       pourquoi,
@@ -588,7 +589,7 @@ function getSuggestionsFromNotes(repasList) {
         categorie: isJeune ? 'Jeûne' : (isFastFood ? 'fast-food' : categorieFinal),
         quantite: isJeune ? null : (quantiteFinal === '' ? null : isNaN(Number(quantiteFinal)) ? quantiteFinal : Number(quantiteFinal)),
         kcal: isJeune ? null : (kcalFinal === '' ? null : isNaN(Number(kcalFinal)) ? kcalFinal : Number(kcalFinal)),
-        est_extra: false,
+        est_extra: estExtra || estRepasExtra({ categorie: categorieFinal }),
         regle_respectee: regleRespectee,
         satiete,
         pourquoi,
@@ -716,7 +717,7 @@ function getSuggestionsFromNotes(repasList) {
   <div>
       {/* Compteur flipboard stylisé pour extras restants */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-        <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Extras restants</span>
+        <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Moments disponibles dans mon palier</span>
         <FlipNumbers
           height={40}
           width={30}

@@ -2,6 +2,48 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import BilanHebdoModal from "../components/BilanHebdoModal";
 import { formatDate, getMonday, addDays } from "../lib/validationSemaine";
+import { evaluerSemaineExtras } from "../lib/extrasProgression";
+
+function lireNombreHistorique(valeur) {
+  if (valeur === null || valeur === undefined || valeur === '') return null;
+  const nombre = Number(valeur);
+  return Number.isFinite(nombre) ? nombre : null;
+}
+
+function lireKcalExtras(bilan) {
+  const valeurEnregistree = lireNombreHistorique(bilan?.kcal_extras);
+  if (valeurEnregistree !== null) return valeurEnregistree;
+  if (!bilan?.extras_details) return null;
+  try {
+    const details = typeof bilan.extras_details === 'string'
+      ? JSON.parse(bilan.extras_details)
+      : bilan.extras_details;
+    if (!Array.isArray(details)) return null;
+    return details.reduce((sum, extra) => sum + (Number(extra?.kcal) || 0), 0);
+  } catch (error) {
+    console.warn('[HISTORIQUE] Détail extras illisible :', error);
+    return null;
+  }
+}
+
+function getResumeExtras(bilan) {
+  const extras = lireNombreHistorique(bilan?.extras_count);
+  const kcalExtras = lireKcalExtras(bilan);
+  const budgetExtras = lireNombreHistorique(bilan?.budget_extras);
+  const palier = lireNombreHistorique(bilan?.bilan_abc?.palierExtras);
+  const valeurs = [
+    palier !== null ? `Palier ${palier}` : null,
+    extras !== null ? `${extras} moment${extras > 1 ? 's' : ''}` : null,
+    kcalExtras !== null ? `${kcalExtras} kcal${budgetExtras > 0 ? ` sur ${budgetExtras} kcal` : ''}` : null,
+  ].filter(Boolean);
+  const evaluation = palier !== null
+    ? evaluerSemaineExtras({ ...bilan, kcal_extras: kcalExtras, budget_extras: budgetExtras }, palier)
+    : null;
+  return {
+    texte: valeurs.length > 0 ? valeurs.join(' · ') : 'Repères extras non enregistrés',
+    aConstruitLeChemin: evaluation?.comptePourProgression === true,
+  };
+}
 
 export default function HistoriqueBilans() {
   const [semainesValidees, setSemainesValidees] = useState([]);
@@ -10,9 +52,16 @@ export default function HistoriqueBilans() {
 
   useEffect(() => {
     async function fetchBilans() {
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id;
+      if (!userId) {
+        setSemainesValidees([]);
+        return;
+      }
       const { data: semaines } = await supabase
         .from("semaines_validees")
         .select("*")
+        .eq("user_id", userId)
         .not("bilan_abc", "is", null)  // Filtrer uniquement bilans avec données ABC
         .not("weekStart", "is", null)   // Filtrer uniquement nouveau schéma
         .order("weekStart", { ascending: false });
@@ -26,19 +75,11 @@ export default function HistoriqueBilans() {
   const handleOpenBilan = (bilan) => {
     if (!bilan) return;
     
-    // Recalculer kcalExtras depuis extras_details si non présent (anciens bilans)
-    let kcalExtras = bilan.kcal_extras || 0;
-    let budgetExtras = bilan.budget_extras || 0;
-    
-    if (!kcalExtras && bilan.extras_details) {
-      try {
-        const details = JSON.parse(bilan.extras_details);
-        kcalExtras = details.reduce((sum, extra) => sum + (Number(extra.kcal) || 0), 0);
-        console.log('[HISTORIQUE] kcalExtras recalculé depuis extras_details:', kcalExtras);
-      } catch (e) {
-        console.warn('[HISTORIQUE] Erreur parsing extras_details:', e);
-      }
-    }
+    // Les kcal peuvent être reconstituées depuis le détail réellement enregistré.
+    // Le budget, lui, n'est jamais recalculé avec le profil actuel : on préserve l'histoire.
+    const kcalExtras = lireKcalExtras(bilan);
+    const budgetExtras = lireNombreHistorique(bilan.budget_extras);
+    const extras = lireNombreHistorique(bilan.extras_count);
     
     console.log('[HISTORIQUE] Ouverture bilan:', {
       weekStart: bilan.weekStart,
@@ -60,7 +101,7 @@ export default function HistoriqueBilans() {
       objectifHebdo: bilan.objectif_hebdo || null,
       kcalExtras: kcalExtras,
       budgetExtras: budgetExtras,
-      extras: bilan.extras_count || 0,
+      extras: extras,
       variation: bilan.variation || null,
       tendance_7j: bilan.tendance_7j || null,
       ecart_hebdo: bilan.ecart_hebdo || null,
@@ -93,6 +134,7 @@ export default function HistoriqueBilans() {
         {semainesValidees.map((bilan) => {
           const debut = getMonday(bilan.weekStart);
           const fin = addDays(debut, 6);
+          const resumeExtras = getResumeExtras(bilan);
           function fmt(d) {
             const pad = n => String(n).padStart(2, '0');
             return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
@@ -100,8 +142,12 @@ export default function HistoriqueBilans() {
           return (
             <li key={bilan.weekStart} style={{marginBottom:16,background:'#f8fafc',borderRadius:8,padding:'12px 18px',boxShadow:'0 1px 4px #e0e0e0'}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
-                <span>
+                <span style={{minWidth:0}}>
                   <b>Semaine du {fmt(debut)} au {fmt(fin)}</b>
+                  <span style={{display:'block', marginTop:5, color:'#475569', fontSize:14}}>{resumeExtras.texte}</span>
+                  {resumeExtras.aConstruitLeChemin && (
+                    <span style={{display:'block', marginTop:3, color:'#15803d', fontSize:13, fontWeight:600}}>Cette semaine a construit ton chemin.</span>
+                  )}
                 </span>
                 <button style={{background:'#1976d2',color:'#fff',border:'none',borderRadius:6,padding:'6px 16px',fontWeight:600,cursor:'pointer'}} onClick={()=>handleOpenBilan(bilan)}>
                   Voir bilan

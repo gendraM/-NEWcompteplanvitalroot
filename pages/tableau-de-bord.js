@@ -4,8 +4,10 @@ import { supabase } from "../lib/supabaseClient";
 import { Line, Pie, Doughnut } from "react-chartjs-2";
 import TimelineProgression from "../components/TimelineProgression";
 import BadgeCard from "../components/BadgeCard";
+import ExtrasBadgesSection from "../components/ExtrasBadgesSection";
 import DrawerValidation from "../components/DrawerValidation";
-import { getSemainesNonValidees, calculerExtrasSemaine, genererMessageFeedback, calculerVariation } from "../lib/validationSemaine";
+import { getSemainesNonValidees, calculerExtrasSemaine, genererMessageFeedback, calculerVariation, formatDate, estRepasExtra } from "../lib/validationSemaine";
+import { calculerProgressionExtras } from "../lib/extrasProgression";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -34,7 +36,7 @@ function getMotivationMessage({ progression, extras, humeurCounts, tauxSatiete }
     return `🏆 ${progression.badge} : ${progression.message}`;
   }
   if (extras > 0 && extras <= progression.quota) {
-    return "💪 Tu respectes ton quota d'extras : continue comme ça !";
+    return "Tes moments extras restent dans le rythme de ton palier actuel.";
   }
   if (tauxSatiete > 70) {
     return "🥗 Tu manges majoritairement par faim réelle, c'est top !";
@@ -130,13 +132,15 @@ export default function TableauDeBord() {
   // Fonction de refresh manuel
   const handleRefresh = async () => {
   const { debut, fin } = getPeriodeDates();
+    const debutISO = formatDate(debut, 'yyyy-MM-dd');
+    const finISO = formatDate(fin, 'yyyy-MM-dd');
     // Rafraîchir l’historique fast food à chaque refresh manuel
     const { data: ffData } = await supabase
       .from('repas_reels')
       .select('*')
       .or('categorie.eq.fast-food,tag.not.is.null')
-      .gte('date', debut.toISOString().slice(0,10))
-      .lte('date', fin.toISOString().slice(0,10))
+      .gte('date', debutISO)
+      .lte('date', finISO)
       .order('date', { ascending: false });
     setFastFoodHistory(ffData || []);
     setFastFoodCount(ffData?.length || 0);
@@ -161,7 +165,7 @@ export default function TableauDeBord() {
         const d = new Date(debut);
         d.setDate(d.getDate() + i);
         const label = d.toLocaleDateString('fr-FR', { weekday: 'short' });
-        const count = repasReels?.filter(r => r.est_extra && r.date === d.toISOString().slice(0,10)).length || 0;
+        const count = repasReels?.filter(r => estRepasExtra(r) && r.date === formatDate(d, 'yyyy-MM-dd')).length || 0;
         evoExtras.push({ label, count });
       }
     } else if (periode === 'mois') {
@@ -173,7 +177,7 @@ export default function TableauDeBord() {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
         const label = `Sem. ${week}`;
-        const count = repasReels?.filter(r => r.est_extra && r.date >= weekStart.toISOString().slice(0,10) && r.date <= weekEnd.toISOString().slice(0,10)).length || 0;
+        const count = repasReels?.filter(r => estRepasExtra(r) && r.date >= formatDate(weekStart, 'yyyy-MM-dd') && r.date <= formatDate(weekEnd, 'yyyy-MM-dd')).length || 0;
         evoExtras.push({ label, count });
         current.setDate(current.getDate() + 7);
         week++;
@@ -184,7 +188,7 @@ export default function TableauDeBord() {
         const monthStart = new Date(debut.getFullYear(), m, 1);
         const monthEnd = new Date(debut.getFullYear(), m + 1, 0);
         const label = monthStart.toLocaleDateString('fr-FR', { month: 'short' });
-        const count = repasReels?.filter(r => r.est_extra && r.date >= monthStart.toISOString().slice(0,10) && r.date <= monthEnd.toISOString().slice(0,10)).length || 0;
+        const count = repasReels?.filter(r => estRepasExtra(r) && r.date >= formatDate(monthStart, 'yyyy-MM-dd') && r.date <= formatDate(monthEnd, 'yyyy-MM-dd')).length || 0;
         evoExtras.push({ label, count });
       }
     }
@@ -231,23 +235,23 @@ export default function TableauDeBord() {
     const { data: poidsHistory } = await supabase
       .from("historique_poids")
       .select("date, poids")
-      .gte("date", debut.toISOString().slice(0,10))
-      .lte("date", fin.toISOString().slice(0,10))
+      .gte("date", debutISO)
+      .lte("date", finISO)
       .order("date", { ascending: true });
     setPoidsData(poidsHistory || []);
     // 2. Humeurs sur la période
     const { data: humeurs } = await supabase
       .from("humeur_checkin")
       .select("humeur")
-      .gte("date", debut.toISOString().slice(0,10))
-      .lte("date", fin.toISOString().slice(0,10));
+      .gte("date", debutISO)
+      .lte("date", finISO);
     setHumeurData(humeurs || []);
     // 3. Satiété (repas pris par faim)
     const { data: repasReelsData, count: totalRepas } = await supabase
       .from("repas_reels")
       .select("*", { count: "exact" })
-      .gte("date", debut.toISOString().slice(0,10))
-      .lte("date", fin.toISOString().slice(0,10));
+      .gte("date", debutISO)
+      .lte("date", finISO);
     setRepasReels(repasReelsData || []);
     const repasParFaim =
       repasReelsData?.filter((r) => r.raison_manger === "J'avais faim").length || 0;
@@ -255,47 +259,41 @@ export default function TableauDeBord() {
     // 4. Extras sur la période
     const { data: extrasPeriod } = await supabase
       .from("repas_reels")
-      .select("est_extra")
-      .gte("date", debut.toISOString().slice(0,10))
-      .lte("date", fin.toISOString().slice(0,10));
-    let quota = 3;
-    const { data: profil } = await supabase
-      .from("profil")
-      .select("delai")
-      .order("created_at", { ascending: false })
-      .limit(1);
-    if (profil?.[0]?.delai) {
-      quota = Math.max(1, Math.round(3 - profil[0].delai / 2));
-    }
+      .select("id, categorie, est_extra, occurrence_repas_id")
+      .gte("date", debutISO)
+      .lte("date", finISO);
+    const quota = calculerProgressionExtras(semainesValidees).palier;
+    const momentsExtras = new Set(
+      (extrasPeriod || [])
+        .filter(estRepasExtra)
+        .map((r, index) => r.occurrence_repas_id || `historique:${r.id || index}`)
+    ).size;
     setExtrasData({
-      current: extrasPeriod?.filter((r) => r.est_extra)?.length || 0,
+      current: momentsExtras,
       quota,
     });
     // 5. Badges/défis
-    const { data: badgesList } = await supabase
-      .from("badges")
-      .select("*");
+    const { data: authData } = await supabase.auth.getUser();
+    const currentUserId = authData?.user?.id;
+    const { data: badgesList } = currentUserId
+      ? await supabase.from("badges").select("*").eq('user_id', currentUserId).order('date_obtention', { ascending: false })
+      : { data: [] };
     setBadges(badgesList || []);
     // 6. Progression/gamification
     let badge = null,
       message = "";
-    const extrasCount = extrasPeriod?.filter((r) => r.est_extra).length || 0;
+    const extrasCount = momentsExtras;
     if (extrasCount === 0) {
-      badge = periode === 'semaine' ? "Semaine parfaite" : periode === 'mois' ? "Mois parfait" : "Année parfaite";
+      badge = periode === 'semaine' ? "Semaine sans extra" : periode === 'mois' ? "Mois sans extra" : "Année sans extra";
       message =
         periode === 'semaine'
-          ? "Tu n'as pris aucun extra cette semaine. C'est la discipline maximale !"
+          ? "Cette semaine, tes choix ont suivi un rythme sans moment extra."
           : periode === 'mois'
-          ? "Aucun extra ce mois-ci, discipline exemplaire !"
-          : "Aucun extra cette année, record absolu !";
-    } else if (extrasCount <= quota && extrasCount > 0) {
-      badge = periode === 'semaine' ? "Semaine dans le quota" : periode === 'mois' ? "Mois dans le quota" : "Année dans le quota";
-      message =
-        periode === 'semaine'
-          ? "Tu as respecté ton quota d'extras, continue ainsi pour progresser !"
-          : periode === 'mois'
-          ? "Quota d'extras respecté ce mois-ci, continue ainsi !"
-          : "Quota d'extras respecté cette année, bravo !";
+          ? "Ce mois-ci, tes choix ont suivi un rythme sans moment extra."
+          : "Cette année, tes choix ont suivi un rythme sans moment extra.";
+    } else if (periode === 'semaine' && extrasCount <= quota && extrasCount > 0) {
+      badge = "Rythme du palier suivi";
+      message = "Tes moments extras restent dans la direction que tu veux créer.";
     }
     setProgression({ badge, message, quota });
     setLoading(false);
@@ -332,14 +330,15 @@ export default function TableauDeBord() {
             weekStart.setHours(0,0,0,0);
             let weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
             // Récupérer la validation depuis l’état local semainesValidees
-            let semaineValidee = semainesValidees?.find(sv => sv.weekStart === weekStart.toISOString().slice(0,10) && sv.validee === true);
+            const weekStartKey = formatDate(weekStart, 'yyyy-MM-dd');
+            let semaineValidee = semainesValidees?.find(sv => sv.weekStart === weekStartKey && sv.validee === true);
             let count = repas.filter(r => {
               let d = new Date(r.date);
               d.setHours(0,0,0,0);
-              return d >= weekStart && d <= weekEnd && r.est_extra;
+              return d >= weekStart && d <= weekEnd && estRepasExtra(r);
             }).length;
             weeks.push({
-              weekStart: weekStart.toISOString().slice(0,10),
+              weekStart: weekStartKey,
               count,
               isCurrent: (i === 0),
               validee: !!semaineValidee
@@ -520,45 +519,45 @@ export default function TableauDeBord() {
         .from('repas_reels')
         .select('*')
         .gte('date', premiereLundi)
-        .lte('date', dernierDimanche.toISOString().slice(0, 10));
+        .lte('date', formatDate(dernierDimanche, 'yyyy-MM-dd'));
 
-      // Charger le quota du palier actuel
-      const { data: palierData } = await supabase
-        .from('paliers_personnalises')
-        .select('quota_extras')
-        .eq('actif', true)
-        .single();
-      
-      const quota = palierData?.quota_extras || 5;
+      const { data: authData } = await supabase.auth.getUser();
+      const currentUserId = authData?.user?.id;
+      let historiqueProgression = [...semainesValidees];
 
       // Valider chaque semaine
       for (const weekStart of weekStartArray) {
-        const extrasCount = calculerExtrasSemaine(weekStart, repasReels || []);
-        const message = genererMessageFeedback(extrasCount, quota);
-        const variation = calculerVariation(extrasCount, semainesValidees, weekStart);
+        const palier = calculerProgressionExtras(historiqueProgression).palier;
+        const extrasInfo = calculerExtrasSemaine(weekStart, repasReels || []);
+        const message = genererMessageFeedback(extrasInfo.count, palier);
+        const variation = calculerVariation(extrasInfo.count, historiqueProgression, weekStart);
         
         // Calculer fin de semaine (dimanche)
         const finSemaine = new Date(weekStart);
         finSemaine.setDate(finSemaine.getDate() + 6);
-        const finSemaineStr = finSemaine.toISOString().slice(0, 10);
+        const finSemaineStr = formatDate(finSemaine, 'yyyy-MM-dd');
         
-        const extrasDetails = (repasReels || [])
-          .filter(r => {
-            if (!r.date) return false;
-            return r.date >= weekStart && r.date <= finSemaineStr && 
-                   (r.categorie === 'fast-food' || r.tag?.includes('🍔'));
-          })
-          .map(r => ({ date: r.date, type: r.type }));
+        const { data: budgetSemaine } = await supabase
+          .from('extras_budget')
+          .select('budget_hebdo')
+          .eq('user_id', currentUserId)
+          .eq('date_semaine', weekStart)
+          .maybeSingle();
 
-        await supabase.from('semaines_validees').upsert({
-          semaine_debut: weekStart,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+        const semaineValidee = {
+          weekStart,
+          user_id: currentUserId,
+          validee: true,
           date_validation: new Date().toISOString(),
-          extras_count: extrasCount,
-          extras_details: extrasDetails,
+          extras_count: extrasInfo.count,
+          extras_details: JSON.stringify(extrasInfo.details),
+          kcal_extras: extrasInfo.kcalTotal,
+          budget_extras: Number(budgetSemaine?.budget_hebdo) || 0,
           message_feedback: message,
           variation: variation
-        });
+        };
+        await supabase.from('semaines_validees').upsert(semaineValidee, { onConflict: 'user_id,weekStart' });
+        historiqueProgression.push(semaineValidee);
       }
 
       // Rafraîchir les données
@@ -1001,12 +1000,12 @@ export default function TableauDeBord() {
               margin: "1.1rem 0 0.2rem 0",
             }}
           >
-            {extrasData.current} / {extrasData.quota}
+            {extrasData.current} / {extrasData.quota} moments
           </p>
           <p>
             {extrasData.current <= extrasData.quota
-              ? "Bravo, tu es dans le quota !"
-              : "Attention, quota dépassé..."}
+              ? "Ton rythme reste dans ton palier actuel."
+              : "Les extras ont été plus présents sur cette période."}
           </p>
         </div>
 
@@ -1045,6 +1044,7 @@ export default function TableauDeBord() {
         {/* --- Section Succès / Badges --- */}
       {/* --- Timeline visuelle façon Instagram/TikTok --- */}
       <TimelineProgression history={weeklyHistory} />
+        <ExtrasBadgesSection badges={badges.filter(badge => badge.type === 'extras_palier')} />
         <div
           style={{
             padding: "1.5rem",

@@ -52,6 +52,15 @@ describe('normaliserRepasPourPersistance', () => {
     expect(resultat[0].user_id).toBe('user-explicite');
   });
 
+  test('synchronise la catégorie extra avec le champ canonique', () => {
+    const resultat = normaliserRepasPourPersistance(
+      { aliment: 'Pizza', categorie: ' EXTRA ', est_extra: false },
+      'user-test'
+    );
+
+    expect(resultat[0].est_extra).toBe(true);
+  });
+
   test('refuse un tableau vide ou une ligne invalide', () => {
     expect(() => normaliserRepasPourPersistance([], 'user-test')).toThrow('Au moins un repas');
     expect(() => normaliserRepasPourPersistance([null], 'user-test')).toThrow('Repas invalide');

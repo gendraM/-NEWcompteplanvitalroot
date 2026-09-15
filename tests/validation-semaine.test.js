@@ -77,13 +77,13 @@ console.log('\n🧪 === TESTS HELPERS DATE ===\n');
 
 // Test 1: formatDate - dates valides
 console.log('Test 1.1: formatDate yyyy-MM-dd');
-const test1_1 = formatDate(new Date('2026-01-09'), 'yyyy-MM-dd');
+const test1_1 = formatDate(new Date(2026, 0, 9, 12), 'yyyy-MM-dd');
 console.log(`  Résultat: "${test1_1}"`);
 console.log(`  Attendu: "2026-01-09"`);
 console.log(`  ✅ ${test1_1 === '2026-01-09' ? 'PASS' : '❌ FAIL'}`);
 
 console.log('\nTest 1.2: formatDate d MMMM yyyy');
-const test1_2 = formatDate(new Date('2026-01-09'), 'd MMMM yyyy');
+const test1_2 = formatDate(new Date(2026, 0, 9, 12), 'd MMMM yyyy');
 console.log(`  Résultat: "${test1_2}"`);
 console.log(`  Attendu: "9 janvier 2026"`);
 console.log(`  ✅ ${test1_2 === '9 janvier 2026' ? 'PASS' : '❌ FAIL'}`);
@@ -157,19 +157,19 @@ console.log(`  ✅ ${test8.count === 0 ? 'PASS' : '❌ FAIL'}`);
 console.log('\nTest 9: genererMessageFeedback (0 extra)');
 const test9 = genererMessageFeedback(0, 2);
 console.log(`  Résultat: "${test9}"`);
-console.log(`  Contient "Incroyable": ${test9.includes('Incroyable') ? 'PASS' : '❌ FAIL'}`);
+console.log(`  Contient "Aucun moment extra": ${test9.includes('Aucun moment extra') ? 'PASS' : '❌ FAIL'}`);
 
 // Test 10: genererMessageFeedback - dans quota
 console.log('\nTest 10: genererMessageFeedback (2 extras, quota 2)');
 const test10 = genererMessageFeedback(2, 2);
 console.log(`  Résultat: "${test10}"`);
-console.log(`  Contient "Bravo" ou "quota": ${test10.includes('Bravo') || test10.includes('quota') ? 'PASS' : '❌ FAIL'}`);
+console.log(`  Contient "palier actuel": ${test10.includes('palier actuel') ? 'PASS' : '❌ FAIL'}`);
 
 // Test 11: genererMessageFeedback - dépassement
 console.log('\nTest 11: genererMessageFeedback (5 extras, quota 2)');
 const test11 = genererMessageFeedback(5, 2);
 console.log(`  Résultat: "${test11}"`);
-console.log(`  Contient "Dépassement": ${test11.includes('Dépassement') ? 'PASS' : '❌ FAIL'}`);
+console.log(`  Contient "plus présents": ${test11.includes('plus présents') ? 'PASS' : '❌ FAIL'}`);
 
 // Test 12: calculerVariation
 console.log('\nTest 12: calculerVariation (+1)');
@@ -218,9 +218,9 @@ describe('Caractérisation de la validation hebdomadaire historique', () => {
     expect(test6.details).toHaveLength(2);
     expect(test7.count).toBe(0);
     expect(test8.count).toBe(0);
-    expect(test9).toContain('Incroyable');
-    expect(test10.includes('Bravo') || test10.includes('quota')).toBe(true);
-    expect(test11).toContain('Dépassement');
+    expect(test9).toContain('Aucun moment extra');
+    expect(test10).toContain('palier actuel');
+    expect(test11).toContain('plus présents');
     expect(test12).toBe(1);
     expect(test13.length).toBeGreaterThanOrEqual(2);
   });

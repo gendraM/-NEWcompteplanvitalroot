@@ -15,13 +15,13 @@ export default function ModalFeedbackValidation({
   message,
   variation,
   dateValidation,
-  quota = 2
+  palier = 5
 }) {
   if (!isOpen) return null;
 
-  const emoji = getEmojiPerformance(extrasCount, quota);
-  const pourcentage = Math.min(100, Math.round((extrasCount / quota) * 100));
-  const depasse = extrasCount > quota;
+  const emoji = getEmojiPerformance(extrasCount, palier);
+  const pourcentage = Math.min(100, Math.round((extrasCount / palier) * 100));
+  const depasse = extrasCount > palier;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -55,7 +55,7 @@ export default function ModalFeedbackValidation({
           {/* Progress Bar */}
           <div className="progress-section">
             <div className="progress-label">
-              <span>Extras : {extrasCount} / {quota}</span>
+              <span>Moments extras : {extrasCount} / palier {palier}</span>
               {variation !== 0 && (
                 <span className={`variation ${variation > 0 ? 'negative' : 'positive'}`}>
                   {variation > 0 ? `+${variation}` : variation}
