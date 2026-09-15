@@ -180,7 +180,7 @@ describe('Socle commun des calories', () => {
 
   test('reproduit sans écart les kcal des 616 portions par défaut du référentiel général', () => {
     const referentiel = chargerReferentiel();
-    expect(referentiel).toHaveLength(616);
+    expect(referentiel).toHaveLength(688);
 
     referentiel.forEach(aliment => {
       const resultat = calculerCaloriesAliment(aliment, aliment.portionDefaut, aliment.unite);
