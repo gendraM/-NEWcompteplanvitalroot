@@ -8,6 +8,7 @@ import ExtrasBadgesSection from "../components/ExtrasBadgesSection";
 import DrawerValidation from "../components/DrawerValidation";
 import { getSemainesNonValidees, calculerExtrasSemaine, genererMessageFeedback, calculerVariation, formatDate, estRepasExtra } from "../lib/validationSemaine";
 import { calculerProgressionExtras } from "../lib/extrasProgression";
+import { synchroniserBadgesPalierExtras } from "../lib/extrasBadges";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -109,6 +110,25 @@ export default function TableauDeBord() {
         .from('semaines_validees')
         .select('*');
       setSemainesValidees(semaines || []);
+
+      const { data: authData } = await supabase.auth.getUser();
+      const currentUserId = authData?.user?.id;
+      if (currentUserId) {
+        const synchronisation = await synchroniserBadgesPalierExtras(
+          currentUserId,
+          calculerProgressionExtras(semaines || []),
+          semaines || []
+        );
+        if (synchronisation.erreurs.length > 0) {
+          console.error('[BADGES EXTRAS] Synchronisation incomplète :', synchronisation.erreurs);
+        }
+        if (synchronisation.nouveaux.length > 0) {
+          setBadges(badgesActuels => [
+            ...synchronisation.nouveaux,
+            ...badgesActuels.filter(badge => !synchronisation.nouveaux.some(nouveau => nouveau.code === badge.code)),
+          ]);
+        }
+      }
       
       // Calculer le nombre de semaines non validées (8 dernières semaines)
       const semainesNonValidees = getSemainesNonValidees(semaines || [], 8);
@@ -558,6 +578,21 @@ export default function TableauDeBord() {
         };
         await supabase.from('semaines_validees').upsert(semaineValidee, { onConflict: 'user_id,weekStart' });
         historiqueProgression.push(semaineValidee);
+      }
+
+      const synchronisation = await synchroniserBadgesPalierExtras(
+        currentUserId,
+        calculerProgressionExtras(historiqueProgression),
+        historiqueProgression
+      );
+      if (synchronisation.erreurs.length > 0) {
+        throw new Error('Les semaines ont été validées, mais les badges Extras n’ont pas tous pu être conservés.');
+      }
+      if (synchronisation.nouveaux.length > 0) {
+        setBadges(badgesActuels => [
+          ...synchronisation.nouveaux,
+          ...badgesActuels.filter(badge => !synchronisation.nouveaux.some(nouveau => nouveau.code === badge.code)),
+        ]);
       }
 
       // Rafraîchir les données
