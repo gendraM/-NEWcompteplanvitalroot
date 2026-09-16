@@ -45,7 +45,9 @@ function labelEnergie(energie) {
 export default function ModeTrouSuiviCard({
   suggestion,
   onSave,
-  onDismiss
+  onDismiss,
+  saving = false,
+  error = ''
 }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(DEFAULT_VALUES);
@@ -65,10 +67,10 @@ export default function ModeTrouSuiviCard({
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    onSave({
+    const resultat = await onSave({
       ...form,
       classification,
       dateDebut: suggestion.dateDebut,
@@ -76,8 +78,10 @@ export default function ModeTrouSuiviCard({
       nbJoursSansSaisie: suggestion.nbJoursSansSaisie
     });
 
-    setOpen(false);
-    setForm(DEFAULT_VALUES);
+    if (resultat?.ok !== false) {
+      setOpen(false);
+      setForm(DEFAULT_VALUES);
+    }
   };
 
   return (
@@ -102,6 +106,7 @@ export default function ModeTrouSuiviCard({
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
+            disabled={saving}
             style={{
               background: '#ea580c',
               color: '#fff',
@@ -117,6 +122,7 @@ export default function ModeTrouSuiviCard({
           <button
             type="button"
             onClick={onDismiss}
+            disabled={saving}
             style={{
               background: '#fff',
               color: '#9a3412',
@@ -257,6 +263,7 @@ export default function ModeTrouSuiviCard({
 
           <button
             type="submit"
+            disabled={saving}
             style={{
               background: '#c2410c',
               color: '#fff',
@@ -264,11 +271,17 @@ export default function ModeTrouSuiviCard({
               borderRadius: 8,
               fontWeight: 700,
               padding: '10px 12px',
-              cursor: 'pointer'
+              cursor: saving ? 'wait' : 'pointer',
+              opacity: saving ? 0.7 : 1
             }}
           >
-            Enregistrer comme donnees estimees
+            {saving ? 'Enregistrement…' : 'Enregistrer comme données reconstituées'}
           </button>
+          {error && (
+            <div role="alert" style={{ color: '#b91c1c', fontSize: 13, fontWeight: 600 }}>
+              {error}
+            </div>
+          )}
         </form>
       )}
     </div>
