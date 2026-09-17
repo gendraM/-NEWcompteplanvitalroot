@@ -57,4 +57,24 @@ describe('socle Idéaux - palier', () => {
 
     expect(progression).toEqual({ total: 3, faites: 2, pourcentage: 67, termine: false });
   });
+
+  test('ne dépasse jamais 100% si une séance prévue est présente plusieurs fois', () => {
+    const semaines = [{ numero: 1, actions: [{ date: '2026-09-01' }] }];
+    const progression = calculerProgressionPalier(semaines, [
+      { date_prevue: '2026-09-01', fait: true, bonus: false },
+      { date_prevue: '2026-09-01', fait: true, bonus: false },
+    ]);
+
+    expect(progression).toEqual({ total: 1, faites: 1, pourcentage: 100, termine: true });
+  });
+
+  test('ignore les actions sans date exploitable dans le dénominateur', () => {
+    const progression = calculerProgressionPalier([
+      { numero: 1, actions: [{ date: '2026-09-01' }, {}, { date: null }] },
+    ], [
+      { date_prevue: '2026-09-01', fait: true, bonus: false },
+    ]);
+
+    expect(progression).toEqual({ total: 1, faites: 1, pourcentage: 100, termine: true });
+  });
 });
