@@ -239,3 +239,12 @@ La clôture du sous-lot 2.3 ne signifie pas que toute la vision du Plan alimenta
 ## Traçabilité du déploiement
 
 Le 12 septembre 2026, un nouveau push documentaire a été effectué sur la branche `plan-alimentaire-intelligent-chatgpt` afin de redéclencher l’aperçu Vercel après l’absence de déploiement automatique des commits de raccordement du point d’ajustement dans `/suivi`.
+
+## Persistance Supabase du point d’ajustement — 17 septembre 2026
+
+Le point d’ajustement affiché dans `/suivi` est désormais conservé dans
+`points_ajustement_alimentaires`, avec une seule carte par compte et par semaine.
+L’API relit d’abord la carte existante avant toute génération, conserve son état
+de fermeture entre les appareils et ne marque plus une semaine comme traitée
+dans `localStorage`. Une erreur de génération ou d’enregistrement laisse donc une
+nouvelle tentative possible après la prochaine saisie de repas.

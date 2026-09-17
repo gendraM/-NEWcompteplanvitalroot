@@ -27,6 +27,26 @@ function creerClientAuthentifie(url, anonKey, accessToken) {
   });
 }
 
+async function lirePointSemaine(client, userId, semaineDebut) {
+  return client
+    .from('points_ajustement_alimentaires')
+    .select('carte, ferme_le')
+    .eq('user_id', userId)
+    .eq('semaine_debut', semaineDebut)
+    .maybeSingle();
+}
+
+function reponsePointExistant(res, point, semaineDebut) {
+  if (!point) return null;
+  if (point.ferme_le) {
+    return res.status(200).json({
+      status: STATUTS_POINT_AJUSTEMENT_ALIMENTAIRE.NO_INTERVENTION,
+      raison: 'ferme'
+    });
+  }
+  return res.status(200).json({ status: 'FACTS', semaine: semaineDebut, carte: point.carte });
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -36,7 +56,6 @@ export default async function handler(req, res) {
   const openAiKey = process.env.OPENAI_API_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!openAiKey) return res.status(503).json({ error: "Le point d'ajustement n'est pas configuré pour le moment." });
   if (!supabaseUrl || !supabaseAnonKey) return res.status(500).json({ error: 'Configuration Supabase incomplète.' });
 
   const authHeader = req.headers.authorization || '';
@@ -48,6 +67,10 @@ export default async function handler(req, res) {
   if (authError || !user) return res.status(401).json({ error: 'Session utilisateur invalide.' });
 
   const dateReference = String(req.body?.dateReference || '').trim();
+  const action = String(req.body?.action || 'generer').trim();
+  if (!['lire', 'generer', 'fermer'].includes(action)) {
+    return res.status(400).json({ error: 'Action invalide.' });
+  }
   const fenetre = obtenirFenetrePointAjustementAlimentaire(dateReference);
   if (!fenetre) return res.status(400).json({ error: 'Date de référence invalide.' });
   if (!fenetre.disponible) {
@@ -55,6 +78,40 @@ export default async function handler(req, res) {
       status: STATUTS_POINT_AJUSTEMENT_ALIMENTAIRE.NO_INTERVENTION,
       raison: 'hors_periode'
     });
+  }
+
+  if (action === 'fermer') {
+    const { error: fermetureError } = await client
+      .from('points_ajustement_alimentaires')
+      .update({ ferme_le: new Date().toISOString() })
+      .eq('user_id', user.id)
+      .eq('semaine_debut', fenetre.observation.debut);
+    if (fermetureError) {
+      console.error("Erreur de fermeture du point d'ajustement:", fermetureError.message);
+      return res.status(502).json({ error: "Le point d'ajustement n'a pas pu être fermé." });
+    }
+    return res.status(200).json({ status: 'FERME' });
+  }
+
+  const { data: pointExistant, error: pointError } = await lirePointSemaine(
+    client,
+    user.id,
+    fenetre.observation.debut
+  );
+  if (pointError) {
+    console.error("Erreur de lecture du point d'ajustement:", pointError.message);
+    return res.status(502).json({ error: "Le point d'ajustement n'a pas pu être chargé." });
+  }
+  const reponseExistante = reponsePointExistant(res, pointExistant, fenetre.observation.debut);
+  if (reponseExistante) return reponseExistante;
+  if (action === 'lire') {
+    return res.status(200).json({
+      status: STATUTS_POINT_AJUSTEMENT_ALIMENTAIRE.NO_INTERVENTION,
+      raison: 'absent'
+    });
+  }
+  if (!openAiKey) {
+    return res.status(503).json({ error: "Le point d'ajustement n'est pas configuré pour le moment." });
   }
 
   const { data: repas, error: repasError } = await client
@@ -115,10 +172,42 @@ export default async function handler(req, res) {
     const carte = validerReponsePointAjustementIA(extraireTexteReponse(payload), contexte);
     if (!carte) return res.status(502).json({ error: "Le point d'ajustement n'a pas renvoyé de résultat fiable." });
 
+    const maintenant = new Date().toISOString();
+    const { data: pointCree, error: creationError } = await client
+      .from('points_ajustement_alimentaires')
+      .insert({
+        user_id: user.id,
+        semaine_debut: fenetre.observation.debut,
+        observation_debut: fenetre.observation.debut,
+        observation_fin: fenetre.observation.fin,
+        affichage_debut: fenetre.affichage.debut,
+        affichage_fin: fenetre.affichage.fin,
+        carte,
+        affiche_le: maintenant
+      })
+      .select('carte, ferme_le')
+      .single();
+
+    if (creationError) {
+      if (creationError.code === '23505') {
+        const { data: pointConcurrent, error: lectureConcurrenteError } = await lirePointSemaine(
+          client,
+          user.id,
+          fenetre.observation.debut
+        );
+        if (!lectureConcurrenteError) {
+          const reponseConcurrente = reponsePointExistant(res, pointConcurrent, fenetre.observation.debut);
+          if (reponseConcurrente) return reponseConcurrente;
+        }
+      }
+      console.error("Erreur d'enregistrement du point d'ajustement:", creationError.message);
+      return res.status(502).json({ error: "Le point d'ajustement n'a pas pu être enregistré." });
+    }
+
     return res.status(200).json({
       status: 'FACTS',
       semaine: fenetre.observation.debut,
-      carte
+      carte: pointCree.carte
     });
   } catch (error) {
     console.error("Erreur du point d'ajustement:", error?.message || error);

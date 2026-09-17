@@ -89,7 +89,11 @@ import {
   ACTIONS_POINT_AJUSTEMENT_AUTORISEES,
   obtenirFenetrePointAjustementAlimentaire
 } from '../lib/pointAjustementAlimentaire';
-import { obtenirPointAjustementAlimentaire } from '../lib/pointAjustementClient';
+import {
+  fermerPointAjustementAlimentaire,
+  lirePointAjustementAlimentaire,
+  obtenirPointAjustementAlimentaire
+} from '../lib/pointAjustementClient';
 
 // Utilitaire message cyclique
 function pickMessage(array, key) {
@@ -769,21 +773,40 @@ export default function Suivi() {
     const fenetre = obtenirFenetrePointAjustementAlimentaire(dateDuJour);
     if (!fenetre?.disponible) return;
 
-    const cleStockage = `plan-vital:point-ajustement:${userIdActif}`;
-    const cleSemaine = fenetre.observation.debut;
-    if (localStorage.getItem(cleStockage) === cleSemaine) return;
-
     try {
       const resultat = await obtenirPointAjustementAlimentaire(dateDuJour);
-      localStorage.setItem(cleStockage, cleSemaine);
       setPointAjustement(resultat?.status === 'FACTS' ? resultat.carte : null);
     } catch (_) {
       // Une indisponibilité de la synthèse ne doit jamais perturber l’enregistrement du repas.
     }
   };
 
-  const agirDepuisPointAjustement = proposition => {
+  useEffect(() => {
+    if (!userId) return;
+    const dateDuJour = dateLocaleYYYYMMDD();
+    const fenetre = obtenirFenetrePointAjustementAlimentaire(dateDuJour);
+    if (!fenetre?.disponible) return;
+
+    let actif = true;
+    lirePointAjustementAlimentaire(dateDuJour)
+      .then(resultat => {
+        if (actif) setPointAjustement(resultat?.status === 'FACTS' ? resultat.carte : null);
+      })
+      .catch(() => {});
+    return () => { actif = false; };
+  }, [userId]);
+
+  const fermerPointAjustement = async () => {
     setPointAjustement(null);
+    try {
+      await fermerPointAjustementAlimentaire(dateLocaleYYYYMMDD());
+    } catch (_) {
+      // La fermeture visuelle reste immédiate même si la synchronisation est momentanément indisponible.
+    }
+  };
+
+  const agirDepuisPointAjustement = async proposition => {
+    await fermerPointAjustement();
     if (!proposition || typeof window === 'undefined') return;
 
     if (
@@ -2272,7 +2295,7 @@ export default function Suivi() {
             <PointAjustementPlanning
               carte={pointAjustement}
               onAction={agirDepuisPointAjustement}
-              onDismiss={() => setPointAjustement(null)}
+              onDismiss={fermerPointAjustement}
             />
             {/* Bouton de validation de la semaine, affiché uniquement si showValidation est vrai */}
             {showValidation && (
