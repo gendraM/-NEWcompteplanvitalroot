@@ -6,8 +6,9 @@ import TimelineProgression from "../components/TimelineProgression";
 import BadgeCard from "../components/BadgeCard";
 import ExtrasBadgesSection from "../components/ExtrasBadgesSection";
 import DrawerValidation from "../components/DrawerValidation";
-import { getSemainesNonValidees, calculerExtrasSemaine, genererMessageFeedback, calculerVariation, formatDate, estRepasExtra } from "../lib/validationSemaine";
+import { getSemainesNonValidees, calculerExtrasSemaine, compterMomentsExtras, genererMessageFeedback, calculerVariation, formatDate } from "../lib/validationSemaine";
 import { calculerProgressionExtras } from "../lib/extrasProgression";
+import { synchroniserBadgesPalierExtras } from "../lib/extrasBadges";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -109,6 +110,25 @@ export default function TableauDeBord() {
         .from('semaines_validees')
         .select('*');
       setSemainesValidees(semaines || []);
+
+      const { data: authData } = await supabase.auth.getUser();
+      const currentUserId = authData?.user?.id;
+      if (currentUserId) {
+        const synchronisation = await synchroniserBadgesPalierExtras(
+          currentUserId,
+          calculerProgressionExtras(semaines || []),
+          semaines || []
+        );
+        if (synchronisation.erreurs.length > 0) {
+          console.error('[BADGES EXTRAS] Synchronisation incomplète :', synchronisation.erreurs);
+        }
+        if (synchronisation.nouveaux.length > 0) {
+          setBadges(badgesActuels => [
+            ...synchronisation.nouveaux,
+            ...badgesActuels.filter(badge => !synchronisation.nouveaux.some(nouveau => nouveau.code === badge.code)),
+          ]);
+        }
+      }
       
       // Calculer le nombre de semaines non validées (8 dernières semaines)
       const semainesNonValidees = getSemainesNonValidees(semaines || [], 8);
@@ -165,7 +185,9 @@ export default function TableauDeBord() {
         const d = new Date(debut);
         d.setDate(d.getDate() + i);
         const label = d.toLocaleDateString('fr-FR', { weekday: 'short' });
-        const count = repasReels?.filter(r => estRepasExtra(r) && r.date === formatDate(d, 'yyyy-MM-dd')).length || 0;
+        const count = compterMomentsExtras(
+          repasReels?.filter(r => r.date === formatDate(d, 'yyyy-MM-dd')) || []
+        );
         evoExtras.push({ label, count });
       }
     } else if (periode === 'mois') {
@@ -177,7 +199,9 @@ export default function TableauDeBord() {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
         const label = `Sem. ${week}`;
-        const count = repasReels?.filter(r => estRepasExtra(r) && r.date >= formatDate(weekStart, 'yyyy-MM-dd') && r.date <= formatDate(weekEnd, 'yyyy-MM-dd')).length || 0;
+        const count = compterMomentsExtras(
+          repasReels?.filter(r => r.date >= formatDate(weekStart, 'yyyy-MM-dd') && r.date <= formatDate(weekEnd, 'yyyy-MM-dd')) || []
+        );
         evoExtras.push({ label, count });
         current.setDate(current.getDate() + 7);
         week++;
@@ -188,7 +212,9 @@ export default function TableauDeBord() {
         const monthStart = new Date(debut.getFullYear(), m, 1);
         const monthEnd = new Date(debut.getFullYear(), m + 1, 0);
         const label = monthStart.toLocaleDateString('fr-FR', { month: 'short' });
-        const count = repasReels?.filter(r => estRepasExtra(r) && r.date >= formatDate(monthStart, 'yyyy-MM-dd') && r.date <= formatDate(monthEnd, 'yyyy-MM-dd')).length || 0;
+        const count = compterMomentsExtras(
+          repasReels?.filter(r => r.date >= formatDate(monthStart, 'yyyy-MM-dd') && r.date <= formatDate(monthEnd, 'yyyy-MM-dd')) || []
+        );
         evoExtras.push({ label, count });
       }
     }
@@ -263,11 +289,7 @@ export default function TableauDeBord() {
       .gte("date", debutISO)
       .lte("date", finISO);
     const quota = calculerProgressionExtras(semainesValidees).palier;
-    const momentsExtras = new Set(
-      (extrasPeriod || [])
-        .filter(estRepasExtra)
-        .map((r, index) => r.occurrence_repas_id || `historique:${r.id || index}`)
-    ).size;
+    const momentsExtras = compterMomentsExtras(extrasPeriod || []);
     setExtrasData({
       current: momentsExtras,
       quota,
@@ -332,11 +354,12 @@ export default function TableauDeBord() {
             // Récupérer la validation depuis l’état local semainesValidees
             const weekStartKey = formatDate(weekStart, 'yyyy-MM-dd');
             let semaineValidee = semainesValidees?.find(sv => sv.weekStart === weekStartKey && sv.validee === true);
-            let count = repas.filter(r => {
+            const repasSemaine = repas.filter(r => {
               let d = new Date(r.date);
               d.setHours(0,0,0,0);
-              return d >= weekStart && d <= weekEnd && estRepasExtra(r);
-            }).length;
+              return d >= weekStart && d <= weekEnd;
+            });
+            let count = compterMomentsExtras(repasSemaine);
             weeks.push({
               weekStart: weekStartKey,
               count,
@@ -558,6 +581,21 @@ export default function TableauDeBord() {
         };
         await supabase.from('semaines_validees').upsert(semaineValidee, { onConflict: 'user_id,weekStart' });
         historiqueProgression.push(semaineValidee);
+      }
+
+      const synchronisation = await synchroniserBadgesPalierExtras(
+        currentUserId,
+        calculerProgressionExtras(historiqueProgression),
+        historiqueProgression
+      );
+      if (synchronisation.erreurs.length > 0) {
+        throw new Error('Les semaines ont été validées, mais les badges Extras n’ont pas tous pu être conservés.');
+      }
+      if (synchronisation.nouveaux.length > 0) {
+        setBadges(badgesActuels => [
+          ...synchronisation.nouveaux,
+          ...badgesActuels.filter(badge => !synchronisation.nouveaux.some(nouveau => nouveau.code === badge.code)),
+        ]);
       }
 
       // Rafraîchir les données
