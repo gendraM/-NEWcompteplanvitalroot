@@ -1,160 +1,157 @@
 # Passation — Recettes intelligentes ↔ Planning ↔ Suivi
 
 > Document vivant du chantier `recettes-intelligentes-planning-suivi`.
-> Il doit être mis à jour au fur et à mesure de l’audit, des décisions produit et des développements.
 
 ## 1. Branche et périmètre
 
-- Branche de travail : `recettes-intelligentes-planning-suivi`
-- Branche de départ : `plan-alimentaire-intelligent-chatgpt`
-- Ne pas travailler directement sur `main`.
-- Périmètre : recettes intelligentes, qualité nutritionnelle, repas composés, préparation immédiate, planning, suivi réel, historique/satiété, valeurs sûres et raccord futur avec OBSERVE / ALIGN / ADAPT / GROW.
+- Branche : `recettes-intelligentes-planning-suivi`
+- Départ : `plan-alimentaire-intelligent-chatgpt`
+- Ne jamais travailler directement sur `main`.
+- Périmètre : recettes intelligentes, repas composés, préparation immédiate, planning, suivi réel, historique/satiété, valeurs sûres et raccord futur avec OBSERVE / ALIGN / ADAPT / GROW.
+- La qualité/composition nutritionnelle pédagogique, les capsules et le pont gamification appartiennent au chantier parallèle `planification-gamification-chatgpt`.
 
-## 2. Objectif produit validé
+## 2. Objectif produit
 
-Construire une continuité unique plutôt qu’une fonctionnalité Recettes isolée :
+Construire une continuité unique :
 
-`Choisir / générer une recette → préparer maintenant OU planifier → enregistrer ce qui a réellement été mangé → observer satiété/ressenti → enrichir l’historique → identifier ce qui fonctionne pour cet utilisateur → réutiliser cette connaissance dans les futures propositions.`
+`Choisir / générer une recette → préparer maintenant OU planifier → enregistrer ce qui a réellement été mangé → observer satiété/ressenti → enrichir l’historique → identifier ce qui fonctionne pour cet utilisateur → réutiliser cette connaissance.`
 
-Règle structurante : **la recette est un modèle ; le repas consommé est une occurrence réelle**. Modifier les quantités consommées ne doit donc pas modifier le modèle enregistré.
+Règle structurante : **la recette est un modèle ; le repas consommé est une occurrence réelle**. Modifier les quantités consommées ne modifie jamais le modèle.
 
-## 3. Inventaire vérifié
+## 3. Socles existants vérifiés
 
-### `lib/repasComposes.js`
+### Repas composés
 
-Socle métier déjà très proche de ce dont les recettes intelligentes ont besoin.
+`lib/repasComposes.js` fournit déjà normalisation/validation de composition, résumé kcal/QN, ajustement des quantités, création des modèles `repas_complets`, construction des lignes planifiées et construction des occurrences réelles partageant `occurrence_repas_id`.
 
-Fonctions présentes et vérifiées :
+Décision : aucune duplication de ce moteur pour les recettes.
 
-- `normaliserComposantRepas`
-- `validerCompositionRepas`
-- `calculerResumeRepasCompose`
-- `ajusterCompositionRepas`
-- `construirePayloadRepasCompose`
-- `normaliserRepasCompose`
-- `construireOccurrencesPlanifiees`
-- `construireOccurrencesReelles`
-- `listerRepasComposes`
-- `creerRepasCompose`
-- `modifierRepasCompose`
-- `supprimerRepasCompose`
+### Persistance réelle
 
-Constats :
+`lib/repasPersistence.js` conserve les propriétés des payloads puis ajoute/complète `user_id`. `pages/suivi.js` insère ensuite ces payloads dans `repas_reels`. Un futur `recette_id` peut donc traverser le code de persistance à condition d’exister dans le schéma Supabase.
 
-- Un repas composé exige actuellement au moins 2 aliments.
-- Chaque composant possède déjà nom, catégorie, quantité, unité, kcal et éventuellement QN.
-- Le résumé calcule les kcal totales et un QN moyen pondéré par les kcal.
-- Les quantités d’une occurrence peuvent être ajustées avec recalcul proportionnel des kcal.
-- Les modèles sont persistés dans `repas_complets`.
-- Un modèle peut être converti en lignes de `repas_planifies`.
-- Un modèle peut être converti en lignes de repas réel partageant un même `occurrence_repas_id`.
-- L’occurrence réelle peut porter heure, satiété, ressenti, note et tag.
+### Planning et liste de courses
 
-**Décision d’architecture provisoire :** ne pas créer un deuxième moteur de composition pour les recettes. Étendre/réutiliser ce socle lorsque cela est possible.
+`lib/planificationRepas.js` et les contrats des repas composés savent déjà transformer une composition en lignes de `repas_planifies`. `lib/listeCoursesGenerale.js` travaille à partir de ces lignes planifiées et agrège aliment/catégorie/préparation/quantité/unité. Une recette correctement planifiée alimente donc la liste de courses existante sans moteur parallèle.
 
-### `components/GestionRepasComposes.js`
+### Quantités et calories
 
-Fonctionnalités vérifiées :
+`lib/socleQuantitesCalories.js` est la source de vérité à réutiliser pour unités, conversions, quantités, calories et agrégation d’achat. Aucun calculateur calorique propre aux recettes.
 
-- construit un modèle à partir des aliments déjà présents dans un repas du planning ;
-- sauvegarde le modèle dans `repas_complets` ;
-- liste les modèles personnels ;
-- planifie un modèle dans `repas_planifies` ;
-- modification ;
-- duplication ;
-- suppression sans supprimer les occurrences déjà planifiées.
+### Valeurs sûres
 
-Point UX important : l’interface actuelle est une interface fonctionnelle de gestion de modèles, pas encore une expérience grand public de découverte de recettes.
+`lib/repasReperes.js` constitue le socle actuel : fenêtre 15 jours, minimum 3 occurrences comparables et 2 positives, signaux alignement/satiété/ressenti, exclusion extras/fast-foods. Il compare actuellement les compositions par aliments normalisés ; une recette devra être reconnue prioritairement par son identité stable et non par rapprochement de nom/composition.
 
-### `components/SaisieRepasCompose.js`
+### Recettes Phase 1 à 5
 
-Fonctionnalités vérifiées :
+Les composants historiques sont des contenus spécialisés de reprise alimentaire après jeûne, essentiellement codés localement avec ingrédients/étapes/conseils. Ils restent dans leur parcours spécialisé et ne deviennent pas le moteur général de recettes.
 
-- sélection d’un modèle `repas_complets` ;
-- ajustement des quantités au moment de la consommation ;
-- recalcul des kcal de l’occurrence ;
-- saisie heure, satiété, ressenti et note ;
-- création de toutes les lignes réelles en une action ;
-- passage de ces occurrences au mécanisme `onSave` du suivi.
+## 4. Schéma Supabase actif vérifié le 18/09/2026
 
-Ce composant confirme techniquement la séparation **modèle / occurrence** recherchée pour les recettes.
+Projet vérifié en lecture : `Becomingtherealme` (`rvpysxqnomslngxjinge`).
 
-### `components/RecettesPhase1Modal.js`, `RecettesPhase2Modal.js`, `RecettesPhase3Modal.js`
+État réel au moment de l’audit :
 
-Audit commencé et structure confirmée : recettes spécialisées de reprise alimentaire après jeûne, codées directement dans les composants avec ingrédients et variantes de préparation Cookeo/Marmite.
+- `repas_complets` : `id`, `user_id`, `nom`, `composition`, `quantite_par_assiette`, `created_at` ;
+- `repas_planifies` : aucune identité de recette/modèle ;
+- `repas_reels` : `occurrence_repas_id uuid default gen_random_uuid()` présent, aucun `recette_id` ;
+- `referentiel_aliments` existe mais reste un référentiel distinct.
 
-**Décision :** ne pas utiliser ces composants comme bibliothèque générale de recettes intelligentes. Les conserver dans leur parcours spécialisé. Ils pourront éventuellement servir de référence UX pour l’affichage des ingrédients et des étapes.
+Volumes observés : 8 modèles `repas_complets`, 153 lignes `repas_planifies`, 1496 lignes `repas_reels`. Parmi les lignes réelles, 1398 ont encore `occurrence_repas_id IS NULL`, ce qui correspond à de l’historique antérieur au nouveau contrat d’occurrence.
 
-## 4. Architecture cible actuellement retenue
+Règle de migration : **ne jamais fabriquer rétroactivement des identités de recette ou d’occurrence pour cet historique**.
 
-### A. Un modèle de recette réutilisable
+## 5. Décision d’architecture : entité `recettes`
 
-La future recette doit pouvoir porter au minimum :
+Après vérification du schéma actif, `repas_complets` reste le modèle léger d’assiette/repas personnel réutilisable. Il ne doit pas absorber toutes les responsabilités d’une recette riche.
 
-- nom ;
-- composition structurée compatible avec le moteur de repas composé ;
-- quantités et unités ;
-- kcal calculables via les moteurs existants ;
-- temps de préparation ;
-- difficulté ;
-- instructions ;
-- tags/contexte utiles ;
-- origine éventuelle : personnelle, catalogue, générée par IA.
+Une entité `recettes` distincte est retenue pour porter l’identité durable et les métadonnées propres à une recette : nom, composition structurée compatible avec le moteur de repas composé, instructions, portions, temps de préparation, difficulté, origine, image éventuelle et tags.
 
-Les champs exacts et la nécessité d’une évolution Supabase restent à déterminer après audit complet.
+Deux identités doivent rester distinctes :
 
-### B. Deux actions principales
+- `recette_id` = identité stable du modèle ;
+- `occurrence_repas_id` = identité d’une consommation réelle.
 
-**Préparer maintenant** : partir du modèle, permettre l’ajustement des quantités réellement consommées, puis créer une occurrence dans le suivi sans double saisie.
+`recette_id` doit être nullable dans `repas_planifies` et `repas_reels`. Ainsi les repas historiques, spontanés ou non issus d’une recette continuent à fonctionner sans changement.
 
-**Ajouter à mon planning** : transformer le modèle en repas planifié en réutilisant le moteur existant, afin de conserver les fonctionnalités de déplacement du planning, liste de courses et comparaison prévu/réel.
+## 6. Migration préparée sur GitHub — NON appliquée à Supabase
 
-### C. Boucle d’apprentissage
+Fichier : `supabase/migrations/20260918_recettes_identite_modele.sql`
 
-La recette ne doit pas être déclarée arbitrairement « bonne pour l’utilisateur ». L’application doit apprendre à partir des occurrences réelles : satiété, ressenti et autres données réellement disponibles dans le suivi.
+Commit de création : `7c9f2e41d907558690a15bc72679b8716318e33a`.
 
-Les futures « valeurs sûres » devront être fondées sur des répétitions et signaux observés, pas sur une simple classification théorique de la recette.
+La migration est additive et prépare :
 
-## 5. Qualité nutritionnelle — règle de conception
+- table `public.recettes` avec UUID stable ;
+- `user_id` propriétaire ;
+- `nom` ;
+- `composition jsonb` ;
+- `instructions jsonb` ;
+- `portions` ;
+- `temps_preparation_minutes` ;
+- `difficulte` ;
+- `origine` (`personnelle`, `catalogue`, `ia`, `reprise_jeune`) ;
+- `image_url` ;
+- `tags jsonb` ;
+- timestamps ;
+- `repas_planifies.recette_id` nullable ;
+- `repas_reels.recette_id` nullable ;
+- index sur les liens ;
+- RLS propriétaire sur `recettes`.
 
-Ne pas confondre :
+Important : ce fichier est **préparé mais pas exécuté** sur la base active. Il doit être relu/testé avant application. Aucune donnée Supabase n’a été modifiée pendant cet audit.
 
-1. **composition nutritionnelle objective** du repas ;
-2. **expérience personnelle observée** chez l’utilisateur.
+## 7. Parcours cible
 
-Le chantier devra vérifier les moteurs QN déjà présents avant de créer une nouvelle notation. Une éventuelle règle nutritionnelle nouvelle devra être documentée et fondée sur un référentiel fiable ; ne pas inventer un score punitif de type « mauvais repas ».
+`RECETTE MODÈLE (recette_id)`
+→ composition structurée + instructions/métadonnées
+→ `Préparer maintenant` OU `Ajouter au planning`
+→ si planification : lignes `repas_planifies` portant le même `recette_id`
+→ liste de courses existante
+→ consommation réelle
+→ lignes `repas_reels` portant `recette_id` + un même `occurrence_repas_id`
+→ quantités réellement consommées + kcal + satiété/ressenti
+→ historique de cette recette
+→ valeurs sûres personnelles / OBSERVE / ALIGN.
 
-## 6. Éléments à auditer avant développement
+## 8. Qualité nutritionnelle
 
-- `lib/repasReperes.js` : logique actuelle de détection des repas qui fonctionnent bien pour l’utilisateur.
-- `lib/repasPersistence.js` : contrat réel de persistance dans `repas_reels`.
-- `lib/planificationRepas.js` et `PlanificateurRepas` : intégration exacte au planning et contraintes de déplacement.
-- moteur de liste de courses : capacité à agréger une recette/composition.
-- référentiel aliments + moteur calories/QN : source de vérité à réutiliser.
-- `pages/suivi.js` : point d’entrée réel des occurrences et mécanismes post-enregistrement.
-- structure Supabase de `repas_complets`, `repas_planifies`, `repas_reels` et éventuelles tables déjà liées aux recettes.
-- recettes Phase 4/5 : vérifier uniquement les dépendances et éventuelles briques génériques réutilisables.
+Toujours distinguer composition nutritionnelle objective et expérience personnelle observée. Ne pas créer ici un score concurrent au chantier `planification-gamification-chatgpt` et ne pas transformer un ressenti favorable en vérité nutritionnelle générale.
 
-## 7. Règles anti-régression
+## 9. Règles anti-régression
 
-- Ne pas toucher à `main`.
-- Ne pas casser le parcours existant des repas composés.
-- Ne pas dupliquer un moteur déjà existant.
-- Ne pas modifier rétroactivement un modèle lorsqu’une occurrence réelle est ajustée.
-- Ne pas supprimer l’historique.
-- Toute évolution doit rester compatible avec les repas mono-aliment et multi-aliments déjà gérés par le suivi.
-- Commits ciblés et vérifiables.
+- Pas de modification de `main`.
+- Pas de suppression/réécriture de l’historique.
+- `recette_id` reste facultatif.
+- `occurrence_repas_id` reste le regroupement d’une consommation réelle.
+- Pas de duplication planning/calories/liste de courses/composition nutritionnelle.
+- Les quantités consommées ne réécrivent pas la recette.
+- Compatibilité maintenue avec repas mono-aliment, multi-aliments et repas sans recette.
+- Commits petits et ciblés.
 
-## 8. Journal du chantier
+## 10. Prochain lot
+
+Avant toute UI de bibliothèque :
+
+1. relire/tester la migration préparée ;
+2. créer un module métier pur `lib/recettes.js` avec validation/normalisation et construction des payloads planifié/réel en réutilisant `repasComposes` ;
+3. ajouter des tests unitaires du contrat d’identité ;
+4. vérifier qu’une recette planifiée transmet le même `recette_id` à toutes ses lignes ;
+5. vérifier que « préparer maintenant » transmet le même `recette_id` et le même `occurrence_repas_id` à toutes les lignes réelles ;
+6. vérifier qu’un repas classique sans recette reste inchangé ;
+7. seulement ensuite décider de l’application de la migration Supabase et du raccord UI.
+
+## 11. Journal
 
 ### 17/09/2026 — Initialisation
+Branche dédiée et audit des briques existantes. Aucun développement fonctionnel.
 
-- Branche dédiée `recettes-intelligentes-planning-suivi` créée depuis `plan-alimentaire-intelligent-chatgpt`.
-- Audit des composants Recettes Phase 1 à 3 commencé.
-- Audit complet de `lib/repasComposes.js`, `GestionRepasComposes.js` et `SaisieRepasCompose.js`.
-- Conclusion initiale : le moteur `repas_complets` / repas composé constitue un candidat solide pour servir de socle aux recettes, avec extension plutôt que duplication.
-- Aucun développement fonctionnel de recette intelligente réalisé à ce stade : phase d’audit et d’architecture uniquement.
+### 18/09/2026 — Audit du schéma actif
+Lecture directe du projet Supabase actif. Confirmation de l’absence de `recette_id`, de la présence de `occurrence_repas_id` sur `repas_reels` et de la nécessité de préserver l’historique nullable.
+
+### 18/09/2026 — Migration préparée
+Création sur la branche uniquement de `20260918_recettes_identite_modele.sql`. Aucune exécution sur Supabase. Architecture `recettes` + liens nullable documentée.
 
 ---
 
-**À maintenir :** chaque constat technique confirmé, décision métier, migration, fichier modifié, test ajouté et commit du chantier devra être ajouté ici.
+**À maintenir :** chaque constat confirmé, décision métier, migration, fichier modifié, test et commit du chantier doit être ajouté ici.
