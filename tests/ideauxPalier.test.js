@@ -2,6 +2,7 @@ import {
   calculerProgressionPalier,
   extraireSemainesPalier,
   getPalierDureeSemaines,
+  normaliserSeancePourEcriture,
   seanceEstFaite,
 } from '../lib/ideauxPalier';
 
@@ -35,6 +36,13 @@ describe('socle Idéaux - palier', () => {
     expect(seanceEstFaite({ fait: true, statut: 'fait' })).toBe(true);
     expect(seanceEstFaite({ fait: false, statut: 'fait' })).toBe(false);
     expect(seanceEstFaite({ statut: 'fait' })).toBe(false);
+  });
+
+  test('normalise aussi le décochage pour ne pas conserver un ancien statut fait', () => {
+    const normalisee = normaliserSeancePourEcriture({ fait: false, statut: 'fait', date_reelle: '2026-09-17' });
+    expect(normalisee.fait).toBe(false);
+    expect(normalisee.statut).toBe('à faire');
+    expect(normalisee.date_reelle).toBeNull();
   });
 
   test('calcule la progression uniquement sur les séances prévues du palier', () => {
