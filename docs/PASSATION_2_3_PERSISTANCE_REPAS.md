@@ -129,3 +129,109 @@ Le calcul utilise désormais `calculerScoreAlignementParOccurrence` dans `lib/al
 - le calcul des calories demeure une somme des lignes et la régularité demeure calculée par type de repas.
 
 Validation locale : tests ciblés **26/26**, suite Jest **193/193** dans 22 suites avec `TZ=Europe/Paris` et build Next.js réussi avec 36 pages générées. Une exécution brute en UTC révèle un ancien test de formatage de date dépendant du fuseau (`validation-semaine.test.js`) ; il est extérieur à cette étape et n'a pas été modifié.
+
+## Étape 14 — socle de détection des repas repères
+
+Le moteur pur `lib/repasReperes.js` prépare les futures suggestions intelligentes sans encore modifier `/plan` :
+
+- fenêtre inclusive des quinze derniers jours ;
+- reconstruction exclusivement par `occurrence_repas_id`, sans regroupement inventé de l'historique ;
+- occurrences composées d'au moins deux aliments ;
+- composition comparable indépendamment de l'ordre des aliments, sans imposer les mêmes quantités ;
+- seuil de trois occurrences comparables et d'au moins deux occurrences présentant un signal positif ;
+- signaux admis : repas aligné, satiété respectée ou ressenti favorable explicitement reconnu ;
+- exclusion des extras et fast-foods ;
+- restitution de la composition de l'occurrence positive la plus récente, en conservant uniquement les quantités, calories, catégories et QN réellement connus ;
+- absence de candidat lorsque les preuves sont insuffisantes.
+
+Le moteur ne modifie ni Supabase, ni `pages/plan.js`, ni le comportement actuel des suggestions. Le raccord visuel et l'action « Ajouter cette assiette à mon planning » constituent le sous-lot suivant.
+
+Validation locale : tests ciblés du moteur et du regroupement **22/22**, suite Jest complète **202/202** dans 23 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur.
+
+## Pause ergonomique — planification semaine / quinze jours
+
+Le retour mobile a montré que la grande grille mensuelle n'était pas adaptée à une planification concrète et qu'un jour vide ne recevait pas le glisser-déposer : son conteneur sans contenu ni hauteur s'effondrait, puis `react-beautiful-dnd` retournait une destination nulle. L'ancien traitement déplaçait aussi une seule ligne, au risque de séparer les aliments d'une assiette composée.
+
+La correction reste indépendante du moteur d'alignement et ne modifie pas le schéma Supabase :
+
+- vue principale à la semaine, du lundi au dimanche ;
+- vue secondaire sur quinze jours glissants ;
+- mois conservé comme aperçu compact, sans tableau large à défilement horizontal ;
+- chaque jour vide garde une zone de dépôt d'une hauteur explicite ;
+- sélection directe d'un jour avant d'utiliser le planificateur existant ;
+- bouton « Déplacer » avec choix de date, utilisable sur mobile ;
+- glisser-déposer conservé sur ordinateur ;
+- déplacement commun de toutes les lignes d'une assiette composée ;
+- anciennes lignes et repas simples toujours traités séparément ;
+- contrôle du propriétaire par `user_id` et vérification du nombre de lignes réellement retournées par Supabase ;
+- suppression historique conservée aliment par aliment ;
+- retrait du score fictif « repas respectés » qui n'était alimenté par aucune donnée réelle.
+
+Le regroupement d'une assiette planifiée ne repose pas sur une approximation rétroactive : seules les lignes marquées `combo_valide = true` qui partagent exactement la date, le type et le `created_at` sont déplacées ensemble. L'audit en lecture seule de la table `repas_planifies` a confirmé que les insertions composées existantes partagent bien ces valeurs. Les lignes anciennes ou simples restent autonomes.
+
+Validation locale : tests ciblés **31/31**, suite Jest complète **218/218** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Le test mobile suivant a révélé une régression de la vision hebdomadaire et du glisser-déposer, traitée dans le correctif ci-dessous.
+
+### Correctif de préservation de l'expérience historique
+
+Le premier affichage responsive remplaçait la vue hebdomadaire globale par sept grandes sections détaillées et limitait le glisser-déposer à une poignée masquée sur mobile. Cette interprétation constituait une régression par rapport au calendrier existant.
+
+Le correctif conserve désormais les acquis des deux versions :
+
+- toute la carte du repas redevient la zone de prise du glisser-déposer sur ordinateur et mobile ;
+- le bouton de déplacement avec choix explicite de la date reste disponible ;
+- la semaine présente ses sept jours simultanément en colonnes compactes sur ordinateur ;
+- sur mobile, les sept jours deviennent des lignes compactes qui conservent les repas, aliments, quantités et calories ;
+- un seul jour peut être développé pour afficher les actions de suppression, de déplacement et de planification ;
+- les autres jours restent compacts afin de préserver la vision hebdomadaire ;
+- les vues quinze jours et mois restent inchangées ;
+- le déplacement d'une assiette composée reste groupé.
+
+Validation locale du correctif : tests ciblés **33/33**, suite Jest complète **220/220** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. Le test mobile a confirmé la restitution de la semaine et a ensuite révélé l'insuffisance de l'aperçu mensuel, corrigée ci-dessous.
+
+### Correction de l'aperçu mensuel après test mobile
+
+Le test authentifié a confirmé la vue hebdomadaire, mais a montré que l'aperçu du mois n'apportait pas assez d'information : un jour rempli affichait seulement un nombre suivi d'un point, un jour vide affichait un signe « + » ambigu et le toucher sélectionnait immédiatement la date du formulaire situé plus bas.
+
+Le correctif redonne à chaque horizon un rôle clair :
+
+- chaque case du mois indique désormais le nombre de repas, le total calorique connu ou « Libre » ;
+- toucher une date ouvre un résumé sous le calendrier, sans déclencher la planification ;
+- le résumé restitue les repas, aliments, quantités, calories et totaux réellement disponibles ;
+- une journée vide indique explicitement qu'aucun repas n'est prévu ;
+- une action séparée « Voir cette journée dans ma semaine » ou « Planifier cette journée » ouvre ensuite la semaine correspondante ;
+- le formulaire de planification n'est donc plus la conséquence implicite d'un simple toucher dans l'aperçu mensuel ;
+- aucune donnée, règle métier ou structure Supabase n'est modifiée.
+
+Validation locale : tests ciblés **34/34**, suite Jest complète **221/221** dans 25 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur. La correction de l'aperçu mensuel a ensuite été validée fonctionnellement sur mobile avant le passage aux repas repères.
+
+## Étape 15 — raccord des repas repères au planning
+
+Le moteur de l’étape 14 est désormais raccordé à `/plan` sans écriture automatique et sans changement de schéma Supabase :
+
+- lecture des repas réels du compte connecté sur les quinze derniers jours ;
+- affichage de la proposition la mieux classée uniquement ;
+- accès volontaire à deux autres propositions au maximum ;
+- aucune carte lorsque les preuves sont insuffisantes ;
+- « Prévoir cette assiette » charge tous ses aliments dans le planificateur existant ;
+- la date, le moment et toutes les quantités restent modifiables avant la validation habituelle ;
+- « Pas cette semaine » masque le bloc jusqu’au lundi suivant dans le navigateur courant ;
+- l’utilisation d’une proposition la masque également pour éviter une répétition immédiate ;
+- aucune modification de `RepasBloc`, `SaisieRepasCompose`, des tables ou des politiques Supabase ;
+- vues semaine, quinze jours et mois, glisser-déposer et déplacement explicite conservés.
+
+Le masquage hebdomadaire est associé à l’identifiant du compte dans `localStorage`. Il évite toute migration de données, mais reste donc propre au navigateur utilisé.
+
+Validation locale : tests ciblés **42/42**, suite Jest complète **228/228** dans 26 suites avec `TZ=Europe/Paris`, build Next.js réussi avec 36 pages générées et `git diff --check` sans erreur.
+
+La validation fonctionnelle authentifiée sur mobile a été obtenue le **9 septembre 2026** : une assiette qualifiée comme repas repère est bien proposée dans `/plan`, l'action « Prévoir cette assiette » charge sa composition complète dans le planificateur et le parcours d'enregistrement fonctionne. L'étape 15 et le chantier technique de persistance mono/multi sont donc clôturés.
+
+## Suite séparée du Plan alimentaire intelligent
+
+La clôture du sous-lot 2.3 ne signifie pas que toute la vision du Plan alimentaire intelligent est terminée. Les évolutions restantes sont reprises dans `ETAT_DES_LIEUX_EVOLUTION_PLAN_ALIMENTAIRE_INTELLIGENT.md` et coordonnées avec la liste de courses :
+
+1. synthèse facultative de la semaine précédente, présentée le mercredi et jamais en doublon du bilan du dimanche ;
+2. suggestions de planification explicables et modifiables à partir des seules données réellement connues ;
+3. analyse progressive des catégories, du QN connu, de la satiété, du ressenti, des horaires et des extras ;
+4. signaux de vigilance fondés sur plusieurs occurrences, sans présenter une corrélation comme une causalité ;
+5. regroupement d'affichage des occurrences dans « Gérer mes repas », sans fusion ni réécriture des lignes Supabase ;
+6. enrichissements futurs de la liste de courses, notamment l'estimation automatique et l'historique des coûts lorsqu'une source de prix fiable aura été définie.

@@ -18,7 +18,7 @@ function chargerModules() {
     .replace(/import \{[\s\S]*?\} from '\.\/socleQuantitesCalories';/, 'const { calculerCaloriesAliment, extraireQuantiteReference, normaliserUnite } = __socle;')
     .replace(/export async function /g, 'async function ')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { normaliserNomAliment, trouverAlimentReferentiel, rechercherAlimentsReferentiel, obtenirSaisieParDefaut, serialiserQuantitePlanifiee, extraireQuantitePlanifiee, calculerKcalPlanifiees, construireComposantAssiette, construireAjoutSuggestion, construireOccurrencesAssiette, enregistrerAssiettePlanifiee, normaliserRepasPlanifie, grouperRepasPlanifiesParType, calculerTotauxPlanning };');
+    .concat('\nmodule.exports = { normaliserNomAliment, trouverAlimentReferentiel, rechercherAlimentsReferentiel, obtenirSaisieParDefaut, serialiserQuantitePlanifiee, extraireQuantitePlanifiee, calculerKcalPlanifiees, construireComposantAssiette, construireAjoutSuggestion, construireAssietteDepuisRepere, construireOccurrencesAssiette, enregistrerAssiettePlanifiee, deplacerRepasPlanifie, normaliserRepasPlanifie, grouperRepasPlanifiesParType, calculerTotauxPlanning };');
   vm.runInContext(planification, context, { filename: 'planificationRepas.js' });
   return context.module.exports;
 }
@@ -32,8 +32,10 @@ const {
   calculerKcalPlanifiees,
   construireComposantAssiette,
   construireAjoutSuggestion,
+  construireAssietteDepuisRepere,
   construireOccurrencesAssiette,
   enregistrerAssiettePlanifiee,
+  deplacerRepasPlanifie,
   normaliserRepasPlanifie,
   grouperRepasPlanifiesParType,
   calculerTotauxPlanning
@@ -142,6 +144,30 @@ describe('Planification enrichie', () => {
     });
   });
 
+  test('charge toute une assiette repère avec des quantités encore modifiables', () => {
+    const resultat = construireAssietteDepuisRepere(referentiel, {
+      composition: [
+        { aliment: 'Poulet', quantite: '60 g' },
+        { aliment: 'Œuf', quantite: '2 unités' }
+      ]
+    });
+
+    expect(resultat.erreur).toBeNull();
+    expect(resultat.composition).toEqual([
+      expect.objectContaining({ nom: 'Poulet', quantite: 60, unite: 'g', kcal: 99 }),
+      expect.objectContaining({ nom: 'Œuf', quantite: 2, unite: 'unité', kcal: 160 })
+    ]);
+  });
+
+  test('ne charge pas partiellement une assiette repère devenue incomplète', () => {
+    expect(construireAssietteDepuisRepere(referentiel, {
+      composition: [
+        { aliment: 'Poulet', quantite: '60 g' },
+        { aliment: 'Aliment supprimé', quantite: '1 unité' }
+      ]
+    })).toMatchObject({ composition: [], erreur: expect.stringContaining('n’est plus disponible') });
+  });
+
   test('prépare toutes les lignes du repas pour un enregistrement immédiat dans le planning', () => {
     const oeuf = construireComposantAssiette(referentiel[2], '2', 'unité', 'oeuf-1').composant;
     const pomme = construireComposantAssiette(referentiel[1], '1', 'unité', 'pomme-1').composant;
@@ -194,5 +220,97 @@ describe('Planification enrichie', () => {
     expect(selection).toBe('*');
     expect(resultat.error).toBeNull();
     expect(resultat.data[0]).toMatchObject({ id: 'ligne-1', aliment: 'Œuf' });
+  });
+
+  test('déplace un repas simple en vérifiant son propriétaire et le retour Supabase', async () => {
+    const appels = {};
+    const select = jest.fn().mockResolvedValue({ data: [{ id: 'ligne-1', date: '2026-09-08' }], error: null });
+    const eq = jest.fn((champ, valeur) => {
+      appels.eq = [champ, valeur];
+      return { select };
+    });
+    const inIds = jest.fn((champ, valeur) => {
+      appels.in = [champ, valeur];
+      return { eq };
+    });
+    const update = jest.fn(valeur => {
+      appels.update = valeur;
+      return { in: inIds };
+    });
+    const supabase = { from: jest.fn(() => ({ update })) };
+
+    const resultat = await deplacerRepasPlanifie(
+      supabase,
+      [{ id: 'ligne-1' }],
+      '2026-09-08',
+      'user-1'
+    );
+
+    expect(supabase.from).toHaveBeenCalledWith('repas_planifies');
+    expect(appels.update).toEqual({ date: '2026-09-08' });
+    expect(appels.in).toEqual(['id', ['ligne-1']]);
+    expect(appels.eq).toEqual(['user_id', 'user-1']);
+    expect(select).toHaveBeenCalledWith('*');
+    expect(resultat.error).toBeNull();
+  });
+
+  test('déplace toutes les lignes uniques d’une assiette composée', async () => {
+    let ids = [];
+    const supabase = {
+      from: () => ({
+        update: () => ({
+          in: (_champ, valeurs) => {
+            ids = valeurs;
+            return {
+              eq: () => ({
+                select: () => Promise.resolve({
+                  data: valeurs.map(id => ({ id, date: '2026-09-09' })),
+                  error: null
+                })
+              })
+            };
+          }
+        })
+      })
+    };
+
+    const resultat = await deplacerRepasPlanifie(
+      supabase,
+      [{ id: 'a' }, { id: 'b' }, { id: 'a' }],
+      '2026-09-09',
+      'user-1'
+    );
+
+    expect(ids).toEqual(['a', 'b']);
+    expect(resultat.data).toHaveLength(2);
+    expect(resultat.error).toBeNull();
+  });
+
+  test('signale une mise à jour partielle au lieu d’annoncer un faux succès', async () => {
+    const supabase = {
+      from: () => ({
+        update: () => ({
+          in: () => ({
+            eq: () => ({ select: () => Promise.resolve({ data: [{ id: 'a' }], error: null }) })
+          })
+        })
+      })
+    };
+
+    const resultat = await deplacerRepasPlanifie(
+      supabase,
+      [{ id: 'a' }, { id: 'b' }],
+      '2026-09-09',
+      'user-1'
+    );
+
+    expect(resultat.error.message).toContain('Toutes les lignes');
+  });
+
+  test('refuse un déplacement incomplet avant tout appel Supabase', async () => {
+    const from = jest.fn();
+    const resultat = await deplacerRepasPlanifie({ from }, [], 'date-invalide', 'user-1');
+    expect(from).not.toHaveBeenCalled();
+    expect(resultat.error.message).toContain('invalide');
   });
 });

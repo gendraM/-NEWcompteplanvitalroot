@@ -236,12 +236,18 @@ Guider l’utilisateur pour choisir la bonne catégorie et sous-catégorie lors 
 
 **Objectif :** Permettre à l'utilisateur de composer une assiette complète ou un repas composé de plusieurs aliments, avec analyse nutritionnelle globale, et possibilité de sauvegarder ces compositions pour les proposer ensuite dans la planification des repas.
 
+**Statut consolidé au 9 septembre 2026 :** ✅ Socle multi-aliments livré et validé fonctionnellement / ⏳ analyse nutritionnelle avancée encore à faire.
+
 **Fonctionnalités attendues :**
 - Ajout multiple d'aliments dans une même saisie
 - Calcul automatique des kcal totales, QN moyen, répartition nutriments
 - Sauvegarde de la composition (repas favori)
 - Suggestion dans la planification
 - Analyse d'équilibre et compatibilité avec l'objectif
+
+**Déjà livré :** ajout multi-aliments, calories totales, sauvegarde facultative d'une assiette, réutilisation avec quantités ajustables, persistance par occurrence, alignement automatique, scores par occurrence et proposition des repas repères dans `/plan`.
+
+**Reste à faire :** analyse de l'équilibre de l'assiette, exploitation globale du QN réellement connu et compatibilité explicable avec les objectifs de l'utilisateur.
 
 ### 12.1 Réflexion à prévoir — ajout d'aliment absent + repas composé
 
@@ -263,7 +269,7 @@ Permettre à l'utilisateur, lorsqu'un aliment n'existe pas dans le référentiel
 - Saisie plus réaliste des repas composés.
 - Base plus riche pour les suggestions futures.
 
-**Statut :** À faire plus tard
+**Statut :** Partiellement réalisé. Le repas composé est livré ; l'ajout rapide d'un aliment absent et l'analyse nutritionnelle avancée restent à faire plus tard.
 
 # 🔧 AMÉLIORATIONS CONTINUES - DÉVELOPPEMENT APP
 
@@ -1971,12 +1977,12 @@ L'expérience retenue reste intégrée à la page de planification :
 - le bouton `Commencer mes courses` ouvre un mode plein écran centré sur les achats, toujours dans la même page et sans créer une nouvelle route ;
 - le retour au plan conserve la période, la liste et l'avancement en cours.
 
-### Fonctionnement visuel validé pour le lot 6
+### Fonctionnement visuel livré pour le lot 6
 
 #### Aperçu dans l'onglet Courses
 - période couverte par le plan ;
 - nombre de produits et de catégories ;
-- budget estimé facultatif renseigné une seule fois pour toute la liste ;
+- aucun budget estimé manuel ; l'estimation automatique reste absente tant qu'aucune source de prix fiable n'est disponible ;
 - bouton `Modifier mon plan` ;
 - bouton `Commencer mes courses`.
 
@@ -1998,14 +2004,14 @@ L'expérience retenue reste intégrée à la page de planification :
 - Les articles qui ne sont plus nécessaires disparaissent lors de la mise à jour confirmée.
 - Une régénération ne doit pas remettre arbitrairement à zéro les articles déjà traités.
 
-### Totaux facultatifs du panier — intégré au périmètre du lot 6
+### Total réellement payé facultatif — fonctionnement actif après correction du lot 9
 Le prix ne doit jamais être obligatoire pour créer, utiliser ou terminer une liste de courses.
 
-Fonctionnement retenu :
-- possibilité de renseigner une seule estimation pour toute la liste avant les courses ;
+Fonctionnement actif :
+- aucune estimation manuelle n'est demandée ;
 - possibilité de renseigner une seule fois le montant total réellement payé à la caisse ;
-- comparaison facultative entre ces deux montants globaux ;
-- absence de prix acceptée, sans message bloquant ni valeur artificielle à zéro.
+- l'absence de prix est acceptée, sans message bloquant ni valeur artificielle à zéro ;
+- la comparaison estimé/réel ne sera ajoutée qu'après disponibilité d'une estimation automatique fiable.
 
 Le lot 6 ne demande aucun prix sur les lignes d'aliments. Un suivi détaillé par produit supposerait de connaître les achats réellement effectués et relève du chantier ultérieur consacré aux magasins et à l'analyse des coûts.
 
@@ -2037,10 +2043,10 @@ Points de vigilance :
 - **Chantier ultérieur :** magasins, types de commerces, qualité/origine et analyses historiques coût–qualité–habitudes.
 
 ### Statut
-- Expérience utilisateur du lot 6 validée en conversation.
-- Ajout facultatif des prix validé dans le périmètre du lot 6.
+- Socle des lots 6 à 9 livré et présent sur `plan-alimentaire-intelligent-chatgpt`.
+- Expérience pratique, statuts, conditionnements, persistance Supabase et sauvegarde explicite disponibles.
+- Total réellement payé facultatif disponible ; estimation automatique non implémentée.
 - Suivi du magasin et de la qualité documenté mais volontairement différé.
-- Aucune implémentation fonctionnelle réalisée par cette entrée documentaire.
 
 ### Quantité du plan et format réellement acheté — lot 6B
 
@@ -2080,6 +2086,17 @@ Ce bloc complète les réflexions déjà consignées sur les bilans, les repas c
 
 L’expérience doit rester intégrée au plan existant : un même plan, une même liste et des suggestions que l’utilisateur peut accepter, ignorer ou modifier.
 
+### Plan d'action restant validé — ordre de réalisation
+
+1. **Synthèse S-1 le mercredi :** présenter une tendance facultative avant la fin de la semaine, sans répéter le bilan du dimanche et sans message lorsque les données sont insuffisantes.
+2. **Ajustements explicables :** proposer quelques modifications du prochain plan à partir des catégories, du QN connu, de la satiété, du ressenti, des horaires et des extras réellement observés.
+3. **Décision utilisateur conservée :** chaque suggestion peut être acceptée, ignorée ou modifiée ; aucune écriture automatique dans le planning.
+4. **Vigilances répétées :** signaler avec mesure une association régulièrement liée à un ressenti difficile ou à des extras, uniquement après plusieurs occurrences comparables.
+5. **Regroupement de « Gérer mes repas » :** reconstruire l'affichage par `occurrence_repas_id` sans fusionner les lignes Supabase.
+6. **Coût des courses :** définir une source de prix fiable, calculer l'estimation automatiquement, conserver l'historique des totaux réellement payés, puis étudier les magasins et la qualité dans un sous-lot séparé.
+
+Chaque point doit être traité comme un sous-lot autonome avec validation de l'expérience utilisateur avant le code, tests, build, test fonctionnel et passation.
+
 ## 🍽️ AMÉLIORATION FUTURE — Regrouper les occurrences dans « Gérer mes repas » (2026-09-01)
 
 ### Contexte observé
@@ -2099,4 +2116,4 @@ La page « Gérer mes repas » présente encore ces lignes séparément. Lors du
 
 ### Statut
 
-**À faire plus tard.** Cette amélioration d’affichage ne modifie pas le plan d’action courant. La prochaine étape reste le raccord séparé du chemin « Repas conforme au planning » vers la persistance commune.
+**À faire dans l'étape 19 de la feuille de route consolidée.** Le chemin « Repas conforme au planning » et le raccord des repas repères sont désormais terminés ; cette entrée ne doit plus les présenter comme prochaines étapes.
