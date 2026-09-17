@@ -248,3 +248,5 @@ L’API relit d’abord la carte existante avant toute génération, conserve so
 de fermeture entre les appareils et ne marque plus une semaine comme traitée
 dans `localStorage`. Une erreur de génération ou d’enregistrement laisse donc une
 nouvelle tentative possible après la prochaine saisie de repas.
+
+Déploiement de validation relancé après le raccord de la persistance Supabase.
