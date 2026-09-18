@@ -841,6 +841,27 @@ export default function BilanHebdoModal({ open, onClose, bilan, onLearnMore, sel
         minHeight: isMobile ? '100vh' : 'auto'
       }}
     >
+      {(typeof bilan?.joursObserves === 'number'
+        || typeof bilan?.joursReconstitues === 'number'
+        || typeof bilan?.joursSansDonnee === 'number') && (
+        <section style={{
+          marginBottom: '1.5rem',
+          padding: '1rem 1.2rem',
+          background: '#f8fafc',
+          border: '1px solid #cbd5e1',
+          borderRadius: 10
+        }}>
+          <h4 style={{ margin: '0 0 0.6rem', color: '#334155' }}>Fiabilité du suivi</h4>
+          <div style={{ color: '#475569', lineHeight: 1.6 }}>
+            {bilan.joursObserves || 0} jour{bilan.joursObserves === 1 ? '' : 's'} observé{bilan.joursObserves === 1 ? '' : 's'} ·{' '}
+            {bilan.joursReconstitues || 0} reconstitué{bilan.joursReconstitues === 1 ? '' : 's'} ·{' '}
+            {bilan.joursSansDonnee || 0} sans donnée
+          </div>
+          <div style={{ marginTop: 4, color: '#64748b', fontSize: '0.9rem' }}>
+            Fiabilité basée sur les saisies réelles : {bilan.fiabilitePourcent || 0}%
+          </div>
+        </section>
+      )}
       {/* Bouton fermeture fixe en haut à droite - HORS de la div scrollable */}
       <button
         onClick={onClose}
