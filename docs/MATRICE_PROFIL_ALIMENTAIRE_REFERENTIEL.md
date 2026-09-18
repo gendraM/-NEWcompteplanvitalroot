@@ -175,3 +175,70 @@ Ne pas lancer un enrichissement massif des 51 entrées.
 Le prochain changement de données pourra être limité aux deux accompagnements clairement identifiables, **à condition de choisir auparavant la stratégie de stockage du nouveau profil** (inline dans le référentiel ou couche d'enrichissement séparée). Cette décision doit aussi tenir compte du référentiel partagé avec le chantier Recettes.
 
 Pour les autres cas, le moteur `INCONNU` nouvellement introduit est le comportement attendu.
+
+
+## Décision de stockage — couche d'enrichissement séparée
+
+Après vérification de l'architecture réelle, la stratégie retenue est **de ne pas injecter `profilAlimentaire` dans chacune des 640 entrées de `data/referentiel.js`**.
+
+### Pourquoi
+
+Le référentiel historique est importé directement par `useUserReferentiel.js`, puis fusionné avec les aliments personnalisés Supabase. Le modifier massivement :
+- augmenterait fortement le bruit des diffs ;
+- créerait davantage de conflits avec les chantiers parallèles, notamment Recettes ;
+- mélangerait données alimentaires historiques et métadonnées métier évolutives ;
+- rendrait les enrichissements futurs plus difficiles à auditer.
+
+### Architecture retenue
+
+Créer une couche statique additive dédiée, par exemple :
+
+`data/profilsAlimentaires.js`
+
+Elle contient uniquement les exceptions/enrichissements utiles et est appliquée par une fonction pure :
+
+`enrichirAvecProfilAlimentaire(aliment)`
+
+Le référentiel d'origine reste inchangé.
+
+Principe :
+
+```
+referentiel.js
+      ↓
+enrichirAvecProfilAlimentaire()
+      ↓
+aliment + profilAlimentaire
+      ↓
+useUserReferentiel / moteurs consommateurs
+```
+
+Le moteur conserve également ses mappings sûrs de catégories pour les 154 cas déjà déterministes : il n'est donc pas nécessaire de créer 154 lignes d'enrichissement redondantes.
+
+### Clé d'identification
+
+Ne pas utiliser uniquement `nom` comme identifiant durable : le référentiel contient déjà des noms dupliqués avec des marques différentes (par exemple plusieurs « Yaourt nature »).
+
+En l'absence d'un identifiant alimentaire stable généralisé, la couche d'enrichissement doit utiliser une clé déterministe construite à partir de champs existants suffisamment discriminants (nom + marque + catégorie, normalisés), et rester tolérante aux champs nuls.
+
+À terme, un identifiant stable explicite serait préférable si le référentiel est refondu, mais ce chantier ne doit pas provoquer cette refonte.
+
+### Aliments personnalisés
+
+Les aliments utilisateur ne sont pas enrichis par correspondance approximative avec le référentiel global.
+
+Ils peuvent déjà porter leur propre `profilAlimentaire` dans leur objet `aliment_data` lorsqu'une fonctionnalité future permet de le renseigner ou de le valider. Sinon ils restent inconnus pour les dimensions non déterminables.
+
+### Premier lot de données
+
+La couche séparée pourra démarrer avec seulement les enrichissements réellement validés :
+- Poêlée de légumes → rôle repas `legume`, nature `composite`;
+- Ratatouille rapide → rôle repas `legume`, nature `composite`.
+
+Aucun autre des 51 cas n'est enrichi automatiquement à ce stade.
+
+### Frontière avec Recettes
+
+La branche Recettes reste propriétaire de la composition/identité des recettes. Elle peut fournir une composition structurée au moteur.
+
+La couche `profilsAlimentaires` ne doit pas dupliquer les ingrédients d'une recette ni devenir une base de recettes parallèle.
