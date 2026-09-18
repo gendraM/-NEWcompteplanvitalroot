@@ -117,3 +117,61 @@ Les champs historiques restent inchangés.
 6. Enrichir ensuite uniquement les 51 aliments/cas ambigus prioritaires, après revue détaillée.
 
 Aucune modification massive du référentiel n'est autorisée avant cette étape.
+
+
+## Revue détaillée des 51 cas ambigus
+
+La revue ligne par ligne montre que le lot ne doit pas être enrichi uniformément.
+
+### Accompagnements — 3
+
+- `Poêlée de légumes` : candidat fiable à `rolesRepas: ['legume']`, nature composite.
+- `Ratatouille rapide` : candidat fiable à `rolesRepas: ['legume']`, nature composite.
+- `Gratin de courgettes express` : **ne pas réduire automatiquement à légume** sans connaître sa composition réelle ; garder composite/inconnu à ce stade.
+
+=> **2 enrichissements sûrs**, 1 à laisser composite.
+
+### Sauces — 10
+
+Aucune des 10 sauces ne doit recevoir automatiquement un rôle d'assiette à partir de son nom, de ses kcal ou de sa sous-catégorie.
+
+Une sauce tomate peut contenir des légumes sans constituer pour autant la composante « légumes » du repas ; un pesto ou une sauce blanche peut apporter des lipides sans que le référentiel actuel permette de quantifier ou qualifier proprement ce rôle.
+
+=> **0 enrichissement automatique**. Garder `nature: 'composite'` lorsque ce profil sera matérialisé et laisser les rôles inconnus tant que la recette/composition n'est pas structurée.
+
+### Laitiers — 19 entrées, avec doublons de noms
+
+Le groupe mélange :
+- yaourts classiques ;
+- skyr / fromage blanc / petit-suisse ;
+- desserts lactés ;
+- alternatives végétales soja/amande ;
+- boissons lactées/aromatisées.
+
+La seule catégorie `laitier` ne permet donc pas un rôle uniforme. En particulier, « végétal » ne signifie pas automatiquement « source de protéines » : soja et amande ne doivent pas être traités identiquement.
+
+=> **pas de mapping global `laitier → proteine`**.
+
+Les futurs enrichissements doivent reposer sur une caractéristique fiable du produit ou une donnée nutritionnelle sourcée, pas sur le nom. `origine` peut être renseignée lorsqu'elle est explicitement portée par une donnée structurée fiable, mais n'est pas nécessaire à « Compose ton assiette ».
+
+### Fromages — 19
+
+Le fromage apporte plusieurs nutriments et sa portion/usages varient. Le classer systématiquement comme « protéine » ou « matière grasse » transformerait une propriété nutritionnelle en règle de composition que Mon Plan Vital n'a pas définie.
+
+=> **0 mapping automatique pour le moteur actuel**. Conserver la catégorie historique et reporter un éventuel rôle à une règle produit/nutritionnelle explicitement validée.
+
+### Bilan de la revue
+
+Sur les 51 cas initialement candidats à enrichissement :
+- **2** peuvent recevoir immédiatement un rôle qualitatif sûr dans le contexte du moteur actuel (poêlée de légumes, ratatouille) ;
+- **49** ne justifient pas un rôle automatique avec les seules données actuellement présentes.
+
+Cela confirme que le bon objectif n'est pas de remplir artificiellement `profilAlimentaire`, mais de rendre explicite ce que le système sait réellement.
+
+## Décision d'implémentation
+
+Ne pas lancer un enrichissement massif des 51 entrées.
+
+Le prochain changement de données pourra être limité aux deux accompagnements clairement identifiables, **à condition de choisir auparavant la stratégie de stockage du nouveau profil** (inline dans le référentiel ou couche d'enrichissement séparée). Cette décision doit aussi tenir compte du référentiel partagé avec le chantier Recettes.
+
+Pour les autres cas, le moteur `INCONNU` nouvellement introduit est le comportement attendu.
