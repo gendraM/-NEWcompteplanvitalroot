@@ -4,11 +4,11 @@ const vm = require('vm');
 
 const source = fs.readFileSync(path.join(__dirname, '../lib/extrasProgression.js'), 'utf8')
   .replace(/export\s+/g, '')
-  .concat('\nmodule.exports = { calculerProgressionExtras, evaluerSemaineExtras, getVerbatimProgressionExtras };');
+  .concat('\nmodule.exports = { calculerProgressionExtras, evaluerSemaineExtras, getVerbatimProgressionExtras, getEtatConstanceExtras };');
 const context = { module: { exports: {} }, exports: {}, console, Date, Math, Set };
 vm.createContext(context);
 vm.runInContext(source, context);
-const { calculerProgressionExtras, evaluerSemaineExtras, getVerbatimProgressionExtras } = context.module.exports;
+const { calculerProgressionExtras, evaluerSemaineExtras, getVerbatimProgressionExtras, getEtatConstanceExtras } = context.module.exports;
 
 function semaine(index, extras, kcal = 300, budget = 450, autres = {}) {
   const date = new Date('2026-01-05T12:00:00Z');
@@ -144,5 +144,20 @@ describe('adaptation et retour à un ancien palier', () => {
     ]);
     expect(resultat).toMatchObject({ palier: 3, serieDepassement: 0, semainesAcquises: 0 });
     expect(resultat.adaptations).toHaveLength(0);
+  });
+});
+
+describe('états de constance visibles', () => {
+  test('CREATE accompagne le début de construction', () => {
+    expect(getEtatConstanceExtras({ semainesAcquises: 2, semainesRequises: 8, prochainPalier: 2 }).code).toBe('CREATE');
+  });
+  test('ALIGN reconnaît un rythme récent déjà maintenu', () => {
+    expect(getEtatConstanceExtras({ semainesAcquises: 4, semainesRequises: 8, prochainPalier: 2 }).code).toBe('ALIGN');
+  });
+  test('ADAPT est prioritaire lors d’une adaptation récente', () => {
+    expect(getEtatConstanceExtras({ adaptationRecente: true, rythmeRetrouve: true }).code).toBe('ADAPT');
+  });
+  test('GROW reconnaît le retour à un ancien palier', () => {
+    expect(getEtatConstanceExtras({ rythmeRetrouve: true }).code).toBe('GROW');
   });
 });
