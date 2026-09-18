@@ -23,44 +23,89 @@ La recette ou proposition n'est ni un deuxième moteur alimentaire ni un nouveau
 
 ## 2. Expérience cible figée
 
-Entrées principales :
-- Prêt en moins de 10 min
-- Moins de 30 min
-- Mes valeurs sûres
-- Déjà prévu cette semaine
-- Bien vécu les dernières fois
+Entrées principales : **Prêt en moins de 10 min · Moins de 30 min · Mes valeurs sûres · Déjà prévu cette semaine · Bien vécu les dernières fois**.
 
-Une fiche peut afficher nom, ingrédients/quantités structurés, préparation, temps et difficulté. Les calories doivent utiliser le moteur alimentaire existant.
-
-Actions principales : **Préparer maintenant · Ajouter à mon planning · Modifier**.
+Une fiche peut afficher nom, ingrédients/quantités structurés, préparation, temps et difficulté. Les calories utilisent le moteur alimentaire existant. Actions principales : **Préparer maintenant · Ajouter à mon planning · Modifier**.
 
 Une proposition IA reste temporaire tant que l'utilisateur ne choisit pas explicitement de l'enregistrer.
 
 ### Préparer maintenant
-
-Le choix est transformé en repas composé. L'utilisateur confirme ce qu'il a réellement mangé ou ajuste les quantités. Les lignes réelles sont ensuite envoyées à Suivi par la persistance existante. Aucune nouvelle recherche manuelle des aliments et aucun recalcul parallèle.
+Le choix est transformé en repas composé. L'utilisateur confirme ce qu'il a réellement mangé ou ajuste les quantités. Les lignes réelles sont envoyées à Suivi par la persistance existante, sans nouvelle recherche des aliments ni recalcul parallèle.
 
 ### Ajouter à mon planning
-
-Le même choix est transformé dans le contrat du planning existant. Il doit ensuite bénéficier du planning, des déplacements et de la liste de courses déjà présents.
+Le même choix est transformé dans le contrat du planning existant et bénéficie ensuite des déplacements et de la liste de courses existants.
 
 ### Après consommation
+Restituer des observations personnelles (« chez toi, ce repas a été associé à une satiété satisfaisante 5 fois sur 6 »), jamais une propriété générale non démontrée (« ce repas est rassasiant »).
 
-Restituer les observations personnelles, par exemple : « chez toi, ce repas a été associé à une satiété satisfaisante 5 fois sur 6 », et non « ce repas est rassasiant ».
+## 3. Contextes de déclenchement — AVANT / MAINTENANT / PENDANT / APRÈS
 
-## 3. Valeurs sûres
+**Mes repas & recettes est une capacité transversale, pas uniquement une page.** Tous les points d'entrée doivent converger vers le même moteur.
 
-Une valeur sûre est fondée sur l'expérience réelle répétée de l'utilisateur, pas sur une étiquette « healthy ».
+### A. Entrée volontaire
+L'utilisateur demande explicitement de l'aide : « Qu'est-ce que je mange ? », « Je veux manger rapidement », « Que faire avec poulet + courgettes ? ». Le module peut alors proposer 2–3 choix pertinents.
 
-Le moteur `repasReperes` existe déjà et doit être réutilisé/étendu, pas remplacé.
+### B. Depuis Planning — AVANT
+Quand l'utilisateur organise sa semaine ou un repas :
+- composer lui-même ;
+- choisir une valeur sûre ;
+- trouver quelque chose de rapide ;
+- réutiliser un repas connu.
 
-## 4. OBSERVE / ALIGN / ADAPT / GROW
+Le module s'insère dans le flux Planning sans créer un second calendrier.
 
-Mes repas & recettes produit et exploite de la donnée réelle. Il ne crée aucun système de points nutritionnels ni un deuxième moteur de développement personnel.
+### C. Aide contextuelle depuis Suivi — AVANT le prochain repas
+Le module peut détecter **une occasion d'aider pendant une autre action**, sans supposer l'état émotionnel de l'utilisateur.
 
-OBSERVE restitue des faits soutenus par les données ; ALIGN permet leur mise en perspective ; ADAPT peut transformer une stratégie observée en action ; GROW observe sa stabilisation dans le temps.
+Exemple validé : jeudi, l'utilisateur saisit son déjeuner dans Suivi. Le dîner du soir n'est pas planifié et/ou le lendemain comporte des repas non planifiés. Une sollicitation légère peut apparaître :
 
-## 5. Briques existantes à réutiliser
+> Ton dîner de ce soir n'est pas encore prévu. Tu veux qu'on t'enlève ça de la tête ?
+>
+> ⚡ J'ai peu de temps · 🙂 J'ai un peu de temps · Pas maintenant
+
+Si l'utilisateur accepte, le module exploite ce qui est réellement connu et propose quelques choix : valeur sûre rapide, repas enregistré pertinent, repas déjà connu ou, plus tard, nouvelle proposition.
+
+**Ne jamais conclure automatiquement** « tu n'as rien planifié donc tu vas faire un extra ». Une relation entre absence d'anticipation et extras ne peut être restituée que si l'historique individuel la soutient réellement.
+
+### D. PENDANT — exécuter sans ressaisie
+Après « Préparer maintenant », afficher le repas choisi, sa préparation et ses quantités. L'utilisateur confirme ou modifie. Il ne reconstruit pas son assiette.
+
+### E. APRÈS — apprendre
+Suivi conserve le réel : quantités, calories, satiété, ressentis. Quand les occurrences deviennent suffisantes, l'application restitue les observations et peut faire émerger des valeurs sûres.
+
+### F. Boucle vers le prochain AVANT
+L'expérience passée améliore les choix futurs :
+
+```
+AVANT : je choisis
+→ PENDANT : je prépare / mange
+→ APRÈS : j'observe
+→ prochain AVANT : l'application réutilise ce qui fonctionne chez moi
+```
+
+## 4. Règles anti-intrusion pour les suggestions contextuelles
+
+Une suggestion contextuelle est une **offre d'aide**, jamais une injonction.
+
+Elle doit respecter au minimum :
+- un besoin observable : repas futur réellement non planifié ;
+- une proximité temporelle pertinente ;
+- pas de supposition « fatigue », « flemme », « risque d'excès » sans donnée ;
+- possibilité immédiate de répondre **Pas maintenant** ;
+- ne pas répéter la même sollicitation après un refus récent ;
+- ne pas interrompre la saisie du repas en cours ;
+- limiter la fréquence des sollicitations ;
+- ne proposer que quelques options après acceptation.
+
+Les seuils précis de fréquence/proximité seront définis et testés avant implémentation. Ils ne doivent pas être inventés dans l'UI.
+
+## 5. Valeurs sûres et OBSERVE / ALIGN
+
+Une valeur sûre est fondée sur l'expérience réelle répétée de l'utilisateur, pas sur une étiquette « healthy ». `repasReperes` doit être réutilisé/étendu, pas remplacé.
+
+Mes repas & recettes nourrit OBSERVE → ALIGN → ADAPT → GROW avec des données réelles. Il ne crée aucun système de points nutritionnels ni un deuxième moteur de développement personnel.
+
+## 6. Briques existantes à réutiliser
 
 - `lib/repasComposes.js` : composition, ajustement, planning et occurrences réelles.
 - `components/GestionRepasComposes.js` : modèles réutilisables.
@@ -74,83 +119,86 @@ OBSERVE restitue des faits soutenus par les données ; ALIGN permet leur mise en
 
 La branche parallèle `planification-gamification-chatgpt` possède la composition pédagogique, les capsules nutrition/cuisson et le pont vers les défis. Ne pas les recréer ici.
 
-## 6. Ce qui n'est pas validé
+## 7. Ce qui n'est pas validé
 
 Ne pas créer sans démonstration du besoin : deuxième moteur repas/calories/planning/courses/valeurs sûres, score nutritionnel concurrent, mécanique OBSERVE/ALIGN propre aux recettes, bibliothèque IA automatique, nouvelle table ou identité Supabase.
 
 La migration `supabase/migrations/20260918_recettes_identite_modele.sql` est une hypothèse technique **non validée et non appliquée**.
 
-## 7. Principe de décision
+## 8. Matrice UX → existant → manque réel
 
-Avant chaque développement :
-1. Quelle expérience validée ce changement rend-il possible ?
-2. Une brique actuelle sait-elle déjà faire le travail ?
-3. Peut-on la raccorder/étendre ?
-4. Quel est le minimum réellement manquant ?
-5. L'historique et les parcours existants restent-ils compatibles ?
-6. Sommes-nous toujours dans « Mes repas & recettes » ?
+| Entrée / besoin | Existant | Manque réel | Décision minimale |
+|---|---|---|---|
+| Mes valeurs sûres | `repasReperes` + occurrences + satiété/ressenti | historique ancien partiellement non groupable ; durée absente | réutiliser/étendre, ne pas recréer |
+| Bien vécu les dernières fois | `repas_reels` + regroupement/signaux | présentateur orienté dernières expériences | fonction pure, pas de table |
+| Déjà prévu cette semaine | `repas_planifies` | présentation comme carte de choix | adapter le planning existant |
+| <10 min / <30 min | repas composés sans durée | **durée structurée** | définir le minimum à l'étape 2 |
+| Préparer maintenant | `SaisieRepasCompose` fait déjà ajustement/calories/Suivi | re-sélection manuelle du modèle | permettre le préchargement direct |
+| Ajouter au planning | `PlanificateurRepas` sait charger/planifier | pas d'entrée directe depuis le choix | contrat de préchargement |
+| Courses | `listeCoursesGenerale` depuis `repas_planifies` | aucun manque recette | aucun moteur supplémentaire |
+| Calories | moteurs existants | aucun | réutilisation stricte |
+| Je veux manger rapidement | sources disponibles séparément | orchestrateur + durée | moteur de sélection pur après contrat |
+| IA sous contraintes | référentiel + calories + repas composé | contrat commun de sortie | IA seulement après contrat |
+| Suggestion depuis Suivi | Suivi connaît date/repas saisi ; planning connaît les repas futurs | règle de détection + contexte d'appel + anti-répétition | construire plus tard un déclencheur contextuel réutilisant le même moteur |
 
-## 8. Étape 1 — Matrice UX → existant → manque réel (audit du 18/09/2026)
+## 9. Étape 2 — contrat fonctionnel minimal « choix repas »
 
-| Entrée / besoin UX | Données nécessaires | Ce qui existe déjà | Manque réel constaté | Décision minimale |
-|---|---|---|---|---|
-| **Mes valeurs sûres** | occurrences répétées + satiété/ressenti/alignement + composition | `repasReperes` groupe les occurrences, exige 3 occurrences et 2 résultats positifs, exploite satiété/ressenti/alignement et restitue une composition réutilisable | La fenêtre actuelle est limitée à 15 jours et le mécanisme exclut l'historique sans `occurrence_repas_id` ; pas encore de durée réelle de préparation | **Ne pas recréer.** Réutiliser `repasReperes`; l'extension éventuelle sera décidée lors du lot historique |
-| **Bien vécu les dernières fois** | occurrences réelles + satiété/ressenti + composition | `repas_reels`, regroupement par occurrence et signaux de `repasReperes` existent | Il manque surtout une fonction de restitution orientée « dernières expériences » ; aucune nouvelle table n'est nécessaire pour une V1 | Construire plus tard un sélecteur/présentateur pur à partir des occurrences existantes |
-| **Déjà prévu cette semaine** | `repas_planifies` + regroupement date/type/composition | Planning et lignes `repas_planifies` existent ; la liste de courses les consomme déjà | Il faut définir la présentation d'un repas planifié comme proposition réutilisable ; pas de nouveau stockage nécessaire pour l'entrée V1 | Lire le planning existant et transformer les compositions pertinentes en cartes de choix |
-| **Prêt en moins de 10 min** | durée de préparation fiable + composition exploitable | Les repas composés ont nom/composition/kcal, mais **aucune durée n'est portée par leur contrat actuel** | **Durée de préparation structurée manquante** pour les repas enregistrés génériques | Ne pas créer une table. Définir à l'étape 2 le plus petit enrichissement/contrat permettant de porter une durée |
-| **Moins de 30 min** | même besoin que ci-dessus | même socle | même manque : durée structurée | même décision |
-| **Préparer maintenant** | modèle/composition + quantités modifiables + calories + sauvegarde réelle | `SaisieRepasCompose` fait déjà presque tout : sélection modèle, quantités ajustables, recalcul kcal, satiété/ressenti/note, `construireOccurrencesReelles`, puis `onSave` vers le suivi | Le composant impose aujourd'hui de **re-sélectionner** un modèle dans une liste. Il manque le raccord direct « carte choisie → modèle déjà sélectionné → confirmer/modifier » | **Premier gain UX majeur sans nouveau moteur** : rendre la saisie de repas composé préchargeable depuis un choix externe |
-| **Ajouter à mon planning** | composition + date + type | `PlanificateurRepas` charge déjà un modèle de `repas_complets`, permet ajustement et enregistre dans `repas_planifies`; `repasComposes` sait aussi construire les occurrences planifiées | Le choix externe « Mes repas & recettes » n'arrive pas encore directement préchargé dans le planificateur | Ajouter plus tard un contrat d'entrée/préchargement, pas un deuxième planificateur |
-| **Liste de courses** | lignes planifiées + quantités/unités | `listeCoursesGenerale` transforme déjà les lignes `repas_planifies`, agrège les quantités et gère les incomplets | Aucun manque spécifique recette si le repas passe correctement par `repas_planifies` | **Aucun développement recette spécifique** |
-| **Calories** | aliment + quantité + unité + référence | moteurs existants de planification et `socleQuantitesCalories`; repas composé conserve les kcal calculées et recalcule proportionnellement les quantités réelles | Aucun nouveau moteur nécessaire | Réutilisation stricte |
-| **Je veux manger rapidement** | filtres de durée + valeurs sûres + historique + planning + éventuellement contraintes | valeurs sûres, planning, repas enregistrés et suivi existent séparément | Il manque un **orchestrateur de sélection** qui rassemble ces sources ; la durée structurée est également manquante | Après étape 2, créer un moteur de sélection pur qui renvoie peu de propositions, sans persistance propre |
-| **Proposition IA sous contraintes** | contraintes utilisateur + référentiel + contrat de repas exploitable | référentiel/calories/repas composé existent | Il manque le contrat de sortie commun entre proposition IA, repas enregistré et carte « Mes repas & recettes » | Ne pas coder l'IA avant d'avoir figé ce contrat minimal |
+**Aucune migration Supabase pour cette étape.** Le contrat est d'abord un objet métier en mémoire et testable.
 
-### Conclusion de l'étape 1
+Il doit permettre à une même proposition de provenir d'un repas composé, d'une valeur sûre, d'un repas planifié ou plus tard d'une proposition IA.
 
-L'audit confirme que le principal travail n'est **pas** de créer une nouvelle architecture de recettes.
+### Informations minimales du choix
 
-Trois manques fonctionnels ressortent :
+Conceptuellement :
 
-1. **un contrat commun de choix « repas/recette »**, capable de transporter une composition existante et quelques métadonnées d'expérience ;
-2. **la durée de préparation**, absente du contrat générique actuel mais indispensable aux entrées « <10 min » et « <30 min » ;
-3. **le raccord direct d'un choix vers les moteurs existants**, surtout « Préparer maintenant » sans re-sélection et « Ajouter au planning » sans reconstruction.
+```js
+{
+  source,                 // repas_compose | valeur_sure | planning | ia...
+  sourceId,               // si la source possède déjà un identifiant
+  titre,
+  composition,            // aliments + quantités + unités + kcal issues des moteurs existants
+  preparation,            // facultatif
+  dureeMinutes,           // facultatif tant qu'inconnue
+  difficulte,             // facultatif
+  observation,            // fait personnel vérifiable, facultatif
+  actions                 // préparer / planifier / modifier / éventuellement enregistrer
+}
+```
 
-Le moteur de valeurs sûres, les calories, le planning, les occurrences réelles et la liste de courses sont déjà présents. Ils ne doivent pas être reconstruits.
+Ce contrat **n'est pas une nouvelle entité persistée**. C'est un adaptateur commun entre les sources existantes et l'expérience utilisateur.
 
-**Conséquence : la création d'une table `recettes` n'est toujours pas justifiée par cette étape.**
+### Contexte d'appel séparé du repas
 
-## 9. Étape 2 — prochaine action
+Le contexte ne doit pas polluer le modèle du repas. Il accompagne la demande :
 
-Définir maintenant **l'objet fonctionnel minimal de choix** sans toucher à Supabase.
+```js
+{
+  origine,                // volontaire | suivi | planning
+  dateCible,
+  typeRepasCible,         // dîner, déjeuner...
+  contrainteTempsMinutes, // uniquement si connue/exprimée
+  repasNonPlanifie,       // fait issu du planning
+  intention               // rapide, valeur_sure, etc.
+}
+```
 
-Ce contrat doit permettre à une même proposition de fonctionner qu'elle provienne :
-- d'un repas composé enregistré ;
-- d'une valeur sûre ;
-- d'un repas déjà planifié ;
-- plus tard, d'une proposition IA.
+Important : ne jamais encoder comme fait `fatigue=true` ou `risqueExtra=true` simplement parce que l'utilisateur n'a rien planifié.
 
-Il doit contenir uniquement ce qui est nécessaire pour :
-- afficher une carte/fiche ;
-- connaître la composition ;
-- afficher une durée lorsqu'elle est connue ;
-- déclencher « Préparer maintenant » ;
-- déclencher « Ajouter à mon planning ».
+### Pourquoi séparer choix et contexte ?
 
-À ce stade, ce contrat doit être un objet/fonction métier en mémoire et testable. **Aucune migration Supabase ne doit être appliquée pour l'étape 2.**
+Le **choix** décrit ce qui peut être mangé/préparé. Le **contexte** explique pourquoi et où l'aide est demandée. Ainsi, le même repas peut être proposé depuis Planning, depuis Suivi ou depuis « Qu'est-ce que je mange ? » sans être dupliqué.
 
 ## 10. Plan d'action restant
 
-1. **Étape 2 :** formaliser le contrat minimal « choix repas ».
-2. **Étape 3 :** brancher ce contrat sur « Préparer maintenant » en préchargeant le flux de repas composé.
-3. **Étape 4 :** brancher le même contrat sur le planificateur existant.
-4. **Étape 5 :** restitution historique et évolution des valeurs sûres uniquement si nécessaire.
-5. **Étape 6 :** moteur « Qu'est-ce que je mange ? » avec quelques propositions déterministes.
-6. **Étape 7 :** proposition IA sous contraintes, sans pollution automatique de la bibliothèque.
-7. **Étape 8 :** raccord des observations aux moteurs OBSERVE/ALIGN existants.
+1. **Contrat minimal :** créer les adaptateurs purs des sources existantes vers « choix repas » + tests.
+2. **Préparer maintenant :** rendre le flux repas composé préchargeable depuis un choix.
+3. **Planifier :** brancher le même choix sur le planificateur existant.
+4. **Déclencheur contextuel Suivi :** détecter un prochain repas non planifié, appliquer les règles anti-intrusion, puis ouvrir le même moteur.
+5. **Historique / valeurs sûres :** restitution et extensions uniquement si nécessaires.
+6. **Qu'est-ce que je mange ? :** orchestrateur déterministe renvoyant quelques propositions.
+7. **IA sous contraintes :** seulement après stabilisation du contrat ; proposition temporaire par défaut.
+8. **OBSERVE / ALIGN :** raccord aux moteurs existants.
 
 ## 11. Critère de réussite
 
-Depuis « Je ne sais pas quoi manger » ou « Je veux quelque chose de rapide », l'utilisateur obtient quelques choix utiles, peut préparer ou planifier immédiatement, puis enregistrer ce qu'il a réellement consommé sans ressaisie inutile. Son historique améliore progressivement les choix futurs.
-
-La réussite se mesure à cette continuité, pas au nombre de nouvelles tables ou composants.
+Depuis une demande volontaire **ou une occasion d'aide pertinente détectée dans Suivi/Planning**, l'utilisateur obtient quelques choix utiles, peut préparer ou planifier immédiatement, puis enregistrer le réel sans ressaisie inutile. L'historique améliore progressivement les choix futurs sans jugement ni sollicitation envahissante.
