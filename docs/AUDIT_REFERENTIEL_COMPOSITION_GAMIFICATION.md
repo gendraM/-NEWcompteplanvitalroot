@@ -148,3 +148,66 @@ Le référentiel est prêt pour la composition/gamification lorsque :
 - la couverture est mesurée automatiquement ;
 - aucune donnée inconnue n'est interprétée comme une absence ;
 - les tests empêchent une régression de couverture.
+
+
+## 10. Décision produit — couche commune `profilAlimentaire`
+
+Après cadrage fonctionnel, `rolesAssiette` est considéré comme un sous-ensemble d'une couche plus générale, sans remplacement des champs historiques.
+
+Contrat conceptuel minimal :
+
+```js
+profilAlimentaire: {
+  rolesRepas: ['proteine', 'legume', 'feculent', 'matiere_grasse', 'fruit'],
+  nature: 'simple' | 'composite' | 'inconnue',
+  origine: 'vegetale' | 'animale' | 'mixte' | 'inconnue',
+  caracteristiques: []
+}
+```
+
+Ce contrat reste volontairement minimal et extensible. Les valeurs non déterminées restent inconnues ; elles ne sont jamais déduites du nom de l'aliment.
+
+`rolesAssiette` peut rester accepté transitoirement par le moteur pour compatibilité, mais la cible fonctionnelle est que le rôle dans le repas appartienne au `profilAlimentaire`.
+
+### Usages visés
+
+Cette couche doit pouvoir servir de langage commun à :
+- Planification / « Compose ton assiette » ;
+- capsules pédagogiques ;
+- opportunités de défis qualitatives ;
+- OBSERVE / ALIGN / ADAPT / GROW ;
+- raccord futur avec IDÉAUX ;
+- raccord avec la reprise alimentaire lorsqu'un besoin commun est démontré.
+
+Elle ne doit pas devenir un compteur de macros ni une seconde base alimentaire.
+
+## 11. Données quantitatives — évolution optionnelle
+
+Un bloc séparé `nutrition100g` (protéines, glucides, lipides, fibres) reste une évolution possible mais **n'est pas requis pour le chantier actuel**.
+
+Il ne sera ajouté que si :
+1. une source fiable et maintenable est identifiée ;
+2. le coût d'intégration est raisonnable ;
+3. un besoin fonctionnel Mon Plan Vital le justifie réellement.
+
+Les moteurs actuels ne doivent donc pas dépendre de cette future couche.
+
+## 12. Premier raccord confirmé avec la reprise alimentaire
+
+Le code existant de reprise après jeûne manipule déjà des catégories et des phases d'introduction : `liquide`, `légume`, `protéine`, `lipide`, `féculent`, `fruit`, ainsi que des aliments autorisés par phase.
+
+Cela confirme l'intérêt d'un langage alimentaire commun, mais **ne justifie pas de modifier le moteur de reprise dans ce chantier**.
+
+Le `profilAlimentaire` doit rester descriptif. Les règles de phase, de tolérance et d'introduction appartiennent au module Reprise et peuvent consommer ce profil plus tard.
+
+Important : les anciennes affirmations médicales ou règles historiques présentes dans les documents/code de reprise ne sont pas considérées comme validées par le présent audit. Tout futur raccord santé/reprise devra faire l'objet d'une validation spécifique des règles utilisées.
+
+## 13. Prochaine étape technique
+
+Construire une matrice de classification du référentiel avec quatre états :
+- **déterminable sûrement** depuis une catégorie déjà univoque ;
+- **enrichissable explicitement** avec `profilAlimentaire` ;
+- **composite** : doit être décrit par sa composition structurée plutôt que par un rôle unique ;
+- **inconnu/non pertinent** pour la composition : ne pas forcer de classification.
+
+Cette matrice précède toute modification massive des 640 entrées.
