@@ -8,7 +8,7 @@ function periodeSemaine(weekStart) {
   return `${debut.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} – ${fin.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`;
 }
 
-export default function ExtrasBadgesSection({ badges = [] }) {
+export default function ExtrasBadgesSection({ badges = [], events = [] }) {
   const [selection, setSelection] = useState(null);
   if (!badges.length) return null;
   return (
@@ -16,20 +16,33 @@ export default function ExtrasBadgesSection({ badges = [] }) {
       <h2 style={{ marginTop: 0, color: '#6d4c9f', textAlign: 'center' }}>Mon chemin · Extras</h2>
       <p style={{ color: '#68736c', textAlign: 'center' }}>Les étapes que tu as déjà construites restent visibles ici.</p>
       <div style={{ display: 'grid', gap: 12 }}>
-        {badges.map(badge => <button key={badge.id || badge.code} type="button" onClick={() => setSelection(badge)} style={{ width: '100%', border: 0, background: '#fff', color: '#29332e', borderRadius: 16, padding: 16, boxShadow: '0 2px 8px #e0e0e0', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', cursor: 'pointer' }}>
-          <span aria-hidden="true" style={{ flex: '0 0 60px', width: 60, height: 60, borderRadius: '50%', display: 'grid', placeItems: 'center', background: '#dbe9dc', border: '5px solid #f1c868', fontSize: 25 }}>✦</span>
-          <span><strong>{badge.nom}</strong><span style={{ display: 'block', color: '#68736c', fontSize: 13, marginTop: 4 }}>Obtenu le {dateFr(badge.date_obtention)}</span><span style={{ display: 'block', color: '#456f52', fontSize: 13, marginTop: 4 }}>Palier {badge.details?.palier_atteint} atteint · Voir le détail</span></span>
-          <span aria-hidden="true" style={{ marginLeft: 'auto', fontSize: 22 }}>›</span>
-        </button>)}
+        {badges.map(badge => {
+          const palier = Number(badge.details?.palier_atteint);
+          const retours = events.filter(event => event.type === 'reached_again' && Number(event.palier_arrivee) === palier);
+          const dernierRetour = retours[retours.length - 1];
+          return <button key={badge.id || badge.code} type="button" onClick={() => setSelection(badge)} style={{ width: '100%', border: 0, background: '#fff', color: '#29332e', borderRadius: 16, padding: 16, boxShadow: '0 2px 8px #e0e0e0', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', cursor: 'pointer' }}>
+            <span aria-hidden="true" style={{ flex: '0 0 60px', width: 60, height: 60, borderRadius: '50%', display: 'grid', placeItems: 'center', background: '#dbe9dc', border: '5px solid #f1c868', fontSize: 25 }}>✦</span>
+            <span>
+              <strong>{badge.nom}</strong>
+              <span style={{ display: 'block', color: '#68736c', fontSize: 13, marginTop: 4 }}>Obtenu le {dateFr(badge.date_obtention)}</span>
+              {dernierRetour && <span style={{ display: 'block', color: '#6d4c9f', fontSize: 13, marginTop: 4 }}>Rythme retrouvé le {dateFr(dernierRetour.semaine_decisive)} · {retours.length} retour{retours.length > 1 ? 's' : ''}</span>}
+              <span style={{ display: 'block', color: '#456f52', fontSize: 13, marginTop: 4 }}>Palier {palier} atteint · Voir le détail</span>
+            </span>
+            <span aria-hidden="true" style={{ marginLeft: 'auto', fontSize: 22 }}>›</span>
+          </button>;
+        })}
       </div>
-      {selection && <BadgeDetail badge={selection} onClose={() => setSelection(null)} />}
+      {selection && <BadgeDetail badge={selection} events={events} onClose={() => setSelection(null)} />}
     </section>
   );
 }
 
-function BadgeDetail({ badge, onClose }) {
+function BadgeDetail({ badge, events, onClose }) {
   const semaines = badge.details?.semaines || [];
   const decisive = semaines[semaines.length - 1];
+  const palier = Number(badge.details?.palier_atteint);
+  const retours = events.filter(event => event.type === 'reached_again' && Number(event.palier_arrivee) === palier);
+  const adaptations = events.filter(event => event.type === 'adapted_up' && Number(event.palier_depart) === palier);
   return <div role="dialog" aria-modal="true" aria-labelledby="badge-detail-title" style={{ position: 'fixed', inset: 0, zIndex: 2200, background: 'rgba(20,24,22,.58)', display: 'grid', placeItems: 'center', padding: 12 }}>
     <section style={{ width: '100%', maxWidth: 470, maxHeight: '88vh', overflowY: 'auto', boxSizing: 'border-box', background: '#fffdf8', color: '#29332e', borderRadius: 24, padding: '1.2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h2 id="badge-detail-title" style={{ margin: 0, fontSize: 19 }}>Détail du badge</h2><button type="button" aria-label="Fermer le détail" onClick={onClose} style={{ border: 0, background: 'transparent', color: '#29332e', fontSize: 24, cursor: 'pointer' }}>×</button></div>
@@ -38,6 +51,13 @@ function BadgeDetail({ badge, onClose }) {
       <h3 style={{ fontSize: 16, marginBottom: 6 }}>Les semaines qui ont construit ce cap</h3>
       {semaines.map(semaine => <div key={semaine.weekStart} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '.65rem 0', borderBottom: '1px solid #dde3de', fontSize: 13 }}><span>{periodeSemaine(semaine.weekStart)}</span><span style={{ color: '#497456', whiteSpace: 'nowrap' }}>Validée ✓</span></div>)}
       {decisive && <div style={{ marginTop: 14, padding: 13, borderRadius: 13, background: '#eeece5', fontSize: 13, lineHeight: 1.45 }}><strong>Semaine décisive :</strong> {decisive.extrasCount} moments sur {badge.details.palier_depart} · {decisive.kcalExtras} kcal sur {decisive.budgetExtras}. Les deux repères ont été respectés.</div>}
+      {(retours.length > 0 || adaptations.length > 0) && (
+        <div style={{ marginTop: 14, padding: 14, borderRadius: 14, background: '#f3eff8', fontSize: 13, lineHeight: 1.5 }}>
+          <strong>La suite de ton chemin</strong>
+          {adaptations.map(event => <p key={event.id || `adapt-${event.semaine_decisive}`} style={{ marginBottom: 4 }}>Le {dateFr(event.semaine_decisive)}, ton palier s’est adapté à {event.palier_arrivee} moments.</p>)}
+          {retours.map(event => <p key={event.id || `retour-${event.semaine_decisive}`} style={{ marginBottom: 4 }}>Le {dateFr(event.semaine_decisive)}, tu as retrouvé ce rythme.</p>)}
+        </div>
+      )}
     </section>
   </div>;
 }
