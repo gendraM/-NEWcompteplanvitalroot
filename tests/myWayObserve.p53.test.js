@@ -26,6 +26,16 @@ describe('P5.3 croisement longitudinal Idéaux × poids', () => {
     expect(buildIdeauxWeightTrends(IDEAL, sessions(), [w('2026-07-18', 80), w('2026-08-18', 79), w('2026-09-05', 78.8)], NOW)).toEqual([]);
   });
 
+  test('reste silencieux si deux pesées d’une période sont enregistrées le même jour', () => {
+    const duplicateDay = [w('2026-07-18', 80), w('2026-07-18', 80.2), w('2026-08-18', 79), w('2026-09-05', 78.8)];
+    expect(buildIdeauxWeightTrends(IDEAL, sessions(), duplicateDay, NOW)).toEqual([]);
+  });
+
+  test('reste silencieux si les dates de pesée couvrent moins de sept jours dans une période', () => {
+    const narrowCoverage = [w('2026-07-18', 80), w('2026-07-20', 80.2), w('2026-08-18', 79), w('2026-09-05', 78.8)];
+    expect(buildIdeauxWeightTrends(IDEAL, sessions(), narrowCoverage, NOW)).toEqual([]);
+  });
+
   test('reste silencieux avec moins de quatre séances dans une période', () => {
     expect(buildIdeauxWeightTrends(IDEAL, sessions().slice(1), weights, NOW)).toEqual([]);
   });
