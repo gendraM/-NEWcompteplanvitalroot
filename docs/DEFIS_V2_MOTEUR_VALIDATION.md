@@ -111,3 +111,58 @@ Le validateur décide. L'autorité de progression écrit. L'interface affiche et
 7. Raccorder les décisions validées à l'autorité unique de progression, sans incrément parallèle.
 8. Généraliser progressivement aux huit autres défis selon leur mode.
 9. Ajouter ensuite les tests techniques et la validation utilisateur du parcours complet.
+
+
+## Suivi d’avancement — 18/09/2026
+
+### Socle Défis V2 stabilisé / déjà implémenté
+
+- un seul défi actif à la fois, sans auto-pause ;
+- verrouillage des autres démarrages pendant un défi actif ;
+- distinction stricte entre progression `DURATION` (calendrier) et `OCCURRENCES` (preuves) ;
+- cycle DURATION sécurisé, y compris l’unité `semaine` et les changements d’heure ;
+- clôture automatique des défis DURATION à l’ouverture, sans cron ;
+- collecte des observations sur toute la fenêtre du défi ;
+- absence de donnée ≠ échec ;
+- bilan final non punitif pilote pour 💡 « J’écoute mon ventre » ;
+- suppression des contrôles techniques de progression/reset dans l’UI ;
+- replay d’un défi terminé par création d’une nouvelle tentative, sans effacer l’historique précédent ;
+- registre métier des règles d’observation DURATION.
+
+### Généralisation DURATION en cours
+
+| Défi | État au 18/09/2026 | Prochaine action |
+|---|---|---|
+| 💡 J’écoute mon ventre | raccordé : collecte + agrégation + bilan final | non-régression |
+| 🍎 Pas de dessert par automatisme | observation raccordée ; dessert détectable, intention non inférée | raccorder confirmation + bilan |
+| 🧀 1 portion ça suffit | observation raccordée sans déduire une seconde portion des grammes | raccorder confirmation + bilan |
+| 🚫 Le faux allié | règle métier validée, validateur spécifique non raccordé | **prochaine implémentation** : croiser repas + extras sans inférer l’intention de compensation |
+| 🔄 Je brise la chaîne | règle métier validée | raccorder séquences + confirmation des cas ambigus |
+| ✨ Je me programme du plaisir | règle métier validée | auditer/raccorder signal extra planifié ↔ extra réel |
+| 💧 1 cru par jour | fallback prudent déjà présent | auditer la fiabilité des données permettant d’identifier cru + non sucré |
+
+Règle commune : les observations d’un défi DURATION servent au bilan et au feedback mais **ne doivent jamais incrémenter le nombre de jours écoulés**.
+
+### OCCURRENCES — après DURATION
+
+Auditer et finaliser 🧠 « Je suis plus fort·e que mes excuses », 🌡️ « Chaud devant… mais doux ! » et 🔥 « 1 vraie faim = 1 vrai repas » avec le moteur de preuves idempotentes. Vérifier en particulier qu’une même preuve ne peut jamais produire deux incréments et que les confirmations déclaratives existantes restent compatibles avec le journal personnalisé.
+
+### Validation finale / non-régression
+
+Après raccordement des défis : vérifier démarrage, verrouillage, progression temporelle, preuves OCCURRENCES, clôture, absence de données, bilans, journal personnalisé, replay, historique, propositions intelligentes et cooldowns. Le replay est implémenté mais ne doit pas être déclaré validé de bout en bout avant un test réel sur un preview correspondant à la branche courante.
+
+## Backlog d’audit produit — après stabilisation du moteur
+
+Ces éléments sont volontairement conservés pour un chantier ultérieur. Ils ne doivent pas être introduits opportunément pendant la stabilisation actuelle.
+
+1. **Micro-circuits contextuels déclenchés par les difficultés observées** : auditer les signaux déjà disponibles, définir les conditions de déclenchement, la fréquence et la sortie du micro-circuit. Réutiliser les moteurs existants et éviter une « app dans l’app » ou une sur-sollicitation.
+2. **Défi de réduction progressive des quantités** : retrouver la définition métier déjà travaillée, auditer les données capables de mesurer une évolution sans confondre grammes, portions et restriction, puis déterminer son modèle DURATION/OCCURRENCES, ses preuves et son bilan. Il n’appartient pas au référentiel actuel des 10 défis.
+3. **Sport / activateurs / accélérateurs** : auditer le bon moment d’introduction à partir d’une base comportementale stabilisée, puis définir le raccord planning ↔ défis ↔ activité. L’objectif est une montée en puissance progressive, pas l’ajout immédiat d’un module isolé.
+
+### Ordre de travail retenu
+
+1. terminer les validateurs DURATION restants ;
+2. généraliser leurs bilans finaux et confirmations nécessaires ;
+3. finaliser/auditer les OCCURRENCES ;
+4. campagne de non-régression + test réel du replay ;
+5. seulement ensuite ouvrir le backlog d’audit produit ci-dessus.
