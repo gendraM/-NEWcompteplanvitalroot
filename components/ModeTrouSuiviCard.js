@@ -46,6 +46,7 @@ export default function ModeTrouSuiviCard({
   suggestion,
   onSave,
   onDismiss,
+  onIgnore,
   saving = false,
   error = ''
 }) {
@@ -95,11 +96,13 @@ export default function ModeTrouSuiviCard({
     }}>
       <div style={{ padding: 16 }}>
         <div style={{ fontWeight: 800, color: '#9a3412', marginBottom: 6 }}>
-          Trou de suivi detecte
+          {suggestion.totalTrous > 1
+            ? `${suggestion.totalTrous} périodes de suivi à compléter`
+            : 'Période de suivi à compléter'}
         </div>
         <div style={{ color: '#7c2d12', lineHeight: 1.45, fontSize: 14 }}>
-          Aucun repas enregistre depuis {suggestion.nbJoursSansSaisie} jours.
-          Souhaites-tu reconstituer la periode du {suggestion.dateDebut} au {suggestion.dateFin} en moins de 2 minutes ?
+          Il manque {suggestion.nbJoursSansSaisie} jours de suivi du {suggestion.dateDebut} au {suggestion.dateFin}.
+          Souhaites-tu reconstituer cette période en moins de 2 minutes ? Les informations seront enregistrées comme estimées.
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
@@ -118,6 +121,16 @@ export default function ModeTrouSuiviCard({
             }}
           >
             {open ? 'Masquer le questionnaire' : 'Reconstituer cette periode'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Cette période ne sera plus proposée. Confirmer ?')) onIgnore();
+            }}
+            disabled={saving}
+            style={{ background: 'transparent', color: '#7c2d12', border: 'none', textDecoration: 'underline', cursor: saving ? 'wait' : 'pointer', padding: '8px 4px' }}
+          >
+            Ne pas compléter cette période
           </button>
           <button
             type="button"

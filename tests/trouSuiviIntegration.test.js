@@ -10,10 +10,21 @@ describe('Intégration du mode trou de suivi', () => {
     const persistence = lire('lib/trouSuiviPersistence.js');
 
     expect(page).toContain('<ModeTrouSuiviCard');
+    expect(page).toContain('detecterTrousSuivi');
+    expect(page).toContain('synchroniserTrousSuiviEnAttente');
+    expect(page).toContain('onIgnore={handleIgnorerTrouSuivi}');
     expect(page).toContain('sauvegarderPeriodeReconstituee(supabase, userId, payload)');
     expect(persistence).toContain("const TABLE_PERIODES = 'suivi_periodes_estimees'");
     expect(persistence).not.toContain(".from('suivi_periodes_reconstituees')");
     expect(`${page}\n${persistence}`).not.toContain('laurelle_test_user');
+  });
+
+  test('conserve les trous historiques avec un cycle de décision explicite', () => {
+    const migration = lire('supabase/migrations/20260918100000_conserver_trous_suivi_historiques.sql');
+    expect(migration).toContain("'a_completer'");
+    expect(migration).toContain("'reportee'");
+    expect(migration).toContain("'reconstituee'");
+    expect(migration).toContain("'ignoree'");
   });
 
   test('persiste séparément les jours sans donnée', () => {
