@@ -59,6 +59,37 @@ describe('Analyse pédagogique de composition de l’assiette', () => {
     expect(resultat.qualiteDonnees.categoriesNonReconnues).toEqual([]);
   });
 
+  test('lit le nouveau profilAlimentaire avant les anciens rôles', () => {
+    const aliment = {
+      nom: 'Test',
+      categorie: 'laitier',
+      profilAlimentaire: { rolesRepas: ['matiere_grasse'] },
+      rolesAssiette: ['proteine']
+    };
+    expect(dimensionsPourAliment(aliment)).toEqual(['matiere_grasse']);
+  });
+
+  test('normalise correctement le rôle matiere_grasse', () => {
+    expect(dimensionsPourAliment({
+      categorie: 'autre',
+      profilAlimentaire: { rolesRepas: ['matiere_grasse'] }
+    })).toEqual(['matiere_grasse']);
+  });
+
+  test('distingue une absence observable d’une donnée inconnue', () => {
+    const connu = analyserCompositionAssiette([
+      { nom: 'Riz', categorie: 'féculent' }
+    ]);
+    expect(connu.dimensions.proteine.statut).toBe('absent');
+
+    const inconnu = analyserCompositionAssiette([
+      { nom: 'Plat mystère', categorie: 'plat préparé' }
+    ]);
+    expect(inconnu.dimensions.proteine.statut).toBe('inconnu');
+
+    expect(analyserCompositionAssiette([]).dimensions.proteine.statut).toBe('inconnu');
+  });
+
   test('ne classe pas automatiquement les laitages comme protéines', () => {
     expect(dimensionsPourCategorie('laitier')).toEqual([]);
     expect(dimensionsPourCategorie('fromage')).toEqual([]);
@@ -72,7 +103,7 @@ describe('Analyse pédagogique de composition de l’assiette', () => {
       { id: '4', nom: 'Avocat', categorie: 'gras_vegetal' }
     ]);
 
-    expect(resultat.version).toBe(2);
+    expect(resultat.version).toBe(3);
     expect(resultat.dimensions.proteine.statut).toBe('present');
     expect(resultat.dimensions.legume.statut).toBe('present');
     expect(resultat.dimensions.feculent.statut).toBe('present');
@@ -86,7 +117,7 @@ describe('Analyse pédagogique de composition de l’assiette', () => {
       { nom: 'Poulet maison', categorie: 'catégorie personnalisée' }
     ]);
 
-    expect(resultat.dimensions.proteine.statut).toBe('absent');
+    expect(resultat.dimensions.proteine.statut).toBe('inconnu');
     expect(resultat.qualiteDonnees.categoriesNonReconnues).toEqual([
       { nom: 'Poulet maison', categorie: 'catégorie personnalisée' }
     ]);
@@ -106,6 +137,7 @@ describe('Analyse pédagogique de composition de l’assiette', () => {
     const resultat = analyserCompositionAssiette([null, { nom: 'Aliment sans catégorie' }]);
     expect(resultat.vide).toBe(false);
     expect(resultat.qualiteDonnees.categoriesRenseignees).toBe(0);
-    expect(resultat.dimensions.legume.statut).toBe('absent');
+    expect(resultat.dimensions.legume.statut).toBe('inconnu');
+    expect(resultat.qualiteDonnees.categoriesManquantes).toEqual([{ nom: 'Aliment sans catégorie' }]);
   });
 });
