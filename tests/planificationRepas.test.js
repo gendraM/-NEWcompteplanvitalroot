@@ -44,7 +44,7 @@ const {
 const referentiel = [
   { nom: 'Poulet', categorie: 'protéine', portionDefaut: '120g', unite: 'g', kcal: 198 },
   { nom: 'Pomme', categorie: 'fruit', portionDefaut: '1 unité', unite: 'piece', kcal: 80 },
-  { nom: 'Œuf', categorie: 'protéine', portionDefaut: '1 œuf', unite: 'piece', kcal: 80, kcalParUnite: 80, qn: 3 }
+  { nom: 'Œuf', categorie: 'protéine', portionDefaut: '1 œuf', unite: 'piece', kcal: 80, kcalParUnite: 80, qn: 3, profilAlimentaire: { rolesRepas: ['proteine'], faitAvec: 'un_aliment' } }
 ];
 
 describe('Planification enrichie', () => {
@@ -123,10 +123,15 @@ describe('Planification enrichie', () => {
     expect(construireComposantAssiette(referentiel[2], '2', 'unité', 'oeuf-1')).toEqual({
       erreur: null,
       composant: {
-        id: 'oeuf-1', nom: 'Œuf', categorie: 'protéine', quantite: 2,
+        id: 'oeuf-1', nom: 'Œuf', categorie: 'protéine', profilAlimentaire: { rolesRepas: ['proteine'], faitAvec: 'un_aliment' }, quantite: 2,
         unite: 'unité', kcal: 160, qn: 3
       }
     });
+  });
+
+  test('conserve le profil alimentaire dans le composant utilisé par Compose ton assiette', () => {
+    const composant = construireComposantAssiette(referentiel[2], '1', 'unité', 'oeuf-profil').composant;
+    expect(composant.profilAlimentaire).toEqual({ rolesRepas: ['proteine'], faitAvec: 'un_aliment' });
   });
 
   test('ajoute une suggestion avec la portion et les calories du référentiel', () => {
