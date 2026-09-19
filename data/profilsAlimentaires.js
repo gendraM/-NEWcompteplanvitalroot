@@ -24,11 +24,11 @@ export function cleProfilAlimentaire(aliment = {}) {
 export const PROFILS_ALIMENTAIRES = Object.freeze({
   'poelee de legumes||accompagnement': Object.freeze({
     rolesRepas: Object.freeze(['legume']),
-    nature: 'composite'
+    faitAvec: 'plusieurs_aliments'
   }),
   'ratatouille rapide||accompagnement': Object.freeze({
     rolesRepas: Object.freeze(['legume']),
-    nature: 'composite'
+    faitAvec: 'plusieurs_aliments'
   })
 });
 
