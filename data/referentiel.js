@@ -225,6 +225,22 @@ const referentielAliments = [
     { nom: "Kati kati", categorie: "africain", sousCategorie: "Buffet camerounais", marque: null, kcal: 300, qn: 2, portionDefaut: "200g", unite: "g", alternatives: ["Poulet DG", "Kondré"], typeOrigine: "maison" },
     { nom: "Taro sauce jaune", categorie: "africain", sousCategorie: "Buffet camerounais", marque: null, kcal: 380, qn: 2, portionDefaut: "250g", unite: "g", alternatives: ["Achu", "Foufou"], typeOrigine: "maison" },
 
+    // Cuisine européenne
+    { nom: "Risotto milanais", categorie: "européen", sousCategorie: "Italie", marque: null, kcal: 350, qn: 2, portionDefaut: "250g", unite: "g", kcalParUnite: 1.4, alternatives: ["Minestrone", "Polenta"], typeOrigine: "maison" },
+    { nom: "Minestrone", categorie: "européen", sousCategorie: "Italie", marque: null, kcal: 90, qn: 3, portionDefaut: "250ml", unite: "ml", kcalParUnite: 0.36, alternatives: ["Gazpacho", "Caldo verde"], typeOrigine: "maison" },
+    { nom: "Tortilla espagnole", categorie: "européen", sousCategorie: "Espagne", marque: null, kcal: 220, qn: 2, portionDefaut: "150g", unite: "g", kcalParUnite: 1.47, alternatives: ["Gazpacho", "Kartoffelsalat"], typeOrigine: "maison" },
+    { nom: "Gazpacho", categorie: "européen", sousCategorie: "Espagne", marque: null, kcal: 60, qn: 3, portionDefaut: "250ml", unite: "ml", kcalParUnite: 0.24, alternatives: ["Minestrone", "Tzatziki"], typeOrigine: "maison" },
+    { nom: "Bacalhau à Brás", categorie: "européen", sousCategorie: "Portugal", marque: null, kcal: 340, qn: 2, portionDefaut: "250g", unite: "g", kcalParUnite: 1.36, alternatives: ["Caldo verde", "Risotto milanais"], typeOrigine: "maison" },
+    { nom: "Caldo verde", categorie: "européen", sousCategorie: "Portugal", marque: null, kcal: 110, qn: 3, portionDefaut: "250ml", unite: "ml", kcalParUnite: 0.44, alternatives: ["Minestrone", "Gazpacho"], typeOrigine: "maison" },
+    { nom: "Schnitzel", categorie: "européen", sousCategorie: "Allemagne", marque: null, kcal: 330, qn: 2, portionDefaut: "150g", unite: "g", kcalParUnite: 2.2, alternatives: ["Kartoffelsalat", "Fish and chips"], typeOrigine: "maison" },
+    { nom: "Kartoffelsalat", categorie: "européen", sousCategorie: "Allemagne", marque: null, kcal: 180, qn: 3, portionDefaut: "200g", unite: "g", kcalParUnite: 0.9, alternatives: ["Tortilla espagnole", "Pierogi ruskie"], typeOrigine: "maison" },
+    { nom: "Moussaka grecque", categorie: "européen", sousCategorie: "Grèce", marque: null, kcal: 280, qn: 2, portionDefaut: "250g", unite: "g", kcalParUnite: 1.12, alternatives: ["Tzatziki", "Bacalhau à Brás"], typeOrigine: "maison" },
+    { nom: "Tzatziki", categorie: "européen", sousCategorie: "Grèce", marque: null, kcal: 70, qn: 3, portionDefaut: "50g", unite: "g", kcalParUnite: 1.4, alternatives: ["Gazpacho", "Minestrone"], typeOrigine: "maison" },
+    { nom: "Fish and chips", categorie: "européen", sousCategorie: "Royaume-Uni", marque: null, kcal: 450, qn: 2, portionDefaut: "300g", unite: "g", kcalParUnite: 1.5, alternatives: ["Shepherd's pie", "Schnitzel"], typeOrigine: "maison" },
+    { nom: "Shepherd's pie", categorie: "européen", sousCategorie: "Royaume-Uni", marque: null, kcal: 350, qn: 2, portionDefaut: "300g", unite: "g", kcalParUnite: 1.17, alternatives: ["Fish and chips", "Moussaka grecque"], typeOrigine: "maison" },
+    { nom: "Borscht", categorie: "européen", sousCategorie: "Europe de l’Est", marque: null, kcal: 80, qn: 3, portionDefaut: "250ml", unite: "ml", kcalParUnite: 0.32, alternatives: ["Caldo verde", "Minestrone"], typeOrigine: "maison" },
+    { nom: "Pierogi ruskie", categorie: "européen", sousCategorie: "Europe de l’Est", marque: null, kcal: 270, qn: 2, portionDefaut: "200g", unite: "g", kcalParUnite: 1.35, alternatives: ["Kartoffelsalat", "Shepherd's pie"], typeOrigine: "maison" },
+
     // Fromages industriels
       // Batch cuisine maison française (typeOrigine: 'maison')
       { nom: "Omelette nature", categorie: "plat principal", sousCategorie: "Oeufs", marque: null, kcal: 220, qn: 2, portionDefaut: "2 œufs (120g)", unite: "g", alternatives: ["Omelette jambon-fromage", "Œufs brouillés"], typeOrigine: "maison" },
