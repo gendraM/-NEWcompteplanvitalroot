@@ -258,3 +258,5 @@ Déploiement de validation relancé après le raccord de la persistance Supabase
 - Dans `/suivi`, consulter une date comprise dans le trou propose le questionnaire pour la période entière ; le tableau de bord propose le trou non traité le plus récent.
 - Les réponses et le report de sept jours sont persistés dans `suivi_periodes_estimees`, sous l'identité Supabase authentifiée. Aucun secours `localStorage` et aucun identifiant de test ne sont utilisés.
 - Cette reconstitution contextualise une absence de données ; elle ne crée aucun repas ni aucune calorie fictive.
+
+Déploiement de validation relancé après le raccord de la détection des périodes sans suivi.
