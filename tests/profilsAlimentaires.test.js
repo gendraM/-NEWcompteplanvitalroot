@@ -35,8 +35,8 @@ describe('Profils alimentaires additifs', () => {
     const ratatouille = enrichirAvecProfilAlimentaire({
       nom: 'Ratatouille rapide', categorie: 'accompagnement', marque: null
     });
-    expect(poelee.profilAlimentaire).toEqual({ rolesRepas: ['legume'], nature: 'composite' });
-    expect(ratatouille.profilAlimentaire).toEqual({ rolesRepas: ['legume'], nature: 'composite' });
+    expect(poelee.profilAlimentaire).toEqual({ rolesRepas: ['legume'], faitAvec: 'plusieurs_aliments' });
+    expect(ratatouille.profilAlimentaire).toEqual({ rolesRepas: ['legume'], faitAvec: 'plusieurs_aliments' });
   });
 
   test('ne force aucun profil sur un cas non validé', () => {
@@ -48,7 +48,7 @@ describe('Profils alimentaires additifs', () => {
     const custom = {
       nom: 'Mon aliment',
       categorie: 'personnalise',
-      profilAlimentaire: { rolesRepas: ['proteine'], nature: 'simple' }
+      profilAlimentaire: { rolesRepas: ['proteine'], faitAvec: 'un_aliment' }
     };
     expect(enrichirAvecProfilAlimentaire(custom)).toBe(custom);
   });
