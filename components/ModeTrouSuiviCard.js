@@ -91,11 +91,12 @@ export default function ModeTrouSuiviCard({
     }}>
       <div style={{ padding: 16 }}>
         <div style={{ fontWeight: 800, color: '#9a3412', marginBottom: 6 }}>
-          Trou de suivi detecte
+          Une période de ton parcours reste à compléter
         </div>
         <div style={{ color: '#7c2d12', lineHeight: 1.45, fontSize: 14 }}>
-          Aucun repas enregistre depuis {suggestion.nbJoursSansSaisie} jours.
-          Souhaites-tu reconstituer la periode du {suggestion.dateDebut} au {suggestion.dateFin} en moins de 2 minutes ?
+          Entre le {suggestion.dateDebut} et le {suggestion.dateFin}, aucune saisie n’a été retrouvée
+          ({suggestion.nbJoursSansSaisie} jours). Si tu le souhaites, quelques réponses suffisent pour
+          remettre cette période dans son contexte, sans inventer de repas jour par jour.
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
@@ -112,7 +113,7 @@ export default function ModeTrouSuiviCard({
               padding: '8px 12px'
             }}
           >
-            {open ? 'Masquer le questionnaire' : 'Reconstituer cette periode'}
+            {open ? 'Masquer le questionnaire' : 'Compléter cette période'}
           </button>
           <button
             type="button"
@@ -267,7 +268,7 @@ export default function ModeTrouSuiviCard({
               cursor: 'pointer'
             }}
           >
-            Enregistrer comme donnees estimees
+            Enregistrer cette période
           </button>
         </form>
       )}

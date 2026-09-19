@@ -32,6 +32,7 @@ import PopupBilanMensuel from '../components/PopupBilanMensuel';
 import BilanMensuelModal from '../components/BilanMensuelModal';
 import { fetchRepasPeriode } from '../lib/repasUtils';
 import BudgetExtrasCard from '../components/BudgetExtrasCard';
+import ModeTrouSuiviConnecte from '../components/ModeTrouSuiviConnecte';
 import { supabase } from '../lib/supabaseClient';
 import { normaliserRepasPourPersistance } from '../lib/repasPersistence';
 import { construirePayloadRepasEnCoursDepuisLignes, creerCleRepasEnCours } from '../lib/repasEnCours';
@@ -2022,6 +2023,8 @@ export default function Suivi() {
           }}
         />
       </div>
+
+      <ModeTrouSuiviConnecte dateSelectionnee={selectedDate} />
 
       {loading ? (
         <div style={{ textAlign: "center", margin: "48px 0" }}>

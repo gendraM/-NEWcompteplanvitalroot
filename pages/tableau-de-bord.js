@@ -5,6 +5,7 @@ import { Line, Pie, Doughnut } from "react-chartjs-2";
 import TimelineProgression from "../components/TimelineProgression";
 import BadgeCard from "../components/BadgeCard";
 import DrawerValidation from "../components/DrawerValidation";
+import ModeTrouSuiviConnecte from "../components/ModeTrouSuiviConnecte";
 import { getSemainesNonValidees, calculerExtrasSemaine, genererMessageFeedback, calculerVariation } from "../lib/validationSemaine";
 import {
   Chart as ChartJS,
@@ -615,6 +616,8 @@ export default function TableauDeBord() {
       >
         Tableau de Bord
       </h1>
+
+      <ModeTrouSuiviConnecte />
       
       {/* Badge de notification pour semaines non validées */}
       {nbSemainesNonValidees > 0 && (
