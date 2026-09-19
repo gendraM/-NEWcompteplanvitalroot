@@ -23,16 +23,21 @@ export default function CompositionAssiettePedagogique({ composition = [] }) {
       <div className="dimensions">
         {DIMENSIONS.map(dimension => {
           const resultat = analyse.dimensions[dimension.id];
-          const present = resultat.statut === 'present';
+          const present = resultat?.statut === 'present';
+          const inconnu = resultat?.statut === 'inconnu';
+          const aliments = Array.isArray(resultat?.aliments) ? resultat.aliments : [];
+          const detail = present
+            ? aliments.map(item => item?.nom).filter(Boolean).join(', ')
+            : inconnu ? 'À préciser' : 'Pas encore repéré';
           return (
-            <div key={dimension.id} className={`dimension ${present ? 'presente' : ''}`}>
+            <div key={dimension.id} className={`dimension ${present ? 'presente' : inconnu ? 'inconnue' : ''}`}>
               <span className="emoji" aria-hidden="true">{dimension.emoji}</span>
               <div>
                 <strong>{dimension.label}</strong>
-                <small>{present ? resultat.aliments.map(item => item.nom).filter(Boolean).join(', ') : 'Pas encore repéré'}</small>
+                <small>{detail}</small>
               </div>
-              <span className="etat" aria-label={present ? `${dimension.label} repéré` : `${dimension.label} non repéré`}>
-                {present ? '✓' : '○'}
+              <span className="etat" aria-label={present ? `${dimension.label} repéré` : inconnu ? `${dimension.label} à préciser` : `${dimension.label} non repéré`}>
+                {present ? '✓' : inconnu ? '?' : '○'}
               </span>
             </div>
           );
@@ -48,7 +53,7 @@ export default function CompositionAssiettePedagogique({ composition = [] }) {
         </div>
       </div>
 
-      {analyse.qualiteDonnees.categoriesNonReconnues.length > 0 && (
+      {((analyse?.qualiteDonnees?.categoriesNonReconnues?.length || 0) > 0 || (analyse?.qualiteDonnees?.categoriesManquantes?.length || 0) > 0) && (
         <p className="donnees-incompletes">
           Certains aliments ne sont pas encore classés dans ces repères. Ils restent bien dans ton repas.
         </p>
@@ -61,6 +66,7 @@ export default function CompositionAssiettePedagogique({ composition = [] }) {
         .dimensions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
         .dimension { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; min-width: 0; padding: 9px; border: 1px solid #e3e8e4; border-radius: 10px; background: white; }
         .dimension.presente { border-color: #a5d6a7; background: #f1f8f2; }
+        .dimension.inconnue { border-style: dashed; }
         .emoji { font-size: 20px; }
         .dimension div { display: grid; min-width: 0; }
         .dimension strong { font-size: 14px; }
