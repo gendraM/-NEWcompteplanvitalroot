@@ -34,13 +34,18 @@ const {
 const composition = [
   { id: 'poulet', nom: 'Poulet', categorie: 'protéine', quantite: 120, unite: 'g', kcal: 198, qn: 4 },
   { id: 'riz', nom: 'Riz', categorie: 'féculent', quantite: 80, unite: 'g', kcal: 104, qn: 3 },
-  { id: 'brocolis', nom: 'Brocolis', categorie: 'légume', quantite: 150, unite: 'g', kcal: 51, qn: 5 }
+  { id: 'brocolis', nom: 'Brocolis', categorie: 'légume', quantite: 150, unite: 'g', kcal: 51, qn: 5, profilAlimentaire: { rolesRepas: ['legume'], faitAvec: 'un_aliment' } }
 ];
 
 describe('Repas composés réutilisables', () => {
   test('refuse un modèle incomplet ou limité à un seul aliment', () => {
     expect(validerCompositionRepas(composition.slice(0, 1)).valide).toBe(false);
     expect(validerCompositionRepas([{ ...composition[0], kcal: null }, composition[1]]).valide).toBe(false);
+  });
+
+  test('conserve le profil alimentaire lors de la normalisation d’un repas réutilisable', () => {
+    const modele = normaliserRepasCompose({ nom: 'Assiette', composition });
+    expect(modele.composition[2].profilAlimentaire).toEqual({ rolesRepas: ['legume'], faitAvec: 'un_aliment' });
   });
 
   test('calcule les calories totales et le QN moyen pondéré', () => {
