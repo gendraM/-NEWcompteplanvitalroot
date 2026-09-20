@@ -348,6 +348,21 @@ const referentielAliments = [
   // ═══════════════════════════════════════════════════════════
   
   { 
+    nom: "Riz blanc / basmati", 
+    categorie: "féculent", 
+    sousCategorie: "Riz", 
+    kcal: 180,
+    qn: 2,
+    portionDefaut: "2 CS",
+    unite: "CS",
+    kcalParUnite: 90,
+    mesureRecommandee: "Cuillère à soupe",
+    portionMax: "2 CS Bombées", 
+    typeRepas: "Déjeuner", 
+    moment: "Midi", 
+    alternatives: ["Riz complet", "Quinoa", "Couscous"] 
+  },
+  { 
     nom: "Riz complet", 
     categorie: "féculent", 
     sousCategorie: "Riz", 
