@@ -9,12 +9,24 @@ function ajouterJours(dateIso, jours) {
   return date.toISOString().slice(0, 10);
 }
 
+function formaterDateLongue(dateIso) {
+  const date = new Date(`${dateIso}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return dateIso;
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  }).format(date);
+}
+
 export default function ModeTrouSuiviConnecte({ dateSelectionnee = null }) {
   const [userId, setUserId] = useState(null);
   const [repas, setRepas] = useState([]);
   const [periodesTraitees, setPeriodesTraitees] = useState([]);
   const [suggestion, setSuggestion] = useState(null);
   const [messageErreur, setMessageErreur] = useState('');
+  const [confirmation, setConfirmation] = useState(null);
 
   const charger = useCallback(async () => {
     const { data: authData } = await supabase.auth.getUser();
@@ -60,6 +72,7 @@ export default function ModeTrouSuiviConnecte({ dateSelectionnee = null }) {
 
   const enregistrer = async (payload) => {
     if (!userId) return;
+    setConfirmation(null);
     const { error } = await supabase.from('suivi_periodes_estimees').upsert({
       user_id: userId,
       date_debut: payload.dateDebut,
@@ -84,6 +97,10 @@ export default function ModeTrouSuiviConnecte({ dateSelectionnee = null }) {
       setMessageErreur("La période n'a pas pu être enregistrée. Réessaie dans quelques instants.");
       return;
     }
+    setConfirmation({
+      dateDebut: payload.dateDebut,
+      dateFin: payload.dateFin
+    });
     await charger();
   };
 
@@ -112,6 +129,20 @@ export default function ModeTrouSuiviConnecte({ dateSelectionnee = null }) {
   return (
     <>
       <ModeTrouSuiviCard suggestion={suggestion} onSave={enregistrer} onDismiss={reporter} />
+      {confirmation && (
+        <div role="status" style={{
+          color: '#166534',
+          background: '#f0fdf4',
+          border: '1px solid #86efac',
+          borderRadius: 10,
+          marginBottom: 16,
+          padding: '12px 14px',
+          fontSize: 14
+        }}>
+          La période du {formaterDateLongue(confirmation.dateDebut)} au {formaterDateLongue(confirmation.dateFin)}
+          {' '}a bien été enregistrée.
+        </div>
+      )}
       {messageErreur && (
         <div role="alert" style={{ color: '#b91c1c', marginBottom: 16, fontSize: 14 }}>
           {messageErreur}
