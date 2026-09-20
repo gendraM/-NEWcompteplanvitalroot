@@ -29,4 +29,4 @@ jobs:
       - name: Run OBSERVE tests
         env:
           NODE_OPTIONS: --experimental-vm-modules
-        run: npx jest tests/myWayObserve.test.js tests/myWayObserve.p53.test.js --runInBand
+        run: npx jest tests/myWayObserve.test.js tests/myWayObserve.p53.test.js tests/myWayObserve.p54.test.js --runInBand
