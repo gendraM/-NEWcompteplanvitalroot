@@ -83,8 +83,6 @@ import TimelineProgression from "../components/TimelineProgression";
 import SaisieDefiAlimentaire from "../components/SaisieDefiAlimentaire";
 import SaisieRepriseJeune from "../components/SaisieRepriseJeune";
 import PointAjustementPlanning from "../components/PointAjustementPlanning";
-import SaisieRepasCompose from "../components/SaisieRepasCompose";
-import { listerRepasComposes } from "../lib/repasComposes";
 import { harmoniserJoursProgramme } from '../lib/repriseJeuneMetier';
 import { useDefis } from "../components/DefisContext";
 import {
@@ -828,6 +826,46 @@ export default function Suivi() {
     }
   };
 
+  const proposerAidePourProchainRepas = async repasEnregistre => {
+    if (!repasEnregistre?.date || !repasEnregistre?.type || typeof window === 'undefined') return;
+
+    const ordreRepas = ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner'];
+    const index = ordreRepas.indexOf(repasEnregistre.type);
+    if (index < 0) return;
+
+    let dateCible = repasEnregistre.date;
+    let typeCible = ordreRepas[index + 1] || 'Petit-déjeuner';
+    if (index === ordreRepas.length - 1) {
+      const [annee, mois, jour] = repasEnregistre.date.split('-').map(Number);
+      const demain = new Date(annee, mois - 1, jour);
+      demain.setDate(demain.getDate() + 1);
+      dateCible = dateLocaleYYYYMMDD(demain);
+    }
+
+    const cleRefus = `plan-vital:aide-repas:refus:${dateCible}:${typeCible}`;
+    if (sessionStorage.getItem(cleRefus) === '1') return;
+
+    const { data, error } = await supabase
+      .from('repas_planifies')
+      .select('id')
+      .eq('date', dateCible)
+      .eq('type', typeCible)
+      .limit(1);
+
+    if (error || (Array.isArray(data) && data.length > 0)) return;
+    setAideProchainRepas({ dateCible, typeCible, etape: 'proposition' });
+  };
+
+  const refuserAideProchainRepas = () => {
+    if (aideProchainRepas && typeof window !== 'undefined') {
+      sessionStorage.setItem(
+        `plan-vital:aide-repas:refus:${aideProchainRepas.dateCible}:${aideProchainRepas.typeCible}`,
+        '1'
+      );
+    }
+    setAideProchainRepas(null);
+  };
+
   const handleSaveRepas = async (repasData, { afficherSucces = true } = {}) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -854,6 +892,7 @@ export default function Suivi() {
       }
       if (Array.isArray(data) && data.length > 0) {
         setRepasSemaine(courant => [...courant, ...data]);
+        void proposerAidePourProchainRepas(data[0]);
       }
       if (afficherSucces) {
         setSnackbar({ open: true, message: "Repas enregistré !", type: "success" });
@@ -870,18 +909,7 @@ export default function Suivi() {
   // ...handlers et fonctions utilitaires...
   // ----------- AUTRES HOOKS PRINCIPAUX -----------
   const [selectedType, setSelectedType] = useState(null);
-  const [modelesRepasRapides, setModelesRepasRapides] = useState([]);
-  const [modeleRapideSelectionne, setModeleRapideSelectionne] = useState(null);
-
-  useEffect(() => {
-    if (!userId) return;
-    let actif = true;
-    listerRepasComposes(supabase, userId).then(({ data, error }) => {
-      if (!actif || error) return;
-      setModelesRepasRapides((data || []).slice(0, 3));
-    });
-    return () => { actif = false; };
-  }, [userId]);
+  const [aideProchainRepas, setAideProchainRepas] = useState(null);
   const [repasEnCoursParCle, setRepasEnCoursParCle] = useState({});
   const [enregistrementRepasEnCours, setEnregistrementRepasEnCours] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'info' });
@@ -2290,41 +2318,6 @@ export default function Suivi() {
               onRetirer={handleRetirerAlimentDuRepas}
               onFinaliser={handleFinaliserRepasEnCours}
             />
-            {modelesRepasRapides.length > 0 && (
-              <section style={{ margin: '14px 0', padding: 14, borderRadius: 12, background: '#fff8e1', border: '1px solid #ffe082' }}>
-                <div style={{ fontWeight: 800, marginBottom: 4 }}>💡 Tu veux partir d’un repas que tu connais déjà ?</div>
-                <div style={{ fontSize: 14, color: '#555', marginBottom: 10 }}>
-                  Choisis un repas enregistré : il sera déjà rempli, tu n’auras plus qu’à confirmer ou modifier ce que tu as réellement mangé.
-                </div>
-                <div style={{ display: 'grid', gap: 8 }}>
-                  {modelesRepasRapides.map(modele => (
-                    <button
-                      key={modele.id}
-                      type="button"
-                      onClick={() => setModeleRapideSelectionne(modele.id)}
-                      style={{ textAlign: 'left', border: '1px solid #ddd', background: '#fff', borderRadius: 10, padding: '10px 12px', cursor: 'pointer' }}
-                    >
-                      <strong>{modele.nom}</strong>
-                      <span style={{ display: 'block', color: '#666', fontSize: 13, marginTop: 2 }}>
-                        {modele.composition.map(item => item.nom).join(' · ')} · {modele.resume.kcalTotal} kcal
-                      </span>
-                      <span style={{ display: 'block', color: '#8e24aa', fontWeight: 700, fontSize: 13, marginTop: 5 }}>Préparer / saisir maintenant →</span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
-            {modeleRapideSelectionne && (
-              <SaisieRepasCompose
-                supabase={supabase}
-                userId={userId}
-                date={selectedDate}
-                type={selectedType}
-                onSave={handleSaveRepas}
-                modeleInitialId={modeleRapideSelectionne}
-                onCancel={() => setModeleRapideSelectionne(null)}
-              />
-            )}
             <RepasBloc
               repasPrevu={typeof repasPlanifieUnique?.aliment === 'string' ? repasPlanifieUnique.aliment : ''}
               categoriePrevu={typeof repasPlanifieUnique?.categorie === 'string' ? repasPlanifieUnique.categorie : ''}
@@ -2341,6 +2334,33 @@ export default function Suivi() {
               repasSemaine={repasSemaine}
               onChangeChampsRepas={isMounted && preparationActive ? setChampsRepasEnCours : undefined}
             />
+            {aideProchainRepas && (
+              <section style={{ margin: '14px 0', padding: 16, borderRadius: 14, background: '#f8fafc', border: '1px solid #dbeafe' }}>
+                {aideProchainRepas.etape === 'proposition' ? (
+                  <>
+                    <div style={{ fontWeight: 800, marginBottom: 5 }}>
+                      Ton {aideProchainRepas.typeCible.toLowerCase()} {aideProchainRepas.dateCible === selectedDate ? "n’est pas encore prévu." : "du prochain jour n’est pas encore prévu."}
+                    </div>
+                    <div style={{ color: '#475569', marginBottom: 12 }}>Tu veux qu’on t’aide à trouver quelque chose ?</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      <button type="button" onClick={() => setAideProchainRepas(c => ({ ...c, etape: 'choix', intention: 'rapide' }))}>⚡ Oui, quelque chose de rapide</button>
+                      <button type="button" onClick={() => setAideProchainRepas(c => ({ ...c, etape: 'choix', intention: 'temps' }))}>🍽️ Oui, j’ai un peu de temps</button>
+                      <button type="button" onClick={refuserAideProchainRepas}>Pas maintenant</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontWeight: 800, marginBottom: 5 }}>D’accord. On cherche pour ton {aideProchainRepas.typeCible.toLowerCase()}.</div>
+                    <div style={{ color: '#475569', marginBottom: 10 }}>
+                      {aideProchainRepas.intention === 'rapide'
+                        ? 'On va te proposer quelques options rapides à partir de ce que Mon Plan Vital connaît déjà.'
+                        : 'On va te proposer quelques options adaptées, sans te noyer dans une liste.'}
+                    </div>
+                    <button type="button" onClick={() => setAideProchainRepas(null)}>Fermer</button>
+                  </>
+                )}
+              </section>
+            )}
             <PointAjustementPlanning
               carte={pointAjustement}
               onAction={agirDepuisPointAjustement}
