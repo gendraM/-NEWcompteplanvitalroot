@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ajusterCompositionRepas, construireOccurrencesReelles, listerRepasComposes } from '../lib/repasComposes';
 
-export default function SaisieRepasCompose({ supabase, userId, date, type, onSave }) {
+export default function SaisieRepasCompose({ supabase, userId, date, type, onSave, modeleInitialId = null, onCancel = null }) {
   const [modeles, setModeles] = useState([]);
   const [modeleId, setModeleId] = useState('');
   const [quantites, setQuantites] = useState([]);
@@ -17,10 +17,10 @@ export default function SaisieRepasCompose({ supabase, userId, date, type, onSav
     listerRepasComposes(supabase, userId).then(({ data, error }) => {
       if (!actif) return;
       if (error) setFeedback(`Chargement impossible : ${error.message}`);
-      else setModeles(data);
+      else {\n        setModeles(data);\n        if (modeleInitialId) {\n          const initial = data.find(item => item.id === modeleInitialId);\n          if (initial) {\n            setModeleId(initial.id);\n            setQuantites(initial.composition.map(item => String(item.quantite ?? '')));\n          }\n        }\n      }
     });
     return () => { actif = false; };
-  }, [supabase, userId]);
+  }, [supabase, userId, modeleInitialId]);
 
   const enregistrer = async () => {
     const modele = modeles.find(item => item.id === modeleId);
