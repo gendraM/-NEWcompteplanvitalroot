@@ -90,6 +90,30 @@ describe('Analyse pédagogique de composition de l’assiette', () => {
     expect(analyserCompositionAssiette([]).dimensions.proteine.statut).toBe('inconnu');
   });
 
+  test('un fruit explicitement connu ne devient pas une donnée inconnue pour les quatre repères', () => {
+    const resultat = analyserCompositionAssiette([{
+      nom: 'Banane',
+      categorie: 'fruit',
+      profilAlimentaire: { rolesRepas: ['fruit'], faitAvec: 'un_aliment' }
+    }]);
+    expect(dimensionsPourAliment({ profilAlimentaire: { rolesRepas: ['fruit'] } })).toEqual([]);
+    expect(resultat.dimensions.proteine.statut).toBe('absent');
+    expect(resultat.dimensions.legume.statut).toBe('absent');
+    expect(resultat.dimensions.feculent.statut).toBe('absent');
+    expect(resultat.dimensions.matiere_grasse.statut).toBe('absent');
+    expect(resultat.qualiteDonnees.categoriesNonReconnues).toEqual([]);
+  });
+
+  test('un rôle de profil non reconnu reste une donnée à préciser', () => {
+    const resultat = analyserCompositionAssiette([{
+      nom: 'Test',
+      categorie: 'personnalise',
+      profilAlimentaire: { rolesRepas: ['role_invente'] }
+    }]);
+    expect(resultat.dimensions.proteine.statut).toBe('inconnu');
+    expect(resultat.qualiteDonnees.categoriesNonReconnues).toHaveLength(1);
+  });
+
   test('ne classe pas automatiquement les laitages comme protéines', () => {
     expect(dimensionsPourCategorie('laitier')).toEqual([]);
     expect(dimensionsPourCategorie('fromage')).toEqual([]);
@@ -103,7 +127,7 @@ describe('Analyse pédagogique de composition de l’assiette', () => {
       { id: '4', nom: 'Avocat', categorie: 'gras_vegetal' }
     ]);
 
-    expect(resultat.version).toBe(3);
+    expect(resultat.version).toBe(4);
     expect(resultat.dimensions.proteine.statut).toBe('present');
     expect(resultat.dimensions.legume.statut).toBe('present');
     expect(resultat.dimensions.feculent.statut).toBe('present');
