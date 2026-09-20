@@ -83,6 +83,8 @@ import TimelineProgression from "../components/TimelineProgression";
 import SaisieDefiAlimentaire from "../components/SaisieDefiAlimentaire";
 import SaisieRepriseJeune from "../components/SaisieRepriseJeune";
 import PointAjustementPlanning from "../components/PointAjustementPlanning";
+import SaisieRepasCompose from "../components/SaisieRepasCompose";
+import { listerRepasComposes } from "../lib/repasComposes";
 import { harmoniserJoursProgramme } from '../lib/repriseJeuneMetier';
 import { useDefis } from "../components/DefisContext";
 import {
@@ -868,6 +870,18 @@ export default function Suivi() {
   // ...handlers et fonctions utilitaires...
   // ----------- AUTRES HOOKS PRINCIPAUX -----------
   const [selectedType, setSelectedType] = useState(null);
+  const [modelesRepasRapides, setModelesRepasRapides] = useState([]);
+  const [modeleRapideSelectionne, setModeleRapideSelectionne] = useState(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    let actif = true;
+    listerRepasComposes(supabase, userId).then(({ data, error }) => {
+      if (!actif || error) return;
+      setModelesRepasRapides((data || []).slice(0, 3));
+    });
+    return () => { actif = false; };
+  }, [userId]);
   const [repasEnCoursParCle, setRepasEnCoursParCle] = useState({});
   const [enregistrementRepasEnCours, setEnregistrementRepasEnCours] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'info' });
@@ -2276,6 +2290,41 @@ export default function Suivi() {
               onRetirer={handleRetirerAlimentDuRepas}
               onFinaliser={handleFinaliserRepasEnCours}
             />
+            {modelesRepasRapides.length > 0 && (
+              <section style={{ margin: '14px 0', padding: 14, borderRadius: 12, background: '#fff8e1', border: '1px solid #ffe082' }}>
+                <div style={{ fontWeight: 800, marginBottom: 4 }}>💡 Tu veux partir d’un repas que tu connais déjà ?</div>
+                <div style={{ fontSize: 14, color: '#555', marginBottom: 10 }}>
+                  Choisis un repas enregistré : il sera déjà rempli, tu n’auras plus qu’à confirmer ou modifier ce que tu as réellement mangé.
+                </div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {modelesRepasRapides.map(modele => (
+                    <button
+                      key={modele.id}
+                      type="button"
+                      onClick={() => setModeleRapideSelectionne(modele.id)}
+                      style={{ textAlign: 'left', border: '1px solid #ddd', background: '#fff', borderRadius: 10, padding: '10px 12px', cursor: 'pointer' }}
+                    >
+                      <strong>{modele.nom}</strong>
+                      <span style={{ display: 'block', color: '#666', fontSize: 13, marginTop: 2 }}>
+                        {modele.composition.map(item => item.nom).join(' · ')} · {modele.resume.kcalTotal} kcal
+                      </span>
+                      <span style={{ display: 'block', color: '#8e24aa', fontWeight: 700, fontSize: 13, marginTop: 5 }}>Préparer / saisir maintenant →</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+            {modeleRapideSelectionne && (
+              <SaisieRepasCompose
+                supabase={supabase}
+                userId={userId}
+                date={selectedDate}
+                type={selectedType}
+                onSave={handleSaveRepas}
+                modeleInitialId={modeleRapideSelectionne}
+                onCancel={() => setModeleRapideSelectionne(null)}
+              />
+            )}
             <RepasBloc
               repasPrevu={typeof repasPlanifieUnique?.aliment === 'string' ? repasPlanifieUnique.aliment : ''}
               categoriePrevu={typeof repasPlanifieUnique?.categorie === 'string' ? repasPlanifieUnique.categorie : ''}
