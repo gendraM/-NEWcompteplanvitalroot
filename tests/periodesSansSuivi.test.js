@@ -48,6 +48,17 @@ describe('périodes sans suivi', () => {
     })).toBeNull();
   });
 
+  test('ne repropose pas une période reconstituée par le questionnaire', () => {
+    expect(choisirPeriodeAProposer({
+      repas,
+      periodesTraitees: [{
+        date_debut: '2026-02-01',
+        date_fin: '2026-04-30',
+        statut: 'reconstituee'
+      }]
+    })).toBeNull();
+  });
+
   test('respecte un report puis repropose après sa date', () => {
     const periodesTraitees = [{
       date_debut: '2026-02-01',
