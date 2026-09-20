@@ -74,7 +74,7 @@ export default function ModeTrouSuiviConnecte({ dateSelectionnee = null }) {
       energie_globale: payload.energieGlobale || null,
       classification: payload.classification || {},
       source: 'questionnaire_periode',
-      statut: 'completee',
+      statut: 'reconstituee',
       reproposer_apres: null,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id,date_debut,date_fin' });
