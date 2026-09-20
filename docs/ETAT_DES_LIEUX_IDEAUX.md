@@ -165,7 +165,13 @@ Il n’est pas recommandé de créer immédiatement toutes les tables conceptuel
 
 ### 5.8 Auth / `user_id`
 
-À auditer avant validation multi-utilisateur complète : RLS `ideaux`, RLS `seances_reelles`, alimentation de `user_id` et rattachement des données historiques.
+Lot 2 réalisé le 20 septembre 2026 :
+- les données historiques de `ideaux` et `seances_reelles` ont un propriétaire cohérent ;
+- `user_id` est obligatoire et prend `auth.uid()` par défaut ;
+- les politiques publiques permissives ont été remplacées par des politiques propriétaire pour `SELECT`, `INSERT`, `UPDATE` et `DELETE` ;
+- une séance ne peut être créée ou déplacée que vers un Idéal appartenant au même utilisateur ;
+- le frontend alimente explicitement `user_id` et filtre ses lectures et mutations par l’utilisateur connecté ;
+- l’envoi d’images motivantes est réservé aux utilisateurs authentifiés, dans leur propre dossier Storage.
 
 ---
 
@@ -193,7 +199,7 @@ Il n’est pas recommandé de créer immédiatement toutes les tables conceptuel
 | Coaching comportemental Idéaux | 🔴 Absent |
 | Généricité hors course | 🔴 Insuffisante |
 | Lien avec autres moteurs de l’app | 🔴 Faible |
-| Isolation utilisateur explicite | 🟠 À auditer avec Auth/RLS |
+| Isolation utilisateur explicite | 🟢 Active sur `ideaux`, `seances_reelles` et l’envoi d’images |
 
 ---
 

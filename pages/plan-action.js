@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
+import { obtenirUserIdIdeaux } from '../lib/ideauxAuth';
 import {
   extraireSemainesPalier,
   seanceEstFaite,
@@ -28,10 +29,12 @@ export default function PlanActionPage() {
 
   async function loadIdeal() {
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       const { data, error } = await supabase
         .from('ideaux')
         .select('*')
         .eq('id', id)
+        .eq('user_id', userId)
         .single();
 
       if (error) throw error;
@@ -49,10 +52,12 @@ export default function PlanActionPage() {
 
   async function loadSeancesReelles(idealId, plan, idealData = ideal) {
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       const { data, error } = await supabase
         .from('seances_reelles')
         .select('*')
         .eq('ideal_id', idealId)
+        .eq('user_id', userId)
         .order('date_prevue', { ascending: true });
 
       if (error) throw error;
@@ -109,7 +114,9 @@ export default function PlanActionPage() {
     const action = sem.actions[actIdx];
 
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       const payload = normaliserSeancePourEcriture({
+        user_id: userId,
         ideal_id: id,
         date_prevue: action.date,
         date_reelle: fait ? new Date().toISOString().slice(0, 10) : null,
@@ -192,9 +199,11 @@ export default function PlanActionPage() {
     const dateBonus = new Date().toISOString().slice(0, 10);
 
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       const { data, error } = await supabase
         .from('seances_reelles')
         .insert(normaliserSeancePourEcriture({
+          user_id: userId,
           ideal_id: id,
           date_prevue: dateBonus,
           date_reelle: dateBonus,
@@ -225,7 +234,8 @@ export default function PlanActionPage() {
 
   async function handleDeleteSeanceBonus(bonusId) {
     try {
-      const { error } = await supabase.from('seances_reelles').delete().eq('id', bonusId);
+      const userId = await obtenirUserIdIdeaux(supabase);
+      const { error } = await supabase.from('seances_reelles').delete().eq('id', bonusId).eq('user_id', userId);
       if (error) throw error;
       setSeancesBonus((prev) => prev.filter((s) => s.id !== bonusId));
       setMessage('✅ Séance bonus supprimée');

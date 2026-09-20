@@ -8,6 +8,7 @@ import {
   seanceEstFaite,
 } from '../lib/ideauxPalier';
 import { chargerIdeauxAvecProgression } from '../lib/ideauxProgression';
+import { obtenirUserIdIdeaux } from '../lib/ideauxAuth';
 
 function extraireSemainesPourParametres(plan, params) {
   return extraireSemainesPalier(plan, {
@@ -55,7 +56,8 @@ export default function IdeauxPage() {
 
   async function fetchIdeaux() {
     try {
-      const data = await chargerIdeauxAvecProgression(supabase);
+      const userId = await obtenirUserIdIdeaux(supabase);
+      const data = await chargerIdeauxAvecProgression(supabase, userId);
       setIdeaux(data);
     } catch (error) {
       console.error('Erreur chargement Idéaux et progression :', error);
@@ -67,18 +69,27 @@ export default function IdeauxPage() {
     e.preventDefault();
     setMessage('');
     setUploading(true);
+    let userId;
+    try {
+      userId = await obtenirUserIdIdeaux(supabase);
+    } catch (error) {
+      setMessage('Vous devez être connecté pour créer un Idéal.');
+      setUploading(false);
+      return;
+    }
     let imageUrl = null;
     if (imageFile) {
       // Upload image to Supabase Storage
       const fileExt = imageFile.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 8)}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage.from('ideaux-images').upload(fileName, imageFile);
+      const objectPath = `${userId}/${fileName}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('ideaux-images').upload(objectPath, imageFile);
       if (uploadError) {
         setMessage('Erreur upload image : ' + uploadError.message);
         setUploading(false);
         return;
       }
-      const { data: publicUrlData } = supabase.storage.from('ideaux-images').getPublicUrl(fileName);
+      const { data: publicUrlData } = supabase.storage.from('ideaux-images').getPublicUrl(objectPath);
       imageUrl = publicUrlData?.publicUrl || null;
     }
     // Générer automatiquement le plan d'ancrage à la création
@@ -95,6 +106,7 @@ export default function IdeauxPage() {
     const planData = generateAnchoringPlan(planParams);
     const { data, error } = await supabase.from('ideaux').insert([
       {
+        user_id: userId,
         titre,
         description_emotionnelle: description,
         indicateur_principal: indicateur,
@@ -130,6 +142,13 @@ export default function IdeauxPage() {
   const [isPlanValide, setIsPlanValide] = useState(false); // État de validation du plan
 
   async function handleGeneratePlan(ideal) {
+    let userId;
+    try {
+      userId = await obtenirUserIdIdeaux(supabase);
+    } catch (error) {
+      setMessage('Vous devez être connecté pour consulter cet Idéal.');
+      return;
+    }
     // 🔥 CORRECTION : Charger les paramètres validés s'ils existent (FIGÉS après validation)
     let params;
     if (ideal.plan_valide && ideal.plan_params_valides) {
@@ -178,7 +197,7 @@ export default function IdeauxPage() {
     if (ideal.id) {
       try {
         if (!ideal.plan_valide) {
-          await supabase.from('ideaux').update({ plan_data: plan, plan_existant: true }).eq('id', ideal.id);
+          await supabase.from('ideaux').update({ plan_data: plan, plan_existant: true }).eq('id', ideal.id).eq('user_id', userId);
           await fetchIdeaux();
         }
         
@@ -208,6 +227,7 @@ export default function IdeauxPage() {
     setMessage('⏳ Validation du plan en cours...');
     
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       // Créer les séances réelles dans Supabase pour le palier
       const semaines = extraireSemainesPourParametres(planData, planParams);
       
@@ -221,6 +241,7 @@ export default function IdeauxPage() {
         const sem = semaines[semIdx];
         for (let act of sem.actions) {
           const seanceData = {
+            user_id: userId,
             ideal_id: currentIdealId,
             date_prevue: act.date,
             duree_prevue: act.duree || planParams.duree || 15,
@@ -265,7 +286,8 @@ export default function IdeauxPage() {
               : planParams.dateDebut
           }
         })
-        .eq('id', currentIdealId);
+        .eq('id', currentIdealId)
+        .eq('user_id', userId);
       
       if (updateError) {
         console.error('❌ ERREUR UPDATE IDEAUX:', updateError);
@@ -288,12 +310,14 @@ export default function IdeauxPage() {
   // Charger les séances réelles depuis Supabase
   async function loadSeancesReelles(idealId, plan, params = planParams) {
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       console.log('🔍 DEBUG - Chargement séances réelles pour ideal_id:', idealId);
       
       const { data, error } = await supabase
         .from('seances_reelles')
         .select('*')
         .eq('ideal_id', idealId)
+        .eq('user_id', userId)
         .order('date_prevue', { ascending: true });
 
       if (error) {
@@ -364,6 +388,7 @@ export default function IdeauxPage() {
     setMessage('⏳ Sauvegarde en cours...');
     
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       const semaines = extraireSemainesPourParametres(planData, planParams);
 
       const sem = semaines[selectedSemaine];
@@ -384,6 +409,7 @@ export default function IdeauxPage() {
           // Séance bonus validée
           console.log('    → Sauvegarde séance BONUS');
           await supabase.from('seances_reelles').upsert({
+            user_id: userId,
             ideal_id: currentIdealId,
             date_prevue: seance.date || new Date().toISOString().slice(0, 10),
             date_reelle: seance.date || new Date().toISOString().slice(0, 10),
@@ -404,6 +430,7 @@ export default function IdeauxPage() {
           if (action) {
             console.log('    → Sauvegarde séance NORMALE:', action.date);
             const seanceNormalisee = normaliserSeancePourEcriture({
+              user_id: userId,
               ideal_id: currentIdealId,
               date_prevue: action.date,
               jour: action.jour,
@@ -482,6 +509,7 @@ export default function IdeauxPage() {
     };
     
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       const newPlan = generateAnchoringPlan(planParamsToSave);
       console.log('🔍 DEBUG - Nouveau plan généré:', newPlan.mois[0]);
       
@@ -491,7 +519,7 @@ export default function IdeauxPage() {
       
       const updateResult = await supabase.from('ideaux').update({
         plan_data: newPlan
-      }).eq('id', ideal.id);
+      }).eq('id', ideal.id).eq('user_id', userId);
       
       console.log('🔍 DEBUG - Résultat update Supabase:', updateResult);
       
@@ -514,6 +542,7 @@ export default function IdeauxPage() {
           .from('ideaux')
           .select('*')
           .eq('id', ideal.id)
+          .eq('user_id', userId)
           .single();
         
         if (updatedIdeaux && updatedIdeaux.plan_data) {
