@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { chargerPreuvesValidationDefi } from '../lib/defisValidationPreuves';
 import { construireBilanFinalDuree } from '../lib/defisBilanFinal';
+import { chargerObservationsDuree } from '../lib/defisObservationsDuree';
 
 const DEFIS_DURATION = new Set([
   '🍎 Pas de dessert par automatisme',
@@ -23,8 +24,11 @@ export default function BilanFinalDefi({ defi }) {
       if (!defi?.id || defi?.status !== 'terminé' || !DEFIS_DURATION.has(defi?.nom)) return;
       try {
         setErreur(false);
-        const preuves = await chargerPreuvesValidationDefi(defi);
-        const resultat = construireBilanFinalDuree(preuves.defi, preuves);
+        const [preuves, observationsDuree] = await Promise.all([
+          chargerPreuvesValidationDefi(defi),
+          chargerObservationsDuree(defi.id)
+        ]);
+        const resultat = construireBilanFinalDuree(preuves.defi, { ...preuves, observationsDuree });
         if (actif) setBilan(resultat);
       } catch (error) {
         console.warn('Bilan final du défi indisponible:', error);
