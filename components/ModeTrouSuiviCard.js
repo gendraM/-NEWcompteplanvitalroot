@@ -11,6 +11,31 @@ const DEFAULT_VALUES = {
   energieGlobale: 'moyenne'
 };
 
+function formatPeriode(dateDebut, dateFin) {
+  const debut = new Date(`${dateDebut}T12:00:00Z`);
+  const fin = new Date(`${dateFin}T12:00:00Z`);
+
+  if (Number.isNaN(debut.getTime()) || Number.isNaN(fin.getTime())) {
+    return `Du ${dateDebut} au ${dateFin}`;
+  }
+
+  const memeAnnee = debut.getUTCFullYear() === fin.getUTCFullYear();
+  const formatDebut = new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    ...(memeAnnee ? {} : { year: 'numeric' }),
+    timeZone: 'UTC'
+  });
+  const formatFin = new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  });
+
+  return `Du ${formatDebut.format(debut)} au ${formatFin.format(fin)}`;
+}
+
 function labelQualite(qualite) {
   const map = {
     'tres-equilibree': 'Tres equilibree',
@@ -94,7 +119,7 @@ export default function ModeTrouSuiviCard({
           Une période de ton parcours reste à compléter
         </div>
         <div style={{ color: '#7c2d12', lineHeight: 1.45, fontSize: 14 }}>
-          Entre le {suggestion.dateDebut} et le {suggestion.dateFin}, aucune saisie n’a été retrouvée
+          {formatPeriode(suggestion.dateDebut, suggestion.dateFin)}, aucune saisie n’a été retrouvée
           ({suggestion.nbJoursSansSaisie} jours). Si tu le souhaites, quelques réponses suffisent pour
           remettre cette période dans son contexte, sans inventer de repas jour par jour.
         </div>
