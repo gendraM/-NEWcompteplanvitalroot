@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { calculerMeilleureConstanceExtras } from '../lib/extrasProgression';
 
 const dateFr = value => value ? new Date(value).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Date non disponible';
 function periodeSemaine(weekStart) {
@@ -21,7 +22,7 @@ function lireDetails(details) {
   }
 }
 
-export default function ExtrasBadgesSection({ badges = [], events = [] }) {
+export default function ExtrasBadgesSection({ badges = [], events = [], semaines = [] }) {
   const [selection, setSelection] = useState(null);
   const badgesSurs = Array.isArray(badges) ? badges : [];
   const evenementsSurs = Array.isArray(events) ? events : [];
@@ -48,26 +49,38 @@ export default function ExtrasBadgesSection({ badges = [], events = [] }) {
           </button>;
         })}
       </div>
-      {selection && <BadgeDetail badge={selection} events={evenementsSurs} onClose={() => setSelection(null)} />}
+      {selection && <BadgeDetail badge={selection} events={evenementsSurs} semaines={semaines} onClose={() => setSelection(null)} />}
     </section>
   );
 }
 
-function BadgeDetail({ badge, events, onClose }) {
+function BadgeDetail({ badge, events, semaines: semainesValidees, onClose }) {
   const details = lireDetails(badge?.details);
-  const semaines = Array.isArray(details.semaines) ? details.semaines : [];
-  const decisive = semaines[semaines.length - 1];
+  const semainesBadge = Array.isArray(details.semaines) ? details.semaines : [];
+  const decisive = semainesBadge[semainesBadge.length - 1];
   const palier = Number(details.palier_atteint);
   const retours = events.filter(event => event.type === 'reached_again' && Number(event.palier_arrivee) === palier);
   const adaptations = events.filter(event => event.type === 'adapted_up' && Number(event.palier_depart) === palier);
+  const debutDuRythme = details.semaine_decisive || semainesBadge[semainesBadge.length - 1]?.weekStart || null;
+  const meilleureConstance = calculerMeilleureConstanceExtras(semainesValidees, palier, debutDuRythme);
   return <div role="dialog" aria-modal="true" aria-labelledby="badge-detail-title" style={{ position: 'fixed', inset: 0, zIndex: 2200, background: 'rgba(20,24,22,.58)', display: 'grid', placeItems: 'center', padding: 12 }}>
     <section style={{ width: '100%', maxWidth: 470, maxHeight: '88vh', overflowY: 'auto', boxSizing: 'border-box', background: '#fffdf8', color: '#29332e', borderRadius: 24, padding: '1.2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h2 id="badge-detail-title" style={{ margin: 0, fontSize: 19 }}>Détail du badge</h2><button type="button" aria-label="Fermer le détail" onClick={onClose} style={{ border: 0, background: 'transparent', color: '#29332e', fontSize: 24, cursor: 'pointer' }}>×</button></div>
       <div style={{ textAlign: 'center', padding: '.7rem 0 1rem' }}><div aria-hidden="true" style={{ width: 76, height: 76, margin: '0 auto', borderRadius: '50%', display: 'grid', placeItems: 'center', background: '#dbe9dc', border: '6px solid #f1c868', fontSize: 30 }}>✦</div><h3 style={{ margin: '.7rem 0 .2rem' }}>{badge.nom}</h3><div style={{ color: '#68736c', fontSize: 13 }}>Obtenu le {dateFr(badge.date_obtention)} · Palier {details.palier_atteint} atteint</div></div>
       <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 2px 8px #e0e0e0' }}><strong>Ce qui t’a permis de l’obtenir</strong><p>✓ {details.semaines_requises} semaines validées dans la direction de ton palier {details.palier_depart}</p><p>✓ Moments d’extra respectés chaque semaine prise en compte</p><p style={{ marginBottom: 0 }}>✓ Budget calorique respecté chaque semaine prise en compte</p></div>
       <h3 style={{ fontSize: 16, marginBottom: 6 }}>Les semaines qui ont construit ce cap</h3>
-      {semaines.map(semaine => <div key={semaine.weekStart} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '.65rem 0', borderBottom: '1px solid #dde3de', fontSize: 13 }}><span>{periodeSemaine(semaine.weekStart)}</span><span style={{ color: '#497456', whiteSpace: 'nowrap' }}>Validée ✓</span></div>)}
+      {semainesBadge.map(semaine => <div key={semaine.weekStart} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '.65rem 0', borderBottom: '1px solid #dde3de', fontSize: 13 }}><span>{periodeSemaine(semaine.weekStart)}</span><span style={{ color: '#497456', whiteSpace: 'nowrap' }}>Validée ✓</span></div>)}
       {decisive && <div style={{ marginTop: 14, padding: 13, borderRadius: 13, background: '#eeece5', fontSize: 13, lineHeight: 1.45 }}><strong>Semaine décisive :</strong> {decisive.extrasCount} moments sur {details.palier_depart} · {decisive.kcalExtras} kcal sur {decisive.budgetExtras}. Les deux repères ont été respectés.</div>}
+      <div style={{ marginTop: 14, padding: 14, borderRadius: 14, background: '#eef5ef', fontSize: 13, lineHeight: 1.5 }}>
+        <strong>Meilleure période de constance</strong>
+        {meilleureConstance ? (
+          <p style={{ marginBottom: 0 }}>
+            {meilleureConstance.nombreSemaines} semaine{meilleureConstance.nombreSemaines > 1 ? 's' : ''} consécutive{meilleureConstance.nombreSemaines > 1 ? 's' : ''}, du {dateFr(meilleureConstance.debut)} au {dateFr(meilleureConstance.fin)}.
+          </p>
+        ) : (
+          <p style={{ marginBottom: 0 }}>Cette période se construira avec les prochaines semaines fiables dans ce rythme.</p>
+        )}
+      </div>
       {(retours.length > 0 || adaptations.length > 0) && (
         <div style={{ marginTop: 14, padding: 14, borderRadius: 14, background: '#f3eff8', fontSize: 13, lineHeight: 1.5 }}>
           <strong>La suite de ton chemin</strong>
