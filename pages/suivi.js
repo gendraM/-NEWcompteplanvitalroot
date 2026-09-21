@@ -35,7 +35,7 @@ import BudgetExtrasCard from '../components/BudgetExtrasCard';
 import { supabase } from '../lib/supabaseClient';
 import { normaliserRepasPourPersistance } from '../lib/repasPersistence';
 import { construirePayloadRepasEnCoursDepuisLignes, creerCleRepasEnCours } from '../lib/repasEnCours';
-import { construireOccurrencesReelles, creerRepasCompose } from '../lib/repasComposes';
+import { ajusterCompositionRepas, construireOccurrencesReelles, creerRepasCompose } from '../lib/repasComposes';
 import { enregistrerAssiettePlanifiee, grouperRepasPlanifiesParType } from '../lib/planificationRepas';
 import {
   calculerScoreAlignementParOccurrence,
@@ -869,13 +869,27 @@ export default function Suivi() {
   const preparerChoixRepas = async choix => {
     if (!choix?.composition?.length || !userId || !aideProchainRepas) return;
     setChoixRepasActif(choix);
+    setQuantitesChoixRepas(choix.composition.map(item => item.quantite ?? ''));
   };
+
+  const modifierQuantiteChoixRepas = (index, valeur) => {
+    setQuantitesChoixRepas(courantes => courantes.map((quantite, i) => i === index ? valeur : quantite));
+  };
+
+  const choixRepasAjuste = choixRepasActif
+    ? ajusterCompositionRepas(choixRepasActif.composition, quantitesChoixRepas)
+    : null;
 
   const confirmerChoixRepasMange = async choix => {
     if (!choix?.composition?.length || !userId || !aideProchainRepas) return;
+    const ajustement = ajusterCompositionRepas(choix.composition, quantitesChoixRepas);
+    if (!ajustement.valide) {
+      setSnackbar({ open: true, message: ajustement.erreurs[0] || 'Vérifie les quantités du repas.', type: 'error' });
+      return;
+    }
     setActionChoixRepasEnCours(true);
     const occurrences = construireOccurrencesReelles(
-      { id: choix.sourceId, nom: choix.titre, composition: choix.composition },
+      { id: choix.sourceId, nom: choix.titre, composition: ajustement.composition },
       { userId, date: aideProchainRepas.dateCible, type: aideProchainRepas.typeCible }
     );
     const resultat = await handleSaveRepas(occurrences);
@@ -963,6 +977,7 @@ export default function Suivi() {
   const [choixRepasContextuels, setChoixRepasContextuels] = useState([]);
   const [choixRepasActif, setChoixRepasActif] = useState(null);
   const [actionChoixRepasEnCours, setActionChoixRepasEnCours] = useState(false);
+  const [quantitesChoixRepas, setQuantitesChoixRepas] = useState([]);
   const [repasEnCoursParCle, setRepasEnCoursParCle] = useState({});
   const [enregistrementRepasEnCours, setEnregistrementRepasEnCours] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'info' });
@@ -2432,14 +2447,35 @@ export default function Suivi() {
                         <div style={{ fontWeight: 800 }}>{choixRepasActif.titre}</div>
                         <div style={{ color: '#64748b', margin: '5px 0 10px' }}>Prévu pour {aideProchainRepas.typeCible.toLowerCase()} : vérifie ce que tu vas réellement manger.</div>
                         {choixRepasActif.composition.map((item, index) => (
-                          <div key={item.id || index} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '4px 0' }}>
+                          <div key={item.id || index} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', gap: 8, padding: '5px 0' }}>
                             <span>{item.nom}</span>
-                            <span>{item.quantite ?? '—'} {item.unite || ''}{Number.isFinite(Number(item.kcal)) ? ` · ${item.kcal} kcal` : ''}</span>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <span style={{ fontSize: 12, color: '#64748b' }}>Quantité réelle</span>
+                              <input
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                                value={quantitesChoixRepas[index] ?? ''}
+                                onChange={event => modifierQuantiteChoixRepas(index, event.target.value)}
+                                style={{ width: 78 }}
+                              />
+                              <span>{item.unite || ''}</span>
+                            </label>
+                            <strong>
+                              {choixRepasAjuste?.composition?.[index]?.kcal !== null && choixRepasAjuste?.composition?.[index]?.kcal !== undefined
+                                ? `${choixRepasAjuste.composition[index].kcal} kcal`
+                                : '—'}
+                            </strong>
                           </div>
                         ))}
+                        {choixRepasAjuste?.valide && (
+                          <div style={{ textAlign: 'right', fontWeight: 800, marginTop: 8 }}>
+                            Total réel : {choixRepasAjuste.resume.kcalTotal} kcal
+                          </div>
+                        )}
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                          <button type="button" disabled={actionChoixRepasEnCours} onClick={() => confirmerChoixRepasMange(choixRepasActif)}>C’est bien ce que j’ai mangé ✓</button>
-                          <button type="button" disabled={actionChoixRepasEnCours} onClick={() => setChoixRepasActif(null)}>Modifier / revenir</button>
+                          <button type="button" disabled={actionChoixRepasEnCours || !choixRepasAjuste?.valide} onClick={() => confirmerChoixRepasMange(choixRepasActif)}>C’est bien ce que j’ai mangé ✓</button>
+                          <button type="button" disabled={actionChoixRepasEnCours} onClick={() => { setChoixRepasActif(null); setQuantitesChoixRepas([]); }}>Choisir un autre repas</button>
                         </div>
                       </div>
                     )}
