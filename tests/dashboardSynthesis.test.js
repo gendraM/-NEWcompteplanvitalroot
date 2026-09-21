@@ -1,0 +1,61 @@
+import {
+  construireExtrasStatus,
+  construireSyntheseTableauDeBord,
+  construireWeightStatus,
+  evaluerDisponibiliteDonnees,
+} from '../lib/dashboardSynthesis';
+
+describe('dashboardSynthesis', () => {
+  test('absence de données reste neutre et ne devient pas un échec', () => {
+    const synthese = construireSyntheseTableauDeBord();
+    expect(synthese.dataAvailability.poids.disponible).toBe(false);
+    expect(synthese.weightStatus.disponible).toBe(false);
+    expect(synthese.extrasStatus.disponible).toBe(false);
+  });
+
+  test('un seul poids ne fabrique pas de tendance', () => {
+    const statut = construireWeightStatus([{ date: '2026-09-20', poids: 82.4 }], 70);
+    expect(statut.disponible).toBe(true);
+    expect(statut.suffisantPourTendance).toBe(false);
+    expect(statut.variationDepuisDepart).toBeNull();
+    expect(statut.direction).toBe('insuffisant');
+  });
+
+  test('le poids expose départ, actuel et objectif sans moyenne', () => {
+    const statut = construireWeightStatus([
+      { date: '2026-09-01', poids: 84.2 },
+      { date: '2026-09-20', poids: 82.4 },
+    ], 70);
+    expect(statut.depart.poids).toBe(84.2);
+    expect(statut.actuel.poids).toBe(82.4);
+    expect(statut.objectif).toBe(70);
+    expect(statut.variationDepuisDepart).toBe(-1.8);
+    expect(statut.direction).toBe('baisse');
+  });
+
+  test('la disponibilité compte seulement les observations de poids valides', () => {
+    const dispo = evaluerDisponibiliteDonnees({
+      poids: [
+        { date: '2026-09-01', poids: 84 },
+        { date: 'date-invalide', poids: 83 },
+        { date: '2026-09-20', poids: null },
+      ],
+    });
+    expect(dispo.poids.nombreObservations).toBe(1);
+    expect(dispo.poids.suffisantPourTendance).toBe(false);
+  });
+
+  test('Extras délègue la progression au moteur métier partagé', () => {
+    const semaines = Array.from({ length: 4 }, (_, index) => ({
+      weekStart: `2026-08-${String(3 + index * 7).padStart(2, '0')}`,
+      validee: true,
+      extras_count: 2,
+      kcal_extras: 300,
+      budget_extras: 500,
+    }));
+    const statut = construireExtrasStatus(semaines);
+    expect(statut.disponible).toBe(true);
+    expect(statut.palier).toBe(3);
+    expect(statut.prochainPalier).toBe(2);
+  });
+});
