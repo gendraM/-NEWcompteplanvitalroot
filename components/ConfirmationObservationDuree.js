@@ -5,13 +5,13 @@ import { VALIDATION_DECISION, PROGRESSION_MODEL, getValidationConfig } from '../
 import { chargerObservationsDuree, sauvegarderObservationDuree } from '../lib/defisObservationsDuree';
 
 const QUESTIONS = {
-  '🍎 Pas de dessert par automatisme': 'Ce dessert correspondait-il à une vraie envie ou à une occasion choisie ?',
+  '🍎 Pas de dessert par automatisme': 'Ce dessert était-il un choix conscient (vraie envie ou occasion choisie) ?',
   '🧀 1 portion ça suffit': decision => decision?.donnees?.secondePortionMentionnee
     ? 'Tu as mentionné une deuxième portion dans ta saisie. Tu confirmes t’être resservi·e ?'
     : 'Pour les repas observés aujourd’hui, es-tu resté·e sur une seule portion ?',
-  '🚫 Le faux allié': 'Cet extra servait-il à compenser ou remplacer une autre envie ?',
+  '🚫 Le faux allié': 'Cet extra servait-il à compenser ou remplacer un autre aliment ou un autre extra ?',
   '🔄 Je brise la chaîne': 'Cet enchaînement sucre → gras correspondait-il bien au schéma que tu voulais observer ?',
-  '✨ Je me programme du plaisir': 'Ce plaisir avait-il été planifié à l’avance ?',
+  '✨ Je me programme du plaisir': 'Ce plaisir avait-il été planifié avant de le consommer ?',
   '💧 1 cru par jour': 'As-tu mangé aujourd’hui au moins un aliment cru et non sucré ?'
 };
 
