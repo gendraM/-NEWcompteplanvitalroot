@@ -35,8 +35,8 @@ import BudgetExtrasCard from '../components/BudgetExtrasCard';
 import { supabase } from '../lib/supabaseClient';
 import { normaliserRepasPourPersistance } from '../lib/repasPersistence';
 import { construirePayloadRepasEnCoursDepuisLignes, creerCleRepasEnCours } from '../lib/repasEnCours';
-import { creerRepasCompose } from '../lib/repasComposes';
-import { grouperRepasPlanifiesParType } from '../lib/planificationRepas';
+import { construireOccurrencesReelles, creerRepasCompose } from '../lib/repasComposes';
+import { enregistrerAssiettePlanifiee, grouperRepasPlanifiesParType } from '../lib/planificationRepas';
 import {
   calculerScoreAlignementParOccurrence,
   classifierAlignementRepas,
@@ -866,6 +866,46 @@ export default function Suivi() {
     setAideProchainRepas(courant => ({ ...courant, etape: 'choix', intention }));
   };
 
+  const preparerChoixRepas = async choix => {
+    if (!choix?.composition?.length || !userId || !aideProchainRepas) return;
+    setChoixRepasActif(choix);
+  };
+
+  const confirmerChoixRepasMange = async choix => {
+    if (!choix?.composition?.length || !userId || !aideProchainRepas) return;
+    setActionChoixRepasEnCours(true);
+    const occurrences = construireOccurrencesReelles(
+      { id: choix.sourceId, nom: choix.titre, composition: choix.composition },
+      { userId, date: aideProchainRepas.dateCible, type: aideProchainRepas.typeCible }
+    );
+    const resultat = await handleSaveRepas(occurrences);
+    setActionChoixRepasEnCours(false);
+    if (resultat?.ok) {
+      setChoixRepasActif(null);
+      setChoixRepasContextuels([]);
+      setAideProchainRepas(null);
+    }
+  };
+
+  const planifierChoixRepas = async choix => {
+    if (!choix?.composition?.length || !userId || !aideProchainRepas) return;
+    setActionChoixRepasEnCours(true);
+    const { error } = await enregistrerAssiettePlanifiee(
+      supabase,
+      choix.composition,
+      { userId, date: aideProchainRepas.dateCible, type: aideProchainRepas.typeCible }
+    );
+    setActionChoixRepasEnCours(false);
+    if (error) {
+      setSnackbar({ open: true, message: `Impossible de planifier ce repas : ${error.message}`, type: 'error' });
+      return;
+    }
+    setSnackbar({ open: true, message: `${choix.titre} a été ajouté à ton planning.`, type: 'success' });
+    setChoixRepasActif(null);
+    setChoixRepasContextuels([]);
+    setAideProchainRepas(null);
+  };
+
   const refuserAideProchainRepas = () => {
     if (aideProchainRepas && typeof window !== 'undefined') {
       sessionStorage.setItem(
@@ -921,6 +961,8 @@ export default function Suivi() {
   const [selectedType, setSelectedType] = useState(null);
   const [aideProchainRepas, setAideProchainRepas] = useState(null);
   const [choixRepasContextuels, setChoixRepasContextuels] = useState([]);
+  const [choixRepasActif, setChoixRepasActif] = useState(null);
+  const [actionChoixRepasEnCours, setActionChoixRepasEnCours] = useState(false);
   const [repasEnCoursParCle, setRepasEnCoursParCle] = useState({});
   const [enregistrementRepasEnCours, setEnregistrementRepasEnCours] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'info' });
@@ -2374,8 +2416,8 @@ export default function Suivi() {
                             <strong>{choix.titre}</strong>
                             {choix.observation && <div style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>{choix.observation}</div>}
                             <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                              <button type="button" disabled title="Le branchement direct vers la saisie arrive à l’étape suivante">Préparer maintenant</button>
-                              <button type="button" disabled title="Le branchement direct vers le planning arrive à l’étape suivante">Planifier</button>
+                              <button type="button" disabled={actionChoixRepasEnCours} onClick={() => preparerChoixRepas(choix)}>Préparer maintenant</button>
+                              <button type="button" disabled={actionChoixRepasEnCours} onClick={() => planifierChoixRepas(choix)}>Planifier</button>
                             </div>
                           </div>
                         ))}
@@ -2383,6 +2425,22 @@ export default function Suivi() {
                     ) : (
                       <div style={{ background: '#fff', borderRadius: 10, padding: 12, marginBottom: 10, color: '#64748b' }}>
                         Je n’ai pas encore assez d’historique fiable pour te proposer une valeur sûre personnelle.
+                      </div>
+                    )}
+                    {choixRepasActif && (
+                      <div style={{ background: '#fff', border: '2px solid #c4b5fd', borderRadius: 12, padding: 14, margin: '12px 0' }}>
+                        <div style={{ fontWeight: 800 }}>{choixRepasActif.titre}</div>
+                        <div style={{ color: '#64748b', margin: '5px 0 10px' }}>Prévu pour {aideProchainRepas.typeCible.toLowerCase()} : vérifie ce que tu vas réellement manger.</div>
+                        {choixRepasActif.composition.map((item, index) => (
+                          <div key={item.id || index} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '4px 0' }}>
+                            <span>{item.nom}</span>
+                            <span>{item.quantite ?? '—'} {item.unite || ''}{Number.isFinite(Number(item.kcal)) ? ` · ${item.kcal} kcal` : ''}</span>
+                          </div>
+                        ))}
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                          <button type="button" disabled={actionChoixRepasEnCours} onClick={() => confirmerChoixRepasMange(choixRepasActif)}>C’est bien ce que j’ai mangé ✓</button>
+                          <button type="button" disabled={actionChoixRepasEnCours} onClick={() => setChoixRepasActif(null)}>Modifier / revenir</button>
+                        </div>
                       </div>
                     )}
                     <button type="button" onClick={() => { setChoixRepasContextuels([]); setAideProchainRepas(null); }}>Fermer</button>
