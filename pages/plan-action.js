@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
+import { obtenirUserIdIdeaux } from '../lib/ideauxAuth';
+import {
+  extraireSemainesPalier,
+  seanceEstFaite,
+  normaliserSeancePourEcriture,
+  calculerProgressionPalier,
+} from '../lib/ideauxPalier';
 
 export default function PlanActionPage() {
   const router = useRouter();
@@ -10,11 +17,11 @@ export default function PlanActionPage() {
   const [planData, setPlanData] = useState(null);
   const [selectedSemaine, setSelectedSemaine] = useState(0);
   const [reel, setReel] = useState([]);
-  const [seancesBonus, setSeancesBonus] = useState([]); // Séances bonus par semaine
+  const [seancesReelles, setSeancesReelles] = useState([]);
+  const [seancesBonus, setSeancesBonus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
-  // Charger l'idéal et son plan depuis Supabase
   useEffect(() => {
     if (!id) return;
     loadIdeal();
@@ -22,20 +29,19 @@ export default function PlanActionPage() {
 
   async function loadIdeal() {
     try {
-      console.log('[DEBUG] id reçu dans plan-action:', id, 'type:', typeof id);
+      const userId = await obtenirUserIdIdeaux(supabase);
       const { data, error } = await supabase
         .from('ideaux')
         .select('*')
         .eq('id', id)
+        .eq('user_id', userId)
         .single();
 
       if (error) throw error;
-      
+
       setIdeal(data);
       setPlanData(data.plan_data);
-
-      // Charger les séances réelles
-      await loadSeancesReelles(id, data.plan_data);
+      await loadSeancesReelles(id, data.plan_data, data);
       setLoading(false);
     } catch (err) {
       console.error('Erreur chargement idéal:', err);
@@ -44,49 +50,40 @@ export default function PlanActionPage() {
     }
   }
 
-  async function loadSeancesReelles(idealId, plan) {
+  async function loadSeancesReelles(idealId, plan, idealData = ideal) {
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       const { data, error } = await supabase
         .from('seances_reelles')
         .select('*')
         .eq('ideal_id', idealId)
+        .eq('user_id', userId)
         .order('date_prevue', { ascending: true });
 
       if (error) throw error;
 
-      // Reconstituer l'état reel à partir des données Supabase
       if (data && plan) {
-        const nbSemaines = 4; // Palier de 4 semaines par défaut
-        let semaines = [];
-        let count = 0;
-        for (let m of plan.mois || []) {
-          for (let s of m.semaines) {
-            if (count < nbSemaines) {
-              semaines.push({ ...s, mois: m.numero, annee: m.annee });
-              count++;
-            }
-          }
-          if (count >= nbSemaines) break;
-        }
+        const numeroPalier = Number(idealData?.palier_numero || 1);
+        const seancesPalier = data.filter((seance) => Number(seance.palier_numero || 1) === numeroPalier);
+        const semaines = extraireSemainesPalier(plan, idealData);
+        const bonusSeances = seancesPalier.filter((s) => s.bonus === true);
+        const normalSeances = seancesPalier.filter((s) => !s.bonus);
 
-        // Séparer séances planifiées et bonus
-        const bonusSeances = data.filter(s => s.bonus === true);
-        const normalSeances = data.filter(s => !s.bonus);
-
-        const newReel = semaines.map((sem) => {
-          return sem.actions.map((action) => {
-            const seance = normalSeances.find(s => s.date_prevue === action.date);
+        const newReel = semaines.map((sem) =>
+          (sem.actions || []).map((action) => {
+            const seance = normalSeances.find((s) => s.date_prevue === action.date);
             return {
-              fait: seance?.statut === 'fait',
+              fait: seanceEstFaite(seance),
               duree: seance?.duree_reelle || seance?.duree_prevue || 15,
               distance_km: seance?.distance_km || 0,
               vitesse: seance?.vitesse || null,
-              date: action.date
+              date: action.date,
             };
-          });
-        });
+          })
+        );
 
         setReel(newReel);
+        setSeancesReelles(normalSeances);
         setSeancesBonus(bonusSeances);
       }
     } catch (err) {
@@ -94,151 +91,143 @@ export default function PlanActionPage() {
     }
   }
 
-  // Calculer la semaine courante en fonction de la date actuelle
   function getSemaineCourante(semaines) {
+    if (!semaines.length) return 0;
     const today = new Date();
     for (let i = 0; i < semaines.length; i++) {
       const debutSemaine = new Date(semaines[i].debut);
       const finSemaine = new Date(debutSemaine);
       finSemaine.setDate(debutSemaine.getDate() + 6);
-
-      if (today >= debutSemaine && today <= finSemaine) {
-        return i;
-      }
+      if (today >= debutSemaine && today <= finSemaine) return i;
     }
-    if (today > new Date(semaines[semaines.length - 1].debut)) {
-      return semaines.length - 1;
-    }
+    if (today > new Date(semaines[semaines.length - 1].debut)) return semaines.length - 1;
     return 0;
   }
 
-  // Sauvegarder une séance réalisée
   async function handleSaveSeanceReelle(semIdx, actIdx, fait, duree, distanceKm, vitesse) {
-    if (!id || !planData) return;
+    if (!id || !planData || !ideal) return;
 
-    const nbSemaines = 4;
-    let semaines = [];
-    let count = 0;
-    for (let m of planData.mois || []) {
-      for (let s of m.semaines) {
-        if (count < nbSemaines) {
-          semaines.push({ ...s, mois: m.numero, annee: m.annee });
-          count++;
-        }
-      }
-      if (count >= nbSemaines) break;
-    }
-
+    const semaines = extraireSemainesPalier(planData, ideal);
     const sem = semaines[semIdx];
-    if (!sem || !sem.actions || !sem.actions[actIdx]) {
+    if (!sem?.actions?.[actIdx]) {
       console.error('Semaine ou action introuvable:', { semIdx, actIdx, sem });
       return;
     }
     const action = sem.actions[actIdx];
 
     try {
-      const { error } = await supabase
-        .from('seances_reelles')
-        .upsert({
-          ideal_id: id,
-          date_prevue: action.date,
-          date_reelle: fait ? new Date().toISOString().slice(0, 10) : null,
-          jour: action.jour,
-          action_type: action.action_type,
-          duree_prevue: planData.objectif.duree_unite || 15,
-          duree_reelle: fait ? duree : null,
-          distance_km: fait ? (distanceKm || 0) : null,
-          vitesse: fait ? (vitesse || null) : null,
-          intensite: planData.objectif.intensite || '7,6 km/h',
-          statut: fait ? 'fait' : 'à faire',
-          semaine_numero: sem.numero,
-          mois_numero: sem.mois,
-          annee: sem.annee
-        }, { onConflict: 'ideal_id,date_prevue' });
+      const userId = await obtenirUserIdIdeaux(supabase);
+      const payload = normaliserSeancePourEcriture({
+        user_id: userId,
+        ideal_id: id,
+        palier_numero: Number(ideal.palier_numero || 1),
+        date_prevue: action.date,
+        date_reelle: fait ? new Date().toISOString().slice(0, 10) : null,
+        jour: action.jour,
+        action_type: action.action_type,
+        duree_prevue: planData.objectif?.duree_unite || 15,
+        duree_reelle: fait ? duree : null,
+        distance_km: fait ? (distanceKm || 0) : null,
+        vitesse: fait ? (vitesse || null) : null,
+        intensite: planData.objectif?.intensite || '7,6 km/h',
+        fait,
+        bonus: false,
+        semaine_numero: sem.numero,
+        mois_numero: sem.mois,
+        annee: sem.annee,
+      });
 
-      if (error) console.error('Erreur sauvegarde séance:', error);
+      const { data, error } = await supabase
+        .from('seances_reelles')
+        .upsert(payload, { onConflict: 'ideal_id,date_prevue' })
+        .select()
+        .single();
+
+      if (error) throw error;
+      setSeancesReelles((prev) => {
+        const sansSeance = prev.filter((s) => s.date_prevue !== data.date_prevue);
+        return [...sansSeance, data];
+      });
     } catch (err) {
-      console.error('Erreur:', err);
+      console.error('Erreur sauvegarde séance:', err);
+      setMessage('❌ La séance n’a pas pu être enregistrée');
     }
   }
 
-  // Gérer le clic sur une checkbox
   function handleCheck(semIdx, actIdx) {
-    const newReel = [...reel];
+    const newReel = reel.map((semaine) => semaine.map((item) => ({ ...item })));
     const currentValue = newReel[semIdx][actIdx].fait;
     newReel[semIdx][actIdx].fait = !currentValue;
     setReel(newReel);
-
-    // Auto-save
-    handleSaveSeanceReelle(semIdx, actIdx, !currentValue, newReel[semIdx][actIdx].duree, newReel[semIdx][actIdx].distance_km, newReel[semIdx][actIdx].vitesse);
+    handleSaveSeanceReelle(
+      semIdx,
+      actIdx,
+      !currentValue,
+      newReel[semIdx][actIdx].duree,
+      newReel[semIdx][actIdx].distance_km,
+      newReel[semIdx][actIdx].vitesse
+    );
   }
 
-  // Gérer le changement de durée
   function handleDureeChange(semIdx, actIdx, newDuree) {
-    const newReel = [...reel];
+    const newReel = reel.map((semaine) => semaine.map((item) => ({ ...item })));
     newReel[semIdx][actIdx].duree = parseInt(newDuree) || 15;
     setReel(newReel);
-
-    // Auto-save si la séance est cochée
     if (newReel[semIdx][actIdx].fait) {
       handleSaveSeanceReelle(semIdx, actIdx, true, parseInt(newDuree) || 15, newReel[semIdx][actIdx].distance_km, newReel[semIdx][actIdx].vitesse);
     }
   }
 
-  // Gérer le changement de distance
   function handleDistanceChange(semIdx, actIdx, newDistance) {
-    const newReel = [...reel];
+    const newReel = reel.map((semaine) => semaine.map((item) => ({ ...item })));
     newReel[semIdx][actIdx].distance_km = parseFloat(newDistance) || 0;
     setReel(newReel);
-
-    // Auto-save si la séance est cochée
     if (newReel[semIdx][actIdx].fait) {
       handleSaveSeanceReelle(semIdx, actIdx, true, newReel[semIdx][actIdx].duree, parseFloat(newDistance) || 0, newReel[semIdx][actIdx].vitesse);
     }
   }
 
-  // Gérer le changement de vitesse
   function handleVitesseChange(semIdx, actIdx, newVitesse) {
-    const newReel = [...reel];
+    const newReel = reel.map((semaine) => semaine.map((item) => ({ ...item })));
     newReel[semIdx][actIdx].vitesse = parseFloat(newVitesse) || null;
     setReel(newReel);
-
-    // Auto-save si la séance est cochée
     if (newReel[semIdx][actIdx].fait) {
       handleSaveSeanceReelle(semIdx, actIdx, true, newReel[semIdx][actIdx].duree, newReel[semIdx][actIdx].distance_km, parseFloat(newVitesse) || null);
     }
   }
 
-  // Ajouter une séance bonus
   async function handleAddSeanceBonus() {
+    const semaines = extraireSemainesPalier(planData, ideal);
+    const semaine = semaines[selectedSemaine];
     const dateBonus = new Date().toISOString().slice(0, 10);
-    
+
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       const { data, error } = await supabase
         .from('seances_reelles')
-        .insert({
+        .insert(normaliserSeancePourEcriture({
+          user_id: userId,
           ideal_id: id,
+          palier_numero: Number(ideal?.palier_numero || 1),
           date_prevue: dateBonus,
           date_reelle: dateBonus,
           jour: ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][new Date().getDay()],
-          action_type: planData.objectif.routines[0]?.action || 'course',
+          action_type: planData.objectif?.routines?.[0]?.action_type || 'course',
           duree_prevue: 0,
           duree_reelle: 15,
           distance_km: 0,
-          intensite: planData.objectif.intensite || '7,6 km/h',
-          statut: 'fait',
+          intensite: planData.objectif?.intensite || '7,6 km/h',
+          fait: true,
           bonus: true,
-          semaine_numero: selectedSemaine + 1,
-          mois_numero: planData.mois[0].numero,
-          annee: planData.mois[0].annee
-        })
+          semaine_numero: semaine?.numero || selectedSemaine + 1,
+          mois_numero: semaine?.mois || null,
+          annee: semaine?.annee || null,
+        }))
         .select()
         .single();
 
       if (error) throw error;
-
-      // Ajouter à la liste des bonus
-      setSeancesBonus([...seancesBonus, data]);
+      setSeancesBonus((prev) => [...prev, data]);
       setMessage('✅ Séance bonus ajoutée !');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
@@ -247,17 +236,12 @@ export default function PlanActionPage() {
     }
   }
 
-  // Supprimer une séance bonus
   async function handleDeleteSeanceBonus(bonusId) {
     try {
-      const { error } = await supabase
-        .from('seances_reelles')
-        .delete()
-        .eq('id', bonusId);
-
+      const userId = await obtenirUserIdIdeaux(supabase);
+      const { error } = await supabase.from('seances_reelles').delete().eq('id', bonusId).eq('user_id', userId);
       if (error) throw error;
-
-      setSeancesBonus(seancesBonus.filter(s => s.id !== bonusId));
+      setSeancesBonus((prev) => prev.filter((s) => s.id !== bonusId));
       setMessage('✅ Séance bonus supprimée');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
@@ -266,74 +250,52 @@ export default function PlanActionPage() {
   }
 
   if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(120deg, #e0f7fa 0%, #fff 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: 20, color: '#1976d2', fontWeight: 600 }}>Chargement...</div>
-      </div>
-    );
+    return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div>Chargement...</div></div>;
   }
 
   if (!ideal || !planData) {
-    return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(120deg, #e0f7fa 0%, #fff 100%)', padding: 40 }}>
-        <div style={{ textAlign: 'center', color: '#e53935', fontSize: 18 }}>❌ Plan introuvable</div>
-      </div>
-    );
+    return <div style={{ minHeight: '100vh', padding: 40 }}><div style={{ textAlign: 'center', color: '#e53935' }}>❌ Plan introuvable</div></div>;
   }
 
-  // Défloutage progressif image motivante (si présente)
+  // Défloutage progressif conservé depuis main-consolidation.
+  // Le moteur de palier utilise désormais les vraies semaines et séances persistées.
   let blur = 12;
   if (ideal.image_url && planData && ideal.plan_params_valides) {
     try {
-      // 1. Récupérer la date de début, date cible, durée d'un palier
-      let dateDebut = new Date(ideal.plan_params_valides.dateDebut);
-      let dateFin = new Date(ideal.date_cible);
-      let palierDuree = (ideal.plan_params_valides.palierDuree || 4) * 7; // nb semaines * 7
-      // 2. Calculer le nombre total de paliers théoriques
+      const dateDebut = new Date(ideal.plan_params_valides.dateDebut);
+      const dateFin = new Date(ideal.date_cible);
+      const palierDuree = (ideal.plan_params_valides.palierDuree || 4) * 7;
       let nPaliers = 1;
       if (dateDebut && dateFin && palierDuree > 0) {
-        const diffJours = Math.ceil((dateFin - dateDebut) / (1000*60*60*24));
-        nPaliers = Math.ceil(diffJours / palierDuree);
+        const diffJours = Math.ceil((dateFin - dateDebut) / (1000 * 60 * 60 * 24));
+        nPaliers = Math.max(1, Math.ceil(diffJours / palierDuree));
       }
-      // 3. Calculer le nombre de paliers validés
       let paliersValides = 0;
       if (planData.mois) {
-        for (let i = 0; i < planData.mois.length; i++) {
-          const mois = planData.mois[i];
-          const total = mois.semaines.reduce((acc, s) => acc + s.actions.length, 0);
-          let fait = 0;
-          if (ideal.seances_reelles) {
-            fait = ideal.seances_reelles.filter(s => s.fait && s.mois === mois.numero && s.annee === mois.annee).length;
-          }
-          // Palier validé si 100% des séances faites (ou seuil, ex 80%)
+        for (const mois of planData.mois) {
+          const total = (mois.semaines || []).reduce((acc, semaine) => acc + (semaine.actions || []).length, 0);
+          const fait = seancesReelles.filter((seance) =>
+            seanceEstFaite(seance) &&
+            Number(seance.mois_numero ?? seance.mois) === Number(mois.numero) &&
+            Number(seance.annee) === Number(mois.annee)
+          ).length;
           if (total > 0 && fait / total >= 0.8) paliersValides++;
         }
       }
-      // 4. Calcul du niveau de défloutage
-      let defloutage = nPaliers > 0 ? paliersValides / nPaliers : 0;
-      if (defloutage > 1) defloutage = 1;
-      blur = 12 * (1 - defloutage);
-      if (blur < 0) blur = 0;
+      const defloutage = Math.min(1, nPaliers > 0 ? paliersValides / nPaliers : 0);
+      blur = Math.max(0, 12 * (1 - defloutage));
     } catch (e) { /* fallback flou max */ }
   }
 
-  const nbSemaines = 4;
-  let semaines = [];
-  let count = 0;
-  for (let m of planData.mois || []) {
-    for (let s of m.semaines) {
-      if (count < nbSemaines) {
-        semaines.push({ ...s, mois: m.numero, annee: m.annee });
-        count++;
-      }
-    }
-    if (count >= nbSemaines) break;
+  const semaines = extraireSemainesPalier(planData, ideal);
+  if (!semaines.length) {
+    return <div style={{ minHeight: '100vh', padding: 40 }}><div style={{ textAlign: 'center', color: '#e53935' }}>❌ Aucune semaine disponible dans ce palier</div></div>;
   }
-
   const semaineCourante = getSemaineCourante(semaines);
-  const totalSeances = semaines.reduce((acc, s) => acc + s.actions.length, 0);
-  const seancesFaites = reel.flat().filter(obj => obj && obj.fait).length;
-  const pourcentage = totalSeances > 0 ? Math.round((seancesFaites / totalSeances) * 100) : 0;
+  const progression = calculerProgressionPalier(semaines, seancesReelles);
+  const totalSeances = progression.total;
+  const seancesFaites = progression.faites;
+  const pourcentage = progression.pourcentage;
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(120deg, #e0f7fa 0%, #fff 100%)', padding: 0 }}>
