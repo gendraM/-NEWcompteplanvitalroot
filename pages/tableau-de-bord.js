@@ -1117,7 +1117,7 @@ export default function TableauDeBord() {
         {/* --- Section Succès / Badges --- */}
       {/* --- Timeline visuelle façon Instagram/TikTok --- */}
       <TimelineProgression history={weeklyHistory} />
-        <ExtrasBadgesSection badges={badges.filter(badge => badge.type === 'extras_palier')} events={extrasPalierEvents} />
+        <ExtrasBadgesSection badges={badges.filter(badge => badge.type === 'extras_palier')} events={extrasPalierEvents} semaines={semainesValidees} />
         <div
           style={{
             padding: "1.5rem",
