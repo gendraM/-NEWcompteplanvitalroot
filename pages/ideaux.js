@@ -2,6 +2,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { generateAnchoringPlan } from '../lib/generateAnchoringPlan';
+import {
+  extraireSemainesPalier,
+  normaliserSeancePourEcriture,
+  seanceEstFaite,
+} from '../lib/ideauxPalier';
+import { chargerIdeauxAvecProgression } from '../lib/ideauxProgression';
+import { obtenirUserIdIdeaux } from '../lib/ideauxAuth';
+import { construirePropositionReprise, creerArchivePalier } from '../lib/ideauxCycle';
+
+function extraireSemainesPourParametres(plan, params) {
+  return extraireSemainesPalier(plan, {
+    plan_params_valides: { palierDuree: params?.palierDuree },
+  });
+}
 
 export default function IdeauxPage() {
   const [editDateId, setEditDateId] = useState(null);
@@ -26,46 +40,57 @@ export default function IdeauxPage() {
   const fileInputRef = useRef();
   // Feedback UX : palier validé
   const [palierValide, setPalierValide] = useState(false);
-  // Détection automatique : toutes les séances du palier courant cochées ?
+  // Détection automatique : toutes les séances prévues du palier sont cochées ?
   useEffect(() => {
     if (!reel || !Array.isArray(reel) || reel.length === 0) {
       setPalierValide(false);
       return;
     }
-    // On regarde la semaine sélectionnée (palier courant)
-    const semaineCourante = reel[selectedSemaine] || [];
-    const toutesCochees = semaineCourante.length > 0 && semaineCourante.every(s => s.fait === true || s === true);
+    const seancesPrevues = reel.flat().filter((seance) => !seance?.bonus);
+    const toutesCochees = seancesPrevues.length > 0 && seancesPrevues.every(seanceEstFaite);
     setPalierValide(toutesCochees);
-  }, [reel, selectedSemaine]);
+  }, [reel]);
 
   useEffect(() => {
     fetchIdeaux();
   }, []);
 
   async function fetchIdeaux() {
-    const { data, error } = await supabase
-      .from('ideaux')
-      .select('*')
-      .order('date_cible', { ascending: true });
-    if (!error) setIdeaux(data);
+    try {
+      const userId = await obtenirUserIdIdeaux(supabase);
+      const data = await chargerIdeauxAvecProgression(supabase, userId);
+      setIdeaux(data);
+    } catch (error) {
+      console.error('Erreur chargement Idéaux et progression :', error);
+      setMessage('Erreur lors du chargement des Idéaux.');
+    }
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setMessage('');
     setUploading(true);
+    let userId;
+    try {
+      userId = await obtenirUserIdIdeaux(supabase);
+    } catch (error) {
+      setMessage('Vous devez être connecté pour créer un Idéal.');
+      setUploading(false);
+      return;
+    }
     let imageUrl = null;
     if (imageFile) {
       // Upload image to Supabase Storage
       const fileExt = imageFile.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 8)}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage.from('ideaux-images').upload(fileName, imageFile);
+      const objectPath = `${userId}/${fileName}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('ideaux-images').upload(objectPath, imageFile);
       if (uploadError) {
         setMessage('Erreur upload image : ' + uploadError.message);
         setUploading(false);
         return;
       }
-      const { data: publicUrlData } = supabase.storage.from('ideaux-images').getPublicUrl(fileName);
+      const { data: publicUrlData } = supabase.storage.from('ideaux-images').getPublicUrl(objectPath);
       imageUrl = publicUrlData?.publicUrl || null;
     }
     // Générer automatiquement le plan d'ancrage à la création
@@ -82,6 +107,7 @@ export default function IdeauxPage() {
     const planData = generateAnchoringPlan(planParams);
     const { data, error } = await supabase.from('ideaux').insert([
       {
+        user_id: userId,
         titre,
         description_emotionnelle: description,
         indicateur_principal: indicateur,
@@ -115,8 +141,25 @@ export default function IdeauxPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [currentIdealId, setCurrentIdealId] = useState(null); // ID de l'idéal affiché dans la modale
   const [isPlanValide, setIsPlanValide] = useState(false); // État de validation du plan
+  const [repriseIdeal, setRepriseIdeal] = useState(null);
+  const [repriseProposition, setRepriseProposition] = useState(null);
+  const [repriseLoading, setRepriseLoading] = useState(false);
+  const [repriseForm, setRepriseForm] = useState({
+    objectifToujoursSouhaite: 'oui',
+    causeInterruption: '',
+    niveauActuel: 'semblable',
+    rythmeRealiste: 3,
+    nouvelleDateCible: '',
+  });
 
   async function handleGeneratePlan(ideal) {
+    let userId;
+    try {
+      userId = await obtenirUserIdIdeaux(supabase);
+    } catch (error) {
+      setMessage('Vous devez être connecté pour consulter cet Idéal.');
+      return;
+    }
     // 🔥 CORRECTION : Charger les paramètres validés s'ils existent (FIGÉS après validation)
     let params;
     if (ideal.plan_valide && ideal.plan_params_valides) {
@@ -129,7 +172,7 @@ export default function IdeauxPage() {
         duree: ideal.plan_params_valides.duree,
         intensite: ideal.plan_params_valides.intensite,
         joursProposes: ideal.plan_params_valides.joursProposes,
-        palierDuree: ideal.plan_params_valides.palierDuree || 4,
+        palierDuree: ideal.plan_params_valides.palierDuree,
         dateDebut: new Date(ideal.plan_params_valides.dateDebut)
       };
     } else {
@@ -143,43 +186,36 @@ export default function IdeauxPage() {
         duree: 15,
         intensite: '7,6 km/h',
         joursProposes: ['lundi', 'mercredi', 'samedi'],
+        palierDuree: 4,
         dateDebut: new Date(planDateDebut)
       };
     }
     
     setPlanParams(params);
-    const plan = generateAnchoringPlan(params);
+    const plan = ideal.plan_valide && ideal.plan_data
+      ? ideal.plan_data
+      : generateAnchoringPlan(params);
     setPlanData(plan);
     setShowDetails(false);
     setPlanVisible(true);
     setCurrentIdealId(ideal.id); // Stocker l'ID de l'idéal
     // Initialiser le suivi réel pour le palier courant
-    const nbSemaines = params.palierDuree || 4;
-    let semaines = [];
-    let count = 0;
-    for (let m of plan.mois || []) {
-      for (let s of m.semaines) {
-        if (count < nbSemaines) {
-          semaines.push(s);
-          count++;
-        }
-      }
-      if (count >= nbSemaines) break;
-    }
+    const semaines = extraireSemainesPourParametres(plan, params);
     setSelectedSemaine(0);
-    setReel(semaines.map(s => s.actions.map(() => false)));
+    setReel(semaines.map(s => s.actions.map(() => ({ fait: false }))));
 
     // Sauvegarder le plan dans la table ideaux (champ plan_data + flag plan_existant)
     if (ideal.id) {
       try {
-        await supabase.from('ideaux').update({ plan_data: plan, plan_existant: true }).eq('id', ideal.id);
-        // Optionnel : recharger la liste des idéaux pour affichage immédiat
-        fetchIdeaux();
+        if (!ideal.plan_valide) {
+          await supabase.from('ideaux').update({ plan_data: plan, plan_existant: true }).eq('id', ideal.id).eq('user_id', userId);
+          await fetchIdeaux();
+        }
         
         // Si le plan est déjà validé, charger les séances existantes
         if (ideal.plan_valide) {
           setIsPlanValide(true);
-          await loadSeancesReelles(ideal.id, plan);
+          await loadSeancesReelles(ideal.id, plan, params);
         }
       } catch (e) {
         // noop
@@ -202,23 +238,13 @@ export default function IdeauxPage() {
     setMessage('⏳ Validation du plan en cours...');
     
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       // Créer les séances réelles dans Supabase pour le palier
-      const nbSemaines = planParams.palierDuree || 4;
-      let semaines = [];
-      let count = 0;
-      for (let m of planData.mois || []) {
-        for (let s of m.semaines) {
-          if (count < nbSemaines) {
-            semaines.push({ ...s, mois: m.numero, annee: m.annee });
-            count++;
-          }
-        }
-        if (count >= nbSemaines) break;
-      }
+      const semaines = extraireSemainesPourParametres(planData, planParams);
       
       console.log('🔍 DEBUG - Validation du plan:');
       console.log('  - ID idéal:', currentIdealId);
-      console.log('  - Nombre de semaines:', nbSemaines);
+      console.log('  - Nombre de semaines:', semaines.length);
       console.log('  - Total séances à créer:', semaines.reduce((acc, s) => acc + s.actions.length, 0));
       
       // Insérer chaque séance prévue
@@ -226,7 +252,9 @@ export default function IdeauxPage() {
         const sem = semaines[semIdx];
         for (let act of sem.actions) {
           const seanceData = {
+            user_id: userId,
             ideal_id: currentIdealId,
+            palier_numero: 1,
             date_prevue: act.date,
             duree_prevue: act.duree || planParams.duree || 15,
             fait: false,
@@ -264,13 +292,14 @@ export default function IdeauxPage() {
             intensite: planParams.intensite,
             frequence: planParams.frequence,
             joursProposes: planParams.joursProposes,
-            palierDuree: planParams.palierDuree || 4,
+            palierDuree: planParams.palierDuree,
             dateDebut: planParams.dateDebut instanceof Date 
               ? planParams.dateDebut.toISOString().slice(0, 10) 
               : planParams.dateDebut
           }
         })
-        .eq('id', currentIdealId);
+        .eq('id', currentIdealId)
+        .eq('user_id', userId);
       
       if (updateError) {
         console.error('❌ ERREUR UPDATE IDEAUX:', updateError);
@@ -283,7 +312,7 @@ export default function IdeauxPage() {
       setMessage('✅ Plan du Palier 1 validé !');
       
       // Charger les séances créées pour afficher dans ZONE 2
-      await loadSeancesReelles(currentIdealId, planData);
+      await loadSeancesReelles(currentIdealId, planData, planParams);
     } catch (err) {
       console.error('❌ ERREUR GLOBALE validation plan:', err);
       setMessage('❌ Erreur lors de la validation du plan: ' + err.message);
@@ -291,14 +320,16 @@ export default function IdeauxPage() {
   }
 
   // Charger les séances réelles depuis Supabase
-  async function loadSeancesReelles(idealId, plan) {
+  async function loadSeancesReelles(idealId, plan, params = planParams) {
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       console.log('🔍 DEBUG - Chargement séances réelles pour ideal_id:', idealId);
       
       const { data, error } = await supabase
         .from('seances_reelles')
         .select('*')
         .eq('ideal_id', idealId)
+        .eq('user_id', userId)
         .order('date_prevue', { ascending: true });
 
       if (error) {
@@ -313,29 +344,20 @@ export default function IdeauxPage() {
 
       // Reconstituer l'état reel à partir des données Supabase
       if (data && plan) {
-        const nbSemaines = planParams?.palierDuree || 4;
-        let semaines = [];
-        let count = 0;
-        for (let m of plan.mois || []) {
-          for (let s of m.semaines) {
-            if (count < nbSemaines) {
-              semaines.push({ ...s, mois: m.numero, annee: m.annee });
-              count++;
-            }
-          }
-          if (count >= nbSemaines) break;
-        }
+        const numeroPalier = Number(ideaux.find((ideal) => ideal.id === idealId)?.palier_numero || 1);
+        const seancesPalier = data.filter((seance) => Number(seance.palier_numero || 1) === numeroPalier);
+        const semaines = extraireSemainesPourParametres(plan, params);
 
         // Séparer séances planifiées et bonus
-        const bonusSeances = data.filter(s => s.bonus === true);
-        const normalSeances = data.filter(s => !s.bonus);
+        const bonusSeances = seancesPalier.filter(s => s.bonus === true);
+        const normalSeances = seancesPalier.filter(s => !s.bonus);
 
         const newReel = semaines.map((sem) => {
           const seancesNormales = sem.actions.map((action) => {
             const seance = normalSeances.find(s => s.date_prevue === action.date);
             return {
-              fait: seance?.statut === 'fait' || seance?.fait === true,
-              duree: seance?.duree_reelle || seance?.duree_prevue || action.duree || planParams?.duree || 15,
+              fait: seanceEstFaite(seance),
+              duree: seance?.duree_reelle || seance?.duree_prevue || action.duree || params?.duree || 15,
               distance_km: seance?.distance_km || 0,
               vitesse: seance?.vitesse || null,
               date: action.date
@@ -380,18 +402,9 @@ export default function IdeauxPage() {
     setMessage('⏳ Sauvegarde en cours...');
     
     try {
-      const nbSemaines = planParams.palierDuree || 4;
-      let semaines = [];
-      let count = 0;
-      for (let m of planData.mois || []) {
-        for (let s of m.semaines) {
-          if (count < nbSemaines) {
-            semaines.push({ ...s, mois: m.numero, annee: m.annee });
-            count++;
-          }
-        }
-        if (count >= nbSemaines) break;
-      }
+      const userId = await obtenirUserIdIdeaux(supabase);
+      const numeroPalier = Number(ideaux.find((ideal) => ideal.id === currentIdealId)?.palier_numero || 1);
+      const semaines = extraireSemainesPourParametres(planData, planParams);
 
       const sem = semaines[selectedSemaine];
       if (!sem) {
@@ -411,7 +424,9 @@ export default function IdeauxPage() {
           // Séance bonus validée
           console.log('    → Sauvegarde séance BONUS');
           await supabase.from('seances_reelles').upsert({
+            user_id: userId,
             ideal_id: currentIdealId,
+            palier_numero: numeroPalier,
             date_prevue: seance.date || new Date().toISOString().slice(0, 10),
             date_reelle: seance.date || new Date().toISOString().slice(0, 10),
             duree_prevue: seance.duree || planParams.duree || 15,
@@ -428,30 +443,36 @@ export default function IdeauxPage() {
         } else if (!seance.bonus) {
           // Séance prévue
           const action = sem.actions[i];
-          if (action && seance.fait) {
+          if (action) {
             console.log('    → Sauvegarde séance NORMALE:', action.date);
-            await supabase.from('seances_reelles').upsert({
+            const seanceNormalisee = normaliserSeancePourEcriture({
+              user_id: userId,
               ideal_id: currentIdealId,
+              palier_numero: numeroPalier,
               date_prevue: action.date,
-              date_reelle: new Date().toISOString().slice(0, 10),
               jour: action.jour,
               action_type: action.action_type,
               duree_prevue: action.duree || planParams.duree || 15,
-              duree_reelle: seance.duree || planParams.duree || 15,
-              distance_km: seance.distance_km || null,
-              vitesse: seance.vitesse || null,
+              duree_reelle: seance.fait ? (seance.duree || planParams.duree || 15) : null,
+              distance_km: seance.fait ? (seance.distance_km || null) : null,
+              vitesse: seance.fait ? (seance.vitesse || null) : null,
               intensite: planParams.intensite || '7,6 km/h',
-              statut: 'fait',
-              fait: true,
+              fait: seance.fait === true,
               bonus: false,
               semaine_numero: sem.numero,
               mois_numero: sem.mois,
               annee: sem.annee
-            }, { onConflict: 'ideal_id,date_prevue' });
+            });
+            const { error } = await supabase
+              .from('seances_reelles')
+              .upsert(seanceNormalisee, { onConflict: 'ideal_id,date_prevue' });
+            if (error) throw error;
           }
         }
       }
 
+      await loadSeancesReelles(currentIdealId, planData, planParams);
+      await fetchIdeaux();
       setMessage('✅ Séances de la semaine ' + (selectedSemaine + 1) + ' sauvegardées !');
     } catch (err) {
       console.error('Erreur sauvegarde séances:', err);
@@ -467,8 +488,12 @@ export default function IdeauxPage() {
   }
 
   // Gestion de la modification de la date de début d'un plan existant
-  function handleEditDateClick(idealId, currentDateDebut) {
-    setEditDateId(idealId);
+  function handleEditDateClick(ideal, currentDateDebut) {
+    if (ideal.plan_valide) {
+      setMessage('🔒 La date de début est figée depuis la validation du Palier 1.');
+      return;
+    }
+    setEditDateId(ideal.id);
     setEditDateValue(currentDateDebut ? currentDateDebut.slice(0,10) : defaultDebut);
   }
 
@@ -479,6 +504,11 @@ export default function IdeauxPage() {
 
   async function handleEditDateSubmit(e, ideal) {
     e.preventDefault();
+    if (ideal.plan_valide) {
+      setMessage('🔒 Impossible de modifier la date de début d’un plan validé.');
+      handleEditDateCancel();
+      return;
+    }
     // On s'assure que la date de début et la date cible sont bien des chaînes ISO yyyy-mm-dd
     let dateCibleStr = ideal.plan_data?.ideal?.date_cible || ideal.date_cible;
     if (dateCibleStr instanceof Date) dateCibleStr = dateCibleStr.toISOString().slice(0,10);
@@ -496,6 +526,7 @@ export default function IdeauxPage() {
     };
     
     try {
+      const userId = await obtenirUserIdIdeaux(supabase);
       const newPlan = generateAnchoringPlan(planParamsToSave);
       console.log('🔍 DEBUG - Nouveau plan généré:', newPlan.mois[0]);
       
@@ -505,18 +536,9 @@ export default function IdeauxPage() {
       
       const updateResult = await supabase.from('ideaux').update({
         plan_data: newPlan
-      }).eq('id', ideal.id);
+      }).eq('id', ideal.id).eq('user_id', userId);
       
       console.log('🔍 DEBUG - Résultat update Supabase:', updateResult);
-      console.error('❌ ERREUR DÉTECTÉE - La colonne plan_data n\'existe pas dans la table ideaux !');
-      console.error('📋 SOLUTION : Exécuter la migration SQL suivante dans Supabase :');
-      console.error(`
-ALTER TABLE public.ideaux 
-ADD COLUMN IF NOT EXISTS plan_data jsonb DEFAULT NULL;
-
-ALTER TABLE public.ideaux 
-ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
-      `);
       
       if (updateResult.error) {
         throw new Error('Supabase update error: ' + JSON.stringify(updateResult.error));
@@ -537,6 +559,7 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
           .from('ideaux')
           .select('*')
           .eq('id', ideal.id)
+          .eq('user_id', userId)
           .single();
         
         if (updatedIdeaux && updatedIdeaux.plan_data) {
@@ -557,20 +580,9 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
           setPlanParams(refreshedParams);
           
           // Réinitialiser le suivi réel pour le nouveau palier
-          const nbSemaines = refreshedParams.palierDuree || 4;
-          let semaines = [];
-          let count = 0;
-          for (let m of updatedIdeaux.plan_data.mois || []) {
-            for (let s of m.semaines) {
-              if (count < nbSemaines) {
-                semaines.push(s);
-                count++;
-              }
-            }
-            if (count >= nbSemaines) break;
-          }
+          const semaines = extraireSemainesPourParametres(updatedIdeaux.plan_data, refreshedParams);
           setSelectedSemaine(0);
-          setReel(semaines.map(s => s.actions.map(() => false)));
+          setReel(semaines.map(s => s.actions.map(() => ({ fait: false }))));
         }
       }
       
@@ -579,6 +591,126 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
     } catch (err) {
       console.error('❌ Erreur:', err);
       setMessage('❌ Erreur : ' + err.message);
+    }
+  }
+
+  function ouvrirReprise(ideal) {
+    setRepriseIdeal(ideal);
+    setRepriseProposition(null);
+    setRepriseForm({
+      objectifToujoursSouhaite: 'oui',
+      causeInterruption: '',
+      niveauActuel: 'semblable',
+      rythmeRealiste: Number(ideal.plan_params_valides?.frequence || 3),
+      nouvelleDateCible: '',
+    });
+  }
+
+  function fermerReprise() {
+    setRepriseIdeal(null);
+    setRepriseProposition(null);
+    setRepriseLoading(false);
+  }
+
+  function preparerPropositionReprise(e) {
+    e.preventDefault();
+    setMessage('');
+    try {
+      setRepriseProposition(construirePropositionReprise(repriseIdeal, repriseForm));
+    } catch (error) {
+      setRepriseProposition(null);
+      setMessage('❌ ' + error.message);
+    }
+  }
+
+  async function handleMettreEnPause() {
+    if (!repriseIdeal) return;
+    setRepriseLoading(true);
+    try {
+      const userId = await obtenirUserIdIdeaux(supabase);
+      const { error } = await supabase.from('ideaux').update({
+        statut: 'en pause',
+        reprise_etat: {
+          statut: 'pause',
+          date: new Date().toISOString(),
+          questionnaire: repriseForm,
+        },
+      }).eq('id', repriseIdeal.id).eq('user_id', userId);
+      if (error) throw error;
+      await fetchIdeaux();
+      fermerReprise();
+      setMessage('✅ Cet idéal est en pause. Son cap et son historique sont conservés.');
+    } catch (error) {
+      setMessage('❌ Impossible de mettre cet idéal en pause : ' + error.message);
+      setRepriseLoading(false);
+    }
+  }
+
+  async function handleValiderReprise() {
+    if (!repriseIdeal || !repriseProposition) return;
+    setRepriseLoading(true);
+    setMessage('⏳ Création du palier de reprise...');
+
+    try {
+      const userId = await obtenirUserIdIdeaux(supabase);
+      const nouveauPlan = generateAnchoringPlan(repriseProposition);
+      const semaines = extraireSemainesPourParametres(nouveauPlan, repriseProposition);
+      const seances = semaines.flatMap((semaine) => semaine.actions.map((action) =>
+        normaliserSeancePourEcriture({
+          user_id: userId,
+          ideal_id: repriseIdeal.id,
+          palier_numero: repriseProposition.numero,
+          date_prevue: action.date,
+          jour: action.jour,
+          action_type: action.action_type,
+          duree_prevue: action.duree || repriseProposition.duree,
+          duree_reelle: null,
+          intensite: repriseProposition.intensite,
+          fait: false,
+          bonus: false,
+          semaine_numero: semaine.numero,
+          mois_numero: semaine.mois,
+          annee: semaine.annee,
+        })
+      ));
+
+      if (seances.length) {
+        const { error: seancesError } = await supabase.from('seances_reelles')
+          .upsert(seances, { onConflict: 'ideal_id,date_prevue' });
+        if (seancesError) throw seancesError;
+      }
+
+      const archive = creerArchivePalier(repriseIdeal, repriseForm);
+      const historique = [...(Array.isArray(repriseIdeal.cycle_paliers) ? repriseIdeal.cycle_paliers : []), archive];
+      const paramsValides = {
+        duree: repriseProposition.duree,
+        intensite: repriseProposition.intensite,
+        frequence: repriseProposition.frequence,
+        joursProposes: repriseProposition.joursProposes,
+        palierDuree: repriseProposition.palierDuree,
+        dateDebut: repriseProposition.dateDebut,
+      };
+      const { error: idealError } = await supabase.from('ideaux').update({
+        plan_data: nouveauPlan,
+        plan_params_valides: paramsValides,
+        date_debut: repriseProposition.dateDebut,
+        date_cible: repriseProposition.dateCible,
+        date_validation_palier: new Date().toISOString(),
+        palier_numero: repriseProposition.numero,
+        cycle_paliers: historique,
+        reprise_etat: null,
+        plan_valide: true,
+        statut: 'en cours',
+      }).eq('id', repriseIdeal.id).eq('user_id', userId);
+      if (idealError) throw idealError;
+
+      await fetchIdeaux();
+      fermerReprise();
+      setMessage(`✅ Palier ${repriseProposition.numero} validé. Les nouvelles séances sont enregistrées.`);
+    } catch (error) {
+      console.error('Erreur création palier de reprise :', error);
+      setMessage('❌ Impossible de créer le palier de reprise : ' + error.message);
+      setRepriseLoading(false);
     }
   }
 
@@ -676,18 +808,7 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
           <div style={{textAlign:'center', color:'#888', fontSize:18, gridColumn:'1/-1'}}>Aucun idéal enregistré pour le moment.</div>
         )}
         {ideaux.map(ideal => {
-          // Calcul de la progression du palier/mois courant (exemple simplifié)
-          // À adapter selon la structure réelle de stockage des séances réalisées
-          let progression_palier = null;
-          if (ideal.plan_existant && ideal.plan_data && ideal.plan_data.mois) {
-            // On prend le premier mois/palier
-            const mois = ideal.plan_data.mois[0];
-            const prevues = mois.semaines.reduce((acc, s) => acc + s.actions.length, 0);
-            // On suppose que ideal.seances_reelles contient les séances faites (à adapter selon ta structure)
-            const realises = ideal.seances_reelles ? ideal.seances_reelles.filter(s => s.fait && s.mois === mois.numero && s.annee === mois.annee).length : 0;
-            const pourcentage = prevues > 0 ? Math.round((realises/prevues)*100) : 0;
-            progression_palier = { realise: realises, prevues, pourcentage };
-          }
+          const progressionPalier = ideal.progression_palier;
           return (
             <div key={ideal.id} style={{
               background: '#fff',
@@ -765,6 +886,26 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
               <div style={{color:'#888', fontSize:15, marginBottom: 8}}>{ideal.description_emotionnelle}</div>
               <div style={{fontSize:15, marginBottom: 6}}><b>Indicateur :</b> {ideal.indicateur_principal}</div>
               <div style={{fontSize:15, marginBottom: 6}}><b>Date cible :</b> {ideal.date_cible || '—'}</div>
+              {progressionPalier?.total > 0 && (
+                <div style={{fontSize:15, marginBottom:6, color:'#1976d2', fontWeight:600}}>
+                  Palier {ideal.cycle_palier?.numero || ideal.palier_numero || 1} : {progressionPalier.faites}/{progressionPalier.total} séances réalisées ({progressionPalier.pourcentage} %)
+                </div>
+              )}
+              {(ideal.cycle_palier?.repriseNecessaire || ideal.reprise_etat?.statut === 'pause') && (
+                <div style={{marginTop:12, padding:'12px 14px', borderRadius:10, background:'#fff8e1', border:'1px solid #ffe082', color:'#6d4c41'}}>
+                  <div style={{fontWeight:800, marginBottom:5}}>
+                    {ideal.reprise_etat?.statut === 'pause' ? 'Ton idéal est en pause.' : `Le palier ${ideal.cycle_palier?.numero || 1} est arrivé à son terme.`}
+                  </div>
+                  <div style={{fontSize:14, marginBottom:9}}>
+                    Bilan : {ideal.bilan_palier?.totalPrevu || 0} séance(s) prévue(s), {ideal.bilan_palier?.realisePrevu || 0} réalisée(s)
+                    {(ideal.bilan_palier?.supplementaires || 0) > 0 ? `, ${ideal.bilan_palier.supplementaires} bonus` : ''}.
+                    {ideal.cycle_palier?.longueInterruption && ' Après cette interruption, on repart de ta réalité actuelle sans effacer le chemin déjà parcouru.'}
+                  </div>
+                  <button type="button" onClick={() => ouvrirReprise(ideal)} style={{background:'#ffa726', color:'#fff', border:'none', borderRadius:8, padding:'7px 14px', fontWeight:700, cursor:'pointer'}}>
+                    {ideal.reprise_etat?.statut === 'pause' ? 'Reprendre cet idéal' : 'Faire mon bilan et reprendre'}
+                  </button>
+                </div>
+              )}
               <div style={{position:'absolute', top:18, right:18}}>
                 <span style={{
                   display:'inline-block',
@@ -780,7 +921,9 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
               </div>
               {/* Boutons plan d'action */}
               <div style={{marginTop:18, textAlign:'center', display:'flex', justifyContent:'center', gap:12}}>
-                <button onClick={() => handleEditDateClick(ideal.id, ideal.plan_data?.dateDebut)} style={{background:'#fff', color:'#1976d2', border:'1px solid #b2ebf2', borderRadius:8, padding:'4px 12px', fontWeight:600, cursor:'pointer'}}>Modifier date de début</button>
+                {!ideal.plan_valide && (
+                  <button onClick={() => handleEditDateClick(ideal, ideal.plan_data?.dateDebut)} style={{background:'#fff', color:'#1976d2', border:'1px solid #b2ebf2', borderRadius:8, padding:'4px 12px', fontWeight:600, cursor:'pointer'}}>Modifier date de début</button>
+                )}
                 {editDateId === ideal.id && (
                   <form style={{display:'inline-block', marginLeft:8}} onSubmit={(e) => handleEditDateSubmit(e, ideal)}>
                     <input type="date" value={editDateValue} onChange={e => setEditDateValue(e.target.value)} style={{padding:'4px 8px', borderRadius:6, border:'1px solid #b2ebf2', fontWeight:600, fontSize:15, marginRight:6}} />
@@ -793,8 +936,81 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
               </div>
             </div>
           );
-  })
-  })
+        })}
+        {repriseIdeal && (
+          <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.35)', zIndex:1100, display:'flex', alignItems:'center', justifyContent:'center', padding:18}}>
+            <div style={{background:'#fff', borderRadius:16, boxShadow:'0 4px 28px #0003', padding:'2rem', width:'100%', maxWidth:620, maxHeight:'92vh', overflowY:'auto', position:'relative'}}>
+              <button type="button" onClick={fermerReprise} aria-label="Fermer" style={{position:'absolute', top:10, right:14, border:0, background:'none', fontSize:24, cursor:'pointer'}}>×</button>
+              <h2 style={{color:'#1976d2', marginTop:0}}>Faire le point, puis reprendre</h2>
+              <p style={{color:'#555'}}>Ton idéal reste le cap. Le palier terminé est conservé dans l’historique ; le prochain part de ta réalité actuelle.</p>
+              <div style={{background:'#e8f5e9', borderRadius:10, padding:12, marginBottom:16}}>
+                <b>Bilan du palier {repriseIdeal.cycle_palier?.numero || 1}</b><br />
+                {repriseIdeal.bilan_palier?.realisePrevu || 0}/{repriseIdeal.bilan_palier?.totalPrevu || 0} séances prévues réalisées
+                {(repriseIdeal.bilan_palier?.supplementaires || 0) > 0 && <> + {repriseIdeal.bilan_palier.supplementaires} bonus</>}.
+              </div>
+
+              <form onSubmit={preparerPropositionReprise}>
+                <label style={{display:'block', marginBottom:14, fontWeight:700}}>Est-ce que cet objectif compte toujours pour toi ?
+                  <select value={repriseForm.objectifToujoursSouhaite} onChange={(e) => setRepriseForm({...repriseForm, objectifToujoursSouhaite:e.target.value})} style={{display:'block', width:'100%', marginTop:5, padding:9, borderRadius:7}}>
+                    <option value="oui">Oui, je veux reprendre</option>
+                    <option value="non">Pas maintenant, je préfère le mettre en pause</option>
+                  </select>
+                </label>
+                <label style={{display:'block', marginBottom:14, fontWeight:700}}>Qu’est-ce qui a surtout interrompu le rythme ?
+                  <select required value={repriseForm.causeInterruption} onChange={(e) => setRepriseForm({...repriseForm, causeInterruption:e.target.value})} style={{display:'block', width:'100%', marginTop:5, padding:9, borderRadius:7}}>
+                    <option value="">Choisir une réponse</option>
+                    <option value="manque_temps">Manque de temps</option>
+                    <option value="sante">Santé ou fatigue</option>
+                    <option value="motivation">Motivation difficile</option>
+                    <option value="organisation">Organisation ou imprévu</option>
+                    <option value="autre">Autre raison</option>
+                  </select>
+                </label>
+                {repriseForm.objectifToujoursSouhaite === 'oui' && (
+                  <>
+                    <label style={{display:'block', marginBottom:14, fontWeight:700}}>Par rapport au début du dernier palier, ton niveau actuel est :
+                      <select value={repriseForm.niveauActuel} onChange={(e) => setRepriseForm({...repriseForm, niveauActuel:e.target.value})} style={{display:'block', width:'100%', marginTop:5, padding:9, borderRadius:7}}>
+                        <option value="plus_bas">Plus bas : je veux reprendre doucement</option>
+                        <option value="semblable">Semblable</option>
+                        <option value="plus_haut">Plus haut</option>
+                      </select>
+                    </label>
+                    <label style={{display:'block', marginBottom:14, fontWeight:700}}>Quel rythme est réellement tenable maintenant ?
+                      <input type="number" min="1" max="7" value={repriseForm.rythmeRealiste} onChange={(e) => setRepriseForm({...repriseForm, rythmeRealiste:Number(e.target.value)})} style={{display:'block', width:90, marginTop:5, padding:9, borderRadius:7}} />
+                      <span style={{fontWeight:400, fontSize:14}}>séance(s) par semaine</span>
+                    </label>
+                    {(repriseIdeal.cycle_palier?.cibleDepassee || !repriseIdeal.date_cible) && (
+                      <label style={{display:'block', marginBottom:14, fontWeight:700}}>{repriseIdeal.cycle_palier?.cibleDepassee ? 'La date cible est passée. Quelle nouvelle date souhaites-tu choisir ?' : 'Quelle date cible souhaites-tu choisir ?'}
+                        <input required type="date" min={new Date().toISOString().slice(0,10)} value={repriseForm.nouvelleDateCible} onChange={(e) => setRepriseForm({...repriseForm, nouvelleDateCible:e.target.value})} style={{display:'block', width:'100%', marginTop:5, padding:9, borderRadius:7}} />
+                      </label>
+                    )}
+                  </>
+                )}
+
+                {message.startsWith('❌') && <div style={{color:'#c62828', marginBottom:12, fontWeight:700}}>{message}</div>}
+                {repriseForm.objectifToujoursSouhaite === 'oui' ? (
+                  <button disabled={repriseLoading} type="submit" style={{background:'#1976d2', color:'#fff', border:0, borderRadius:8, padding:'10px 18px', fontWeight:700, cursor:'pointer'}}>Construire ma proposition</button>
+                ) : (
+                  <button disabled={repriseLoading} type="button" onClick={handleMettreEnPause} style={{background:'#ffa726', color:'#fff', border:0, borderRadius:8, padding:'10px 18px', fontWeight:700, cursor:'pointer'}}>Mettre cet idéal en pause</button>
+                )}
+              </form>
+
+              {repriseProposition && (
+                <div style={{marginTop:18, padding:15, border:'2px solid #80cbc4', borderRadius:10, background:'#f1f8e9'}}>
+                  <h3 style={{marginTop:0, color:'#2e7d32'}}>Proposition : Palier {repriseProposition.numero}</h3>
+                  <div>Départ : <b>{repriseProposition.dateDebut}</b></div>
+                  <div>Durée : <b>{repriseProposition.palierDuree} semaines</b></div>
+                  <div>Rythme : <b>{repriseProposition.frequence} séance(s)/semaine</b>, {repriseProposition.duree} min</div>
+                  <div>Date cible : <b>{repriseProposition.dateCible}</b></div>
+                  <p style={{fontSize:14}}>Adaptation proposée : {repriseProposition.raisonAdaptation}. Rien n’est enregistré avant ta validation.</p>
+                  <button disabled={repriseLoading} type="button" onClick={handleValiderReprise} style={{background:'#43a047', color:'#fff', border:0, borderRadius:8, padding:'11px 20px', fontWeight:800, cursor:'pointer'}}>
+                    {repriseLoading ? 'Enregistrement...' : `Valider le Palier ${repriseProposition.numero}`}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {/* Modale d'affichage du plan généré */}
         {planVisible && planData && planParams && (
           <div style={{position:'fixed', top:0, left:0, width:'100vw', height:'100vh', background:'rgba(0,0,0,0.25)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center'}}>
@@ -828,7 +1044,8 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
                     const moisLettres = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
                     if (planData.mois && planData.mois[0]) {
                       const m = planData.mois[0];
-                      return `Palier 1 : ${moisLettres[(m.numero-1)%12]} ${m.annee}`;
+                      const numeroPalier = ideaux.find((ideal) => ideal.id === currentIdealId)?.palier_numero || 1;
+                      return `Palier ${numeroPalier} : ${moisLettres[(m.numero-1)%12]} ${m.annee}`;
                     }
                     return '';
                   })()}
@@ -837,25 +1054,17 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
                   Durée du palier initial :
                   <select value={planParams.palierDuree || 4} onChange={e=>updatePlanParam('palierDuree', parseInt(e.target.value))} disabled={isPlanValide} style={{marginLeft:8, borderRadius:6, border:'1px solid #b2ebf2', padding:'2px 8px', fontWeight:600, fontSize:15, backgroundColor: isPlanValide ? '#f5f5f5' : '#fff', cursor: isPlanValide ? 'not-allowed' : 'pointer'}}>
                     <option value={2}>2 semaines</option>
+                    <option value={3}>3 semaines</option>
                     <option value={4}>4 semaines (1 mois)</option>
+                    <option value={5}>5 semaines</option>
+                    <option value={6}>6 semaines</option>
                     <option value={8}>8 semaines (2 mois)</option>
                   </select>
                   {isPlanValide && <span style={{marginLeft:8, color:'#43a047', fontSize:13, fontWeight:700}}>🔒 Validé</span>}
                 </div>
                 <div style={{color:'#43a047', fontWeight:600, marginBottom:2}}>
                   {(() => {
-                    const nbSemaines = planParams.palierDuree || 4;
-                    let semaines = [];
-                    let count = 0;
-                    for (let m of planData.mois || []) {
-                      for (let s of m.semaines) {
-                        if (count < nbSemaines) {
-                          semaines.push(s);
-                          count++;
-                        }
-                      }
-                      if (count >= nbSemaines) break;
-                    }
+                    const semaines = extraireSemainesPourParametres(planData, planParams);
                     return semaines.reduce((acc, s) => acc + s.actions.length, 0);
                   })()} séances prévues ({planData.objectif.frequence_par_semaine}x/semaine)
                 </div>
@@ -958,18 +1167,7 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
               )}
               {showDetails && planData.mois && (() => {
                 // Navigation semaine par semaine sur la durée du palier
-                const nbSemaines = planParams.palierDuree || 4;
-                let semaines = [];
-                let count = 0;
-                for (let m of planData.mois) {
-                  for (let s of m.semaines) {
-                    if (count < nbSemaines) {
-                      semaines.push({ ...s, mois: m.numero, annee: m.annee });
-                      count++;
-                    }
-                  }
-                  if (count >= nbSemaines) break;
-                }
+                const semaines = extraireSemainesPourParametres(planData, planParams);
                 // On passe de reel: boolean[][] à reel: {fait:boolean, duree:number|null, bonus?:boolean, date?:string}[][]
                 const handleCheck = (semIdx, actIdx) => {
                   setReel(reel => {
@@ -1033,7 +1231,10 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
                       Semaine {selectedSemaine+1} ({semaines[selectedSemaine].debut})
                     </div>
                     <div style={{marginBottom:8, color:'#1976d2', fontWeight:600}}>
-                      Prévu : {semaines[selectedSemaine].actions.length} séances / Réel : {reel[selectedSemaine]?.filter(Boolean).length || 0} séances
+                      Prévu : {semaines[selectedSemaine].actions.length} séances / Réel : {reel[selectedSemaine]?.filter(obj => !obj.bonus && seanceEstFaite(obj)).length || 0} séances
+                      {(reel[selectedSemaine]?.filter(obj => obj.bonus && seanceEstFaite(obj)).length || 0) > 0 && (
+                        <> / Bonus : {reel[selectedSemaine].filter(obj => obj.bonus && seanceEstFaite(obj)).length}</>
+                      )}
                     </div>
                     <ul style={{margin:'6px 0 0 18px', padding:0}}>
                       {semaines[selectedSemaine].actions.map((a, j) => (
@@ -1150,37 +1351,24 @@ ADD COLUMN IF NOT EXISTS plan_existant boolean DEFAULT false;
                     </div>
                     <div style={{marginTop:10, fontWeight:600}}>
                       {(() => {
-                        const nbRealisees = reel[selectedSemaine]?.filter(obj => obj.fait).length || 0;
+                        const nbRealisees = reel[selectedSemaine]?.filter(obj => !obj.bonus && seanceEstFaite(obj)).length || 0;
                         const nbPrevues = semaines[selectedSemaine].actions.length;
-                        if (nbRealisees === nbPrevues) {
-                          return (
-                            <>
-                              <span style={{color:'#43a047'}}>✅ Toutes les séances prévues sont réalisées !</span>
-                              <div style={{marginTop:12}}>
-                                <button
-                                  style={{
-                                    background:'#1976d2', color:'#fff', border:'none', borderRadius:8, padding:'10px 28px', fontWeight:700, fontSize:16, cursor:'pointer', boxShadow:'0 1px 6px #00bcd422', letterSpacing:'0.5px'
-                                  }}
-                                  onClick={() => {
-                                    setMessage('🎉 Palier validé ! Félicitations, tu peux passer au palier suivant.');
-                                    // Ici, tu peux ajouter toute logique métier (déblocage palier suivant, animation, etc.)
-                                  }}
-                                >Valider le palier</button>
-                              </div>
-                            </>
-                          );
+                        if (nbPrevues > 0 && nbRealisees === nbPrevues) {
+                          return <span style={{color:'#43a047'}}>✅ Toutes les séances prévues de cette semaine sont réalisées.</span>;
                         }
-                        if (nbRealisees > nbPrevues) {
-                          return <span style={{color:'#ffa726'}}>🔥 Tu as dépassé l'objectif de la semaine !</span>;
-                        }
-                        return <span style={{color:'#ffa726'}}>Continue, tu peux encore valider des séances cette semaine.</span>;
+                        return <span style={{color:'#ffa726'}}>Continue, tu peux encore réaliser des séances cette semaine.</span>;
                       })()}
+                      {palierValide && (
+                        <div style={{marginTop:8, color:'#43a047'}}>
+                          🎉 Palier réalisé. Ton bilan servira à construire la suite en gardant ton objectif final comme cap.
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })()}
               <div style={{marginTop:18, textAlign:'center'}}>
-                <button onClick={closePlanModal} style={{background:'#43a047', color:'#fff', border:'none', borderRadius:8, padding:'10px 28px', fontWeight:700, fontSize:16, cursor:'pointer', boxShadow:'0 1px 6px #00bcd422', letterSpacing:'0.5px', marginRight:12}}>Valider ce plan</button>
+                <button onClick={closePlanModal} style={{background:'#43a047', color:'#fff', border:'none', borderRadius:8, padding:'10px 28px', fontWeight:700, fontSize:16, cursor:'pointer', boxShadow:'0 1px 6px #00bcd422', letterSpacing:'0.5px', marginRight:12}}>Fermer</button>
                 {showDetails && (
                   <button onClick={()=>setShowDetails(false)} style={{background:'#ffa726', color:'#fff', border:'none', borderRadius:8, padding:'10px 28px', fontWeight:700, fontSize:16, cursor:'pointer', boxShadow:'0 1px 6px #00bcd422', letterSpacing:'0.5px'}}>Revenir au résumé</button>
                 )}
