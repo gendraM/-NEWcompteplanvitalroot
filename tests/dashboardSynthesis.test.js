@@ -1,5 +1,7 @@
 import {
   construireExtrasStatus,
+  construireActiveChallenge,
+  construireActiveIdeal,
   construireSyntheseTableauDeBord,
   construireWeightStatus,
   evaluerDisponibiliteDonnees,
@@ -57,5 +59,31 @@ describe('dashboardSynthesis', () => {
     expect(statut.disponible).toBe(true);
     expect(statut.palier).toBe(3);
     expect(statut.prochainPalier).toBe(2);
+  });
+  test('le dashboard expose un seul défi actif sans modifier sa progression', () => {
+    const actif = construireActiveChallenge([
+      { id: 1, nom: 'Marcher', status: 'en cours', progress: 2, duree: 5 },
+      { id: 2, nom: 'Autre', status: 'disponible', progress: 0, duree: 3 },
+    ]);
+    expect(actif.nom).toBe('Marcher');
+    expect(actif.progressionPourcentage).toBe(40);
+    expect(actif.anomaliePlusieursActifs).toBe(false);
+  });
+
+  test('une anomalie de plusieurs défis actifs est signalée sans arbitrage destructif', () => {
+    const actif = construireActiveChallenge([
+      { id: 1, nom: 'A', status: 'en cours' },
+      { id: 2, nom: 'B', status: 'en cours' },
+    ]);
+    expect(actif.anomaliePlusieursActifs).toBe(true);
+  });
+
+  test('Idéaux consomme la progression canonique déjà calculée', () => {
+    const progression = { pourcentage: 50 };
+    const actif = construireActiveIdeal([
+      { id: 'i1', titre: 'Courir', progression_palier: progression, cycle_palier: { etat: 'actif' } },
+    ]);
+    expect(actif.titre).toBe('Courir');
+    expect(actif.progressionPalier).toBe(progression);
   });
 });
