@@ -936,8 +936,7 @@ export default function IdeauxPage() {
               </div>
             </div>
           );
-  })
-  })
+        })}
         {repriseIdeal && (
           <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.35)', zIndex:1100, display:'flex', alignItems:'center', justifyContent:'center', padding:18}}>
             <div style={{background:'#fff', borderRadius:16, boxShadow:'0 4px 28px #0003', padding:'2rem', width:'100%', maxWidth:620, maxHeight:'92vh', overflowY:'auto', position:'relative'}}>
