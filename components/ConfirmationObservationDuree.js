@@ -6,9 +6,11 @@ import { chargerObservationsDuree, sauvegarderObservationDuree } from '../lib/de
 
 const QUESTIONS = {
   '🍎 Pas de dessert par automatisme': 'Ce dessert correspondait-il à une vraie envie ou à une occasion choisie ?',
-  '🧀 1 portion ça suffit': 'Pour ce repas, es-tu resté·e sur une seule portion ?',
+  '🧀 1 portion ça suffit': decision => decision?.donnees?.secondePortionMentionnee
+    ? 'Tu as mentionné une deuxième portion dans ta saisie. Tu confirmes t’être resservi·e ?'
+    : 'Pour les repas observés aujourd’hui, es-tu resté·e sur une seule portion ?',
   '🚫 Le faux allié': 'Cet extra servait-il à compenser ou remplacer une autre envie ?',
-  '🔄 Je brise la chaîne': 'As-tu reconnu l’enchaînement sucre → gras et réussi à créer une pause consciente ?',
+  '🔄 Je brise la chaîne': 'Cet enchaînement sucre → gras correspondait-il bien au schéma que tu voulais observer ?',
   '✨ Je me programme du plaisir': 'Ce plaisir avait-il été planifié à l’avance ?',
   '💧 1 cru par jour': 'As-tu mangé aujourd’hui au moins un aliment cru et non sucré ?'
 };
@@ -19,6 +21,7 @@ export default function ConfirmationObservationDuree({ defi }) {
   const [chargement, setChargement] = useState(true);
   const [sauvegarde, setSauvegarde] = useState(false);
   const [message, setMessage] = useState('');
+  const question = typeof QUESTIONS[defi?.nom] === 'function' ? QUESTIONS[defi.nom](decision) : QUESTIONS[defi?.nom];
 
   useEffect(() => {
     let actif = true;
@@ -70,7 +73,7 @@ export default function ConfirmationObservationDuree({ defi }) {
   return (
     <div style={{ marginTop: 12, padding: 14, borderRadius: 10, background: '#f7f7fb', border: '1px solid #e4e4ef' }}>
       <div style={{ fontWeight: 700, marginBottom: 6 }}>Petite observation</div>
-      <div style={{ marginBottom: 10 }}>{QUESTIONS[defi.nom]}</div>
+      <div style={{ marginBottom: 10 }}>{question}</div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button disabled={sauvegarde} onClick={() => repondre('oui')} style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid #bbb', background: '#fff' }}>Oui</button>
         <button disabled={sauvegarde} onClick={() => repondre('non')} style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid #bbb', background: '#fff' }}>Non</button>
