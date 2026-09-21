@@ -83,6 +83,8 @@ import TimelineProgression from "../components/TimelineProgression";
 import SaisieDefiAlimentaire from "../components/SaisieDefiAlimentaire";
 import SaisieRepriseJeune from "../components/SaisieRepriseJeune";
 import PointAjustementPlanning from "../components/PointAjustementPlanning";
+import { detecterCandidatsRepasReperes } from "../lib/repasReperes";
+import { choixDepuisValeurSure } from "../lib/choixRepas";
 import { harmoniserJoursProgramme } from '../lib/repriseJeuneMetier';
 import { useDefis } from "../components/DefisContext";
 import {
@@ -856,6 +858,14 @@ export default function Suivi() {
     setAideProchainRepas({ dateCible, typeCible, etape: 'proposition' });
   };
 
+  const ouvrirChoixRepasContextuels = intention => {
+    const valeursSures = detecterCandidatsRepasReperes(repasSemaine, { dateReference: selectedDate })
+      .slice(0, 3)
+      .map(choixDepuisValeurSure);
+    setChoixRepasContextuels(valeursSures);
+    setAideProchainRepas(courant => ({ ...courant, etape: 'choix', intention }));
+  };
+
   const refuserAideProchainRepas = () => {
     if (aideProchainRepas && typeof window !== 'undefined') {
       sessionStorage.setItem(
@@ -910,6 +920,7 @@ export default function Suivi() {
   // ----------- AUTRES HOOKS PRINCIPAUX -----------
   const [selectedType, setSelectedType] = useState(null);
   const [aideProchainRepas, setAideProchainRepas] = useState(null);
+  const [choixRepasContextuels, setChoixRepasContextuels] = useState([]);
   const [repasEnCoursParCle, setRepasEnCoursParCle] = useState({});
   const [enregistrementRepasEnCours, setEnregistrementRepasEnCours] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'info' });
@@ -2343,8 +2354,8 @@ export default function Suivi() {
                     </div>
                     <div style={{ color: '#475569', marginBottom: 12 }}>Tu veux qu’on t’aide à trouver quelque chose ?</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      <button type="button" onClick={() => setAideProchainRepas(c => ({ ...c, etape: 'choix', intention: 'rapide' }))}>⚡ Oui, quelque chose de rapide</button>
-                      <button type="button" onClick={() => setAideProchainRepas(c => ({ ...c, etape: 'choix', intention: 'temps' }))}>🍽️ Oui, j’ai un peu de temps</button>
+                      <button type="button" onClick={() => ouvrirChoixRepasContextuels('rapide')}>⚡ Oui, quelque chose de rapide</button>
+                      <button type="button" onClick={() => ouvrirChoixRepasContextuels('temps')}>🍽️ Oui, j’ai un peu de temps</button>
                       <button type="button" onClick={refuserAideProchainRepas}>Pas maintenant</button>
                     </div>
                   </>
@@ -2353,10 +2364,28 @@ export default function Suivi() {
                     <div style={{ fontWeight: 800, marginBottom: 5 }}>D’accord. On cherche pour ton {aideProchainRepas.typeCible.toLowerCase()}.</div>
                     <div style={{ color: '#475569', marginBottom: 10 }}>
                       {aideProchainRepas.intention === 'rapide'
-                        ? 'On va te proposer quelques options rapides à partir de ce que Mon Plan Vital connaît déjà.'
-                        : 'On va te proposer quelques options adaptées, sans te noyer dans une liste.'}
+                        ? 'Voici quelques repas que ton propre suivi a déjà identifiés comme utiles chez toi. Le temps de préparation n’est pas encore connu, donc on ne les étiquette pas artificiellement « rapides ».'
+                        : 'Voici quelques repas issus de ton propre historique, sans jugement ni classement nutritionnel.'}
                     </div>
-                    <button type="button" onClick={() => setAideProchainRepas(null)}>Fermer</button>
+                    {choixRepasContextuels.length > 0 ? (
+                      <div style={{ display: 'grid', gap: 10, marginBottom: 10 }}>
+                        {choixRepasContextuels.map(choix => (
+                          <div key={choix.sourceId || choix.titre} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
+                            <strong>{choix.titre}</strong>
+                            {choix.observation && <div style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>{choix.observation}</div>}
+                            <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              <button type="button" disabled title="Le branchement direct vers la saisie arrive à l’étape suivante">Préparer maintenant</button>
+                              <button type="button" disabled title="Le branchement direct vers le planning arrive à l’étape suivante">Planifier</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ background: '#fff', borderRadius: 10, padding: 12, marginBottom: 10, color: '#64748b' }}>
+                        Je n’ai pas encore assez d’historique fiable pour te proposer une valeur sûre personnelle.
+                      </div>
+                    )}
+                    <button type="button" onClick={() => { setChoixRepasContextuels([]); setAideProchainRepas(null); }}>Fermer</button>
                   </>
                 )}
               </section>
