@@ -2,7 +2,10 @@ module.exports = {
   testEnvironment: 'node',
   testMatch: ['**/tests/**/*.test.js'],
   transform: {
-    '^.+\\.js$': 'babel-jest'
+    '^.+\\.js
+  },
+  verbose: true
+};: ['babel-jest', { presets: ['next/babel'] }]
   },
   verbose: true
 };
