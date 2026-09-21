@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { calculerProfilComplet } from '../lib/routeurPoids';
 import { calculerExtrasSemaine, getWeekBounds } from '../lib/validationSemaine';
-import { getVerbatimProgressionExtras } from '../lib/extrasProgression';
+import { getEtatConstanceExtras, getVerbatimProgressionExtras } from '../lib/extrasProgression';
 
 function construireSynthese(extrasCount, palier, kcal, budget) {
   const frequenceOk = extrasCount <= palier;
@@ -209,6 +209,7 @@ export default function BudgetExtrasCard({ userId, selectedDate, palier = 5, pro
 
   const synthese = construireSynthese(data.extrasCount, palier, data.kcal, data.budget);
   const progressionTexte = progression ? getVerbatimProgressionExtras(progression) : null;
+  const etatConstance = progression ? getEtatConstanceExtras(progression) : null;
   const depassement = data.budgetLibre < 0;
   const bloc = { padding: '0.9rem', background: 'rgba(255,255,255,0.18)', borderRadius: 10 };
 
@@ -259,7 +260,17 @@ export default function BudgetExtrasCard({ userId, selectedDate, palier = 5, pro
         )}
       </div>
 
-      <div style={{ marginBottom: '0.55rem', fontWeight: 700 }}>Le rythme que je crée</div>
+      <div style={{ marginBottom: '0.55rem', fontWeight: 700 }}>
+        {etatConstance?.label || 'Le rythme que je crée'}
+      </div>
+      {etatConstance && (
+        <div style={{ ...bloc, marginBottom: '0.9rem', lineHeight: 1.45 }}>
+          <div style={{ fontSize: '0.78rem', opacity: 0.82, marginBottom: 3 }}>
+            {etatConstance.code}
+          </div>
+          {etatConstance.message}
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '0.8rem' }}>
         <div style={bloc}>
           <div style={{ fontSize: '0.82rem', opacity: 0.9 }}>Palier actuel</div>
@@ -278,7 +289,7 @@ export default function BudgetExtrasCard({ userId, selectedDate, palier = 5, pro
 
       {progressionTexte && progression?.prochainPalier !== null && (
         <div style={{ ...bloc, marginTop: '0.9rem', lineHeight: 1.45 }}>
-          <div style={{ fontSize: '0.82rem', opacity: 0.9, marginBottom: 3 }}>Mon chemin · {progression.semainesAcquises} semaine{progression.semainesAcquises > 1 ? 's' : ''} sur {progression.semainesRequises}</div>
+          <div style={{ fontSize: '0.82rem', opacity: 0.9, marginBottom: 3 }}>Mon chemin récent · {progression.semainesAcquises} semaine{progression.semainesAcquises > 1 ? 's' : ''} respectée{progression.semainesAcquises > 1 ? 's' : ''} parmi les {progression.tailleFenetre} dernières</div>
           {progressionTexte}
         </div>
       )}

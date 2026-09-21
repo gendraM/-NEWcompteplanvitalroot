@@ -8,7 +8,7 @@ import ExtrasBadgesSection from "../components/ExtrasBadgesSection";
 import DrawerValidation from "../components/DrawerValidation";
 import { getSemainesNonValidees, calculerExtrasSemaine, compterMomentsExtras, genererMessageFeedback, calculerVariation, formatDate } from "../lib/validationSemaine";
 import { calculerProgressionExtras } from "../lib/extrasProgression";
-import { synchroniserBadgesPalierExtras } from "../lib/extrasBadges";
+import { synchroniserBadgesPalierExtras, synchroniserEvenementsPalierExtras } from "../lib/extrasBadges";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -114,9 +114,10 @@ export default function TableauDeBord() {
       const { data: authData } = await supabase.auth.getUser();
       const currentUserId = authData?.user?.id;
       if (currentUserId) {
+        const progressionExtras = calculerProgressionExtras(semaines || []);
         const synchronisation = await synchroniserBadgesPalierExtras(
           currentUserId,
-          calculerProgressionExtras(semaines || []),
+          progressionExtras,
           semaines || []
         );
         if (synchronisation.erreurs.length > 0) {
@@ -127,6 +128,24 @@ export default function TableauDeBord() {
             ...synchronisation.nouveaux,
             ...badgesActuels.filter(badge => !synchronisation.nouveaux.some(nouveau => nouveau.code === badge.code)),
           ]);
+        }
+
+        const synchronisationEvenements = await synchroniserEvenementsPalierExtras(
+          currentUserId,
+          progressionExtras
+        );
+        if (synchronisationEvenements.error) {
+          console.error('[PARCOURS EXTRAS] Synchronisation incomplète :', synchronisationEvenements.error);
+        }
+        const { data: evenements, error: evenementsError } = await supabase
+          .from('extras_palier_events')
+          .select('*')
+          .eq('user_id', currentUserId)
+          .order('semaine_decisive', { ascending: true });
+        if (evenementsError) {
+          console.error('[PARCOURS EXTRAS] Lecture impossible :', evenementsError);
+        } else {
+          setExtrasPalierEvents(evenements || []);
         }
       }
       
@@ -325,6 +344,7 @@ export default function TableauDeBord() {
   const [satieteData, setSatieteData] = useState({ faim: 0, total: 0 });
   const [extrasData, setExtrasData] = useState({ current: 0, quota: 3 });
   const [badges, setBadges] = useState([]);
+  const [extrasPalierEvents, setExtrasPalierEvents] = useState([]);
   const [repasReels, setRepasReels] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -583,9 +603,10 @@ export default function TableauDeBord() {
         historiqueProgression.push(semaineValidee);
       }
 
+      const progressionExtras = calculerProgressionExtras(historiqueProgression);
       const synchronisation = await synchroniserBadgesPalierExtras(
         currentUserId,
-        calculerProgressionExtras(historiqueProgression),
+        progressionExtras,
         historiqueProgression
       );
       if (synchronisation.erreurs.length > 0) {
@@ -597,6 +618,20 @@ export default function TableauDeBord() {
           ...badgesActuels.filter(badge => !synchronisation.nouveaux.some(nouveau => nouveau.code === badge.code)),
         ]);
       }
+
+      const synchronisationEvenements = await synchroniserEvenementsPalierExtras(
+        currentUserId,
+        progressionExtras
+      );
+      if (synchronisationEvenements.error) {
+        throw new Error('Les semaines ont été validées, mais l’histoire du parcours Extras n’a pas pu être conservée.');
+      }
+      const { data: evenements } = await supabase
+        .from('extras_palier_events')
+        .select('*')
+        .eq('user_id', currentUserId)
+        .order('semaine_decisive', { ascending: true });
+      setExtrasPalierEvents(evenements || []);
 
       // Rafraîchir les données
       const { data: semaines } = await supabase
@@ -1082,7 +1117,7 @@ export default function TableauDeBord() {
         {/* --- Section Succès / Badges --- */}
       {/* --- Timeline visuelle façon Instagram/TikTok --- */}
       <TimelineProgression history={weeklyHistory} />
-        <ExtrasBadgesSection badges={badges.filter(badge => badge.type === 'extras_palier')} />
+        <ExtrasBadgesSection badges={badges.filter(badge => badge.type === 'extras_palier')} events={extrasPalierEvents} />
         <div
           style={{
             padding: "1.5rem",
