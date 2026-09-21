@@ -63,9 +63,11 @@ export default function PlanActionPage() {
       if (error) throw error;
 
       if (data && plan) {
+        const numeroPalier = Number(idealData?.palier_numero || 1);
+        const seancesPalier = data.filter((seance) => Number(seance.palier_numero || 1) === numeroPalier);
         const semaines = extraireSemainesPalier(plan, idealData);
-        const bonusSeances = data.filter((s) => s.bonus === true);
-        const normalSeances = data.filter((s) => !s.bonus);
+        const bonusSeances = seancesPalier.filter((s) => s.bonus === true);
+        const normalSeances = seancesPalier.filter((s) => !s.bonus);
 
         const newReel = semaines.map((sem) =>
           (sem.actions || []).map((action) => {
@@ -118,6 +120,7 @@ export default function PlanActionPage() {
       const payload = normaliserSeancePourEcriture({
         user_id: userId,
         ideal_id: id,
+        palier_numero: Number(ideal.palier_numero || 1),
         date_prevue: action.date,
         date_reelle: fait ? new Date().toISOString().slice(0, 10) : null,
         jour: action.jour,
@@ -205,6 +208,7 @@ export default function PlanActionPage() {
         .insert(normaliserSeancePourEcriture({
           user_id: userId,
           ideal_id: id,
+          palier_numero: Number(ideal?.palier_numero || 1),
           date_prevue: dateBonus,
           date_reelle: dateBonus,
           jour: ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][new Date().getDay()],

@@ -50,6 +50,24 @@ describe('progression réelle des cartes Idéaux', () => {
     expect(ideal.seances_reelles).toHaveLength(1);
   });
 
+  it('calcule la progression avec le palier courant sans mélanger son historique', () => {
+    const [ideal] = rattacherProgressionAuxIdeaux([{
+      id: 'ideal-1',
+      palier_numero: 2,
+      plan_params_valides: { palierDuree: 1 },
+      plan_data: {
+        mois: [{ numero: 9, annee: 2026, semaines: [{ numero: 1, actions: [{ date: '2026-09-21' }] }] }],
+      },
+    }], [
+      { ideal_id: 'ideal-1', palier_numero: 1, date_prevue: '2025-09-21', fait: true },
+      { ideal_id: 'ideal-1', palier_numero: 2, date_prevue: '2026-09-21', fait: false },
+    ]);
+
+    expect(ideal.historique_seances_reelles).toHaveLength(2);
+    expect(ideal.seances_reelles).toHaveLength(1);
+    expect(ideal.progression_palier).toEqual({ total: 1, faites: 0, pourcentage: 0, termine: false });
+  });
+
   it('retourne une progression vide sans interroger les séances quand aucun idéal existe', async () => {
     const appels = [];
     const supabase = {

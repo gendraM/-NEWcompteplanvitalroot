@@ -21,3 +21,13 @@ Idéal → objectif → proposition Palier 1 → validation → paramètres fig�
 ## Source de vérité des réalisations
 
 Pour la compatibilité avec OBSERVE / Align-Life, une séance accomplie est prouvée par `seances_reelles.fait === true`. Le champ `statut` peut rester présent pour compatibilité UI/historique, mais ne doit pas devenir une seconde vérité divergente.
+
+## Palier échu et reprise après interruption
+
+- Un palier arrivé à sa date de fin n'est jamais prolongé ou régénéré silencieusement.
+- Son plan, ses paramètres figés et son bilan réel sont conservés dans l'historique.
+- La reprise commence par un bilan court : objectif toujours souhaité, cause de l'interruption, niveau actuel et rythme réaliste.
+- Si la date cible est passée, l'utilisateur choisit explicitement une nouvelle date ; l'application ne la décale pas seule.
+- Le palier suivant commence à la date de reprise et adapte au plus une dimension de difficulté.
+- Aucune nouvelle séance n'est créée avant la validation explicite de la proposition.
+- Si l'utilisateur ne souhaite pas reprendre maintenant, l'Idéal est mis en pause sans supprimer sa direction ni son historique.

@@ -9,6 +9,7 @@ import {
 } from '../lib/ideauxPalier';
 import { chargerIdeauxAvecProgression } from '../lib/ideauxProgression';
 import { obtenirUserIdIdeaux } from '../lib/ideauxAuth';
+import { construirePropositionReprise, creerArchivePalier } from '../lib/ideauxCycle';
 
 function extraireSemainesPourParametres(plan, params) {
   return extraireSemainesPalier(plan, {
@@ -140,6 +141,16 @@ export default function IdeauxPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [currentIdealId, setCurrentIdealId] = useState(null); // ID de l'idéal affiché dans la modale
   const [isPlanValide, setIsPlanValide] = useState(false); // État de validation du plan
+  const [repriseIdeal, setRepriseIdeal] = useState(null);
+  const [repriseProposition, setRepriseProposition] = useState(null);
+  const [repriseLoading, setRepriseLoading] = useState(false);
+  const [repriseForm, setRepriseForm] = useState({
+    objectifToujoursSouhaite: 'oui',
+    causeInterruption: '',
+    niveauActuel: 'semblable',
+    rythmeRealiste: 3,
+    nouvelleDateCible: '',
+  });
 
   async function handleGeneratePlan(ideal) {
     let userId;
@@ -243,6 +254,7 @@ export default function IdeauxPage() {
           const seanceData = {
             user_id: userId,
             ideal_id: currentIdealId,
+            palier_numero: 1,
             date_prevue: act.date,
             duree_prevue: act.duree || planParams.duree || 15,
             fait: false,
@@ -332,11 +344,13 @@ export default function IdeauxPage() {
 
       // Reconstituer l'état reel à partir des données Supabase
       if (data && plan) {
+        const numeroPalier = Number(ideaux.find((ideal) => ideal.id === idealId)?.palier_numero || 1);
+        const seancesPalier = data.filter((seance) => Number(seance.palier_numero || 1) === numeroPalier);
         const semaines = extraireSemainesPourParametres(plan, params);
 
         // Séparer séances planifiées et bonus
-        const bonusSeances = data.filter(s => s.bonus === true);
-        const normalSeances = data.filter(s => !s.bonus);
+        const bonusSeances = seancesPalier.filter(s => s.bonus === true);
+        const normalSeances = seancesPalier.filter(s => !s.bonus);
 
         const newReel = semaines.map((sem) => {
           const seancesNormales = sem.actions.map((action) => {
@@ -389,6 +403,7 @@ export default function IdeauxPage() {
     
     try {
       const userId = await obtenirUserIdIdeaux(supabase);
+      const numeroPalier = Number(ideaux.find((ideal) => ideal.id === currentIdealId)?.palier_numero || 1);
       const semaines = extraireSemainesPourParametres(planData, planParams);
 
       const sem = semaines[selectedSemaine];
@@ -411,6 +426,7 @@ export default function IdeauxPage() {
           await supabase.from('seances_reelles').upsert({
             user_id: userId,
             ideal_id: currentIdealId,
+            palier_numero: numeroPalier,
             date_prevue: seance.date || new Date().toISOString().slice(0, 10),
             date_reelle: seance.date || new Date().toISOString().slice(0, 10),
             duree_prevue: seance.duree || planParams.duree || 15,
@@ -432,6 +448,7 @@ export default function IdeauxPage() {
             const seanceNormalisee = normaliserSeancePourEcriture({
               user_id: userId,
               ideal_id: currentIdealId,
+              palier_numero: numeroPalier,
               date_prevue: action.date,
               jour: action.jour,
               action_type: action.action_type,
@@ -574,6 +591,126 @@ export default function IdeauxPage() {
     } catch (err) {
       console.error('❌ Erreur:', err);
       setMessage('❌ Erreur : ' + err.message);
+    }
+  }
+
+  function ouvrirReprise(ideal) {
+    setRepriseIdeal(ideal);
+    setRepriseProposition(null);
+    setRepriseForm({
+      objectifToujoursSouhaite: 'oui',
+      causeInterruption: '',
+      niveauActuel: 'semblable',
+      rythmeRealiste: Number(ideal.plan_params_valides?.frequence || 3),
+      nouvelleDateCible: '',
+    });
+  }
+
+  function fermerReprise() {
+    setRepriseIdeal(null);
+    setRepriseProposition(null);
+    setRepriseLoading(false);
+  }
+
+  function preparerPropositionReprise(e) {
+    e.preventDefault();
+    setMessage('');
+    try {
+      setRepriseProposition(construirePropositionReprise(repriseIdeal, repriseForm));
+    } catch (error) {
+      setRepriseProposition(null);
+      setMessage('❌ ' + error.message);
+    }
+  }
+
+  async function handleMettreEnPause() {
+    if (!repriseIdeal) return;
+    setRepriseLoading(true);
+    try {
+      const userId = await obtenirUserIdIdeaux(supabase);
+      const { error } = await supabase.from('ideaux').update({
+        statut: 'en pause',
+        reprise_etat: {
+          statut: 'pause',
+          date: new Date().toISOString(),
+          questionnaire: repriseForm,
+        },
+      }).eq('id', repriseIdeal.id).eq('user_id', userId);
+      if (error) throw error;
+      await fetchIdeaux();
+      fermerReprise();
+      setMessage('✅ Cet idéal est en pause. Son cap et son historique sont conservés.');
+    } catch (error) {
+      setMessage('❌ Impossible de mettre cet idéal en pause : ' + error.message);
+      setRepriseLoading(false);
+    }
+  }
+
+  async function handleValiderReprise() {
+    if (!repriseIdeal || !repriseProposition) return;
+    setRepriseLoading(true);
+    setMessage('⏳ Création du palier de reprise...');
+
+    try {
+      const userId = await obtenirUserIdIdeaux(supabase);
+      const nouveauPlan = generateAnchoringPlan(repriseProposition);
+      const semaines = extraireSemainesPourParametres(nouveauPlan, repriseProposition);
+      const seances = semaines.flatMap((semaine) => semaine.actions.map((action) =>
+        normaliserSeancePourEcriture({
+          user_id: userId,
+          ideal_id: repriseIdeal.id,
+          palier_numero: repriseProposition.numero,
+          date_prevue: action.date,
+          jour: action.jour,
+          action_type: action.action_type,
+          duree_prevue: action.duree || repriseProposition.duree,
+          duree_reelle: null,
+          intensite: repriseProposition.intensite,
+          fait: false,
+          bonus: false,
+          semaine_numero: semaine.numero,
+          mois_numero: semaine.mois,
+          annee: semaine.annee,
+        })
+      ));
+
+      if (seances.length) {
+        const { error: seancesError } = await supabase.from('seances_reelles')
+          .upsert(seances, { onConflict: 'ideal_id,date_prevue' });
+        if (seancesError) throw seancesError;
+      }
+
+      const archive = creerArchivePalier(repriseIdeal, repriseForm);
+      const historique = [...(Array.isArray(repriseIdeal.cycle_paliers) ? repriseIdeal.cycle_paliers : []), archive];
+      const paramsValides = {
+        duree: repriseProposition.duree,
+        intensite: repriseProposition.intensite,
+        frequence: repriseProposition.frequence,
+        joursProposes: repriseProposition.joursProposes,
+        palierDuree: repriseProposition.palierDuree,
+        dateDebut: repriseProposition.dateDebut,
+      };
+      const { error: idealError } = await supabase.from('ideaux').update({
+        plan_data: nouveauPlan,
+        plan_params_valides: paramsValides,
+        date_debut: repriseProposition.dateDebut,
+        date_cible: repriseProposition.dateCible,
+        date_validation_palier: new Date().toISOString(),
+        palier_numero: repriseProposition.numero,
+        cycle_paliers: historique,
+        reprise_etat: null,
+        plan_valide: true,
+        statut: 'en cours',
+      }).eq('id', repriseIdeal.id).eq('user_id', userId);
+      if (idealError) throw idealError;
+
+      await fetchIdeaux();
+      fermerReprise();
+      setMessage(`✅ Palier ${repriseProposition.numero} validé. Les nouvelles séances sont enregistrées.`);
+    } catch (error) {
+      console.error('Erreur création palier de reprise :', error);
+      setMessage('❌ Impossible de créer le palier de reprise : ' + error.message);
+      setRepriseLoading(false);
     }
   }
 
@@ -751,7 +888,22 @@ export default function IdeauxPage() {
               <div style={{fontSize:15, marginBottom: 6}}><b>Date cible :</b> {ideal.date_cible || '—'}</div>
               {progressionPalier?.total > 0 && (
                 <div style={{fontSize:15, marginBottom:6, color:'#1976d2', fontWeight:600}}>
-                  Palier 1 : {progressionPalier.faites}/{progressionPalier.total} séances réalisées ({progressionPalier.pourcentage} %)
+                  Palier {ideal.cycle_palier?.numero || ideal.palier_numero || 1} : {progressionPalier.faites}/{progressionPalier.total} séances réalisées ({progressionPalier.pourcentage} %)
+                </div>
+              )}
+              {(ideal.cycle_palier?.repriseNecessaire || ideal.reprise_etat?.statut === 'pause') && (
+                <div style={{marginTop:12, padding:'12px 14px', borderRadius:10, background:'#fff8e1', border:'1px solid #ffe082', color:'#6d4c41'}}>
+                  <div style={{fontWeight:800, marginBottom:5}}>
+                    {ideal.reprise_etat?.statut === 'pause' ? 'Ton idéal est en pause.' : `Le palier ${ideal.cycle_palier?.numero || 1} est arrivé à son terme.`}
+                  </div>
+                  <div style={{fontSize:14, marginBottom:9}}>
+                    Bilan : {ideal.bilan_palier?.totalPrevu || 0} séance(s) prévue(s), {ideal.bilan_palier?.realisePrevu || 0} réalisée(s)
+                    {(ideal.bilan_palier?.supplementaires || 0) > 0 ? `, ${ideal.bilan_palier.supplementaires} bonus` : ''}.
+                    {ideal.cycle_palier?.longueInterruption && ' Après cette interruption, on repart de ta réalité actuelle sans effacer le chemin déjà parcouru.'}
+                  </div>
+                  <button type="button" onClick={() => ouvrirReprise(ideal)} style={{background:'#ffa726', color:'#fff', border:'none', borderRadius:8, padding:'7px 14px', fontWeight:700, cursor:'pointer'}}>
+                    {ideal.reprise_etat?.statut === 'pause' ? 'Reprendre cet idéal' : 'Faire mon bilan et reprendre'}
+                  </button>
                 </div>
               )}
               <div style={{position:'absolute', top:18, right:18}}>
@@ -786,6 +938,80 @@ export default function IdeauxPage() {
           );
   })
   })
+        {repriseIdeal && (
+          <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.35)', zIndex:1100, display:'flex', alignItems:'center', justifyContent:'center', padding:18}}>
+            <div style={{background:'#fff', borderRadius:16, boxShadow:'0 4px 28px #0003', padding:'2rem', width:'100%', maxWidth:620, maxHeight:'92vh', overflowY:'auto', position:'relative'}}>
+              <button type="button" onClick={fermerReprise} aria-label="Fermer" style={{position:'absolute', top:10, right:14, border:0, background:'none', fontSize:24, cursor:'pointer'}}>×</button>
+              <h2 style={{color:'#1976d2', marginTop:0}}>Faire le point, puis reprendre</h2>
+              <p style={{color:'#555'}}>Ton idéal reste le cap. Le palier terminé est conservé dans l’historique ; le prochain part de ta réalité actuelle.</p>
+              <div style={{background:'#e8f5e9', borderRadius:10, padding:12, marginBottom:16}}>
+                <b>Bilan du palier {repriseIdeal.cycle_palier?.numero || 1}</b><br />
+                {repriseIdeal.bilan_palier?.realisePrevu || 0}/{repriseIdeal.bilan_palier?.totalPrevu || 0} séances prévues réalisées
+                {(repriseIdeal.bilan_palier?.supplementaires || 0) > 0 && <> + {repriseIdeal.bilan_palier.supplementaires} bonus</>}.
+              </div>
+
+              <form onSubmit={preparerPropositionReprise}>
+                <label style={{display:'block', marginBottom:14, fontWeight:700}}>Est-ce que cet objectif compte toujours pour toi ?
+                  <select value={repriseForm.objectifToujoursSouhaite} onChange={(e) => setRepriseForm({...repriseForm, objectifToujoursSouhaite:e.target.value})} style={{display:'block', width:'100%', marginTop:5, padding:9, borderRadius:7}}>
+                    <option value="oui">Oui, je veux reprendre</option>
+                    <option value="non">Pas maintenant, je préfère le mettre en pause</option>
+                  </select>
+                </label>
+                <label style={{display:'block', marginBottom:14, fontWeight:700}}>Qu’est-ce qui a surtout interrompu le rythme ?
+                  <select required value={repriseForm.causeInterruption} onChange={(e) => setRepriseForm({...repriseForm, causeInterruption:e.target.value})} style={{display:'block', width:'100%', marginTop:5, padding:9, borderRadius:7}}>
+                    <option value="">Choisir une réponse</option>
+                    <option value="manque_temps">Manque de temps</option>
+                    <option value="sante">Santé ou fatigue</option>
+                    <option value="motivation">Motivation difficile</option>
+                    <option value="organisation">Organisation ou imprévu</option>
+                    <option value="autre">Autre raison</option>
+                  </select>
+                </label>
+                {repriseForm.objectifToujoursSouhaite === 'oui' && (
+                  <>
+                    <label style={{display:'block', marginBottom:14, fontWeight:700}}>Par rapport au début du dernier palier, ton niveau actuel est :
+                      <select value={repriseForm.niveauActuel} onChange={(e) => setRepriseForm({...repriseForm, niveauActuel:e.target.value})} style={{display:'block', width:'100%', marginTop:5, padding:9, borderRadius:7}}>
+                        <option value="plus_bas">Plus bas : je veux reprendre doucement</option>
+                        <option value="semblable">Semblable</option>
+                        <option value="plus_haut">Plus haut</option>
+                      </select>
+                    </label>
+                    <label style={{display:'block', marginBottom:14, fontWeight:700}}>Quel rythme est réellement tenable maintenant ?
+                      <input type="number" min="1" max="7" value={repriseForm.rythmeRealiste} onChange={(e) => setRepriseForm({...repriseForm, rythmeRealiste:Number(e.target.value)})} style={{display:'block', width:90, marginTop:5, padding:9, borderRadius:7}} />
+                      <span style={{fontWeight:400, fontSize:14}}>séance(s) par semaine</span>
+                    </label>
+                    {(repriseIdeal.cycle_palier?.cibleDepassee || !repriseIdeal.date_cible) && (
+                      <label style={{display:'block', marginBottom:14, fontWeight:700}}>{repriseIdeal.cycle_palier?.cibleDepassee ? 'La date cible est passée. Quelle nouvelle date souhaites-tu choisir ?' : 'Quelle date cible souhaites-tu choisir ?'}
+                        <input required type="date" min={new Date().toISOString().slice(0,10)} value={repriseForm.nouvelleDateCible} onChange={(e) => setRepriseForm({...repriseForm, nouvelleDateCible:e.target.value})} style={{display:'block', width:'100%', marginTop:5, padding:9, borderRadius:7}} />
+                      </label>
+                    )}
+                  </>
+                )}
+
+                {message.startsWith('❌') && <div style={{color:'#c62828', marginBottom:12, fontWeight:700}}>{message}</div>}
+                {repriseForm.objectifToujoursSouhaite === 'oui' ? (
+                  <button disabled={repriseLoading} type="submit" style={{background:'#1976d2', color:'#fff', border:0, borderRadius:8, padding:'10px 18px', fontWeight:700, cursor:'pointer'}}>Construire ma proposition</button>
+                ) : (
+                  <button disabled={repriseLoading} type="button" onClick={handleMettreEnPause} style={{background:'#ffa726', color:'#fff', border:0, borderRadius:8, padding:'10px 18px', fontWeight:700, cursor:'pointer'}}>Mettre cet idéal en pause</button>
+                )}
+              </form>
+
+              {repriseProposition && (
+                <div style={{marginTop:18, padding:15, border:'2px solid #80cbc4', borderRadius:10, background:'#f1f8e9'}}>
+                  <h3 style={{marginTop:0, color:'#2e7d32'}}>Proposition : Palier {repriseProposition.numero}</h3>
+                  <div>Départ : <b>{repriseProposition.dateDebut}</b></div>
+                  <div>Durée : <b>{repriseProposition.palierDuree} semaines</b></div>
+                  <div>Rythme : <b>{repriseProposition.frequence} séance(s)/semaine</b>, {repriseProposition.duree} min</div>
+                  <div>Date cible : <b>{repriseProposition.dateCible}</b></div>
+                  <p style={{fontSize:14}}>Adaptation proposée : {repriseProposition.raisonAdaptation}. Rien n’est enregistré avant ta validation.</p>
+                  <button disabled={repriseLoading} type="button" onClick={handleValiderReprise} style={{background:'#43a047', color:'#fff', border:0, borderRadius:8, padding:'11px 20px', fontWeight:800, cursor:'pointer'}}>
+                    {repriseLoading ? 'Enregistrement...' : `Valider le Palier ${repriseProposition.numero}`}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {/* Modale d'affichage du plan généré */}
         {planVisible && planData && planParams && (
           <div style={{position:'fixed', top:0, left:0, width:'100vw', height:'100vh', background:'rgba(0,0,0,0.25)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center'}}>
@@ -819,7 +1045,8 @@ export default function IdeauxPage() {
                     const moisLettres = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
                     if (planData.mois && planData.mois[0]) {
                       const m = planData.mois[0];
-                      return `Palier 1 : ${moisLettres[(m.numero-1)%12]} ${m.annee}`;
+                      const numeroPalier = ideaux.find((ideal) => ideal.id === currentIdealId)?.palier_numero || 1;
+                      return `Palier ${numeroPalier} : ${moisLettres[(m.numero-1)%12]} ${m.annee}`;
                     }
                     return '';
                   })()}
