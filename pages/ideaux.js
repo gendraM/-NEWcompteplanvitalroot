@@ -361,7 +361,8 @@ export default function IdeauxPage() {
               duree: seance?.duree_reelle || seance?.duree_prevue || action.duree || params?.duree || 15,
               distance_km: seance?.distance_km || 0,
               vitesse: seance?.vitesse || null,
-              date: action.date
+              date: seance?.date_reelle || action.date,
+              date_prevue: action.date
             };
           });
           // Ajouter les séances bonus de cette semaine
@@ -458,6 +459,7 @@ export default function IdeauxPage() {
               distance_km: seance.fait ? (seance.distance_km || null) : null,
               vitesse: seance.fait ? (seance.vitesse || null) : null,
               intensite: planParams.intensite || '7,6 km/h',
+              date_reelle: seance.fait ? (seance.date || action.date) : null,
               fait: seance.fait === true,
               bonus: false,
               semaine_numero: sem.numero,
