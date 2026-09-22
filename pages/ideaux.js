@@ -7,6 +7,7 @@ import {
   normaliserSeancePourEcriture,
   seanceEstFaite,
 } from '../lib/ideauxPalier';
+import { analyserRealisationSeance } from '../lib/ideauxRealiteSeance';
 import { chargerIdeauxAvecProgression } from '../lib/ideauxProgression';
 import { obtenirUserIdIdeaux } from '../lib/ideauxAuth';
 import { construirePropositionReprise, creerArchivePalier } from '../lib/ideauxCycle';
@@ -1245,8 +1246,34 @@ export default function IdeauxPage() {
                             {a.date} — {a.action_type}, {a.moment}
                           </div>
                           {reel[selectedSemaine]?.[j]?.fait && (
-                            <div style={{display:'flex', gap:6, marginLeft:28}}>
+                            <div style={{display:'flex', gap:6, marginLeft:28, flexWrap:'wrap', alignItems:'center'}}>
+                              <label style={{fontSize:12, color:'#546e7a'}}>Réalisée le</label>
+                              <input type="date" value={reel[selectedSemaine][j].date || a.date} onChange={e=>{
+                                const val = e.target.value;
+                                setReel(reel => {
+                                  const copy = reel.map(arr => arr.map(obj => ({...obj})));
+                                  copy[selectedSemaine][j].date = val;
+                                  return copy;
+                                });
+                              }} style={{borderRadius:6, border:'1px solid #b2ebf2', padding:'2px 6px', fontWeight:600}} />
                               <input type="number" min="1" max="300" value={reel[selectedSemaine][j].duree || ''} onChange={e=>handleDureeChange(selectedSemaine, j, e.target.value)} placeholder="Durée (min)" style={{width:60, borderRadius:6, border:'1px solid #b2ebf2', padding:'2px 6px', fontWeight:600}} />
+                              {(() => {
+                                const analyse = analyserRealisationSeance({
+                                  fait: true,
+                                  bonus: false,
+                                  date_prevue: a.date,
+                                  date_reelle: reel[selectedSemaine][j].date || a.date,
+                                  duree_prevue: a.duree || planParams.duree || 15,
+                                  duree_reelle: reel[selectedSemaine][j].duree,
+                                });
+                                if (!analyse) return null;
+                                return (
+                                  <>
+                                    {analyse.decalee && <span style={{fontSize:12, color:'#1976d2'}}>↪ séance prévue déplacée</span>}
+                                    {analyse.depasseObjectif && <span style={{fontSize:12, color:'#43a047', fontWeight:700}}>✨ +{analyse.depassementDuree} min au-delà de ton repère</span>}
+                                  </>
+                                );
+                              })()}
                               <input type="number" min="0" step="0.1" value={reel[selectedSemaine][j].distance_km || ''} onChange={e=>{
                                 const val = e.target.value;
                                 setReel(reel => {
