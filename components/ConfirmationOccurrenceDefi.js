@@ -6,7 +6,7 @@ import { VALIDATION_DECISION, PROGRESSION_MODEL, getValidationConfig } from '../
 
 const QUESTIONS = {
   '🧠 Je suis plus fort·e que mes excuses': 'Dans cette situation, as-tu dépassé l’excuse ou l’automatisme que tu voulais travailler ?',
-  '🌡️ Chaud devant… mais doux !': 'Pour ce dîner, as-tu réalisé l’action prévue par ce défi ?',
+  '🌡️ Chaud devant… mais doux !': 'Pour ce dîner, as-tu choisi une cuisson douce (vapeur, mijoté ou cru) ?',
   '🔥 1 vraie faim = 1 vrai repas': 'Ce repas répondait-il à une vraie faim ?'
 };
 
