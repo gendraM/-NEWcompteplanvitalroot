@@ -2,6 +2,8 @@ import {
   construireExtrasStatus,
   construireActiveChallenge,
   construireActiveIdeal,
+  construireMealSignals,
+  construireWellbeingStatus,
   construireSyntheseTableauDeBord,
   construireWeightStatus,
   evaluerDisponibiliteDonnees,
@@ -85,5 +87,28 @@ describe('dashboardSynthesis', () => {
     ]);
     expect(actif.titre).toBe('Courir');
     expect(actif.progressionPalier).toBe(progression);
+  });
+  test('faim et satiété restent deux indicateurs distincts', () => {
+    const signaux = construireMealSignals([
+      { raison_manger: "J'avais faim", satiete: true, repas_planifie_respecte: true, ressenti: 'léger' },
+      { raison_manger: 'envie', satiete: 'pas de faim', repas_planifie_respecte: false, ressenti: 'lourd' },
+      { raison_manger: "J'avais faim", satiete: true, repas_planifie_respecte: true, ressenti: 'satisfait' },
+    ]);
+    expect(signaux.faim.pourcentageAvecFaim).toBe(67);
+    expect(signaux.satiete.pourcentageRespectee).toBe(67);
+    expect(signaux.satiete.sansFaim).toBe(1);
+    expect(signaux.alignementPlan.pourcentage).toBe(67);
+    expect(signaux.reculSuffisant).toBe(true);
+  });
+
+  test('le bien-être reste descriptif et ne crée aucune causalité', () => {
+    const statut = construireWellbeingStatus([
+      { humeur: 'Calme' },
+      { humeur: 'Calme' },
+      { humeur: 'Fatiguée' },
+    ]);
+    expect(statut.humeurDominante).toBe('Calme');
+    expect(statut.nombreCheckins).toBe(3);
+    expect(statut).not.toHaveProperty('cause');
   });
 });
