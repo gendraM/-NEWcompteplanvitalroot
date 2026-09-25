@@ -904,6 +904,15 @@ export default function IdeauxPage() {
                     {(ideal.bilan_palier?.supplementaires || 0) > 0 ? `, ${ideal.bilan_palier.supplementaires} bonus` : ''}.
                     {ideal.cycle_palier?.longueInterruption && ' Après cette interruption, on repart de ta réalité actuelle sans effacer le chemin déjà parcouru.'}
                   </div>
+                  {ideal.proposition_progression && (
+                    <div style={{fontSize:13, marginBottom:9, padding:'8px 10px', background:'#fff', borderRadius:8}}>
+                      {ideal.proposition_progression.type === 'progresser' ? (
+                        <>📈 Ta réalité montre une progression régulière sur <b>{ideal.proposition_progression.dimension}</b>. Pour la suite, une seule dimension pourra évoluer : {ideal.proposition_progression.ancienneCible} → <b>{ideal.proposition_progression.nouvelleCible}</b>. Les autres repères restent stables.</>
+                      ) : (
+                        <>🌱 Pas besoin d’augmenter artificiellement la difficulté : la prochaine étape peut consolider tes repères actuels.</>
+                      )}
+                    </div>
+                  )}
                   <button type="button" onClick={() => ouvrirReprise(ideal)} style={{background:'#ffa726', color:'#fff', border:'none', borderRadius:8, padding:'7px 14px', fontWeight:700, cursor:'pointer'}}>
                     {ideal.reprise_etat?.statut === 'pause' ? 'Reprendre cet idéal' : 'Faire mon bilan et reprendre'}
                   </button>
@@ -1004,7 +1013,18 @@ export default function IdeauxPage() {
                   <div>Départ : <b>{repriseProposition.dateDebut}</b></div>
                   <div>Durée : <b>{repriseProposition.palierDuree} semaines</b></div>
                   <div>Rythme : <b>{repriseProposition.frequence} séance(s)/semaine</b>, {repriseProposition.duree} min</div>
+                  {repriseProposition.intensite && <div>Repère d’intensité : <b>{repriseProposition.intensite}</b></div>}
                   <div>Date cible : <b>{repriseProposition.dateCible}</b></div>
+                  {repriseProposition.progressionObservee?.type === 'progresser' && (
+                    <div style={{marginTop:10, padding:'9px 11px', background:'#e8f5e9', borderRadius:8, fontSize:14}}>
+                      📈 D’après tes réalisations, le repère <b>{repriseProposition.progressionObservee.dimension}</b> est proposé à {repriseProposition.progressionObservee.nouvelleCible}. Une seule dimension évolue.
+                    </div>
+                  )}
+                  {repriseProposition.progressionObservee?.type === 'consolider' && (
+                    <div style={{marginTop:10, padding:'9px 11px', background:'#fff8e1', borderRadius:8, fontSize:14}}>
+                      🌱 Tes réalisations invitent plutôt à consolider ce palier : aucun repère n’est augmenté automatiquement.
+                    </div>
+                  )}
                   <p style={{fontSize:14}}>Adaptation proposée : {repriseProposition.raisonAdaptation}. Rien n’est enregistré avant ta validation.</p>
                   <button disabled={repriseLoading} type="button" onClick={handleValiderReprise} style={{background:'#43a047', color:'#fff', border:0, borderRadius:8, padding:'11px 20px', fontWeight:800, cursor:'pointer'}}>
                     {repriseLoading ? 'Enregistrement...' : `Valider le Palier ${repriseProposition.numero}`}
