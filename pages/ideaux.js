@@ -387,6 +387,43 @@ export default function IdeauxPage() {
     }
   }
 
+  async function sauvegarderSeanceIndividuelle(semIdx, actIdx, prochaineSeance) {
+    if (!currentIdealId || !planData || !planParams) return;
+    const userId = await obtenirUserIdIdeaux(supabase);
+    const numeroPalier = Number(ideaux.find((ideal) => ideal.id === currentIdealId)?.palier_numero || 1);
+    const semaines = extraireSemainesPourParametres(planData, planParams);
+    const sem = semaines[semIdx];
+    const action = sem?.actions?.[actIdx];
+    if (!sem || !action || prochaineSeance?.bonus) return;
+
+    const seanceNormalisee = normaliserSeancePourEcriture({
+      user_id: userId,
+      ideal_id: currentIdealId,
+      palier_numero: numeroPalier,
+      date_prevue: action.date,
+      jour: action.jour,
+      action_type: action.action_type,
+      duree_prevue: action.duree || planParams.duree || 15,
+      duree_reelle: prochaineSeance.fait ? (prochaineSeance.duree || planParams.duree || 15) : null,
+      distance_km: prochaineSeance.fait ? (prochaineSeance.distance_km || null) : null,
+      vitesse: prochaineSeance.fait ? (prochaineSeance.vitesse || null) : null,
+      intensite: planParams.intensite || '7,6 km/h',
+      date_reelle: prochaineSeance.fait ? (prochaineSeance.date || action.date) : null,
+      fait: prochaineSeance.fait === true,
+      bonus: false,
+      semaine_numero: sem.numero,
+      mois_numero: sem.mois,
+      annee: sem.annee
+    });
+
+    const { error } = await supabase
+      .from('seances_reelles')
+      .upsert(seanceNormalisee, { onConflict: 'ideal_id,date_prevue' });
+    if (error) throw error;
+    setMessage('✓ Séance enregistrée');
+    await fetchIdeaux();
+  }
+
   // Sauvegarder les séances réelles de la semaine sélectionnée
   async function handleSaveSeancesSemaine() {
     console.log('🔍 DEBUG - handleSaveSeancesSemaine appelée');
@@ -1192,22 +1229,29 @@ export default function IdeauxPage() {
                 // Navigation semaine par semaine sur la durée du palier
                 const semaines = extraireSemainesPourParametres(planData, planParams);
                 // On passe de reel: boolean[][] à reel: {fait:boolean, duree:number|null, bonus?:boolean, date?:string}[][]
-                const handleCheck = (semIdx, actIdx) => {
-                  setReel(reel => {
-                    const copy = reel.map(arr => arr.map(obj => ({...obj})));
-                    copy[semIdx][actIdx].fait = !copy[semIdx][actIdx].fait;
-                    if (copy[semIdx][actIdx].fait && !copy[semIdx][actIdx].duree) {
-                      copy[semIdx][actIdx].duree = semaines[semIdx].actions[actIdx].duree || planParams.duree || 15;
-                    }
+                const modifierEtSauvegarderSeance = (semIdx, actIdx, patch) => {
+                  setReel(reelActuel => {
+                    const copy = reelActuel.map(arr => arr.map(obj => ({...obj})));
+                    const prochaine = { ...copy[semIdx][actIdx], ...patch };
+                    copy[semIdx][actIdx] = prochaine;
+                    sauvegarderSeanceIndividuelle(semIdx, actIdx, prochaine).catch((err) => {
+                      console.error('Erreur autosauvegarde séance:', err);
+                      setMessage('❌ Impossible d’enregistrer cette séance');
+                    });
                     return copy;
                   });
                 };
-                const handleDureeChange = (semIdx, actIdx, val) => {
-                  setReel(reel => {
-                    const copy = reel.map(arr => arr.map(obj => ({...obj})));
-                    copy[semIdx][actIdx].duree = parseInt(val)||null;
-                    return copy;
+                const handleCheck = (semIdx, actIdx) => {
+                  const actuelle = reel[semIdx]?.[actIdx] || {};
+                  const fait = !actuelle.fait;
+                  modifierEtSauvegarderSeance(semIdx, actIdx, {
+                    fait,
+                    duree: fait ? (actuelle.duree || semaines[semIdx].actions[actIdx].duree || planParams.duree || 15) : actuelle.duree,
+                    date: fait ? (actuelle.date || semaines[semIdx].actions[actIdx].date) : actuelle.date,
                   });
+                };
+                const handleDureeChange = (semIdx, actIdx, val) => {
+                  modifierEtSauvegarderSeance(semIdx, actIdx, { duree: parseInt(val) || null });
                 };
                 // Ajouter une séance bonus
                 const handleAddBonus = (semIdx) => {
@@ -1272,11 +1316,7 @@ export default function IdeauxPage() {
                               <label style={{fontSize:12, color:'#546e7a'}}>Réalisée le</label>
                               <input type="date" value={reel[selectedSemaine][j].date || a.date} onChange={e=>{
                                 const val = e.target.value;
-                                setReel(reel => {
-                                  const copy = reel.map(arr => arr.map(obj => ({...obj})));
-                                  copy[selectedSemaine][j].date = val;
-                                  return copy;
-                                });
+                                modifierEtSauvegarderSeance(selectedSemaine, j, { date: val });
                               }} style={{borderRadius:6, border:'1px solid #b2ebf2', padding:'2px 6px', fontWeight:600}} />
                               <input type="number" min="1" max="300" value={reel[selectedSemaine][j].duree || ''} onChange={e=>handleDureeChange(selectedSemaine, j, e.target.value)} placeholder="Durée (min)" style={{width:60, borderRadius:6, border:'1px solid #b2ebf2', padding:'2px 6px', fontWeight:600}} />
                               {(() => {
@@ -1298,19 +1338,11 @@ export default function IdeauxPage() {
                               })()}
                               <input type="number" min="0" step="0.1" value={reel[selectedSemaine][j].distance_km || ''} onChange={e=>{
                                 const val = e.target.value;
-                                setReel(reel => {
-                                  const copy = reel.map(arr => arr.map(obj => ({...obj})));
-                                  copy[selectedSemaine][j].distance_km = val ? parseFloat(val) : null;
-                                  return copy;
-                                });
+                                modifierEtSauvegarderSeance(selectedSemaine, j, { distance_km: val ? parseFloat(val) : null });
                               }} placeholder="km" style={{width:50, borderRadius:6, border:'1px solid #b2ebf2', padding:'2px 6px', fontWeight:600}} />
                               <input type="number" min="0" step="0.1" value={reel[selectedSemaine][j].vitesse || ''} onChange={e=>{
                                 const val = e.target.value;
-                                setReel(reel => {
-                                  const copy = reel.map(arr => arr.map(obj => ({...obj})));
-                                  copy[selectedSemaine][j].vitesse = val ? parseFloat(val) : null;
-                                  return copy;
-                                });
+                                modifierEtSauvegarderSeance(selectedSemaine, j, { vitesse: val ? parseFloat(val) : null });
                               }} placeholder="km/h" style={{width:55, borderRadius:6, border:'1px solid #b2ebf2', padding:'2px 6px', fontWeight:600}} />
                             </div>
                           )}
@@ -1395,7 +1427,7 @@ export default function IdeauxPage() {
                     <div style={{display:'flex', gap:8, marginTop:8}}>
                       <button onClick={()=>handleAddBonus(selectedSemaine)} style={{background:'#ffa726', color:'#fff', border:'none', borderRadius:8, padding:'6px 18px', fontWeight:700, fontSize:15, cursor:'pointer'}}>Ajouter une séance bonus</button>
                       {isPlanValide && (
-                        <button onClick={handleSaveSeancesSemaine} style={{background:'#1976d2', color:'#fff', border:'none', borderRadius:8, padding:'6px 18px', fontWeight:700, fontSize:15, cursor:'pointer'}}>💾 Sauvegarder cette semaine</button>
+                        <span style={{fontSize:13, color:'#546e7a', fontWeight:600}}>✓ Les séances prévues sont enregistrées au fur et à mesure</span>
                       )}
                     </div>
                     <div style={{marginTop:10, fontWeight:600}}>
