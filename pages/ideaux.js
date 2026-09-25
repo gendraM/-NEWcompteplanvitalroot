@@ -1013,7 +1013,18 @@ export default function IdeauxPage() {
                   <div>Départ : <b>{repriseProposition.dateDebut}</b></div>
                   <div>Durée : <b>{repriseProposition.palierDuree} semaines</b></div>
                   <div>Rythme : <b>{repriseProposition.frequence} séance(s)/semaine</b>, {repriseProposition.duree} min</div>
+                  {repriseProposition.intensite && <div>Repère d’intensité : <b>{repriseProposition.intensite}</b></div>}
                   <div>Date cible : <b>{repriseProposition.dateCible}</b></div>
+                  {repriseProposition.progressionObservee?.type === 'progresser' && (
+                    <div style={{marginTop:10, padding:'9px 11px', background:'#e8f5e9', borderRadius:8, fontSize:14}}>
+                      📈 D’après tes réalisations, le repère <b>{repriseProposition.progressionObservee.dimension}</b> est proposé à {repriseProposition.progressionObservee.nouvelleCible}. Une seule dimension évolue.
+                    </div>
+                  )}
+                  {repriseProposition.progressionObservee?.type === 'consolider' && (
+                    <div style={{marginTop:10, padding:'9px 11px', background:'#fff8e1', borderRadius:8, fontSize:14}}>
+                      🌱 Tes réalisations invitent plutôt à consolider ce palier : aucun repère n’est augmenté automatiquement.
+                    </div>
+                  )}
                   <p style={{fontSize:14}}>Adaptation proposée : {repriseProposition.raisonAdaptation}. Rien n’est enregistré avant ta validation.</p>
                   <button disabled={repriseLoading} type="button" onClick={handleValiderReprise} style={{background:'#43a047', color:'#fff', border:0, borderRadius:8, padding:'11px 20px', fontWeight:800, cursor:'pointer'}}>
                     {repriseLoading ? 'Enregistrement...' : `Valider le Palier ${repriseProposition.numero}`}
