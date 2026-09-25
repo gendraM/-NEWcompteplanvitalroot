@@ -4,6 +4,7 @@ import {
   construireActiveIdeal,
   construireMealSignals,
   construireWellbeingStatus,
+  construireLectureParcours,
   construireSyntheseTableauDeBord,
   construireWeightStatus,
   evaluerDisponibiliteDonnees,
@@ -110,5 +111,40 @@ describe('dashboardSynthesis', () => {
     expect(statut.humeurDominante).toBe('Calme');
     expect(statut.nombreCheckins).toBe(3);
     expect(statut).not.toHaveProperty('cause');
+  });
+  test('la lecture du parcours limite le bruit à deux éléments par zone', () => {
+    const lecture = construireLectureParcours({
+      weightStatus: { suffisantPourTendance: true, variationDepuisDepart: -2 },
+      extrasStatus: { disponible: true, prochainPalier: 1, semainesAcquises: 5, message: 'Rythme régulier.' },
+      mealSignals: {
+        reculSuffisant: true,
+        satiete: { renseignee: 5, pourcentageRespectee: 80, sansFaim: 2 },
+        alignementPlan: { renseigne: 5, pourcentage: 80 },
+      },
+      wellbeingStatus: { reculSuffisant: true, humeurDominante: 'Calme' },
+      activeChallenge: { nom: 'Marcher' },
+      activeIdeal: { titre: 'Bouger régulièrement' },
+    });
+    expect(lecture.highlights.length).toBeLessThanOrEqual(2);
+    expect(lecture.pointsAppui.length).toBeLessThanOrEqual(2);
+    expect(lecture.pointsObservation.length).toBeLessThanOrEqual(2);
+  });
+
+  test('une adaptation Extras est une observation et non un échec', () => {
+    const lecture = construireLectureParcours({
+      extrasStatus: { disponible: true, adaptationRecente: true, message: 'Ton repère évolue.' },
+    });
+    expect(lecture.pointsObservation[0].code).toBe('extras-adaptation');
+    expect(lecture.pointsObservation[0].titre).toBe('Ton rythme s’adapte');
+  });
+
+  test('les données insuffisantes ne fabriquent pas de jugement', () => {
+    const lecture = construireLectureParcours({
+      mealSignals: { reculSuffisant: false },
+      wellbeingStatus: { reculSuffisant: false },
+    });
+    expect(lecture.highlights).toEqual([]);
+    expect(lecture.pointsAppui).toEqual([]);
+    expect(lecture.pointsObservation).toEqual([]);
   });
 });
