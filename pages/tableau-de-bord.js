@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getFastFoodRewards } from "../lib/fastFoodRewards";
+import { construireSyntheseTableauDeBord } from "../lib/dashboardSynthesis";
 import { supabase } from "../lib/supabaseClient";
 import { Line, Pie, Doughnut } from "react-chartjs-2";
 import TimelineProgression from "../components/TimelineProgression";
@@ -479,6 +480,17 @@ export default function TableauDeBord() {
     setIdeauxProgress(progs);
   }, [ideauxList]);
 
+  // Couche 1 V2 : lecture synthétique. L'ancien dashboard reste intact sous cette couche pendant la transition.
+  const dashboardV2 = useMemo(() => construireSyntheseTableauDeBord({
+    poids: poidsData,
+    semainesExtras: semainesValidees,
+    repas: repasReels,
+    humeurCheckins: humeurData,
+    // Défis et Idéaux seront raccordés ici à leurs moteurs canoniques une fois intégrés à main-consolidation.
+    defis: [],
+    ideaux: [],
+  }), [poidsData, semainesValidees, repasReels, humeurData]);
+
   // Graphiques
   const poidsChartData = {
     labels: poidsData.map((p) =>
@@ -688,6 +700,103 @@ export default function TableauDeBord() {
         Tableau de Bord
       </h1>
       
+      {/* --- Tableau de bord V2 / Couche 1 : comprendre --- */}
+      <section style={{
+        background: 'linear-gradient(135deg, #f7fbff 0%, #ffffff 100%)',
+        border: '1px solid #e4edf7',
+        borderRadius: 20,
+        padding: '1.5rem',
+        marginBottom: '1.5rem',
+        boxShadow: '0 4px 18px rgba(25, 118, 210, 0.08)'
+      }}>
+        <div style={{display:'flex', justifyContent:'space-between', gap:16, alignItems:'flex-start', flexWrap:'wrap'}}>
+          <div>
+            <div style={{fontSize:13, fontWeight:800, color:'#607d8b', textTransform:'uppercase', letterSpacing:'.08em'}}>Mon chemin maintenant</div>
+            <h2 style={{margin:'6px 0 6px', color:'#17324d'}}>L’essentiel de ton parcours</h2>
+            <p style={{margin:0, color:'#607080', maxWidth:680, lineHeight:1.5}}>
+              Une lecture courte de ce qui évolue, de ce qui t’aide et de ce qui mérite simplement d’être observé.
+            </p>
+          </div>
+          <button type="button" onClick={() => {
+            const cible = document.getElementById('dashboard-details-existants');
+            if (cible) cible.scrollIntoView({ behavior: 'smooth' });
+          }} style={{border:'1px solid #1976d2', background:'#fff', color:'#1976d2', borderRadius:10, padding:'10px 14px', fontWeight:700, cursor:'pointer'}}>
+            Détails & analyses ↓
+          </button>
+        </div>
+
+        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:12, marginTop:20}}>
+          <div style={{background:'#fff', borderRadius:14, padding:16, border:'1px solid #edf1f5'}}>
+            <div style={{fontSize:13, color:'#78909c', fontWeight:700}}>Poids actuel</div>
+            <div style={{fontSize:25, fontWeight:800, color:'#17324d', marginTop:5}}>
+              {dashboardV2.weightStatus?.disponible ? `${dashboardV2.weightStatus.actuel.poids} kg` : '—'}
+            </div>
+            <div style={{fontSize:13, color:'#78909c', marginTop:5}}>
+              {dashboardV2.weightStatus?.suffisantPourTendance
+                ? `${dashboardV2.weightStatus.variationDepuisDepart > 0 ? '+' : ''}${dashboardV2.weightStatus.variationDepuisDepart} kg depuis le point de départ`
+                : 'Pas encore assez de recul pour une tendance'}
+            </div>
+          </div>
+          <div style={{background:'#fff', borderRadius:14, padding:16, border:'1px solid #edf1f5'}}>
+            <div style={{fontSize:13, color:'#78909c', fontWeight:700}}>Rythme Extras</div>
+            <div style={{fontSize:25, fontWeight:800, color:'#17324d', marginTop:5}}>
+              {dashboardV2.extrasStatus?.disponible ? `Palier ${dashboardV2.extrasStatus.palier}` : '—'}
+            </div>
+            <div style={{fontSize:13, color:'#78909c', marginTop:5}}>
+              {dashboardV2.extrasStatus?.disponible ? dashboardV2.extrasStatus.message : 'Le rythme apparaîtra avec les semaines renseignées'}
+            </div>
+          </div>
+          <div style={{background:'#fff', borderRadius:14, padding:16, border:'1px solid #edf1f5'}}>
+            <div style={{fontSize:13, color:'#78909c', fontWeight:700}}>Repas renseignés</div>
+            <div style={{fontSize:25, fontWeight:800, color:'#17324d', marginTop:5}}>
+              {dashboardV2.mealSignals?.disponible ? dashboardV2.mealSignals.nombreRepas : '—'}
+            </div>
+            <div style={{fontSize:13, color:'#78909c', marginTop:5}}>
+              {dashboardV2.mealSignals?.reculSuffisant ? 'Assez de données pour commencer à observer des tendances' : 'Les tendances apparaîtront progressivement'}
+            </div>
+          </div>
+        </div>
+
+        {dashboardV2.highlights.length > 0 && (
+          <div style={{marginTop:18}}>
+            <h3 style={{margin:'0 0 10px', color:'#17324d'}}>✨ À retenir</h3>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:10}}>
+              {dashboardV2.highlights.map(item => (
+                <div key={item.code} style={{background:'#fffbea', border:'1px solid #f5e7a7', borderRadius:12, padding:14}}>
+                  <div style={{fontWeight:800, color:'#5d4a00'}}>{item.titre}</div>
+                  <div style={{fontSize:14, color:'#6b6250', marginTop:5, lineHeight:1.45}}>{item.message}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(dashboardV2.pointsAppui.length > 0 || dashboardV2.pointsObservation.length > 0) && (
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:12, marginTop:18}}>
+            <div style={{background:'#f3fbf6', borderRadius:14, padding:16}}>
+              <h3 style={{margin:'0 0 10px', color:'#2e6b45'}}>Ce qui t’aide</h3>
+              {dashboardV2.pointsAppui.length ? dashboardV2.pointsAppui.map(item => (
+                <div key={item.code} style={{marginTop:10}}>
+                  <div style={{fontWeight:800, color:'#315943'}}>{item.titre}</div>
+                  <div style={{fontSize:14, color:'#587064', marginTop:3}}>{item.message}</div>
+                </div>
+              )) : <div style={{fontSize:14, color:'#718078'}}>Les points d’appui apparaîtront avec davantage de données.</div>}
+            </div>
+            <div style={{background:'#f8f7fc', borderRadius:14, padding:16}}>
+              <h3 style={{margin:'0 0 10px', color:'#5d5478'}}>À observer</h3>
+              {dashboardV2.pointsObservation.length ? dashboardV2.pointsObservation.map(item => (
+                <div key={item.code} style={{marginTop:10}}>
+                  <div style={{fontWeight:800, color:'#5d5478'}}>{item.titre}</div>
+                  <div style={{fontSize:14, color:'#706a80', marginTop:3}}>{item.message}</div>
+                </div>
+              )) : <div style={{fontSize:14, color:'#7b7785'}}>Rien de particulier à mettre en avant pour le moment.</div>}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <div id="dashboard-details-existants" style={{scrollMarginTop:20}} />
+
       {/* Badge de notification pour semaines non validées */}
       {nbSemainesNonValidees > 0 && (
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
