@@ -32,6 +32,7 @@ import PopupBilanMensuel from '../components/PopupBilanMensuel';
 import BilanMensuelModal from '../components/BilanMensuelModal';
 import { fetchRepasPeriode } from '../lib/repasUtils';
 import BudgetExtrasCard from '../components/BudgetExtrasCard';
+import ModeTrouSuiviCard from '../components/ModeTrouSuiviCard';
 import ExtrasBadgeCelebrationModal from '../components/ExtrasBadgeCelebrationModal';
 import { supabase } from '../lib/supabaseClient';
 import { enregistrerBadgePalierExtras } from '../lib/extrasBadges';
@@ -48,6 +49,14 @@ import {
 } from '../lib/alignementRepas';
 import { calculerProfilComplet } from '../lib/routeurPoids';
 import { calculerProgressionExtras } from '../lib/extrasProgression';
+import { calculerCouvertureSemaine, detecterTrousSuivi } from '../lib/trouSuivi';
+import {
+  chargerPeriodesReconstituees,
+  ignorerPeriodeReconstituee,
+  reporterPeriodeReconstituee,
+  sauvegarderPeriodeReconstituee,
+  synchroniserTrousSuiviEnAttente
+} from '../lib/trouSuiviPersistence';
 import { 
   calculerExtrasSemaine, 
   genererMessageFeedback, 
@@ -466,6 +475,10 @@ export default function Suivi() {
   const [repasSemaine, setRepasSemaine] = useState([]);
   // Hook pour userId (nécessaire pour BudgetExtrasCard)
   const [userId, setUserId] = useState(null);
+  const [periodesReconstituees, setPeriodesReconstituees] = useState([]);
+  const [suggestionTrouSuivi, setSuggestionTrouSuivi] = useState(null);
+  const [trouSuiviSaving, setTrouSuiviSaving] = useState(false);
+  const [trouSuiviError, setTrouSuiviError] = useState('');
   
   // ═══════════════════════════════════════════════════════════
   // NOUVEAUX HOOKS VALIDATION SEMAINE (9 janvier 2026)
@@ -807,6 +820,130 @@ export default function Suivi() {
   const [showNotesHistory, setShowNotesHistory] = useState(false);
   // Plan de repas du jour (repas planifiés)
   const [repasPlan, setRepasPlan] = useState({});
+
+  useEffect(() => {
+    if (!userId) {
+      setPeriodesReconstituees([]);
+      return;
+    }
+
+    let actif = true;
+    chargerPeriodesReconstituees(supabase, userId).then(({ data, error }) => {
+      if (!actif) return;
+      if (error) {
+        console.error('[TROU SUIVI] Chargement impossible :', error);
+        return;
+      }
+      setPeriodesReconstituees(data);
+    });
+    return () => { actif = false; };
+  }, [userId]);
+
+  useEffect(() => {
+    const aujourdHui = formatDate(new Date(), 'yyyy-MM-dd');
+    if (!userId || selectedDate !== aujourdHui) {
+      setSuggestionTrouSuivi(null);
+      return;
+    }
+
+    const trous = detecterTrousSuivi({
+      repas: repasSemaine,
+      periodes: periodesReconstituees,
+      dateReference: aujourdHui
+    });
+    const suggestion = trous[0]
+      ? { ...trous[0], totalTrous: trous.length }
+      : null;
+    setSuggestionTrouSuivi(suggestion);
+
+    if (trous.length > 0) {
+      synchroniserTrousSuiviEnAttente(
+        supabase,
+        userId,
+        trous,
+        periodesReconstituees
+      ).then(({ data, error }) => {
+        if (error) {
+          console.error('[TROU SUIVI] Synchronisation impossible :', error);
+          return;
+        }
+        if (data.length > 0) {
+          setPeriodesReconstituees(courantes => [
+            ...data,
+            ...courantes.filter(courante => !data.some(periode => (
+              periode.dateDebut === courante.dateDebut
+              && periode.dateFin === courante.dateFin
+            )))
+          ]);
+        }
+      });
+    }
+  }, [userId, selectedDate, repasSemaine, periodesReconstituees]);
+
+  const remplacerPeriodeReconstituee = (periode) => {
+    setPeriodesReconstituees(courantes => [
+      periode,
+      ...courantes.filter(item => (
+        item.dateDebut !== periode.dateDebut || item.dateFin !== periode.dateFin
+      ))
+    ]);
+  };
+
+  const handleSauvegarderTrouSuivi = async (payload) => {
+    setTrouSuiviSaving(true);
+    setTrouSuiviError('');
+    const { data, error } = await sauvegarderPeriodeReconstituee(supabase, userId, payload);
+    setTrouSuiviSaving(false);
+    if (error) {
+      console.error('[TROU SUIVI] Enregistrement impossible :', error);
+      setTrouSuiviError("Impossible d'enregistrer cette période pour le moment.");
+      return { ok: false, error };
+    }
+    remplacerPeriodeReconstituee(data);
+    setSuggestionTrouSuivi(null);
+    setSnackbar({ open: true, message: 'Période reconstituée et enregistrée.', type: 'success' });
+    return { ok: true };
+  };
+
+  const handleReporterTrouSuivi = async () => {
+    if (!suggestionTrouSuivi || trouSuiviSaving) return;
+    setTrouSuiviSaving(true);
+    setTrouSuiviError('');
+    const { data, error } = await reporterPeriodeReconstituee(
+      supabase,
+      userId,
+      suggestionTrouSuivi
+    );
+    setTrouSuiviSaving(false);
+    if (error) {
+      console.error('[TROU SUIVI] Report impossible :', error);
+      setTrouSuiviError("Impossible de reporter ce questionnaire pour le moment.");
+      return;
+    }
+    remplacerPeriodeReconstituee(data);
+    setSuggestionTrouSuivi(null);
+    setSnackbar({ open: true, message: 'Je te le reproposerai dans 7 jours.', type: 'success' });
+  };
+
+  const handleIgnorerTrouSuivi = async () => {
+    if (!suggestionTrouSuivi || trouSuiviSaving) return;
+    setTrouSuiviSaving(true);
+    setTrouSuiviError('');
+    const { data, error } = await ignorerPeriodeReconstituee(
+      supabase,
+      userId,
+      suggestionTrouSuivi
+    );
+    setTrouSuiviSaving(false);
+    if (error) {
+      console.error('[TROU SUIVI] Ignorance impossible :', error);
+      setTrouSuiviError("Impossible d'ignorer cette période pour le moment.");
+      return;
+    }
+    remplacerPeriodeReconstituee(data);
+    setSuggestionTrouSuivi(null);
+    setSnackbar({ open: true, message: 'Cette période ne sera plus proposée.', type: 'success' });
+  };
   const repasPlanifieSelectionne = repasPlan[selectedType] || [];
   const repasPlanifieUnique = repasPlanifieSelectionne.length === 1
     ? repasPlanifieSelectionne[0]
@@ -1440,15 +1577,13 @@ export default function Suivi() {
       const fragilites = analyserFragilites(lectureA.detailsJours, repasData);
       console.log('[BILAN ABC] Fragilités résultat:', fragilites);
 
-      // Fusion hybride: conserver la fiabilite de semaine en plus des champs Laurelle
-      const joursObservesSet = new Set(
-        repasData
-          .map((r) => r?.date)
-          .filter((d) => typeof d === 'string' && d.length > 0)
-      );
-      const joursObserves = Math.min(7, joursObservesSet.size);
-      const joursEstimes = Math.max(0, 7 - joursObserves);
-      const fiabilitePourcent = Math.round((joursObserves / 7) * 100);
+      // Distinguer les jours réellement observés, reconstitués et sans donnée.
+      const couvertureSemaine = calculerCouvertureSemaine({
+        repas: repasData,
+        periodes: periodesReconstituees,
+        dateDebut: selectedWeekStart,
+        dateFin: selectedWeekEnd
+      });
       
       // ═══════════════════════════════════════════════════════════
       
@@ -1464,9 +1599,11 @@ export default function Suivi() {
         message_feedback: messageFeedback,
         variation,
         // Metriques de fiabilite hebdomadaire conservees
-        jours_observes: joursObserves,
-        jours_estimes: joursEstimes,
-        fiabilite_pourcent: fiabilitePourcent,
+        jours_observes: couvertureSemaine.joursObserves,
+        // Colonne historique conservée : elle représente désormais uniquement les jours reconstitués.
+        jours_estimes: couvertureSemaine.joursReconstitues,
+        jours_sans_donnee: couvertureSemaine.joursSansDonnee,
+        fiabilite_pourcent: couvertureSemaine.fiabilitePourcent,
         // Nouvelles colonnes Section 2
         tendance_7j: tendance.type,
         ecart_hebdo: tendance.ecart,
@@ -1549,6 +1686,10 @@ export default function Suivi() {
           palierExtras: currentPalier,
           progressionExtras,
           variation,
+          joursObserves: couvertureSemaine.joursObserves,
+          joursReconstitues: couvertureSemaine.joursReconstitues,
+          joursSansDonnee: couvertureSemaine.joursSansDonnee,
+          fiabilitePourcent: couvertureSemaine.fiabilitePourcent,
           // Section 7 - Données ressenti
           satieteMoyenne,
           humeurDominante,
@@ -1769,6 +1910,14 @@ export default function Suivi() {
         selectedDate={selectedDate}
         palier={currentPalier}
         progression={progressionExtras}
+      />
+      <ModeTrouSuiviCard
+        suggestion={suggestionTrouSuivi}
+        onSave={handleSauvegarderTrouSuivi}
+        onDismiss={handleReporterTrouSuivi}
+        onIgnore={handleIgnorerTrouSuivi}
+        saving={trouSuiviSaving}
+        error={trouSuiviError}
       />
       <div style={{ textAlign: 'center', marginBottom: 14 }}>
         <button type="button" onClick={() => setShowInfo(true)} style={{ background: 'transparent', color: '#1976d2', border: 'none', textDecoration: 'underline', cursor: 'pointer' }}>
