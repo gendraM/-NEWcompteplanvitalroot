@@ -31,3 +31,14 @@ Pour la compatibilité avec OBSERVE / Align-Life, une séance accomplie est prou
 - Le palier suivant commence à la date de reprise et adapte au plus une dimension de difficulté.
 - Aucune nouvelle séance n'est créée avant la validation explicite de la proposition.
 - Si l'utilisateur ne souhaite pas reprendre maintenant, l'Idéal est mis en pause sans supprimer sa direction ni son historique.
+
+
+## Choix de la dimension du palier suivant
+
+- Une performance isolée supérieure au repère est valorisée mais ne devient pas automatiquement une nouvelle exigence.
+- Une dimension ne devient candidate à la progression que lorsqu'un signal répété existe sur plusieurs réalisations.
+- Si plusieurs dimensions progressent simultanément, l'indicateur principal lié au cap est prioritaire.
+- Le moteur ne fait progresser qu'une seule dimension à la fois ; les autres repères restent stables.
+- La nouvelle cible reste prudente : elle n'absorbe pas automatiquement toute la surperformance constatée.
+- Si aucun signal suffisamment solide n'existe, le palier suivant consolide les repères plutôt que d'augmenter artificiellement la difficulté.
+- La même règle s'applique aux Idéaux sportifs et non sportifs ; le sens de progression appartient à chaque indicateur (augmenter, diminuer ou viser une cible).
