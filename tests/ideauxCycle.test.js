@@ -76,3 +76,53 @@ describe('cycle de reprise Idéaux', () => {
     });
   });
 });
+
+
+describe('préremplissage du prochain palier depuis la réalité observée', () => {
+  const idealBase = {
+    titre: 'Courir plus longtemps',
+    indicateur_principal: 'durée',
+    date_cible: '2027-06-01',
+    palier_numero: 2,
+    statut: 'en cours',
+    plan_valide: true,
+    plan_params_valides: {
+      duree: 10,
+      intensite: '7,6 km/h',
+      frequence: 2,
+      joursProposes: ['mardi', 'samedi'],
+      palierDuree: 4,
+      dateDebut: '2026-08-01',
+    },
+    plan_data: {
+      mois: [{ numero: 8, annee: 2026, semaines: [{ numero: 1, actions: [{ date: '2026-08-02' }] }] }],
+    },
+  };
+
+  test('applique une progression répétée de durée à la proposition seulement', () => {
+    const ideal = {
+      ...idealBase,
+      proposition_progression: { type: 'progresser', dimension: 'duree', ancienneCible: 10, nouvelleCible: 12 },
+    };
+    const proposition = construirePropositionReprise(
+      ideal,
+      { objectifToujoursSouhaite: 'oui', niveauActuel: 'semblable', rythmeRealiste: 2 },
+      new Date('2026-09-10T12:00:00Z')
+    );
+    expect(proposition.duree).toBe(12);
+    expect(ideal.plan_params_valides.duree).toBe(10);
+  });
+
+  test('respecte une déclaration de niveau plus bas avant la surperformance historique', () => {
+    const ideal = {
+      ...idealBase,
+      proposition_progression: { type: 'progresser', dimension: 'duree', ancienneCible: 10, nouvelleCible: 12 },
+    };
+    const proposition = construirePropositionReprise(
+      ideal,
+      { objectifToujoursSouhaite: 'oui', niveauActuel: 'plus_bas', rythmeRealiste: 2 },
+      new Date('2026-09-10T12:00:00Z')
+    );
+    expect(proposition.duree).toBe(10);
+  });
+});
