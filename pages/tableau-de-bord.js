@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getFastFoodRewards } from "../lib/fastFoodRewards";
+import { DEFAULT_FAST_FOOD_INTERVAL_DAYS, getFastFoodRhythm, normalizeIntervalDays } from "../lib/fastFoodRhythm";
 import { supabase } from "../lib/supabaseClient";
 import { Line, Pie, Doughnut } from "react-chartjs-2";
 import TimelineProgression from "../components/TimelineProgression";
@@ -65,6 +66,8 @@ export default function TableauDeBord() {
   const [fastFoodCount, setFastFoodCount] = useState(0);
   const [nextFastFoodDate, setNextFastFoodDate] = useState(null);
   const [fastFoodDelay, setFastFoodDelay] = useState(0);
+  const [fastFoodIntervalDays, setFastFoodIntervalDays] = useState(DEFAULT_FAST_FOOD_INTERVAL_DAYS);
+  const [lastFastFoodGlobal, setLastFastFoodGlobal] = useState(null);
   // Idéaux et progression
   const [ideauxList, setIdeauxList] = useState([]);
   const [ideauxProgress, setIdeauxProgress] = useState([]);
@@ -173,24 +176,39 @@ export default function TableauDeBord() {
   const { debut, fin } = getPeriodeDates();
     const debutISO = formatDate(debut, 'yyyy-MM-dd');
     const finISO = formatDate(fin, 'yyyy-MM-dd');
-    // Rafraîchir l’historique fast food à chaque refresh manuel
-    const { data: ffData } = await supabase
-      .from('repas_reels')
-      .select('*')
-      .or('categorie.eq.fast-food,tag.not.is.null')
-      .gte('date', debutISO)
-      .lte('date', finISO)
-      .order('date', { ascending: false });
+    // Statistiques Fast Food de période + rythme global séparé
+    const { data: authDataFastFood } = await supabase.auth.getUser();
+    const currentUserIdFastFood = authDataFastFood?.user?.id;
+    let intervalDays = DEFAULT_FAST_FOOD_INTERVAL_DAYS;
+    if (currentUserIdFastFood) {
+      const { data: profilFastFood } = await supabase
+        .from('profil')
+        .select('fast_food_interval_days')
+        .eq('user_id', currentUserIdFastFood)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      intervalDays = normalizeIntervalDays(profilFastFood?.fast_food_interval_days);
+    }
+    setFastFoodIntervalDays(intervalDays);
+
+    let periodQuery = supabase.from('repas_reels').select('*').eq('categorie', 'fast-food')
+      .gte('date', debutISO).lte('date', finISO).order('date', { ascending: false });
+    if (currentUserIdFastFood) periodQuery = periodQuery.eq('user_id', currentUserIdFastFood);
+    const { data: ffData } = await periodQuery;
     setFastFoodHistory(ffData || []);
     setFastFoodCount(ffData?.length || 0);
-    if (ffData && ffData.length > 0) {
-      const lastDate = new Date(ffData[0].date);
-      const nextDate = new Date(lastDate);
-      nextDate.setDate(lastDate.getDate() + 45);
-      setNextFastFoodDate(nextDate);
-      const today = new Date();
-      const delay = Math.max(0, Math.floor((nextDate - today) / (1000 * 60 * 60 * 24)));
-      setFastFoodDelay(delay);
+
+    let globalQuery = supabase.from('repas_reels').select('*').eq('categorie', 'fast-food')
+      .order('date', { ascending: false }).limit(1);
+    if (currentUserIdFastFood) globalQuery = globalQuery.eq('user_id', currentUserIdFastFood);
+    const { data: latestFastFood } = await globalQuery;
+    const lastGlobal = latestFastFood?.[0] || null;
+    setLastFastFoodGlobal(lastGlobal);
+    if (lastGlobal) {
+      const rhythm = getFastFoodRhythm({ lastFastFoodDate:lastGlobal.date, intervalDays });
+      setNextFastFoodDate(rhythm.nextReferenceDate);
+      setFastFoodDelay(rhythm.remainingDays);
     } else {
       setNextFastFoodDate(null);
       setFastFoodDelay(0);
@@ -822,55 +840,25 @@ export default function TableauDeBord() {
           </div>
           <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Repas sur la période</div>
         </div>
-        {/* Carte extras */}
-        <div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
-          <div style={{fontSize:'2.1rem', fontWeight:700, color:'#e65100'}}>
-            🍔 {fastFoodCount}
+        {/* Carte Fast Food */}
+        <div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:220, textAlign:'center'}}>
+          <div style={{fontSize:'2.1rem', fontWeight:700, color:'#e65100'}}>🍔 {fastFoodCount}</div>
+          <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Fast Food sur la période</div>
+          <div style={{marginTop:12, paddingTop:10, borderTop:'1px solid #eee'}}>
+            <strong>Mon rythme Fast Food</strong><br/>
+            Objectif d’espacement : <b>{fastFoodIntervalDays} jours</b><br/>
+            {lastFastFoodGlobal ? (() => {
+              const rhythm = getFastFoodRhythm({lastFastFoodDate:lastFastFoodGlobal.date, intervalDays:fastFoodIntervalDays});
+              return <>
+                Dernier Fast Food : <b>{new Date(lastFastFoodGlobal.date).toLocaleDateString('fr-FR')}</b><br/>
+                Prochain repère : <b>{rhythm.nextReferenceDate?.toLocaleDateString('fr-FR')}</b><br/>
+                {rhythm.targetReached
+                  ? <span style={{color:'#388e3c'}}>Objectif atteint — {rhythm.elapsedDays} jours d’espacement actuellement.</span>
+                  : <span>Encore {rhythm.remainingDays} jour{rhythm.remainingDays > 1 ? 's' : ''} avant ton repère.</span>}
+              </>;
+            })() : <span style={{color:'#666'}}>Aucun historique Fast Food enregistré.</span>}
           </div>
-          <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Fast food sur la période</div>
-          {fastFoodHistory && fastFoodHistory.length > 0 && (
-            <div style={{marginTop:8, fontSize:'0.90rem', color:'#666', fontStyle:'italic'}}>
-              Dernier : {fastFoodHistory[0]?.tag || "Non identifié"}
-            </div>
-          )}
-          {nextFastFoodDate && (
-            <div style={{marginTop:8, fontSize:'0.98rem', color:'#1976d2'}}>
-              Prochain créneau disponible : <b>{nextFastFoodDate.toLocaleDateString('fr-FR')}</b><br/>
-              Délai restant : <b>{fastFoodDelay} jour{fastFoodDelay>1?'s':''}</b>
-            </div>
-          )}
-          {!nextFastFoodDate && (
-            <div style={{marginTop:8, fontSize:'0.98rem', color:'#43a047'}}>
-              Aucun fast food consommé sur la période.<br/>Tu es libre d’en planifier un !
-            </div>
-          )}
-            {/* Message dynamique et astuce/suggestion fast food */}
-            {(() => {
-              const rewards = getFastFoodRewards(fastFoodHistory);
-              let astuce = null;
-              if (fastFoodHistory.length > 0 && nextFastFoodDate) {
-                const today = new Date();
-                const diffDays = Math.max(0, Math.ceil((nextFastFoodDate - today) / (1000 * 60 * 60 * 24)));
-                if (diffDays === 0) {
-                  astuce = <><br /><span style={{ fontWeight: 500 }}>Astuce : note la date du prochain créneau dans ton agenda pour maximiser ta récompense !</span></>;
-                } else {
-                  astuce = <><br /><span style={{ fontWeight: 500 }}>Suggestion : planifie le prochain fast food dans {diffDays} jours.</span></>;
-                }
-              }
-              return (
-                <div style={{ background: rewards.confettis ? '#e8f5e9' : '#e3f2fd', color: rewards.confettis ? '#388e3c' : '#1976d2', padding: 10, borderRadius: 8, marginTop: 12 }}>
-                  {rewards.message}
-                  {astuce}
-                  {rewards.confettis && <div style={{marginTop:8}}>🎉 Confettis ! Tu as débloqué le badge spécial Fast Food !</div>}
-                </div>
-              );
-            })()}
-            <button
-              style={{marginTop:12, padding:'7px 18px', background:'#e65100', color:'#fff', border:'none', borderRadius:8, fontWeight:600, cursor:'pointer'}}
-              onClick={()=>window.location.href='/historique-fast-food'}
-            >
-              En savoir plus
-            </button>
+          <button style={{marginTop:12, padding:'7px 18px', background:'#e65100', color:'#fff', border:'none', borderRadius:8, fontWeight:600, cursor:'pointer'}} onClick={()=>window.location.href='/historique-fast-food'}>En savoir plus</button>
         </div>
         {/* Carte satiété */}
         <div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
