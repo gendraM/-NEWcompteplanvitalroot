@@ -68,7 +68,6 @@ import {
 import Link from 'next/link';
 import RepasBloc from "../components/RepasBloc";
 import TimelineProgression from "../components/TimelineProgression";
-import SaisieDefiAlimentaire from "../components/SaisieDefiAlimentaire";
 import SaisieRepriseJeune from "../components/SaisieRepriseJeune";
 import { harmoniserJoursProgramme } from '../lib/repriseJeuneMetier';
 import { useDefis } from "../components/DefisContext";
@@ -731,7 +730,6 @@ export default function Suivi() {
   // Utilisation du hook useDefis pour la réactivité
   // Utilisation standard du hook useDefis pour la réactivité du contexte
   const { defisEnCours, refreshDefis, loading: loadingDefis, error: errorDefis } = useDefis ? useDefis() : { defisEnCours: [], refreshDefis: () => {}, loading: false, error: null };
-  const defiAlimentaireActif = defisEnCours && defisEnCours.some(d => d.nom === '🧀 1 portion ça suffit');
   // (déplacé ci-dessus)
   // Affichage de la saisie dédiée au défi alimentaire en cours (ex : 1 portion ça suffit)
   // Respecte la checklist : hooks, logique, handlers déclarés avant le rendu
@@ -1862,7 +1860,7 @@ export default function Suivi() {
         </div>
       ) : (
         <>
-          {/* Affichage séparé : Reprise OU Défi */}
+          {/* La reprise garde son parcours spécifique. Les défis, eux, observent la saisie normale. */}
           {repriseActive ? (
             <SaisieRepriseJeune 
               phaseReprise={phaseReprise}
@@ -1870,8 +1868,6 @@ export default function Suivi() {
               programmeReprise={programmeReprise}
               dateRepas={selectedDate}
             />
-          ) : defiAlimentaireActif ? (
-            <SaisieDefiAlimentaire />
           ) : (
             !selectedType ? (
               <div style={{ textAlign: "center", margin: "2rem 0" }}>
