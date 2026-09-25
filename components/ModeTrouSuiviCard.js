@@ -45,7 +45,10 @@ function labelEnergie(energie) {
 export default function ModeTrouSuiviCard({
   suggestion,
   onSave,
-  onDismiss
+  onDismiss,
+  onIgnore,
+  saving = false,
+  error = ''
 }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(DEFAULT_VALUES);
@@ -65,10 +68,10 @@ export default function ModeTrouSuiviCard({
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    onSave({
+    const resultat = await onSave({
       ...form,
       classification,
       dateDebut: suggestion.dateDebut,
@@ -76,8 +79,10 @@ export default function ModeTrouSuiviCard({
       nbJoursSansSaisie: suggestion.nbJoursSansSaisie
     });
 
-    setOpen(false);
-    setForm(DEFAULT_VALUES);
+    if (resultat?.ok !== false) {
+      setOpen(false);
+      setForm(DEFAULT_VALUES);
+    }
   };
 
   return (
@@ -91,17 +96,20 @@ export default function ModeTrouSuiviCard({
     }}>
       <div style={{ padding: 16 }}>
         <div style={{ fontWeight: 800, color: '#9a3412', marginBottom: 6 }}>
-          Trou de suivi detecte
+          {suggestion.totalTrous > 1
+            ? `${suggestion.totalTrous} périodes de suivi à compléter`
+            : 'Période de suivi à compléter'}
         </div>
         <div style={{ color: '#7c2d12', lineHeight: 1.45, fontSize: 14 }}>
-          Aucun repas enregistre depuis {suggestion.nbJoursSansSaisie} jours.
-          Souhaites-tu reconstituer la periode du {suggestion.dateDebut} au {suggestion.dateFin} en moins de 2 minutes ?
+          Il manque {suggestion.nbJoursSansSaisie} jours de suivi du {suggestion.dateDebut} au {suggestion.dateFin}.
+          Souhaites-tu reconstituer cette période en moins de 2 minutes ? Les informations seront enregistrées comme estimées.
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
+            disabled={saving}
             style={{
               background: '#ea580c',
               color: '#fff',
@@ -116,7 +124,18 @@ export default function ModeTrouSuiviCard({
           </button>
           <button
             type="button"
+            onClick={() => {
+              if (window.confirm('Cette période ne sera plus proposée. Confirmer ?')) onIgnore();
+            }}
+            disabled={saving}
+            style={{ background: 'transparent', color: '#7c2d12', border: 'none', textDecoration: 'underline', cursor: saving ? 'wait' : 'pointer', padding: '8px 4px' }}
+          >
+            Ne pas compléter cette période
+          </button>
+          <button
+            type="button"
             onClick={onDismiss}
+            disabled={saving}
             style={{
               background: '#fff',
               color: '#9a3412',
@@ -257,6 +276,7 @@ export default function ModeTrouSuiviCard({
 
           <button
             type="submit"
+            disabled={saving}
             style={{
               background: '#c2410c',
               color: '#fff',
@@ -264,11 +284,17 @@ export default function ModeTrouSuiviCard({
               borderRadius: 8,
               fontWeight: 700,
               padding: '10px 12px',
-              cursor: 'pointer'
+              cursor: saving ? 'wait' : 'pointer',
+              opacity: saving ? 0.7 : 1
             }}
           >
-            Enregistrer comme donnees estimees
+            {saving ? 'Enregistrement…' : 'Enregistrer comme données reconstituées'}
           </button>
+          {error && (
+            <div role="alert" style={{ color: '#b91c1c', fontSize: 13, fontWeight: 600 }}>
+              {error}
+            </div>
+          )}
         </form>
       )}
     </div>
