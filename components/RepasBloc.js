@@ -1,4 +1,5 @@
 import { getFastFoodRewards } from '../lib/fastFoodRewards';
+import { DEFAULT_FAST_FOOD_INTERVAL_DAYS, FAST_FOOD_PRESET_INTERVALS, getFastFoodRhythm, normalizeIntervalDays } from '../lib/fastFoodRhythm';
 import { useSupabase } from '../lib/supabaseClient';
 import { useState, useEffect, useCallback } from 'react'
 import FlipNumbers from 'react-flip-numbers'
@@ -148,6 +149,9 @@ export default function RepasBloc({
   const [prochainCreneau, setProchainCreneau] = useState(null);
   const [joursRestants, setJoursRestants] = useState(null);
   const [delaiRespected, setDelaiRespected] = useState(false);
+  const [fastFoodIntervalDays, setFastFoodIntervalDays] = useState(DEFAULT_FAST_FOOD_INTERVAL_DAYS);
+  const [fastFoodIntervalChoice, setFastFoodIntervalChoice] = useState(String(DEFAULT_FAST_FOOD_INTERVAL_DAYS));
+  const [fastFoodCustomDays, setFastFoodCustomDays] = useState('');
 
   // Handler pour ajouter un aliment fast food
   const handleAddFastFoodAliment = () => {
@@ -220,69 +224,66 @@ export default function RepasBloc({
     fetchValidation();
   }, [semaineCouranteDate]);
 
-  // Fonction chargement dernier fast food (Option B auto-détection)
+  // Chargement du rythme Fast Food de l'utilisateur
   const fetchDernierFastFood = useCallback(async () => {
-    console.log('🔍 DEBUG fetchDernierFastFood - Début', { date });
     try {
-      // App SANS authentification → Requête BDD sans user_id (RLS disabled)
-      console.log('🔍 DEBUG fetchDernierFastFood - Chargement BDD sans user_id');
-      
+      const { data: authData } = await supabase.auth.getUser();
+      const currentUserId = authData?.user?.id;
+      if (!currentUserId) return;
+
+      const { data: profilData } = await supabase
+        .from('profil')
+        .select('fast_food_interval_days')
+        .eq('user_id', currentUserId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const intervalDays = normalizeIntervalDays(profilData?.fast_food_interval_days);
+      setFastFoodIntervalDays(intervalDays);
+      setFastFoodIntervalChoice(FAST_FOOD_PRESET_INTERVALS.includes(intervalDays) ? String(intervalDays) : 'custom');
+      if (!FAST_FOOD_PRESET_INTERVALS.includes(intervalDays)) setFastFoodCustomDays(String(intervalDays));
+
       const { data, error } = await supabase
         .from('repas_reels')
         .select('*')
-        .or('categorie.eq.fast-food,tag.not.is.null')
+        .eq('user_id', currentUserId)
+        .eq('categorie', 'fast-food')
         .order('date', { ascending: false });
-      
-      console.log('🔍 DEBUG fetchDernierFastFood - Requête terminée:', { 
-        error, 
-        nbResultats: data?.length || 0, 
-        premiersResultats: data?.slice(0, 3).map(d => ({ date: d.date, aliment: d.aliment, categorie: d.categorie, tag: d.tag })) 
-      });
-      
-      if (error) {
-        console.error('Erreur chargement dernier fast food:', error);
-        return;
-      }
-      
-      if (data && data.length > 0) {
-        console.log('\u2705 DEBUG fetchDernierFastFood - Historique trouvé:', data.length, 'fast foods');
-        setFastFoodHistory(data);
-        
+      if (error) return console.error('Erreur chargement dernier fast food:', error);
+
+      setFastFoodHistory(data || []);
+      if (data?.length) {
         const dernier = data[0];
+        const rhythm = getFastFoodRhythm({ lastFastFoodDate: dernier.date, referenceDate: date || new Date(), intervalDays });
         setDernierFastFood(dernier);
-        
-        // Calculer prochain créneau
-        const dernierDate = new Date(dernier.date);
-        const prochainDate = new Date(dernierDate);
-        prochainDate.setDate(dernierDate.getDate() + 45);
-        setProchainCreneau(prochainDate.toLocaleDateString('fr-FR'));
-        
-        // Calculer jours restants
-        const today = new Date();
-        const diffMs = prochainDate - today;
-        const jours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
-        setJoursRestants(jours);
-        setDelaiRespected(jours === 0);
-        
-        // Calculer récompense : délai respecté si ≥45 jours depuis dernier
-        const currentDate = new Date(date);
-        const diffDays = Math.floor((currentDate - dernierDate) / (1000 * 60 * 60 * 24));
-        console.log('\ud83d\udd0d DEBUG fetchDernierFastFood - Calcul récompense:', { 
-          dernierDate: dernierDate.toISOString(), 
-          currentDate: currentDate.toISOString(), 
-          diffDays, 
-          recompense: diffDays >= 45 
-        });
-        setFastFoodReward(diffDays >= 45);
+        setProchainCreneau(rhythm.nextReferenceDate?.toLocaleDateString('fr-FR') || null);
+        setJoursRestants(rhythm.remainingDays);
+        setDelaiRespected(rhythm.targetReached);
+        setFastFoodReward(rhythm.targetReached);
       } else {
-        console.log('\ud83c\udf89 DEBUG fetchDernierFastFood - AUCUN historique, premier fast food !');
-        // Aucun historique BDD → premier fast food → récompense automatique
+        setDernierFastFood(null);
+        setProchainCreneau(null);
+        setJoursRestants(null);
+        setDelaiRespected(false);
         setFastFoodReward(true);
       }
     } catch (err) {
       console.error('Erreur fetchDernierFastFood:', err);
     }
-  }, [date]);
+  }, [date, supabase]);
+
+  const saveFastFoodInterval = async (value) => {
+    const intervalDays = normalizeIntervalDays(value);
+    const { data: authData } = await supabase.auth.getUser();
+    const currentUserId = authData?.user?.id;
+    if (!currentUserId) return;
+    const { error } = await supabase.from('profil').update({ fast_food_interval_days: intervalDays }).eq('user_id', currentUserId);
+    if (error) return setSupabaseError(error.message);
+    setFastFoodIntervalDays(intervalDays);
+    setFastFoodIntervalChoice(FAST_FOOD_PRESET_INTERVALS.includes(intervalDays) ? String(intervalDays) : 'custom');
+    if (!FAST_FOOD_PRESET_INTERVALS.includes(intervalDays)) setFastFoodCustomDays(String(intervalDays));
+    await fetchDernierFastFood();
+  };
 
   // Auto-détection fast food Option B (basée sur categorie référentiel)
   useEffect(() => {
@@ -753,63 +754,46 @@ function getSuggestionsFromNotes(repasList) {
             Repas conforme au planning
           </label>
         )}
-        {/* Message d’avertissement et suggestion si règle non respectée */}
-        {isFastFood && fastFoodHistory.length > 0 && (
-          (() => {
-            const lastFastFood = fastFoodHistory[0]; // Plus récent (ORDER DESC)
-            const lastDate = new Date(lastFastFood.date);
-            const currentDate = new Date(date);
-            const diffDays = Math.floor((currentDate - lastDate) / (1000 * 60 * 60 * 24));
-            if (diffDays < 45) {
-              return (
-                <div style={{ background: '#fff3e0', color: '#e65100', padding: 12, borderRadius: 8, marginBottom: 12 }}>
-                  <strong>Attention :</strong> Tu as consommé un fast food il y a {diffDays} jours.<br />
-                  Il est recommandé d’attendre 45 jours entre deux fast food pour préserver ton équilibre alimentaire.<br />
-                  <span style={{ fontWeight: 500 }}>Planifie ton prochain fast food pour maximiser ta récompense !</span>
-                </div>
-              );
-            }
-            return null;
-          })()
-        )}
-        {/* Récompense si délai respecté */}
-        {(() => {
-          console.log('🔍 DEBUG Récompense - Conditions:', { isFastFood, fastFoodReward });
-          return isFastFood && fastFoodReward && (
-            <div style={{ background: '#e8f5e9', color: '#388e3c', padding: 12, borderRadius: 8, marginBottom: 12 }}>
-              🎉 Bravo ! Tu as respecté le délai entre deux fast food.<br />
-              Tu débloques une récompense et tu progresses vers une meilleure alimentation !
+        {/* Repère Fast Food personnel */}
+        {isFastFood && (
+          <div style={{ background:'#f7f9fc', border:'1px solid #dbe5f0', padding:12, borderRadius:8, marginBottom:12 }}>
+            <strong>Mon rythme Fast Food</strong>
+            <div style={{marginTop:8}}>Objectif d’espacement :</div>
+            <div style={{display:'flex', gap:8, flexWrap:'wrap', marginTop:6}}>
+              {FAST_FOOD_PRESET_INTERVALS.map(days => (
+                <button key={days} type="button" onClick={() => saveFastFoodInterval(days)}
+                  style={{padding:'6px 10px', borderRadius:7, border:fastFoodIntervalChoice===String(days)?'2px solid #1976d2':'1px solid #ccc', background:'#fff'}}>
+                  {days} jours
+                </button>
+              ))}
+              <button type="button" onClick={() => setFastFoodIntervalChoice('custom')}
+                style={{padding:'6px 10px', borderRadius:7, border:fastFoodIntervalChoice==='custom'?'2px solid #1976d2':'1px solid #ccc', background:'#fff'}}>
+                Personnalisé
+              </button>
             </div>
-          );
+            {fastFoodIntervalChoice === 'custom' && (
+              <div style={{display:'flex', gap:8, marginTop:8}}>
+                <input type="number" min="1" max="365" value={fastFoodCustomDays} onChange={e => setFastFoodCustomDays(e.target.value)} placeholder="Nombre de jours" style={{width:140}} />
+                <button type="button" onClick={() => saveFastFoodInterval(fastFoodCustomDays)}>Enregistrer</button>
+              </div>
+            )}
+            {dernierFastFood && (() => {
+              const rhythm = getFastFoodRhythm({lastFastFoodDate:dernierFastFood.date, referenceDate:date || new Date(), intervalDays:fastFoodIntervalDays});
+              return <div style={{marginTop:10}}>
+                Dernier Fast Food : <b>{new Date(dernierFastFood.date).toLocaleDateString('fr-FR')}</b><br/>
+                Objectif : <b>{fastFoodIntervalDays} jours</b><br/>
+                Prochain repère : <b>{prochainCreneau}</b><br/>
+                {rhythm.targetReached
+                  ? <span style={{color:'#388e3c'}}>Objectif atteint — {rhythm.elapsedDays} jours d’espacement actuellement.</span>
+                  : <span>Encore {rhythm.remainingDays} jour{rhythm.remainingDays > 1 ? 's' : ''} avant ton repère.</span>}
+              </div>;
+            })()}
+          </div>
+        )}
+        {isFastFood && (() => {
+          const rewards = getFastFoodRewards([...fastFoodHistory].reverse(), fastFoodIntervalDays);
+          return <div style={{ background: rewards.confettis ? '#e8f5e9' : '#e3f2fd', color: rewards.confettis ? '#388e3c' : '#1976d2', padding:12, borderRadius:8, marginBottom:12 }}>{rewards.message}</div>;
         })()}
-          {/* Message de félicitations et suggestion de planification (fusion dynamique + astuce) */}
-          {(() => {
-            console.log('🔍 DEBUG Message fusion - isFastFood:', isFastFood, 'fastFoodHistory.length:', fastFoodHistory.length);
-            return isFastFood && (
-            (() => {
-              // getFastFoodRewards attend ORDER ASC, on inverse l'array DESC de la BDD
-              const rewards = getFastFoodRewards([...fastFoodHistory].reverse());
-              console.log('🔍 DEBUG getFastFoodRewards - Résultat:', rewards);
-              let astuce = null;
-              if (fastFoodReward) {
-                astuce = <><br /><span style={{ fontWeight: 500 }}>Astuce : note la date du prochain créneau dans ton agenda pour maximiser ta récompense !</span></>;
-              } else if (fastFoodHistory.length > 0) {
-                const lastFastFood = fastFoodHistory[0]; // Plus récent (ORDER DESC)
-                const lastDate = new Date(lastFastFood.date);
-                const currentDate = new Date(date);
-                const diffDays = Math.floor((currentDate - lastDate) / (1000 * 60 * 60 * 24));
-                astuce = <><br /><span style={{ fontWeight: 500 }}>Suggestion : planifie le prochain fast food dans {45 - diffDays} jours.</span></>;
-              }
-              return (
-                <div style={{ background: rewards.confettis ? '#e8f5e9' : '#e3f2fd', color: rewards.confettis ? '#388e3c' : '#1976d2', padding: 12, borderRadius: 8, marginBottom: 12 }}>
-                  {rewards.message}
-                  {astuce}
-                  {rewards.confettis && <div style={{marginTop:8}}>🎉 Confettis ! Tu as débloqué le badge spécial Fast Food !</div>}
-                </div>
-              );
-            })()
-            );
-          })()}
         {/* Section Fast Food détaillée masquée - Auto-détection via saisie normale suffit */}
         
         <h3>{type} du {date}</h3>
