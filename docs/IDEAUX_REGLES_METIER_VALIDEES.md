@@ -42,3 +42,12 @@ Pour la compatibilité avec OBSERVE / Align-Life, une séance accomplie est prou
 - La nouvelle cible reste prudente : elle n'absorbe pas automatiquement toute la surperformance constatée.
 - Si aucun signal suffisamment solide n'existe, le palier suivant consolide les repères plutôt que d'augmenter artificiellement la difficulté.
 - La même règle s'applique aux Idéaux sportifs et non sportifs ; le sens de progression appartient à chaque indicateur (augmenter, diminuer ou viser une cible).
+
+## Défloutage de l'image motivante
+
+- Le défloutage représente une progression réellement vécue, jamais le simple passage du temps.
+- Chaque palier archivé contribue selon son bilan réel ; un palier partiel conserve donc la part effectivement accomplie.
+- Le palier courant contribue selon `progression_palier`, calculée uniquement à partir des séances prévues ayant `fait === true`.
+- Les séances bonus ne gonflent pas le défloutage du cap principal.
+- Le nombre total de paliers restant est estimé depuis la date de début et la durée validées du palier courant jusqu'à la date cible.
+- Lorsque l'Idéal est marqué `atteint`, l'image devient entièrement nette.

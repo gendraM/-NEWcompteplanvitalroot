@@ -830,41 +830,7 @@ export default function IdeauxPage() {
             >
               {/* Affichage image motivante floue si présente */}
               {ideal.image_url && (() => {
-                // 1. Récupérer la date de début, date cible, durée d'un palier
-                let blur = 12;
-                try {
-                  let dateDebut = null, dateFin = null, palierDuree = 28; // 28j = 4 semaines par défaut
-                  if (ideal.plan_params_valides) {
-                    dateDebut = new Date(ideal.plan_params_valides.dateDebut);
-                    dateFin = new Date(ideal.date_cible);
-                    palierDuree = (ideal.plan_params_valides.palierDuree || 4) * 7; // nb semaines * 7
-                  }
-                  // 2. Calculer le nombre total de paliers théoriques
-                  let nPaliers = 1;
-                  if (dateDebut && dateFin && palierDuree > 0) {
-                    const diffJours = Math.ceil((dateFin - dateDebut) / (1000*60*60*24));
-                    nPaliers = Math.ceil(diffJours / palierDuree);
-                  }
-                  // 3. Calculer le nombre de paliers validés
-                  let paliersValides = 0;
-                  if (ideal.plan_data && ideal.plan_data.mois) {
-                    for (let i = 0; i < ideal.plan_data.mois.length; i++) {
-                      const mois = ideal.plan_data.mois[i];
-                      const total = mois.semaines.reduce((acc, s) => acc + s.actions.length, 0);
-                      let fait = 0;
-                      if (ideal.seances_reelles) {
-                        fait = ideal.seances_reelles.filter(s => s.fait && s.mois === mois.numero && s.annee === mois.annee).length;
-                      }
-                      // Palier validé si 100% des séances faites (ou seuil, ex 80%)
-                      if (total > 0 && fait / total >= 0.8) paliersValides++;
-                    }
-                  }
-                  // 4. Calcul du niveau de défloutage
-                  let defloutage = nPaliers > 0 ? paliersValides / nPaliers : 0;
-                  if (defloutage > 1) defloutage = 1;
-                  blur = 12 * (1 - defloutage);
-                  if (blur < 0) blur = 0;
-                } catch (e) { /* fallback flou max */ }
+                const defloutage = ideal.defloutage_image || { flouPx: 12, pourcentage: 0 };
                 return (
                   <div style={{textAlign:'center', marginBottom:12}}>
                     <img src={ideal.image_url} alt="visuel idéal" style={{
@@ -872,12 +838,15 @@ export default function IdeauxPage() {
                       maxHeight:160,
                       objectFit:'cover',
                       borderRadius:12,
-                      filter:`blur(${blur}px)`,
+                      filter:`blur(${defloutage.flouPx}px)`,
                       transition:'filter 1.5s cubic-bezier(0.4,0,0.2,1)',
                       boxShadow:'0 2px 8px #00bcd422',
                       margin:'0 auto',
                       display:'block',
                     }} />
+                    <div style={{fontSize:12, color:'#607d8b', marginTop:6}}>
+                      Image dévoilée à {defloutage.pourcentage} % par les paliers réellement accomplis
+                    </div>
                   </div>
                 );
               })()}
