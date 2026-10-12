@@ -230,9 +230,11 @@
       "evidence": "À VÉRIFIER / historiques GitHub",
       "verified_at": "2026-10-12",
       "source_links": [
-        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/17"
       ],
-      "notes": ""
+      "notes": "| Exécution automatique du code NON ACTIVÉE. Supervision ChatGPT planifiée le 12/10/2026, première exécution non encore vérifiée. Nécessite un runner indépendant, des permissions explicites et une clé/API sécurisée à budget plafonné.",
+      "github_issue": 17
     },
     {
       "id": "MPV-GOV-05",
