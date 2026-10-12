@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-12",
+  "base_sha": "23f27e3b59f0ea6a3e3f987a1c433602a0fba6bb",
+  "baseline": {
+    "suites_passed": 39,
+    "suites_failed": 1,
+    "tests_passed": 310,
+    "tests_failed": 1,
+    "build": "PASS"
+  },
+  "delivered": {
+    "suites_passed": 43,
+    "suites_failed": 1,
+    "tests_passed": 360,
+    "tests_failed": 1,
+    "dashboard_suites_passed": 4,
+    "dashboard_tests_passed": 50,
+    "build": "PASS"
+  },
+  "preexisting_failure": {
+    "file": "tests/socleQuantitesCalories.test.js:183",
+    "expected": 688,
+    "received": 746
+  },
+  "browser": [
+    {
+      "scenario": "mobile",
+      "runtimeErrors": 0,
+      "horizontalOverflow": false,
+      "interceptedRequests": 41,
+      "writesAttempted": 0
+    },
+    {
+      "scenario": "desktop",
+      "runtimeErrors": 0,
+      "horizontalOverflow": false,
+      "interceptedRequests": 41,
+      "writesAttempted": 0
+    },
+    {
+      "scenario": "empty",
+      "runtimeErrors": 0,
+      "horizontalOverflow": false,
+      "interceptedRequests": 38,
+      "writesAttempted": 0
+    },
+    {
+      "scenario": "partial",
+      "runtimeErrors": 0,
+      "horizontalOverflow": false,
+      "interceptedRequests": 41,
+      "writesAttempted": 0
+    },
+    {
+      "scenario": "anonymous",
+      "runtimeErrors": 0,
+      "horizontalOverflow": false,
+      "interceptedRequests": 2,
+      "writesAttempted": 0
+    }
+  ],
+  "limits": [
+    "No real RLS verification",
+    "Unfiltered inherited reads in _app.js and DefisContext.js",
+    "No production data or mutations",
+    "Layer 2 and KPI/highlight arbitration pending"
+  ]
+}

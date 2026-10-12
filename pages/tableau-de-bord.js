@@ -1,5 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
+import DashboardSummary from "../components/DashboardSummary";
+import { useAuth } from "../contexts/AuthContext";
+import { chargerDonneesDashboard } from "../lib/dashboardData";
+import { construireSyntheseTableauDeBord, construireMealSignals, compterExtrasObserves } from "../lib/dashboardSynthesis";
+import { getFastFoodRhythm } from "../lib/fastFoodRhythm";
+import { regrouperRepasReelsParOccurrence } from "../lib/alignementRepas";
 import { getFastFoodRewards } from "../lib/fastFoodRewards";
 import { supabase } from "../lib/supabaseClient";
 import { Line, Pie, Doughnut } from "react-chartjs-2";
@@ -33,23 +39,20 @@ ChartJS.register(
 
 const COLORS = ["#43cea2", "#1976d2", "#ffb347", "#ff6b6b", "#b39ddb", "#4dd0e1"];
 // Fonction utilitaire hors composant React
-function getMotivationMessage({ progression, extras, humeurCounts, tauxSatiete }) {
-  if (progression.badge) {
-    return `🏆 ${progression.badge} : ${progression.message}`;
-  }
-  if (extras > 0 && extras <= progression.quota) {
-    return "Tes moments extras restent dans le rythme de ton palier actuel.";
-  }
-  if (tauxSatiete > 70) {
-    return "🥗 Tu manges majoritairement par faim réelle, c'est top !";
-  }
-  if (humeurCounts["En forme"] > humeurCounts["Fragile"]) {
-    return "😄 Ton humeur est globalement positive, tu gères bien ta semaine !";
-  }
-  return "🚀 Chaque petite action compte : recommence, progresse, bats tes records !";
+function getMotivationMessage({ progression }) {
+  return progression.message || 'Observer, comprendre, ajuster : les données renseignées racontent ton parcours.';
 }
 
 export default function TableauDeBord() {
+  const { user, loading: authLoading } = useAuth();
+  const requestSequence = useRef(0);
+  const [loadedUserId, setLoadedUserId] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [domainErrors, setDomainErrors] = useState([]);
+  const [profilDashboard, setProfilDashboard] = useState(null);
+  const [periodesReconstituees, setPeriodesReconstituees] = useState([]);
+  const [defisDashboard, setDefisDashboard] = useState([]);
+  const [fastFoodRhythm, setFastFoodRhythm] = useState(null);
   // Hook pour afficher/masquer l’historique des notes repas (diagnostic)
   // Pagination des badges
   const [showAllBadges, setShowAllBadges] = useState(false);
@@ -82,17 +85,25 @@ export default function TableauDeBord() {
   const [nbSemainesNonValidees, setNbSemainesNonValidees] = useState(0);
   const [semainesNonValideesFormatees, setSemainesNonValideesFormatees] = useState([]);
 
+  const [poidsData, setPoidsData] = useState([]);
+  const [humeurData, setHumeurData] = useState([]);
+  const [satieteData, setSatieteData] = useState({ faim: 0, total: 0 });
+  const [extrasData, setExtrasData] = useState({ current: 0, quota: 3 });
+  const [badges, setBadges] = useState([]);
+  const [extrasPalierEvents, setExtrasPalierEvents] = useState([]);
+  const [repasReels, setRepasReels] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+
   // Calcul des bornes de période
   function getPeriodeDates() {
     const now = new Date();
     let debut, fin;
     if (periode === 'semaine') {
       debut = new Date(now);
-  debut = new Date(now);
   debut.setDate(now.getDate() - ((now.getDay() + 6) % 7));
       debut.setHours(0,0,0,0);
       fin = new Date(debut);
-  fin = new Date(debut);
   fin.setDate(debut.getDate() + 6);
     } else if (periode === 'mois') {
       debut = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -105,59 +116,6 @@ export default function TableauDeBord() {
   }
 
   useEffect(() => {
-    // Récupérer la liste des semaines validées
-    (async () => {
-      const { data: semaines } = await supabase
-        .from('semaines_validees')
-        .select('*');
-      setSemainesValidees(semaines || []);
-
-      const { data: authData } = await supabase.auth.getUser();
-      const currentUserId = authData?.user?.id;
-      if (currentUserId) {
-        const progressionExtras = calculerProgressionExtras(semaines || []);
-        const synchronisation = await synchroniserBadgesPalierExtras(
-          currentUserId,
-          progressionExtras,
-          semaines || []
-        );
-        if (synchronisation.erreurs.length > 0) {
-          console.error('[BADGES EXTRAS] Synchronisation incomplète :', synchronisation.erreurs);
-        }
-        if (synchronisation.nouveaux.length > 0) {
-          setBadges(badgesActuels => [
-            ...synchronisation.nouveaux,
-            ...badgesActuels.filter(badge => !synchronisation.nouveaux.some(nouveau => nouveau.code === badge.code)),
-          ]);
-        }
-
-        const synchronisationEvenements = await synchroniserEvenementsPalierExtras(
-          currentUserId,
-          progressionExtras
-        );
-        if (synchronisationEvenements.error) {
-          console.error('[PARCOURS EXTRAS] Synchronisation incomplète :', synchronisationEvenements.error);
-        }
-        const { data: evenements, error: evenementsError } = await supabase
-          .from('extras_palier_events')
-          .select('*')
-          .eq('user_id', currentUserId)
-          .order('semaine_decisive', { ascending: true });
-        if (evenementsError) {
-          console.error('[PARCOURS EXTRAS] Lecture impossible :', evenementsError);
-        } else {
-          setExtrasPalierEvents(evenements || []);
-        }
-      }
-      
-      // Calculer le nombre de semaines non validées (8 dernières semaines)
-      const semainesNonValidees = getSemainesNonValidees(semaines || [], 8);
-      setNbSemainesNonValidees(semainesNonValidees.length);
-      
-      // getSemainesNonValidees retourne déjà le format attendu par le drawer
-      // { weekStart, label, estSemaineActuelle }
-      setSemainesNonValideesFormatees(semainesNonValidees);
-    })();
     const { debut, fin } = getPeriodeDates();
     let label = '';
     if (periode === 'semaine') {
@@ -174,28 +132,78 @@ export default function TableauDeBord() {
   const { debut, fin } = getPeriodeDates();
     const debutISO = formatDate(debut, 'yyyy-MM-dd');
     const finISO = formatDate(fin, 'yyyy-MM-dd');
-    // Rafraîchir l’historique fast food à chaque refresh manuel
-    const { data: ffData } = await supabase
-      .from('repas_reels')
-      .select('*')
-      .or('categorie.eq.fast-food,tag.not.is.null')
-      .gte('date', debutISO)
-      .lte('date', finISO)
-      .order('date', { ascending: false });
-    setFastFoodHistory(ffData || []);
-    setFastFoodCount(ffData?.length || 0);
-    if (ffData && ffData.length > 0) {
-      const lastDate = new Date(ffData[0].date);
-      const nextDate = new Date(lastDate);
-      nextDate.setDate(lastDate.getDate() + 45);
-      setNextFastFoodDate(nextDate);
-      const today = new Date();
-      const delay = Math.max(0, Math.floor((nextDate - today) / (1000 * 60 * 60 * 24)));
-      setFastFoodDelay(delay);
-    } else {
-      setNextFastFoodDate(null);
-      setFastFoodDelay(0);
-    }
+    const sequence = ++requestSequence.current;
+    if (!user?.id) return;
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const donnees = await chargerDonneesDashboard(supabase, { debut: debutISO, fin: finISO, expectedUserId: user?.id });
+      if (sequence !== requestSequence.current) return;
+      const { poids: poidsHistory, repas: repasReelsData, semaines, humeurs, ideaux } = donnees;
+      setDomainErrors(donnees.errors);
+      setLoadedUserId(donnees.userId);
+      setPoidsData(poidsHistory);
+      setHumeurData(humeurs);
+      setRepasReels(repasReelsData);
+      setSemainesValidees(semaines);
+      setProfilDashboard(donnees.profil);
+      setPeriodesReconstituees(donnees.periodes);
+      setDefisDashboard(donnees.defis);
+      setIdeauxList(ideaux);
+      setBadges(donnees.badges);
+      setExtrasPalierEvents(donnees.evenementsExtras);
+      const nonValidees = getSemainesNonValidees(semaines, 8);
+      setNbSemainesNonValidees(nonValidees.length);
+      setSemainesNonValideesFormatees(nonValidees);
+      const signaux = construireMealSignals(repasReelsData);
+      setSatieteData({ faim: signaux.faim.avecFaim, total: signaux.faim.renseignee });
+      const quota = calculerProgressionExtras(semaines).palier;
+      const momentsExtras = compterMomentsExtras(repasReelsData);
+      setExtrasData({ current: momentsExtras, quota });
+      // Sans observations, aucun badge « sans extra » n'est déduit d'un zéro.
+      setProgression({ badge: null, message: '', quota });
+      const ffData = repasReelsData.filter(r => r.categorie === 'fast-food');
+      setFastFoodHistory([...ffData].reverse());
+      setFastFoodCount(regrouperRepasReelsParOccurrence(ffData).length);
+      // Le champ non intégré reste une dépendance explicite, sans valeur fictive.
+      const intervalAvailable = donnees.profil && Object.prototype.hasOwnProperty.call(donnees.profil, 'fast_food_interval_days');
+      const rhythm = intervalAvailable && !donnees.errors.includes('dernierFastFood')
+        ? getFastFoodRhythm({ lastFastFoodDate: donnees.dernierFastFood?.date, intervalDays: donnees.profil.fast_food_interval_days })
+        : null;
+      setFastFoodRhythm(rhythm);
+      setNextFastFoodDate(rhythm?.nextReferenceDate || null);
+      setFastFoodDelay(rhythm?.remainingDays ?? null);
+      // Synchronisations Extras déjà présentes en consolidation, conservées.
+      // Jamais appelées par l'adaptateur de lecture ou en l'absence de semaines.
+      if (!donnees.errors.includes('semaines') && semaines.length) {
+        try {
+          const progressionExtras = calculerProgressionExtras(semaines);
+          const synchronisation = await synchroniserBadgesPalierExtras(donnees.userId, progressionExtras, semaines);
+          if (sequence !== requestSequence.current) return;
+          if (synchronisation.erreurs.length) setDomainErrors(erreurs => [...new Set([...erreurs, 'badges'])]);
+          if (synchronisation.nouveaux.length) setBadges(badgesActuels => [
+            ...synchronisation.nouveaux,
+            ...badgesActuels.filter(b => !synchronisation.nouveaux.some(n => n.code === b.code)),
+          ]);
+          const synchronisationEvenements = await synchroniserEvenementsPalierExtras(donnees.userId, progressionExtras);
+          if (sequence !== requestSequence.current) return;
+          if (synchronisationEvenements.error) setDomainErrors(erreurs => [...new Set([...erreurs, 'evenementsExtras'])]);
+          else {
+            const { data: evenements, error: evenementsError } = await supabase.from('extras_palier_events')
+              .select('*').eq('user_id', donnees.userId).order('semaine_decisive', { ascending: true });
+            if (sequence !== requestSequence.current) return;
+            if (evenementsError) setDomainErrors(erreurs => [...new Set([...erreurs, 'evenementsExtras'])]);
+            else setExtrasPalierEvents(evenements || []);
+          }
+        } catch {
+          if (sequence !== requestSequence.current) return;
+          setDomainErrors(erreurs => [...new Set([...erreurs, 'badges', 'evenementsExtras'])]);
+        }
+      }
+      // Les récompenses historiques gardent leur contrat 45 jours. Aucune
+      // requalification d'un délai personnalisé avec ce moteur non intégré.
+      setBadgesFastFood(rhythm?.targetDays === 45
+        ? getFastFoodRewards([...ffData].sort((a, b) => a.date.localeCompare(b.date))).badgesFastFood : []);
     // Récupération locale des bornes de période
     // --- Calcul évolution extras ---
     let evoExtras = [];
@@ -205,8 +213,8 @@ export default function TableauDeBord() {
         const d = new Date(debut);
         d.setDate(d.getDate() + i);
         const label = d.toLocaleDateString('fr-FR', { weekday: 'short' });
-        const count = compterMomentsExtras(
-          repasReels?.filter(r => r.date === formatDate(d, 'yyyy-MM-dd')) || []
+        const count = compterExtrasObserves(
+          repasReelsData?.filter(r => r.date === formatDate(d, 'yyyy-MM-dd')) || []
         );
         evoExtras.push({ label, count });
       }
@@ -219,8 +227,8 @@ export default function TableauDeBord() {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
         const label = `Sem. ${week}`;
-        const count = compterMomentsExtras(
-          repasReels?.filter(r => r.date >= formatDate(weekStart, 'yyyy-MM-dd') && r.date <= formatDate(weekEnd, 'yyyy-MM-dd')) || []
+        const count = compterExtrasObserves(
+          repasReelsData?.filter(r => r.date >= formatDate(weekStart, 'yyyy-MM-dd') && r.date <= formatDate(weekEnd, 'yyyy-MM-dd')) || []
         );
         evoExtras.push({ label, count });
         current.setDate(current.getDate() + 7);
@@ -232,8 +240,8 @@ export default function TableauDeBord() {
         const monthStart = new Date(debut.getFullYear(), m, 1);
         const monthEnd = new Date(debut.getFullYear(), m + 1, 0);
         const label = monthStart.toLocaleDateString('fr-FR', { month: 'short' });
-        const count = compterMomentsExtras(
-          repasReels?.filter(r => r.date >= formatDate(monthStart, 'yyyy-MM-dd') && r.date <= formatDate(monthEnd, 'yyyy-MM-dd')) || []
+        const count = compterExtrasObserves(
+          repasReelsData?.filter(r => r.date >= formatDate(monthStart, 'yyyy-MM-dd') && r.date <= formatDate(monthEnd, 'yyyy-MM-dd')) || []
         );
         evoExtras.push({ label, count });
       }
@@ -247,7 +255,7 @@ export default function TableauDeBord() {
         const d = new Date(debut);
         d.setDate(d.getDate() + i);
         const label = d.toLocaleDateString('fr-FR', { weekday: 'short' });
-        const poids = poidsData?.find(p => p.date === d.toISOString().slice(0,10))?.poids || null;
+        const poids = poidsHistory?.find(p => p.date === formatDate(d, 'yyyy-MM-dd'))?.poids || null;
         evoPoids.push({ label, poids });
       }
     } else if (periode === 'mois') {
@@ -259,7 +267,7 @@ export default function TableauDeBord() {
         weekEnd.setDate(weekStart.getDate() + 6);
         const label = `Sem. ${week}`;
         // Moyenne du poids sur la semaine
-        const poidsValues = poidsData?.filter(p => p.date >= weekStart.toISOString().slice(0,10) && p.date <= weekEnd.toISOString().slice(0,10)).map(p => p.poids) || [];
+        const poidsValues = poidsHistory?.filter(p => p.date >= formatDate(weekStart, 'yyyy-MM-dd') && p.date <= formatDate(weekEnd, 'yyyy-MM-dd')).map(p => p.poids) || [];
         const poids = poidsValues.length ? (poidsValues.reduce((a,b)=>a+b,0)/poidsValues.length).toFixed(1) : null;
         evoPoids.push({ label, poids });
         current.setDate(current.getDate() + 7);
@@ -270,85 +278,21 @@ export default function TableauDeBord() {
         const monthStart = new Date(debut.getFullYear(), m, 1);
         const monthEnd = new Date(debut.getFullYear(), m + 1, 0);
         const label = monthStart.toLocaleDateString('fr-FR', { month: 'short' });
-        const poidsValues = poidsData?.filter(p => p.date >= monthStart.toISOString().slice(0,10) && p.date <= monthEnd.toISOString().slice(0,10)).map(p => p.poids) || [];
+        const poidsValues = poidsHistory?.filter(p => p.date >= formatDate(monthStart, 'yyyy-MM-dd') && p.date <= formatDate(monthEnd, 'yyyy-MM-dd')).map(p => p.poids) || [];
         const poids = poidsValues.length ? (poidsValues.reduce((a,b)=>a+b,0)/poidsValues.length).toFixed(1) : null;
         evoPoids.push({ label, poids });
       }
     }
     setEvolutionPoids(evoPoids);
-    setLoading(true);
-    // 1. Historique poids
-    const { data: poidsHistory } = await supabase
-      .from("historique_poids")
-      .select("date, poids")
-      .gte("date", debutISO)
-      .lte("date", finISO)
-      .order("date", { ascending: true });
-    setPoidsData(poidsHistory || []);
-    // 2. Humeurs sur la période
-    const { data: humeurs } = await supabase
-      .from("humeur_checkin")
-      .select("humeur")
-      .gte("date", debutISO)
-      .lte("date", finISO);
-    setHumeurData(humeurs || []);
-    // 3. Satiété (repas pris par faim)
-    const { data: repasReelsData, count: totalRepas } = await supabase
-      .from("repas_reels")
-      .select("*", { count: "exact" })
-      .gte("date", debutISO)
-      .lte("date", finISO);
-    setRepasReels(repasReelsData || []);
-    const repasParFaim =
-      repasReelsData?.filter((r) => r.raison_manger === "J'avais faim").length || 0;
-    setSatieteData({ faim: repasParFaim, total: totalRepas || 0 });
-    // 4. Extras sur la période
-    const { data: extrasPeriod } = await supabase
-      .from("repas_reels")
-      .select("id, categorie, est_extra, occurrence_repas_id")
-      .gte("date", debutISO)
-      .lte("date", finISO);
-    const quota = calculerProgressionExtras(semainesValidees).palier;
-    const momentsExtras = compterMomentsExtras(extrasPeriod || []);
-    setExtrasData({
-      current: momentsExtras,
-      quota,
-    });
-    // 5. Badges/défis
-    const { data: authData } = await supabase.auth.getUser();
-    const currentUserId = authData?.user?.id;
-    const { data: badgesList } = currentUserId
-      ? await supabase.from("badges").select("*").eq('user_id', currentUserId).order('date_obtention', { ascending: false })
-      : { data: [] };
-    setBadges(badgesList || []);
-    // 6. Progression/gamification
-    let badge = null,
-      message = "";
-    const extrasCount = momentsExtras;
-    if (extrasCount === 0) {
-      badge = periode === 'semaine' ? "Semaine sans extra" : periode === 'mois' ? "Mois sans extra" : "Année sans extra";
-      message =
-        periode === 'semaine'
-          ? "Cette semaine, tes choix ont suivi un rythme sans moment extra."
-          : periode === 'mois'
-          ? "Ce mois-ci, tes choix ont suivi un rythme sans moment extra."
-          : "Cette année, tes choix ont suivi un rythme sans moment extra.";
-    } else if (periode === 'semaine' && extrasCount <= quota && extrasCount > 0) {
-      badge = "Rythme du palier suivi";
-      message = "Tes moments extras restent dans la direction que tu veux créer.";
+    } catch {
+      if (sequence === requestSequence.current) {
+        setLoadedUserId(null);
+        setLoadError('Lecture impossible. Connecte-toi ou réessaie pour consulter tes données.');
+      }
+    } finally {
+      if (sequence === requestSequence.current) setLoading(false);
     }
-    setProgression({ badge, message, quota });
-    setLoading(false);
   };
-  const [poidsData, setPoidsData] = useState([]);
-  const [humeurData, setHumeurData] = useState([]);
-  const [satieteData, setSatieteData] = useState({ faim: 0, total: 0 });
-  const [extrasData, setExtrasData] = useState({ current: 0, quota: 3 });
-  const [badges, setBadges] = useState([]);
-  const [extrasPalierEvents, setExtrasPalierEvents] = useState([]);
-  const [repasReels, setRepasReels] = useState([]);
-  const [loading, setLoading] = useState(true);
-
     // Historique des extras validés (récupéré depuis la logique du suivi)
     const [weeklyHistory, setWeeklyHistory] = useState([]);
     useEffect(() => {
@@ -392,7 +336,8 @@ export default function TableauDeBord() {
         }
   setWeeklyHistory(getWeeklyExtrasHistory(repasReels, 16));
       }
-    }, [repasReels]);
+      else setWeeklyHistory([]);
+    }, [repasReels, semainesValidees]);
 
   // Progression badge/message
   const [progression, setProgression] = useState({
@@ -402,9 +347,10 @@ export default function TableauDeBord() {
   });
 
   useEffect(() => {
-    handleRefresh();
-    // eslint-disable-next-line
-  }, [periode]);
+    if (!authLoading && user?.id) handleRefresh();
+    else if (!authLoading) { setLoading(false); setLoadedUserId(null); }
+    return () => { requestSequence.current += 1; };
+  }, [periode, user?.id, authLoading]);
 
   // Détecter préparation jeûne active
   useEffect(() => {
@@ -436,49 +382,30 @@ export default function TableauDeBord() {
     }
   }, []);
 
-  // Récupérer les idéaux et calculer une progression sommaire pour le tableau de bord
   useEffect(() => {
-    (async () => {
-      try {
-        const { data: ideaux, error } = await supabase
-          .from('ideaux')
-          .select('*')
-          .order('date_cible', { ascending: true });
-        console.log('[DEBUG] Résultat Supabase ideaux:', ideaux, error);
-        if (!error && Array.isArray(ideaux)) {
-          setIdeauxList(ideaux.map(ideal => ({
-            ...ideal,
-            planData: ideal.plan_data // compatibilité camelCase JS
-          })));
-        }
-      } catch (e) {
-        console.log('[DEBUG] Exception récupération ideaux:', e);
-      }
-    })();
-  }, []);
-
-  // Calculer la progression par idéal (palier/mois courant) — logique identique à pages/ideaux.js
-  useEffect(() => {
-    const progs = (ideauxList || []).map((ideal) => {
-      if (ideal.plan_existant && ideal.planData && ideal.planData.mois) {
-        const mois = ideal.planData.mois[0];
-        const prevues = (mois.semaines || []).reduce((acc, s) => acc + (s.actions ? s.actions.length : 0), 0);
-        const realises = (ideal.seances_reelles || []).filter(s => s.fait && s.mois === mois.numero && s.annee === mois.annee).length || 0;
-        const pourcentage = prevues > 0 ? Math.round((realises / prevues) * 100) : 0;
-        return {
-          id: ideal.id,
-          titre: ideal.titre,
-          image_url: ideal.image_url,
-          realise: realises,
-          prevues,
-          pourcentage,
-          statut: ideal.statut || 'en cours'
-        };
-      }
-      return null;
-    }).filter(Boolean);
-    setIdeauxProgress(progs);
+    setIdeauxProgress(ideauxList.filter(i => i.progression_palier).map(ideal => ({
+      id: ideal.id, titre: ideal.titre, image_url: ideal.image_url,
+      realise: ideal.progression_palier.faites,
+      prevues: ideal.progression_palier.total,
+      pourcentage: ideal.progression_palier.total > 0 ? ideal.progression_palier.pourcentage : null,
+      statut: ideal.statut,
+    })));
   }, [ideauxList]);
+
+  const { debut: dateDebut, fin: dateFin } = getPeriodeDates();
+  const dashboardV2 = useMemo(() => construireSyntheseTableauDeBord({
+    poids: poidsData,
+    poidsDepartParcours: profilDashboard?.poids_de_depart,
+    objectifPoids: profilDashboard?.objectif,
+    semainesExtras: semainesValidees,
+    repas: repasReels,
+    humeurCheckins: humeurData,
+    ideaux: ideauxList,
+    defis: defisDashboard,
+    periodes: periodesReconstituees,
+    dateDebut: formatDate(dateDebut, 'yyyy-MM-dd'),
+    dateFin: formatDate(dateFin, 'yyyy-MM-dd'),
+  }), [poidsData, profilDashboard, semainesValidees, repasReels, humeurData, ideauxList, defisDashboard, periodesReconstituees, periode]);
 
   // Graphiques
   const poidsChartData = {
@@ -522,7 +449,7 @@ export default function TableauDeBord() {
   const tauxSatiete =
     satieteData.total > 0
       ? ((satieteData.faim / satieteData.total) * 100).toFixed(0)
-      : 0;
+      : null;
   const satieteChartData = {
     labels: ["Par faim réelle", "Autres raisons"],
     datasets: [
@@ -546,6 +473,8 @@ export default function TableauDeBord() {
 
   // Handler pour la validation batch depuis le drawer
   const handleValidationBatch = async (weekStartArray) => {
+    const validationSequence = requestSequence.current;
+    const encoreCourant = () => validationSequence === requestSequence.current;
     try {
       if (!weekStartArray || weekStartArray.length === 0) return false;
       
@@ -558,19 +487,20 @@ export default function TableauDeBord() {
       const dernierDimanche = new Date(dernierLundi);
       dernierDimanche.setDate(dernierDimanche.getDate() + 6);
       
-      // Charger tous les repas nécessaires
-      const { data: repasReels } = await supabase
-        .from('repas_reels')
-        .select('*')
-        .gte('date', premiereLundi)
-        .lte('date', formatDate(dernierDimanche, 'yyyy-MM-dd'));
-
-      const { data: authData } = await supabase.auth.getUser();
+      const { data: authData, error: authError } = await supabase.auth.getUser();
       const currentUserId = authData?.user?.id;
+      if (authError || !currentUserId || currentUserId !== loadedUserId || !encoreCourant()) return false;
+      const { data: repasReels, error: repasError } = await supabase
+        .from('repas_reels').select('*').eq('user_id', currentUserId)
+        .gte('date', premiereLundi).lte('date', formatDate(dernierDimanche, 'yyyy-MM-dd'));
+      if (!encoreCourant()) return false;
+      if (repasError) throw new Error('Lecture des repas impossible.');
+
       let historiqueProgression = [...semainesValidees];
 
       // Valider chaque semaine
       for (const weekStart of weekStartArray) {
+        if (!encoreCourant()) return false;
         const palier = calculerProgressionExtras(historiqueProgression).palier;
         const extrasInfo = calculerExtrasSemaine(weekStart, repasReels || []);
         const message = genererMessageFeedback(extrasInfo.count, palier);
@@ -588,6 +518,7 @@ export default function TableauDeBord() {
           .eq('date_semaine', weekStart)
           .maybeSingle();
 
+        if (!encoreCourant()) return false;
         const semaineValidee = {
           weekStart,
           user_id: currentUserId,
@@ -600,7 +531,8 @@ export default function TableauDeBord() {
           message_feedback: message,
           variation: variation
         };
-        await supabase.from('semaines_validees').upsert(semaineValidee, { onConflict: 'user_id,weekStart' });
+        const { error: validationError } = await supabase.from('semaines_validees').upsert(semaineValidee, { onConflict: 'user_id,weekStart' });
+        if (validationError) throw new Error('Validation non enregistrée.');
         historiqueProgression.push(semaineValidee);
       }
 
@@ -610,6 +542,7 @@ export default function TableauDeBord() {
         progressionExtras,
         historiqueProgression
       );
+      if (!encoreCourant()) return false;
       if (synchronisation.erreurs.length > 0) {
         throw new Error('Les semaines ont été validées, mais les badges Extras n’ont pas tous pu être conservés.');
       }
@@ -624,6 +557,7 @@ export default function TableauDeBord() {
         currentUserId,
         progressionExtras
       );
+      if (!encoreCourant()) return false;
       if (synchronisationEvenements.error) {
         throw new Error('Les semaines ont été validées, mais l’histoire du parcours Extras n’a pas pu être conservée.');
       }
@@ -632,12 +566,14 @@ export default function TableauDeBord() {
         .select('*')
         .eq('user_id', currentUserId)
         .order('semaine_decisive', { ascending: true });
+      if (!encoreCourant()) return false;
       setExtrasPalierEvents(evenements || []);
 
       // Rafraîchir les données
       const { data: semaines } = await supabase
         .from('semaines_validees')
-        .select('*');
+        .select('*').eq('user_id', currentUserId);
+      if (!encoreCourant()) return false;
       setSemainesValidees(semaines || []);
       
       const semainesNonValidees = getSemainesNonValidees(semaines || [], 8);
@@ -654,7 +590,7 @@ export default function TableauDeBord() {
   };
 
   // Affichage
-  if (loading) {
+  if (loading || authLoading || (user?.id && loadedUserId && user.id !== loadedUserId)) {
     return (
       <div style={{
         padding: "2rem",
@@ -668,6 +604,15 @@ export default function TableauDeBord() {
       </div>
     );
   }
+
+  if (!user?.id || loadError || !loadedUserId) return (
+    <main style={{ padding: '2rem', maxWidth: 900, margin: 'auto' }}>
+      <h1>Tableau de bord</h1>
+      <p role="status">{loadError || 'Connecte-toi pour consulter ton parcours.'}</p>
+      <Link href="/login">Me connecter</Link>
+      {user?.id && <button type="button" onClick={handleRefresh}>Réessayer</button>}
+    </main>
+  );
 
   return (
     <div style={{
@@ -689,6 +634,9 @@ export default function TableauDeBord() {
         Tableau de Bord
       </h1>
       
+      <DashboardSummary synthese={dashboardV2} errors={domainErrors} />
+      <div id="dashboard-details-existants" style={{ scrollMarginTop: 24 }} />
+
       {/* Badge de notification pour semaines non validées */}
       {nbSemainesNonValidees > 0 && (
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
@@ -815,18 +763,18 @@ export default function TableauDeBord() {
 
 
       {/* --- Récapitulatif synthétique --- */}
-      <div style={{display:'flex', gap:'2rem', justifyContent:'center', margin:'2rem 0'}}>
+      <div style={{display:'flex', flexWrap:'wrap', gap:'1rem', justifyContent:'center', margin:'2rem 0'}}>
         {/* Carte repas */}
         <div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
           <div style={{fontSize:'2.1rem', fontWeight:700, color:'#1976d2'}}>
-            🍽️ {Array.isArray(repasReels) ? repasReels.length : 0}
+            🍽️ {dashboardV2.mealSignals.nombreRepas}
           </div>
           <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Repas sur la période</div>
         </div>
         {/* Carte extras */}
         <div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
           <div style={{fontSize:'2.1rem', fontWeight:700, color:'#e65100'}}>
-            🍔 {fastFoodCount}
+            🍔 {domainErrors.includes('repas') ? '—' : fastFoodCount}
           </div>
           <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Fast food sur la période</div>
           {fastFoodHistory && fastFoodHistory.length > 0 && (
@@ -834,38 +782,22 @@ export default function TableauDeBord() {
               Dernier : {fastFoodHistory[0]?.tag || "Non identifié"}
             </div>
           )}
-          {nextFastFoodDate && (
-            <div style={{marginTop:8, fontSize:'0.98rem', color:'#1976d2'}}>
-              Prochain créneau disponible : <b>{nextFastFoodDate.toLocaleDateString('fr-FR')}</b><br/>
-              Délai restant : <b>{fastFoodDelay} jour{fastFoodDelay>1?'s':''}</b>
-            </div>
-          )}
-          {!nextFastFoodDate && (
-            <div style={{marginTop:8, fontSize:'0.98rem', color:'#43a047'}}>
-              Aucun fast food consommé sur la période.<br/>Tu es libre d’en planifier un !
-            </div>
-          )}
-            {/* Message dynamique et astuce/suggestion fast food */}
-            {(() => {
-              const rewards = getFastFoodRewards(fastFoodHistory);
-              let astuce = null;
-              if (fastFoodHistory.length > 0 && nextFastFoodDate) {
-                const today = new Date();
-                const diffDays = Math.max(0, Math.ceil((nextFastFoodDate - today) / (1000 * 60 * 60 * 24)));
-                if (diffDays === 0) {
-                  astuce = <><br /><span style={{ fontWeight: 500 }}>Astuce : note la date du prochain créneau dans ton agenda pour maximiser ta récompense !</span></>;
-                } else {
-                  astuce = <><br /><span style={{ fontWeight: 500 }}>Suggestion : planifie le prochain fast food dans {diffDays} jours.</span></>;
-                }
-              }
-              return (
-                <div style={{ background: rewards.confettis ? '#e8f5e9' : '#e3f2fd', color: rewards.confettis ? '#388e3c' : '#1976d2', padding: 10, borderRadius: 8, marginTop: 12 }}>
-                  {rewards.message}
-                  {astuce}
-                  {rewards.confettis && <div style={{marginTop:8}}>🎉 Confettis ! Tu as débloqué le badge spécial Fast Food !</div>}
-                </div>
-              );
-            })()}
+          <div style={{ marginTop: 8, fontSize: '0.98rem', color: '#1976d2' }}>
+            {!fastFoodRhythm ? 'Rythme personnel indisponible pour le moment.' : <>
+              Repère personnel : <b>{fastFoodRhythm.targetDays} jours</b><br />
+              {fastFoodRhythm.hasHistory ? <>
+                Dernier événement global : <b>{fastFoodRhythm.lastFastFoodDate.toLocaleDateString('fr-FR')}</b><br />
+                Prochain repère : <b>{nextFastFoodDate?.toLocaleDateString('fr-FR')}</b><br />
+                {fastFoodRhythm.targetReached ? 'Repère atteint.' : `Délai restant : ${fastFoodDelay} jours.`}
+              </> : 'Aucun événement Fast-food connu dans ton historique.'}
+            </>}
+          </div>
+          <p style={{ color: '#666', fontSize: 14 }}>
+            {domainErrors.includes('repas') ? 'Historique de période indisponible pour le moment.' : fastFoodHistory.length ? 'Historique disponible pour cette période.' : 'Aucun événement renseigné sur cette période. Le rythme utilise ton historique global.'}
+          </p>
+          {fastFoodRhythm?.targetDays === 45 && fastFoodHistory.length >= 2 && <p>
+            {getFastFoodRewards([...fastFoodHistory].sort((a, b) => a.date.localeCompare(b.date))).message}
+          </p>}
             <button
               style={{marginTop:12, padding:'7px 18px', background:'#e65100', color:'#fff', border:'none', borderRadius:8, fontWeight:600, cursor:'pointer'}}
               onClick={()=>window.location.href='/historique-fast-food'}
@@ -876,9 +808,9 @@ export default function TableauDeBord() {
         {/* Carte satiété */}
         <div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
           <div style={{fontSize:'2.1rem', fontWeight:700, color:'#2980b9'}}>
-            {typeof tauxSatiete === 'string' || typeof tauxSatiete === 'number' ? tauxSatiete : 0}%
+            {tauxSatiete === null ? '—' : `${tauxSatiete === null ? '—' : `${tauxSatiete}%`}`}
           </div>
-          <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Taux de satiété</div>
+          <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Repas pris par faim renseignée</div>
         </div>
         {/* Carte humeur dominante */}
         <div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
@@ -917,8 +849,8 @@ export default function TableauDeBord() {
                     <div style={{width:`${Math.min(100, ip.pourcentage)}%`, height:'100%', background: ip.pourcentage >= 80 ? '#43a047' : ip.pourcentage >= 50 ? '#ffa726' : '#1976d2', transition:'width 0.5s'}} />
                   </div>
                   <div style={{fontSize:13, color:'#555', display:'flex', justifyContent:'space-between'}}>
-                    <div>{ip.realise} / {ip.prevues} séances</div>
-                    <div style={{fontWeight:800}}>{ip.pourcentage}%</div>
+                    <div>{ip.prevues > 0 ? `${ip.realise} / ${ip.prevues} séances` : "Aucune séance prévue renseignée"}</div>
+                    <div style={{fontWeight:800}}>{ip.pourcentage === null ? "—" : `${ip.pourcentage}%`}</div>
                   </div>
                 </div>
               </div>
@@ -986,7 +918,7 @@ export default function TableauDeBord() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))",
           gap: "2.5rem",
         }}
       >
@@ -1000,7 +932,7 @@ export default function TableauDeBord() {
             textAlign: "center",
           }}
         >
-          <h2 style={{ marginTop: 0, color: COLORS[0] }}>Taux de Satiété</h2>
+          <h2 style={{ marginTop: 0, color: COLORS[0] }}>Faim renseignée</h2>
           <Doughnut data={satieteChartData} />
           <p
             style={{
@@ -1010,10 +942,10 @@ export default function TableauDeBord() {
               margin: "1.1rem 0 0.2rem 0",
             }}
           >
-            {tauxSatiete}%
+            {tauxSatiete === null ? '—' : `${tauxSatiete}%`}
           </p>
           <p style={{ color: "#555" }}>
-            des repas ont été pris par faim réelle.
+            des occurrences dont la raison est renseignée ont été prises par faim.
           </p>
           {/* Bouton et historique des notes repas (diagnostic) */}
           <div style={{marginTop:24}}>
@@ -1062,7 +994,7 @@ export default function TableauDeBord() {
             textAlign: "center",
           }}
         >
-          <h2 style={{ marginTop: 0, color: COLORS[2] }}>Extras de la semaine</h2>
+          <h2 style={{ marginTop: 0, color: COLORS[2] }}>Extras sur la période</h2>
           <p
             style={{
               fontSize: "2.2rem",
@@ -1074,12 +1006,10 @@ export default function TableauDeBord() {
               margin: "1.1rem 0 0.2rem 0",
             }}
           >
-            {extrasData.current} / {extrasData.quota} moments
+            {repasReels.length ? extrasData.current : '—'} moments · palier {extrasData.quota}/semaine
           </p>
           <p>
-            {extrasData.current <= extrasData.quota
-              ? "Ton rythme reste dans ton palier actuel."
-              : "Les extras ont été plus présents sur cette période."}
+            {repasReels.length ? "Moments observés sur la période affichée." : "Aucune observation sur cette période."}
           </p>
         </div>
 
@@ -1110,14 +1040,18 @@ export default function TableauDeBord() {
           }}
         >
           <h2 style={{ marginTop: 0, color: COLORS[4] }}>
-            Répartition des Humeurs (30 derniers jours)
+            Répartition des humeurs sur la période
           </h2>
           <Pie data={humeurChartData} />
         </div>
 
         {/* --- Section Succès / Badges --- */}
       {/* --- Timeline visuelle façon Instagram/TikTok --- */}
-      <TimelineProgression history={weeklyHistory} />
+      <TimelineProgression history={weeklyHistory.filter(semaine => {
+        const fin = new Date(`${semaine.weekStart}T12:00:00`);
+        fin.setDate(fin.getDate() + 6);
+        return semaine.validee || repasReels.some(r => r.date >= semaine.weekStart && r.date <= formatDate(fin, 'yyyy-MM-dd'));
+      })} />
         <ExtrasBadgesSection badges={badges.filter(badge => badge.type === 'extras_palier')} events={extrasPalierEvents} />
         <div
           style={{
@@ -1333,7 +1267,7 @@ export default function TableauDeBord() {
         onClose={() => setDrawerOpen(false)}
         semainesNonValidees={semainesNonValideesFormatees}
         semainesValidees={semainesValidees.map(sv => ({
-          weekStart: sv.semaine_debut,
+          weekStart: sv.weekStart || sv.semaine_debut,
           extras_count: sv.extras_count,
           message_feedback: sv.message_feedback,
           date_validation: sv.date_validation

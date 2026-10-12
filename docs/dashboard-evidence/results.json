@@ -1,0 +1,37 @@
+[
+  {
+    "scenario": "mobile",
+    "runtimeErrors": 0,
+    "horizontalOverflow": false,
+    "interceptedRequests": 41,
+    "writesAttempted": 0
+  },
+  {
+    "scenario": "desktop",
+    "runtimeErrors": 0,
+    "horizontalOverflow": false,
+    "interceptedRequests": 41,
+    "writesAttempted": 0
+  },
+  {
+    "scenario": "empty",
+    "runtimeErrors": 0,
+    "horizontalOverflow": false,
+    "interceptedRequests": 38,
+    "writesAttempted": 0
+  },
+  {
+    "scenario": "partial",
+    "runtimeErrors": 0,
+    "horizontalOverflow": false,
+    "interceptedRequests": 41,
+    "writesAttempted": 0
+  },
+  {
+    "scenario": "anonymous",
+    "runtimeErrors": 0,
+    "horizontalOverflow": false,
+    "interceptedRequests": 2,
+    "writesAttempted": 0
+  }
+]
