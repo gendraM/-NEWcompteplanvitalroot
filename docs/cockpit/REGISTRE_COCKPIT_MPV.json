@@ -1,0 +1,2382 @@
+{
+  "schema_version": "1.0.0",
+  "snapshot_date": "2026-10-12",
+  "project": "Mon Plan Vital",
+  "repository": "https://github.com/gendraM/-NEWcompteplanvitalroot",
+  "refs": {
+    "production_main_sha": "7cd9ed91310e3e5288504b089083e02b0944af44",
+    "consolidation_sha": "23f27e3b59f0ea6a3e3f987a1c433602a0fba6bb",
+    "default_branch": "AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS"
+  },
+  "source": "Phase 1 audit du 12/10/2026, corroboré par contrôles GitHub de phase 2",
+  "mode": "SOURCE DOCUMENTAIRE SUR cockpit-wbs-phase2 / AUCUN CODE APPLICATIF MODIFIÉ / AUTOMATIONS NON INSTALLÉES",
+  "work_states": [
+    "À QUALIFIER",
+    "CONCEPTION",
+    "À PRODUIRE",
+    "EN COURS",
+    "À TESTER",
+    "READY",
+    "LIVE",
+    "OBSERVATION",
+    "STABILISÉ"
+  ],
+  "domains": [
+    {
+      "id": "GOV",
+      "name": "Gouvernance du cockpit",
+      "historical_owner": "Présente conversation — Cockpit Mon Plan Vital (pilote de conception, non exécutant permanent)"
+    },
+    {
+      "id": "SEC",
+      "name": "Sécurité et droits d’accès",
+      "historical_owner": "Non attribué — supervision sécurité / intégration"
+    },
+    {
+      "id": "INT",
+      "name": "Intégration et non-régression",
+      "historical_owner": "MAIN CONSO/Chat ; Archives/Gestion consolidation vers Main/Work"
+    },
+    {
+      "id": "AUTH",
+      "name": "Authentification, profil et poids",
+      "historical_owner": "Chantiers Supabase/Auth historiques — conversation active inconnue"
+    },
+    {
+      "id": "FOOD",
+      "name": "Suivi alimentaire et repas",
+      "historical_owner": "État des lieux persistance repas/Work ; chantier Plan alimentaire intelligent"
+    },
+    {
+      "id": "PLAN",
+      "name": "Plan alimentaire, planification et recettes",
+      "historical_owner": "Conversations Planification / lot 2.3 ; planification-gamification"
+    },
+    {
+      "id": "REF",
+      "name": "Référentiel, QN et calories",
+      "historical_owner": "Chantier Référentiel alimentaire — titre exact/activité non certifiés"
+    },
+    {
+      "id": "EXTRA",
+      "name": "Extras et constance",
+      "historical_owner": "Suite/Extras/Work"
+    },
+    {
+      "id": "FF",
+      "name": "Fast-food",
+      "historical_owner": "Audit gestion fast food"
+    },
+    {
+      "id": "IDEAUX",
+      "name": "Idéaux et paliers",
+      "historical_owner": "Work/ chantier IDÉAUX"
+    },
+    {
+      "id": "ALIGN",
+      "name": "My Way et Align-Life",
+      "historical_owner": "Validation P5.4 Align-Life (strictement distinct d’Idéaux)"
+    },
+    {
+      "id": "DEFIS",
+      "name": "Défis V2",
+      "historical_owner": "Conversation spécialisée Défis V2 — identification exacte non vérifiée"
+    },
+    {
+      "id": "DASH",
+      "name": "Tableau de bord V2",
+      "historical_owner": "Chantier tableau de bord V2 — conversation exacte non vérifiée"
+    },
+    {
+      "id": "PER",
+      "name": "Interruptions et reconstitution",
+      "historical_owner": "État des lieux persistance repas/Work ; gestion des périodes"
+    },
+    {
+      "id": "JEUNE",
+      "name": "Préparation et jeûne",
+      "historical_owner": "Conversations Jeûne / Préparation — propriétaires historiques multiples"
+    },
+    {
+      "id": "REPRISE",
+      "name": "Reprise alimentaire",
+      "historical_owner": "Conversations Reprise alimentaire — propriétaires historiques multiples"
+    },
+    {
+      "id": "CRIST",
+      "name": "Cristallisation",
+      "historical_owner": "Conversations Cristallisation — historique partiel"
+    },
+    {
+      "id": "BILAN",
+      "name": "Bilans hebdomadaires et mensuels",
+      "historical_owner": "Chantiers Bilan hebdo / Bilan mensuel — propriétaire actuel inconnu"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "MPV-GOV-01",
+      "wbs": "1.1",
+      "domain": "GOV",
+      "title": "Constituer le WBS, registres et règles de passage",
+      "priority": "P0",
+      "workflow_state": "À TESTER",
+      "development_state": "DOCUMENTATION PUBLIÉE SUR BRANCHE DÉDIÉE",
+      "integration_state": "BRANCHE DOCUMENTAIRE — AUCUN MERGE",
+      "qa_state": "REVUE UTILISATEUR",
+      "delegation_level": "B",
+      "execution_mode": "Chat",
+      "historical_owner": "Présente conversation — Cockpit Mon Plan Vital (pilote de conception, non exécutant permanent)",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "cockpit-wbs-phase2"
+      ],
+      "pull_requests": [],
+      "description": "Passage de l’audit phase 1 à un système de tâches traçables et reprenables.",
+      "ready_criteria": "WBS complet, métadonnées, risques, dépendances et règles cohérents et acceptés.",
+      "dependencies": [],
+      "needs_user_decision": true,
+      "evidence": "Documentation GitHub: docs/cockpit/ sur cockpit-wbs-phase2",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/cockpit-wbs-phase2/docs/cockpit"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-GOV-02",
+      "wbs": "1.2",
+      "domain": "GOV",
+      "title": "Établir les responsabilités et le protocole de passation",
+      "priority": "P0",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "CADRÉ",
+      "integration_state": "NON APPLICABLE",
+      "qa_state": "NON COMMENCÉ",
+      "delegation_level": "A",
+      "execution_mode": "Chat",
+      "historical_owner": "Présente conversation — Cockpit Mon Plan Vital (pilote de conception, non exécutant permanent)",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [],
+      "pull_requests": [],
+      "description": "Une conversation historique est propriétaire d’un périmètre, sans preuve qu’elle est encore active.",
+      "ready_criteria": "Chaque domaine a un propriétaire historique, un exécutant confirmé ou inconnu, une méthode de reprise et une interdiction de double écriture.",
+      "dependencies": [
+        "MPV-GOV-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-GOV-03",
+      "wbs": "1.3",
+      "domain": "GOV",
+      "title": "Publier registre partagé isolé sur GitHub",
+      "priority": "P0",
+      "workflow_state": "À PRODUIRE",
+      "development_state": "PRÊT À PRÉPARER",
+      "integration_state": "NON INTÉGRÉ",
+      "qa_state": "NON COMMENCÉ",
+      "delegation_level": "C",
+      "execution_mode": "Chat→GitHub",
+      "historical_owner": "Présente conversation — Cockpit Mon Plan Vital (pilote de conception, non exécutant permanent)",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [],
+      "pull_requests": [],
+      "description": "Publication strictement documentaire dans une nouvelle branche, uniquement après accord explicite ; aucune modification du code ou des branches existantes.",
+      "ready_criteria": "Fichiers WBS/versionnés accessibles aux agents, HEAD vérifié, aucune modification de main/main-consolidation, PR draft si autorisée.",
+      "dependencies": [
+        "MPV-GOV-01",
+        "MPV-GOV-02"
+      ],
+      "needs_user_decision": true,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-GOV-04",
+      "wbs": "1.4",
+      "domain": "GOV",
+      "title": "Synchroniser les changements des chantiers avec le WBS",
+      "priority": "P1",
+      "workflow_state": "CONCEPTION",
+      "development_state": "À PRODUIRE",
+      "integration_state": "NON APPLICABLE",
+      "qa_state": "NON COMMENCÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Présente conversation — Cockpit Mon Plan Vital (pilote de conception, non exécutant permanent)",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [],
+      "pull_requests": [],
+      "description": "Définir un passage de relais obligatoire par branche/PR/état de tests.",
+      "ready_criteria": "À chaque livraison : commit, PR, preuves CI, déploiement, écarts, risques et décision en attente inscrits dans registre.",
+      "dependencies": [
+        "MPV-GOV-03"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-GOV-05",
+      "wbs": "1.5",
+      "domain": "GOV",
+      "title": "Préparer alertes et synthèses automatiques par exception",
+      "priority": "P1",
+      "workflow_state": "CONCEPTION",
+      "development_state": "À PRODUIRE",
+      "integration_state": "NON APPLICABLE",
+      "qa_state": "NON COMMENCÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/automatisations",
+      "historical_owner": "Présente conversation — Cockpit Mon Plan Vital (pilote de conception, non exécutant permanent)",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [],
+      "pull_requests": [],
+      "description": "Notifications déclenchées par nouvelle PR, échec build, perte de protection, blocage, dépendance ou retard significatif.",
+      "ready_criteria": "Chaque alerte a niveau, cause, lien source, impact, action attendue ; aucun faux message de succès.",
+      "dependencies": [
+        "MPV-GOV-03",
+        "MPV-INT-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-SEC-01",
+      "wbs": "2.1",
+      "domain": "SEC",
+      "title": "Auditer le fichier .env.local suivi par Git sans exposer ses valeurs",
+      "priority": "P0",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "SUSPICION CONFIRMÉE DE FICHIER SUIVI",
+      "integration_state": "NON APPLICABLE",
+      "qa_state": "CONTENU NON LU",
+      "delegation_level": "A",
+      "execution_mode": "Audit GitHub",
+      "historical_owner": "Non attribué — supervision sécurité / intégration",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [],
+      "pull_requests": [],
+      "description": "Dépôt public + fichier .env.local versionné et non exclu de .gitignore.",
+      "ready_criteria": "Déterminer présence de secrets et historique d’exposition sans publier les valeurs ; procédure de rotation/assainissement validée avant exécution.",
+      "dependencies": [],
+      "needs_user_decision": true,
+      "evidence": "VÉRIFIÉ : présence du fichier suivi et dépôt public",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-SEC-02",
+      "wbs": "2.2",
+      "domain": "SEC",
+      "title": "Analyser droits Supabase anonymes et plan de correction RLS",
+      "priority": "P0",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "RLS DÉSACTIVÉE SUR 3 TABLES",
+      "integration_state": "NON APPLICABLE",
+      "qa_state": "CATALOGUE SQL VÉRIFIÉ",
+      "delegation_level": "C",
+      "execution_mode": "Audit Supabase",
+      "historical_owner": "Non attribué — supervision sécurité / intégration",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [],
+      "pull_requests": [],
+      "description": "Trois tables : parcours_jeune, bilans_jeune, referentiel_user_custom, permissions anon SELECT/INSERT ; aucune lecture de données.",
+      "ready_criteria": "Risque d’exposition et usages existants cartographiés, plan de sauvegarde et compatibilité, remédiation uniquement après GO utilisateur.",
+      "dependencies": [],
+      "needs_user_decision": true,
+      "evidence": "VÉRIFIÉ : métadonnées pg_catalog sans lecture de lignes",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-SEC-03",
+      "wbs": "2.3",
+      "domain": "SEC",
+      "title": "Proposer protections des branches et clarification branche par défaut",
+      "priority": "P0",
+      "workflow_state": "À PRODUIRE",
+      "development_state": "main ET conso NON PROTÉGÉES",
+      "integration_state": "NON APPLICABLE",
+      "qa_state": "NON COMMENCÉ",
+      "delegation_level": "C",
+      "execution_mode": "GitHub",
+      "historical_owner": "Non attribué — supervision sécurité / intégration",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [],
+      "pull_requests": [],
+      "description": "Le défaut est AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS et non main, main et consolidation non protégées.",
+      "ready_criteria": "Politique branch protection et règles de PR documentées et validées, aucun changement avant accord.",
+      "dependencies": [],
+      "needs_user_decision": true,
+      "evidence": "VÉRIFIÉ : métadonnées GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-SEC-04",
+      "wbs": "2.4",
+      "domain": "SEC",
+      "title": "Réexaminer contrôle d’accès et données antérieures de l’auth",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "CODE HISTORIQUE",
+      "integration_state": "PARTIEL/INCONNU",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Non attribué — supervision sécurité / intégration",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "feature/authentification-supabase"
+      ],
+      "pull_requests": [],
+      "description": "L’audit historique de février relevait données orphelines et pages insuffisamment filtrées ; ne pas déduire état actuel.",
+      "ready_criteria": "Couverture read/write user_id, tests multi-comptes et plan de restauration sans perte ; aucune donnée personnelle divulguée.",
+      "dependencies": [
+        "MPV-SEC-02"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-SEC-05",
+      "wbs": "2.5",
+      "domain": "SEC",
+      "title": "Qualifier la PR CVE historique et les versions réellement déployées",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "PR DRAFT #4",
+      "integration_state": "NON INTÉGRÉ",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "A",
+      "execution_mode": "Audit GitHub/Vercel",
+      "historical_owner": "Non attribué — supervision sécurité / intégration",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [],
+      "pull_requests": [
+        4
+      ],
+      "description": "Ne pas fusionner aveuglément correctif de sécurité sur branche historique.",
+      "ready_criteria": "Comparer versions packages production/consolidation, advisories, tests et risque de changement de dépendance.",
+      "dependencies": [],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/4"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-INT-01",
+      "wbs": "3.1",
+      "domain": "INT",
+      "title": "Tenir miroir des SHA main, main-consolidation et déploiements",
+      "priority": "P0",
+      "workflow_state": "À TESTER",
+      "development_state": "SHA DE RÉFÉRENCE CONNUS",
+      "integration_state": "ÉCART 171 COMMITS",
+      "qa_state": "VERCEL READY PRÉVIEW",
+      "delegation_level": "A",
+      "execution_mode": "Audit GitHub/Vercel",
+      "historical_owner": "MAIN CONSO/Chat ; Archives/Gestion consolidation vers Main/Work",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "main",
+        "main-consolidation"
+      ],
+      "pull_requests": [],
+      "description": "Comparer SHA de HEAD avec READY et destination de chaque PR, empêcher confusion entre test et production.",
+      "ready_criteria": "Rapport horodaté avec SHA des refs, Vercel project, target, preview READY, état production.",
+      "dependencies": [],
+      "needs_user_decision": false,
+      "evidence": "VÉRIFIÉ : SHA main 7cd9ed91; conso 23f27e3b",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-INT-02",
+      "wbs": "3.2",
+      "domain": "INT",
+      "title": "Cartographier les deltas réels indépendamment des PR historiques",
+      "priority": "P0",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "COMPARAISONS DE BRANCHES FAITES",
+      "integration_state": "DIVERGENCES",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "A",
+      "execution_mode": "Work/GitHub",
+      "historical_owner": "MAIN CONSO/Chat ; Archives/Gestion consolidation vers Main/Work",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "main",
+        "main-consolidation"
+      ],
+      "pull_requests": [],
+      "description": "Les compteurs ahead/behind ne prouvent pas absence/présence fonctionnelle ; comparer patch et code canonique.",
+      "ready_criteria": "Un tableau par PR/fonction : déjà présent, manquant, conflit, remplacé volontairement ou régression suspectée.",
+      "dependencies": [
+        "MPV-INT-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-INT-03",
+      "wbs": "3.3",
+      "domain": "INT",
+      "title": "Définir une chaîne intégration additive et QA indépendante",
+      "priority": "P0",
+      "workflow_state": "À PRODUIRE",
+      "development_state": "RÈGLES EXISTANTES",
+      "integration_state": "EN CADRAGE",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "C",
+      "execution_mode": "Chat/Codex",
+      "historical_owner": "MAIN CONSO/Chat ; Archives/Gestion consolidation vers Main/Work",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "main",
+        "main-consolidation"
+      ],
+      "pull_requests": [],
+      "description": "Chaque merge passe audit d’impact, gel base SHA, tests, validation utilisateur suivant risques et décision de fusion.",
+      "ready_criteria": "Aucune suppression/réécriture historique/merge sans autorisation ; contrôles independent et traçabilité.",
+      "dependencies": [
+        "MPV-GOV-01"
+      ],
+      "needs_user_decision": true,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-INT-04",
+      "wbs": "3.4",
+      "domain": "INT",
+      "title": "Cartographier les projets Vercel et URL canoniques",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "PLUSIEURS PROJETS VERCEL",
+      "integration_state": "NON APPLICABLE",
+      "qa_state": "NON COMMENCÉ",
+      "delegation_level": "A",
+      "execution_mode": "Audit Vercel",
+      "historical_owner": "MAIN CONSO/Chat ; Archives/Gestion consolidation vers Main/Work",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "main",
+        "main-consolidation"
+      ],
+      "pull_requests": [],
+      "description": "Plusieurs projets Mon Plan Vital semblables ; risque de valider le mauvais déploiement.",
+      "ready_criteria": "Référence explicite projet/branche/environnement/test, liens stables distingués des déploiements immuables.",
+      "dependencies": [
+        "MPV-INT-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-INT-05",
+      "wbs": "3.5",
+      "domain": "INT",
+      "title": "Rendre la CI de référence vérifiable avant intégration",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "SUITES DE TEST PRÉSENTES",
+      "integration_state": "NON APPLICABLE",
+      "qa_state": "ÉCHEC HISTORIQUE SUR BRANCHE ALIMENTATION",
+      "delegation_level": "B",
+      "execution_mode": "Codex",
+      "historical_owner": "MAIN CONSO/Chat ; Archives/Gestion consolidation vers Main/Work",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "main",
+        "main-consolidation"
+      ],
+      "pull_requests": [],
+      "description": "Vérifier tests/build par module et SHA exact ; tests d’intégration réelle complètent Jest.",
+      "ready_criteria": "Chaque candidat donne résultats datés, SHA correspondant, scénarios vérifiés, verdict prêt/non prêt.",
+      "dependencies": [
+        "MPV-GOV-04",
+        "MPV-REF-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-AUTH-01",
+      "wbs": "4.1",
+      "domain": "AUTH",
+      "title": "Valider la propriété des données utilisateur et la restauration de l’historique",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "PAGES AUTH/PROFIL/POIDS PRÉSENTES",
+      "integration_state": "PRÉSENT CONSO",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Chantiers Supabase/Auth historiques — conversation active inconnue",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "feature/authentification-supabase"
+      ],
+      "pull_requests": [],
+      "description": "Connexion, déconnexion, profil, historiques poids, synchronisation et sécurité RLS.",
+      "ready_criteria": "Tests authentifiés multi-compte + conservation données anciennes + réouverture session.",
+      "dependencies": [
+        "MPV-SEC-02",
+        "MPV-SEC-04"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-FOOD-01",
+      "wbs": "5.1",
+      "domain": "FOOD",
+      "title": "Vérifier l’unicité de sauvegarde des repas mono et multi-aliments",
+      "priority": "P1",
+      "workflow_state": "À TESTER",
+      "development_state": "MOTEURS PRÉSENTS",
+      "integration_state": "SOUTENU EN CONSO",
+      "qa_state": "RUNTIME À TESTER",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "État des lieux persistance repas/Work ; chantier Plan alimentaire intelligent",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "plan-alimentaire-intelligent-chatgpt"
+      ],
+      "pull_requests": [],
+      "description": "Unifier le contrat d’occurrence du repas sans détruire les comportements de RepasBloc ni la saisie composé.",
+      "ready_criteria": "Chaque chemin persiste une fois, retourne succès réel, rafraîchit suivi, préserve historique, contrôle échec et authentification.",
+      "dependencies": [
+        "MPV-AUTH-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-FOOD-02",
+      "wbs": "5.2",
+      "domain": "FOOD",
+      "title": "Vérifier la lecture des repas dans statistiques et bilans",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "CODE PRÉSENT",
+      "integration_state": "PARTIEL/INCONNU",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "État des lieux persistance repas/Work ; chantier Plan alimentaire intelligent",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "plan-alimentaire-intelligent-chatgpt"
+      ],
+      "pull_requests": [],
+      "description": "Liens repas, occurrences, suivi hebdo/mensuel, absence de saisie.",
+      "ready_criteria": "Tests sur mono/multi, repas composés et données historiques sans double comptage.",
+      "dependencies": [
+        "MPV-FOOD-01",
+        "MPV-BILAN-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-PLAN-01",
+      "wbs": "6.1",
+      "domain": "PLAN",
+      "title": "Qualifier et intégrer la branche plan alimentaire intelligent",
+      "priority": "P1",
+      "workflow_state": "À TESTER",
+      "development_state": "LOTS 1/2.1–2.4 DOCUMENTÉS",
+      "integration_state": "NON INTÉGRÉ EN TOTALITÉ",
+      "qa_state": "DERNIER CI EN ÉCHEC",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Conversations Planification / lot 2.3 ; planification-gamification",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "plan-alimentaire-intelligent-chatgpt"
+      ],
+      "pull_requests": [],
+      "description": "Audit des contrats, deltas avec conso, valorisation des acquis et tests.",
+      "ready_criteria": "Delta non régressif, CI verte, test mobile authentifié, contrôle de la persistance.",
+      "dependencies": [
+        "MPV-REF-01",
+        "MPV-FOOD-01",
+        "MPV-INT-02"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-PLAN-02",
+      "wbs": "6.2",
+      "domain": "PLAN",
+      "title": "Qualifier le planning 7/15 jours et les gestes mobiles",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "BRANCHE DIVERGENTE",
+      "integration_state": "NON CERTIFIÉ",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Conversations Planification / lot 2.3 ; planification-gamification",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "planification-gamification-chatgpt"
+      ],
+      "pull_requests": [],
+      "description": "Planificateur, drag-drop, historique, repères et mise à jour des périodes.",
+      "ready_criteria": "Cycle mobile 7 jours/15 jours, modification et relecture après actualisation, aucun conflit d’enregistrement.",
+      "dependencies": [
+        "MPV-PLAN-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-PLAN-03",
+      "wbs": "6.3",
+      "domain": "PLAN",
+      "title": "Vérifier le socle de liste de courses générale",
+      "priority": "P1",
+      "workflow_state": "À TESTER",
+      "development_state": "LOTS 0–8 DOCUMENTÉS",
+      "integration_state": "ANCÊTRE DE CONSO",
+      "qa_state": "VALIDATION HISTORIQUE",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Conversations Planification / lot 2.3 ; planification-gamification",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "liste-courses-generale-plan-chatgpt"
+      ],
+      "pull_requests": [],
+      "description": "Course générée depuis plan et repas composés, unités, import/export, persistance.",
+      "ready_criteria": "Repas modifiés reflétés dans liste, quantités non inventées et anciennes lignes lisibles.",
+      "dependencies": [
+        "MPV-PLAN-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-PLAN-04",
+      "wbs": "6.4",
+      "domain": "PLAN",
+      "title": "Concevoir les ajustements intelligents et le coût réel des courses",
+      "priority": "P2",
+      "workflow_state": "CONCEPTION",
+      "development_state": "ROADMAP ÉTAPES 16–20",
+      "integration_state": "NON INTÉGRÉ",
+      "qa_state": "NON COMMENCÉ",
+      "delegation_level": "C",
+      "execution_mode": "Chat→Work",
+      "historical_owner": "Conversations Planification / lot 2.3 ; planification-gamification",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "planification-gamification-chatgpt",
+        "recettes-intelligentes-planning-suivi",
+        "liste-courses-generale-plan-chatgpt"
+      ],
+      "pull_requests": [],
+      "description": "Développement seulement après vérification des règles métier validées, modèle économique et données utiles.",
+      "ready_criteria": "Points d’ajustement non culpabilisants, coût mesurable explicite, action facultative.",
+      "dependencies": [
+        "MPV-PLAN-03"
+      ],
+      "needs_user_decision": true,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-PLAN-05",
+      "wbs": "6.5",
+      "domain": "PLAN",
+      "title": "Qualifier gamification « composer → expérimenter → observer »",
+      "priority": "P2",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "BRANCHE DIVERGENTE",
+      "integration_state": "NON CERTIFIÉ",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Conversations Planification / lot 2.3 ; planification-gamification",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "planification-gamification-chatgpt",
+        "recettes-intelligentes-planning-suivi"
+      ],
+      "pull_requests": [],
+      "description": "Lot planification-gamification et recettes intelligentes ; éviter répétition des règles d’autres modules.",
+      "ready_criteria": "Contrat des moteurs réutilisé, propositions facultatives, tests du parcours et UX.",
+      "dependencies": [
+        "MPV-PLAN-02",
+        "MPV-DEFIS-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-REF-01",
+      "wbs": "7.1",
+      "domain": "REF",
+      "title": "Diagnostiquer le test 616 attendu contre 674 observés",
+      "priority": "P0",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "674 ÉLÉMENTS SUR LA BRANCHE",
+      "integration_state": "NON APPLICABLE",
+      "qa_state": "1 ÉCHEC JEST / 257",
+      "delegation_level": "A",
+      "execution_mode": "Audit GitHub",
+      "historical_owner": "Chantier Référentiel alimentaire — titre exact/activité non certifiés",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "plan-alimentaire-intelligent-chatgpt"
+      ],
+      "pull_requests": [],
+      "description": "Échec exact de socleQuantitesCalories.test.js sur SHA b5f17b2d ; sans suppression d’aliments.",
+      "ready_criteria": "Déterminer si attente figée ou corruption référentiel ; proposer test robuste et recontrôle CI.",
+      "dependencies": [],
+      "needs_user_decision": false,
+      "evidence": "VÉRIFIÉ : https://github.com/gendraM/-NEWcompteplanvitalroot/actions/runs/35611562095",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-REF-02",
+      "wbs": "7.2",
+      "domain": "REF",
+      "title": "Consolider QN, portions et rôles d’assiette",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "RÉFÉRENTIEL ENRICHI EN BRANCHES",
+      "integration_state": "DIVERGENT",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Chantier Référentiel alimentaire — titre exact/activité non certifiés",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "referentiel-alimentaire",
+        "ENRICHISSEMENT-REFERENTIEL-ALIMENTAIRE"
+      ],
+      "pull_requests": [],
+      "description": "Valider catégories, portions, kcal, sous-catégories, notamment protéines et huiles sans inventer les valeurs nutritionnelles.",
+      "ready_criteria": "Tests des aliments, valeurs et dédoublonnage, compatibilité avec la gamification.",
+      "dependencies": [
+        "MPV-REF-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-EXTRA-01",
+      "wbs": "8.1",
+      "domain": "EXTRA",
+      "title": "Certifier la constance Extras déjà intégrée",
+      "priority": "P1",
+      "workflow_state": "À TESTER",
+      "development_state": "PR #6/#7 FUSIONNÉES",
+      "integration_state": "INTÉGRÉ EN CONSO",
+      "qa_state": "TEST RUNTIME À REJOUER",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Suite/Extras/Work",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "extras-meilleure-constance",
+        "extras-constance-recente",
+        "mise-en-conformite-extra"
+      ],
+      "pull_requests": [
+        6,
+        7
+      ],
+      "description": "Paliers 5→3→2→1, rythme adaptatif, badge permanent et persistance.",
+      "ready_criteria": "Calcul lunes-dimanches, régression 3 semaines, historiques, badge unique, RLS, navigation mobile.",
+      "dependencies": [],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/6",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/7"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-EXTRA-02",
+      "wbs": "8.2",
+      "domain": "EXTRA",
+      "title": "Qualifier la meilleure période de constance (PR #10)",
+      "priority": "P1",
+      "workflow_state": "À TESTER",
+      "development_state": "PR DRAFT #10",
+      "integration_state": "PAS FUSIONNÉ",
+      "qa_state": "CI HISTORIQUE DÉCLARÉE",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Suite/Extras/Work",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "extras-meilleure-constance",
+        "extras-constance-recente",
+        "mise-en-conformite-extra"
+      ],
+      "pull_requests": [
+        10
+      ],
+      "description": "Ne pas fusionner directement ; vérifier delta minimal et absence de doublon après #7.",
+      "ready_criteria": "Best streak correcte au palier, sans inventer de semaines manquantes, non-régression des badges.",
+      "dependencies": [
+        "MPV-EXTRA-01",
+        "MPV-INT-02"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/10"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-FF-01",
+      "wbs": "9.1",
+      "domain": "FF",
+      "title": "Contrôler le délai Fast-food 21/30/45/personnalisé",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "BRANCHE ISOLÉE + MIGRATION SUPABASE",
+      "integration_state": "NON CONSOLIDÉ",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Audit gestion fast food",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "fast-food-mise-en-conformite"
+      ],
+      "pull_requests": [],
+      "description": "Délai personnel stocké, transition entre choix, état de la prochaine autorisation et source canonique.",
+      "ready_criteria": "Options et enregistrement validés, dates exactes sans ambiguïté, historique inchangé.",
+      "dependencies": [],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-FF-02",
+      "wbs": "9.2",
+      "domain": "FF",
+      "title": "Raccorder le délai aux vues RepasBloc et tableau de bord",
+      "priority": "P1",
+      "workflow_state": "À PRODUIRE",
+      "development_state": "DELTA DE 4 COMMITS",
+      "integration_state": "NON CONSOLIDÉ",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Audit gestion fast food",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "fast-food-mise-en-conformite"
+      ],
+      "pull_requests": [],
+      "description": "Déploiement isolé, date prochaine consommation et historique longitudinal sur les vues adéquates.",
+      "ready_criteria": "Même valeur calculée dans RepasBloc, dashboard et historique, test de période 21/30/45/personnalisé.",
+      "dependencies": [
+        "MPV-FF-01",
+        "MPV-DASH-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-IDEAUX-01",
+      "wbs": "10.1",
+      "domain": "IDEAUX",
+      "title": "Réconcilier les PR #12/#13 avec Idéaux déjà dans conso",
+      "priority": "P0",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "DEUX PR DRAFT CONFLICTUELLES",
+      "integration_state": "INTÉGRATION PARTIELLE",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/GitHub",
+      "historical_owner": "Work/ chantier IDÉAUX",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "ideaux-finalisation",
+        "ideaux-delta-post-pr12",
+        "integration-ideaux-main-consolidation"
+      ],
+      "pull_requests": [
+        12,
+        13
+      ],
+      "description": "Identifier les deltas réellement absents ; ne pas rejouer aveuglément commits ou fichiers entiers.",
+      "ready_criteria": "Comparatif fonction par fonction, conflits et tests, aucune perte dans conso ni Idéaux.",
+      "dependencies": [
+        "MPV-INT-02",
+        "MPV-INT-03"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/12",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/13"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-IDEAUX-02",
+      "wbs": "10.2",
+      "domain": "IDEAUX",
+      "title": "Rejouer les scénarios séances déplacées et sauvegarde",
+      "priority": "P1",
+      "workflow_state": "À TESTER",
+      "development_state": "CODE PRÉSENT",
+      "integration_state": "PARTIEL",
+      "qa_state": "RUNTIME NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Work/ chantier IDÉAUX",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "ideaux-finalisation",
+        "ideaux-delta-post-pr12",
+        "integration-ideaux-main-consolidation"
+      ],
+      "pull_requests": [],
+      "description": "date_prevue/date_reelle ; fait===true ; bonus vs remplacement ; durée prévue/réelle, cochage/décochage.",
+      "ready_criteria": "Test sur le même jour, autre jour, réouverture, palier arrivé à terme, aucune double séance.",
+      "dependencies": [
+        "MPV-IDEAUX-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-IDEAUX-03",
+      "wbs": "10.3",
+      "domain": "IDEAUX",
+      "title": "Vérifier paliers adaptatifs et longue interruption",
+      "priority": "P1",
+      "workflow_state": "À TESTER",
+      "development_state": "CODE EN BRANCHE",
+      "integration_state": "PARTIEL",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Work/ chantier IDÉAUX",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "ideaux-finalisation",
+        "ideaux-delta-post-pr12",
+        "integration-ideaux-main-consolidation"
+      ],
+      "pull_requests": [],
+      "description": "Progression sur durée réelle, prochain palier proposé non imposé, métriques sportives et non sportives.",
+      "ready_criteria": "Règles de reprise, statistiques, bilan, adaptation cohérentes après mois sans saisie.",
+      "dependencies": [
+        "MPV-IDEAUX-02"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-IDEAUX-04",
+      "wbs": "10.4",
+      "domain": "IDEAUX",
+      "title": "Qualifier le défloutage de l’image motivante",
+      "priority": "P2",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "EXIGENCE HISTORIQUE",
+      "integration_state": "INCONNU",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "A",
+      "execution_mode": "Audit GitHub",
+      "historical_owner": "Work/ chantier IDÉAUX",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "ideaux-finalisation",
+        "ideaux-delta-post-pr12",
+        "integration-ideaux-main-consolidation"
+      ],
+      "pull_requests": [],
+      "description": "Ancien TODO pouvant avoir été déjà traité ; ne pas recommencer sans preuve.",
+      "ready_criteria": "Comparer code actuel et besoin validé et consigner résultat ; aucune modification Align-Life.",
+      "dependencies": [
+        "MPV-IDEAUX-02"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-ALIGN-01",
+      "wbs": "11.1",
+      "domain": "ALIGN",
+      "title": "Valider P5/P5.1/P5.2 Align-Life sur branche et runtime",
+      "priority": "P1",
+      "workflow_state": "À TESTER",
+      "development_state": "P0–P4.5 VALIDÉS HISTORIQUEMENT, P5/P5.1/P5.2 CODÉS",
+      "integration_state": "NON CONSOLIDÉ",
+      "qa_state": "CI OBSERVE SUCCÈS",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Validation P5.4 Align-Life (strictement distinct d’Idéaux)",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "Align-Life"
+      ],
+      "pull_requests": [],
+      "description": "OBSERVE déterministe ; insight utile ou silence NO_INTERVENTION; pas d’identité déduite par IA.",
+      "ready_criteria": "Test mobile My Way complet, données suffisantes/insuffisantes, aucun questionnaire imposé.",
+      "dependencies": [],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-ALIGN-02",
+      "wbs": "11.2",
+      "domain": "ALIGN",
+      "title": "Préparer intégration Align-Life sans modifier Idéaux",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "BRANCHE DIVERGENTE",
+      "integration_state": "NON CONSOLIDÉ",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/GitHub",
+      "historical_owner": "Validation P5.4 Align-Life (strictement distinct d’Idéaux)",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "Align-Life"
+      ],
+      "pull_requests": [],
+      "description": "Contrat Idéaux/OBSERVE, composants existants, migrations, sécurité.",
+      "ready_criteria": "Comparatif fonctionnel et technique, passerelle avec données Idéaux validées ; isolation des périmètres.",
+      "dependencies": [
+        "MPV-ALIGN-01",
+        "MPV-IDEAUX-02"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-ALIGN-03",
+      "wbs": "11.3",
+      "domain": "ALIGN",
+      "title": "Cadrer le GROW comportemental",
+      "priority": "P2",
+      "workflow_state": "CONCEPTION",
+      "development_state": "NON COMMENCÉ SELON JOURNAL",
+      "integration_state": "NON INTÉGRÉ",
+      "qa_state": "NON COMMENCÉ",
+      "delegation_level": "C",
+      "execution_mode": "Chat",
+      "historical_owner": "Validation P5.4 Align-Life (strictement distinct d’Idéaux)",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "Align-Life"
+      ],
+      "pull_requests": [],
+      "description": "Définir bénéfice réel et cas d’usage avant codage ; journaling spirituel distinct.",
+      "ready_criteria": "Concept proposé, cas admissibles et non-intervention, validation explicite de vision.",
+      "dependencies": [
+        "MPV-ALIGN-02"
+      ],
+      "needs_user_decision": true,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-DEFIS-01",
+      "wbs": "12.1",
+      "domain": "DEFIS",
+      "title": "Vérifier moteur DURATION vs OCCURRENCES",
+      "priority": "P1",
+      "workflow_state": "À TESTER",
+      "development_state": "PR #9 CODE IMPORTANT",
+      "integration_state": "NON FUSIONNÉ",
+      "qa_state": "SCÉNARIOS INSUFFISAMMENT QUALIFIÉS",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Conversation spécialisée Défis V2 — identification exacte non vérifiée",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "defis-v2",
+        "defis-N"
+      ],
+      "pull_requests": [
+        9
+      ],
+      "description": "Un seul défi actif, preuve, idempotence, DST, replay, microconfirmations.",
+      "ready_criteria": "Scénarios structurés automatiques et manuels sans badge infondé, test multi-utilisateur.",
+      "dependencies": [],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/9"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-DEFIS-02",
+      "wbs": "12.2",
+      "domain": "DEFIS",
+      "title": "Vérifier migrations, RLS et isolation du moteur",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "MIGRATIONS SUPABASE PRÉSENTES",
+      "integration_state": "PARTIEL",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Supabase",
+      "historical_owner": "Conversation spécialisée Défis V2 — identification exacte non vérifiée",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "defis-v2",
+        "defis-N"
+      ],
+      "pull_requests": [
+        9
+      ],
+      "description": "Étudier migration existante versus base en service avant toute écriture SQL.",
+      "ready_criteria": "Rapport de compatibilité données, backup/rollback et absence de fuite ou duplication.",
+      "dependencies": [
+        "MPV-SEC-02",
+        "MPV-DEFIS-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/9"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-DEFIS-03",
+      "wbs": "12.3",
+      "domain": "DEFIS",
+      "title": "Préparer intégration PR #9 additive et non destructive",
+      "priority": "P1",
+      "workflow_state": "À PRODUIRE",
+      "development_state": "87 COMMITS D’AVANCE HISTORIQUEMENT",
+      "integration_state": "CONFLITS",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "C",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Conversation spécialisée Défis V2 — identification exacte non vérifiée",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "defis-v2",
+        "defis-N"
+      ],
+      "pull_requests": [
+        9
+      ],
+      "description": "Porter seulement le comportement absent après revue des conflits.",
+      "ready_criteria": "Tests complets, déploiement READY, accord explicite avant merge.",
+      "dependencies": [
+        "MPV-DEFIS-01",
+        "MPV-DEFIS-02",
+        "MPV-INT-03"
+      ],
+      "needs_user_decision": true,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/9"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-DEFIS-04",
+      "wbs": "12.4",
+      "domain": "DEFIS",
+      "title": "Cadrer moteur de suggestions de défis utiles",
+      "priority": "P2",
+      "workflow_state": "CONCEPTION",
+      "development_state": "SPÉCIFICATIONS HISTORIQUES",
+      "integration_state": "NON INTÉGRÉ",
+      "qa_state": "NON COMMENCÉ",
+      "delegation_level": "C",
+      "execution_mode": "Chat",
+      "historical_owner": "Conversation spécialisée Défis V2 — identification exacte non vérifiée",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "defis-v2",
+        "defis-N"
+      ],
+      "pull_requests": [],
+      "description": "Non punitif, pas de défis simultanés imposés, notifications opportunes.",
+      "ready_criteria": "Critères fonctionnels, exclusions, bénéfice utilisateur validés.",
+      "dependencies": [
+        "MPV-DEFIS-03"
+      ],
+      "needs_user_decision": true,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-DASH-01",
+      "wbs": "13.1",
+      "domain": "DASH",
+      "title": "Vérifier sources métier canoniques du dashboard",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "MOTEUR dashboardSynthesis EN BRANCHE",
+      "integration_state": "NON INTÉGRÉ",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Chantier tableau de bord V2 — conversation exacte non vérifiée",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "tableau-de-bord-v2"
+      ],
+      "pull_requests": [],
+      "description": "Données poids, Extras, Idéaux, Défis, repas, My Way, Fast-food ; aucune règle dupliquée.",
+      "ready_criteria": "Cartographie source/date/période + données insuffisantes = neutre, test cross-module.",
+      "dependencies": [
+        "MPV-IDEAUX-02",
+        "MPV-EXTRA-01",
+        "MPV-DEFIS-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-DASH-02",
+      "wbs": "13.2",
+      "domain": "DASH",
+      "title": "Conserver les deux niveaux Vue principale / Détails",
+      "priority": "P1",
+      "workflow_state": "À TESTER",
+      "development_state": "PLAN UX V2 PRÉSENT",
+      "integration_state": "NON INTÉGRÉ",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Chantier tableau de bord V2 — conversation exacte non vérifiée",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "tableau-de-bord-v2"
+      ],
+      "pull_requests": [],
+      "description": "Couche 1 synthétique, couche 2 profondeur + modules, sans suppression de données.",
+      "ready_criteria": "Mobile lisible, pas de perte de fonctionnalité, indicateurs dynamiques pertinents.",
+      "dependencies": [
+        "MPV-DASH-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-PER-01",
+      "wbs": "14.1",
+      "domain": "PER",
+      "title": "Valider PR #8 reconstitution des interruptions",
+      "priority": "P1",
+      "workflow_state": "À TESTER",
+      "development_state": "PR #8 DRAFT",
+      "integration_state": "NON FUSIONNÉ",
+      "qa_state": "TESTS DÉCLARÉS NON REJOUÉS",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "État des lieux persistance repas/Work ; gestion des périodes",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "feature/restauration-trou-suivi",
+        "gestion-des-periodes"
+      ],
+      "pull_requests": [
+        8
+      ],
+      "description": "Détection des trous >=14j, plus tard et temporisation, validation de saisie.",
+      "ready_criteria": "Persistance, réouverture, zéro double période, contrôles sur dates historiques.",
+      "dependencies": [
+        "MPV-FOOD-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/8"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-PER-02",
+      "wbs": "14.2",
+      "domain": "PER",
+      "title": "Raccorder les périodes estimées aux bilans",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "TABLE SUPABASE EXISTANTE",
+      "integration_state": "PARTIEL/INCONNU",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "État des lieux persistance repas/Work ; gestion des périodes",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "feature/restauration-trou-suivi",
+        "gestion-des-periodes"
+      ],
+      "pull_requests": [],
+      "description": "Ne pas mélanger données reconstruites et données réellement observées.",
+      "ready_criteria": "Bilans mensuels différencient estimé/observé, aucune valeur fictive générée.",
+      "dependencies": [
+        "MPV-PER-01",
+        "MPV-BILAN-02"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-JEUNE-01",
+      "wbs": "15.1",
+      "domain": "JEUNE",
+      "title": "Réévaluer le fonctionnement préparation → jeûne",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "CODE ANCIEN PRÉSENT",
+      "integration_state": "DANS CONSO",
+      "qa_state": "VALIDATION HISTORIQUE",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Conversations Jeûne / Préparation — propriétaires historiques multiples",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "finalisation-jeune-chatgpt",
+        "Finalisation-jeûne"
+      ],
+      "pull_requests": [],
+      "description": "Durée choisie, persistance, contenus quotidiens et compatibilité user_id.",
+      "ready_criteria": "Scénarios transitions et plusieurs durées, état repris après nouvelle session.",
+      "dependencies": [
+        "MPV-AUTH-01",
+        "MPV-SEC-02"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-JEUNE-02",
+      "wbs": "15.2",
+      "domain": "JEUNE",
+      "title": "Consolider fin de jeûne vers reprise",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "INTÉGRÉ HISTORIQUEMENT",
+      "integration_state": "DANS CONSO",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Conversations Jeûne / Préparation — propriétaires historiques multiples",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "finalisation-jeune-chatgpt",
+        "Finalisation-jeûne"
+      ],
+      "pull_requests": [],
+      "description": "Bilan et archive de jeûne, navigation, durée variable.",
+      "ready_criteria": "Fin du parcours sans perte de données, ouverture de la reprise attendue.",
+      "dependencies": [
+        "MPV-JEUNE-01",
+        "MPV-REPRISE-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-JEUNE-03",
+      "wbs": "15.3",
+      "domain": "JEUNE",
+      "title": "Maintenir la séparation Journal spirituel / My Way",
+      "priority": "P2",
+      "workflow_state": "À TESTER",
+      "development_state": "SÉPARATION MÉTIER VALIDÉE",
+      "integration_state": "SOUTENU EN CONSO",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "A",
+      "execution_mode": "Audit GitHub",
+      "historical_owner": "Conversations Jeûne / Préparation — propriétaires historiques multiples",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "finalisation-jeune-chatgpt",
+        "Finalisation-jeûne"
+      ],
+      "pull_requests": [],
+      "description": "Le Journal spirituel est réservé au cycle Jeûne, My Way non spirituel par défaut.",
+      "ready_criteria": "Navigation et données ne sont ni dupliquées ni confondues.",
+      "dependencies": [
+        "MPV-JEUNE-01",
+        "MPV-ALIGN-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-REPRISE-01",
+      "wbs": "16.1",
+      "domain": "REPRISE",
+      "title": "Réévaluer les cinq phases selon les règles métier d’août",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "DÉVELOPPEMENT HISTORIQUE",
+      "integration_state": "DANS CONSO",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Conversations Reprise alimentaire — propriétaires historiques multiples",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "finalisation-reprise-jeune-alimentaire-chatgpt"
+      ],
+      "pull_requests": [],
+      "description": "Reprise non punitive : phase 1–5, aucune validation bloquée pour manque de repas ; progression fondée sur données fiables.",
+      "ready_criteria": "Contenu par phase, jours, portions et bilan vérifiés, dates et états cohérents.",
+      "dependencies": [
+        "MPV-AUTH-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-REPRISE-02",
+      "wbs": "16.2",
+      "domain": "REPRISE",
+      "title": "Garantir persistance repas/bilan et transmission cristallisation",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "MIGRATIONS ET TABLES EXISTANTES",
+      "integration_state": "DANS CONSO",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Conversations Reprise alimentaire — propriétaires historiques multiples",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [
+        "finalisation-reprise-jeune-alimentaire-chatgpt"
+      ],
+      "pull_requests": [],
+      "description": "Synchronisation et non-confusion des données ; clôture correcte de reprise.",
+      "ready_criteria": "5 phases, reprises après interruption, bilan et passage au parcours suivant testés.",
+      "dependencies": [
+        "MPV-REPRISE-01",
+        "MPV-FOOD-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-CRIST-01",
+      "wbs": "17.1",
+      "domain": "CRIST",
+      "title": "Requalifier l’existant Cristallisation sans suivre les vieux TODO",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "PAGES ET TABLES PRÉSENTES",
+      "integration_state": "DANS CONSO",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "A",
+      "execution_mode": "Audit GitHub/Supabase",
+      "historical_owner": "Conversations Cristallisation — historique partiel",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [],
+      "pull_requests": [],
+      "description": "Ancienne documentation NO AUTH devenue potentiellement incompatible avec RLS.",
+      "ready_criteria": "État réellement codé/migré/testé ; critères dynamiques manquants identifiés par preuves.",
+      "dependencies": [
+        "MPV-SEC-02",
+        "MPV-REPRISE-02"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-CRIST-02",
+      "wbs": "17.2",
+      "domain": "CRIST",
+      "title": "Cadrer génération dynamique des critères et suivi 45 jours",
+      "priority": "P2",
+      "workflow_state": "CONCEPTION",
+      "development_state": "ARCHITECTURE HISTORIQUE",
+      "integration_state": "NON QUALIFIÉ",
+      "qa_state": "NON COMMENCÉ",
+      "delegation_level": "C",
+      "execution_mode": "Chat→Work",
+      "historical_owner": "Conversations Cristallisation — historique partiel",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [],
+      "pull_requests": [],
+      "description": "Règles personnalisées et validation utilisateur selon fonctionnement réel; pas d’algo nouveau improvisé.",
+      "ready_criteria": "Règles métier explicitement validées, transitions et données vérifiables.",
+      "dependencies": [
+        "MPV-CRIST-01"
+      ],
+      "needs_user_decision": true,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-BILAN-01",
+      "wbs": "18.1",
+      "domain": "BILAN",
+      "title": "Qualifier le bilan hebdomadaire / validations semaine",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "MODALES ET CALCULS PRÉSENTS",
+      "integration_state": "DANS CONSO",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Chantiers Bilan hebdo / Bilan mensuel — propriétaire actuel inconnu",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [],
+      "pull_requests": [],
+      "description": "Messages non jugeants, périodes fiables, compare réel vs plan ; respect absence de données.",
+      "ready_criteria": "Tests semaine complète/incomplète, anciens enregistrements, rapport fidèle.",
+      "dependencies": [
+        "MPV-FOOD-01",
+        "MPV-EXTRA-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "MPV-BILAN-02",
+      "wbs": "18.2",
+      "domain": "BILAN",
+      "title": "Qualifier le bilan mensuel et ses déclencheurs",
+      "priority": "P1",
+      "workflow_state": "À QUALIFIER",
+      "development_state": "CODE ET TABLE EN PLACE",
+      "integration_state": "DANS CONSO",
+      "qa_state": "NON REJOUÉ",
+      "delegation_level": "B",
+      "execution_mode": "Work/Codex",
+      "historical_owner": "Chantiers Bilan hebdo / Bilan mensuel — propriétaire actuel inconnu",
+      "active_agent": "NON CONFIRMÉ",
+      "branches": [],
+      "pull_requests": [],
+      "description": "Anciens plans de janvier ont changé ; vérifier les rapports réellement accessibles et leur persistance.",
+      "ready_criteria": "Mois sans saisie, période historique, navigation retour, pas de nouvelle demande si déjà enregistré.",
+      "dependencies": [
+        "MPV-BILAN-01",
+        "MPV-PER-01"
+      ],
+      "needs_user_decision": false,
+      "evidence": "À VÉRIFIER / historiques GitHub",
+      "verified_at": "2026-10-12",
+      "source_links": [
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+      ],
+      "notes": ""
+    }
+  ],
+  "branches": [
+    {
+      "branch": "AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS",
+      "ahead_conso": 0,
+      "behind_conso": 213,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "Align-Life",
+      "ahead_conso": 26,
+      "behind_conso": 89,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "ENRICHISSEMENT-FROMAGES-GS",
+      "ahead_conso": 0,
+      "behind_conso": 263,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "ENRICHISSEMENT-REFERENTIEL-ALIMENTAIRE",
+      "ahead_conso": 1,
+      "behind_conso": 213,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "Finalisation-jeûne",
+      "ahead_conso": 0,
+      "behind_conso": 170,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "Ideo",
+      "ahead_conso": 6,
+      "behind_conso": 213,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "copilot/add-user-id-to-tables",
+      "ahead_conso": 4,
+      "behind_conso": 304,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "copilot/enable-autonomous-coding",
+      "ahead_conso": 2,
+      "behind_conso": 261,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "copilot/enrichir-referentiel-alimentaire",
+      "ahead_conso": 6,
+      "behind_conso": 213,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "copilot/fix-codspaces-creation-issue",
+      "ahead_conso": 4,
+      "behind_conso": 467,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "copilot/fix-git-pull-issue",
+      "ahead_conso": 1,
+      "behind_conso": 465,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "copilot/mettre-a-jour-phase-jeune",
+      "ahead_conso": 0,
+      "behind_conso": 213,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "copilot/sauvegarde-supabase-phase-jeune",
+      "ahead_conso": 3,
+      "behind_conso": 213,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "copilot/update-copilot-implementation-template",
+      "ahead_conso": 1,
+      "behind_conso": 299,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "copilot/update-preparation-young-phase",
+      "ahead_conso": 1,
+      "behind_conso": 465,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "defis-N",
+      "ahead_conso": 16,
+      "behind_conso": 260,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "defis-v2",
+      "ahead_conso": 87,
+      "behind_conso": 112,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "extras-constance-recente",
+      "ahead_conso": 1,
+      "behind_conso": 43,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "extras-meilleure-constance",
+      "ahead_conso": 4,
+      "behind_conso": 46,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "fast-food-mise-en-conformite",
+      "ahead_conso": 4,
+      "behind_conso": 33,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "feature/ajout-aliment-personnalise",
+      "ahead_conso": 0,
+      "behind_conso": 281,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "feature/authentification-supabase",
+      "ahead_conso": 5,
+      "behind_conso": 209,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "feature/restauration-trou-suivi",
+      "ahead_conso": 7,
+      "behind_conso": 74,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "finalisation-jeune-chatgpt",
+      "ahead_conso": 0,
+      "behind_conso": 146,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "finalisation-reprise-jeune-alimentaire-chatgpt",
+      "ahead_conso": 0,
+      "behind_conso": 128,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "gestion-des-periodes",
+      "ahead_conso": 0,
+      "behind_conso": 225,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "ideaux-delta-post-pr12",
+      "ahead_conso": 45,
+      "behind_conso": 213,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "ideaux-finalisation",
+      "ahead_conso": 44,
+      "behind_conso": 213,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "integration-ideaux-main-consolidation",
+      "ahead_conso": 6,
+      "behind_conso": 43,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "liste-courses-generale-plan-chatgpt",
+      "ahead_conso": 0,
+      "behind_conso": 112,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "main",
+      "ahead_conso": 0,
+      "behind_conso": 171,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "main-consolidation",
+      "ahead_conso": 0,
+      "behind_conso": 0,
+      "relationship": "Référence",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "mise-en-conformite-extra",
+      "ahead_conso": 0,
+      "behind_conso": 61,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "p45-precommit-tmp",
+      "ahead_conso": 6,
+      "behind_conso": 89,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "p45-precommit-tmp2",
+      "ahead_conso": 6,
+      "behind_conso": 89,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "passation",
+      "ahead_conso": 0,
+      "behind_conso": 290,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "plan-alimentaire-intelligent-chatgpt",
+      "ahead_conso": 18,
+      "behind_conso": 76,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "planification-gamification-chatgpt",
+      "ahead_conso": 38,
+      "behind_conso": 76,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "preview-main-consolidation",
+      "ahead_conso": 1,
+      "behind_conso": 58,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "preview-referentiel-alimentaire",
+      "ahead_conso": 18,
+      "behind_conso": 76,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "preview-referentiel-alimentaire-v2",
+      "ahead_conso": 18,
+      "behind_conso": 76,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "recettes-intelligentes-planning-suivi",
+      "ahead_conso": 26,
+      "behind_conso": 76,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "referentiel-alimentaire",
+      "ahead_conso": 4,
+      "behind_conso": 76,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "restauration-trou-suivi-preview",
+      "ahead_conso": 7,
+      "behind_conso": 74,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "tableau-de-bord-v2",
+      "ahead_conso": 12,
+      "behind_conso": 33,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "test-migration-supabase",
+      "ahead_conso": 0,
+      "behind_conso": 299,
+      "relationship": "Ancêtre",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "tmp/integration-91c22d7",
+      "ahead_conso": 4,
+      "behind_conso": 209,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "tmp-noop",
+      "ahead_conso": 5,
+      "behind_conso": 89,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    },
+    {
+      "branch": "vercel/react-server-components-cve-vu-44l4r1",
+      "ahead_conso": 1,
+      "behind_conso": 262,
+      "relationship": "Divergente",
+      "reviewed_at": "2026-10-12"
+    }
+  ],
+  "pull_requests": [
+    {
+      "number": 1,
+      "scope": "Reprise jeûne",
+      "github_state": "FUSIONNÉE",
+      "target": "main",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/1",
+      "last_verification": "2026-10-12"
+    },
+    {
+      "number": 2,
+      "scope": "Migration user_id (documentation)",
+      "github_state": "DRAFT OUVERTE",
+      "target": "AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/2",
+      "last_verification": "2026-10-12"
+    },
+    {
+      "number": 3,
+      "scope": "Template Copilot",
+      "github_state": "DRAFT OUVERTE",
+      "target": "AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/3",
+      "last_verification": "2026-10-12"
+    },
+    {
+      "number": 4,
+      "scope": "CVE",
+      "github_state": "DRAFT OUVERTE",
+      "target": "AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/4",
+      "last_verification": "2026-10-12"
+    },
+    {
+      "number": 5,
+      "scope": "Reprise intelligente",
+      "github_state": "DRAFT OUVERTE",
+      "target": "AVANCEMENT-IDEAUX-/TBS-OBJECTIF-POIDS",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/5",
+      "last_verification": "2026-10-12"
+    },
+    {
+      "number": 6,
+      "scope": "Extras conformité",
+      "github_state": "FUSIONNÉE",
+      "target": "main-consolidation",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/6",
+      "last_verification": "2026-10-12"
+    },
+    {
+      "number": 7,
+      "scope": "Extras constance",
+      "github_state": "FUSIONNÉE",
+      "target": "main-consolidation",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/7",
+      "last_verification": "2026-10-12"
+    },
+    {
+      "number": 8,
+      "scope": "Interruptions",
+      "github_state": "DRAFT OUVERTE",
+      "target": "main-consolidation",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/8",
+      "last_verification": "2026-10-12"
+    },
+    {
+      "number": 9,
+      "scope": "Défis V2",
+      "github_state": "DRAFT OUVERTE — CONFLITS",
+      "target": "main-consolidation",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/9",
+      "last_verification": "2026-10-12"
+    },
+    {
+      "number": 10,
+      "scope": "Extras meilleure constance",
+      "github_state": "DRAFT OUVERTE",
+      "target": "main-consolidation",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/10",
+      "last_verification": "2026-10-12"
+    },
+    {
+      "number": 11,
+      "scope": "Preview Extras",
+      "github_state": "FUSIONNÉE",
+      "target": "extras-constance-recente",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/11",
+      "last_verification": "2026-10-12"
+    },
+    {
+      "number": 12,
+      "scope": "Idéaux paliers",
+      "github_state": "DRAFT OUVERTE — CONFLITS",
+      "target": "main-consolidation",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/12",
+      "last_verification": "2026-10-12"
+    },
+    {
+      "number": 13,
+      "scope": "Idéaux delta adaptatif",
+      "github_state": "DRAFT OUVERTE — CONFLITS",
+      "target": "main-consolidation",
+      "url": "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/13",
+      "last_verification": "2026-10-12"
+    }
+  ],
+  "alerts": [
+    {
+      "id": "ALERT-SEC-01",
+      "severity": "P0",
+      "type": "EXPOSITION POTENTIELLE",
+      "source_task": "MPV-SEC-01",
+      "trigger": "Présence de secret plausible dans historique public Git; NE PAS afficher de valeurs",
+      "action": "Audit discret, déterminer rotation/assainissement, demande GO avant modification",
+      "human_decision": true
+    },
+    {
+      "id": "ALERT-SEC-02",
+      "severity": "P0",
+      "type": "RLS/ANON",
+      "source_task": "MPV-SEC-02",
+      "trigger": "Table propriétaire accessible via rôle anon alors que RLS désactivée",
+      "action": "Analyse d’impact, plan rollback, GO explicite avant toute DDL",
+      "human_decision": true
+    },
+    {
+      "id": "ALERT-INT-01",
+      "severity": "P0",
+      "type": "NON-RÉGRESSION",
+      "source_task": "MPV-INT-03",
+      "trigger": "PR conflictuelle, suppression, réécriture de données, ou contrat métier incompatible",
+      "action": "STOP ciblé et rapport de conflit, aucune résolution destructive sans autorisation",
+      "human_decision": true
+    },
+    {
+      "id": "ALERT-INT-02",
+      "severity": "P1",
+      "type": "CI EN ÉCHEC",
+      "source_task": "MPV-REF-01",
+      "trigger": "Nouvel échec de test/build ou test obsolète sur branche en attente",
+      "action": "Identifier job/SHA/test et proposer correction ciblée, ne pas supprimer de données",
+      "human_decision": false
+    },
+    {
+      "id": "ALERT-INT-03",
+      "severity": "P1",
+      "type": "DÉPLOIEMENT DÉCALÉ",
+      "source_task": "MPV-INT-01",
+      "trigger": "Déploiement READY absent ou SHA Vercel différent du HEAD cible",
+      "action": "Rapport branch/SHA cible, attendre READY correct avant QA",
+      "human_decision": false
+    },
+    {
+      "id": "ALERT-WBS-01",
+      "severity": "P1",
+      "type": "CHANGEMENT NON TRACÉ",
+      "source_task": "MPV-GOV-04",
+      "trigger": "Commit/PR sans propriétaire, critères READY, rapport ou dépendance",
+      "action": "Mettre en quarantaine administrative la livraison jusqu’à clarification",
+      "human_decision": false
+    },
+    {
+      "id": "ALERT-WBS-02",
+      "severity": "P1",
+      "type": "CONFLIT DE RESPONSABILITÉ",
+      "source_task": "MPV-GOV-02",
+      "trigger": "Deux agents prétendent écrire simultanément les mêmes fichiers/branche",
+      "action": "STOP les écritures concurrentes ; identifier propriétaire canonique",
+      "human_decision": true
+    },
+    {
+      "id": "ALERT-UX-01",
+      "severity": "P1",
+      "type": "RUNTIME NON CERTIFIÉ",
+      "source_task": "MPV-INT-05",
+      "trigger": "PR prête au merge sans test utilisateur requis ou avec preuve de build seule",
+      "action": "Marquer À TESTER et demander preuve correspondante",
+      "human_decision": false
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-001",
+      "topic": "Principe reprise",
+      "record": "Reprendre les chantiers en l’état sans demander à l’utilisatrice de clôturer manuellement toutes les conversations.",
+      "status": "VALIDÉ PAR UTILISATRICE LE 12/10/2026",
+      "impact": "Tout portefeuille",
+      "user_action": "Aucune"
+    },
+    {
+      "id": "DEC-002",
+      "topic": "Préservation code",
+      "record": "Ne pas toucher main ; aucun merge, suppression, remplacement, conflit destructif ou perte fonctionnelle sans autorisation explicite.",
+      "status": "RÈGLE EXISTANTE MAINTENUE",
+      "impact": "Toutes branches et intégrations",
+      "user_action": "Accord requis au cas par cas"
+    },
+    {
+      "id": "DEC-003",
+      "topic": "Affectations historiques",
+      "record": "Les anciens chats ne sont pas des agents actifs interrogeables. Leur propriétaire est historique ; leur disponibilité reste non confirmée.",
+      "status": "CADRAGE TECHNIQUE",
+      "impact": "Agents et passations",
+      "user_action": "Aucune avant demande de passation ciblée"
+    },
+    {
+      "id": "DEC-004",
+      "topic": "Publication centrale",
+      "record": "Publication documentaire sur une branche isolée `cockpit-wbs-phase2`. Aucun merge ni code applicatif.",
+      "status": "AUTORISÉE 12/10/2026",
+      "impact": "GitHub",
+      "user_action": "Autoriser explicitement création branche et commit de documentation (sans PR/merge automatiques)"
+    },
+    {
+      "id": "DEC-005",
+      "topic": "Sécurité données",
+      "record": "Ne pas corriger RLS, secrets, protection branches sans audit d’impact et permission.",
+      "status": "EN ATTENTE D’ARBITRAGE POUR CORRECTION",
+      "impact": "Supabase/GitHub",
+      "user_action": "Validation de protocole après diagnostic"
+    },
+    {
+      "id": "DEC-006",
+      "topic": "Ordre produit final",
+      "record": "L’ordre P0/P1/P2 établi est une proposition technique de risque et dépendances, pas une priorisation produit gravée dans le marbre.",
+      "status": "PROPOSITION",
+      "impact": "Roadmap",
+      "user_action": "Arbitrage seulement en cas de conflit produit"
+    }
+  ],
+  "global_non_goals": [
+    "Aucun merge automatique",
+    "Pas de suppression/réécriture",
+    "Pas de migration SQL de production",
+    "Ne pas piloter directement des conversations anciennes",
+    "Ne pas déduire READY de CI ou Vercel READY",
+    "Ne pas exposer secrets ou données privées"
+  ]
+}
