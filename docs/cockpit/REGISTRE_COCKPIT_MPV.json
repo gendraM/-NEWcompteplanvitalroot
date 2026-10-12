@@ -1396,14 +1396,14 @@
       "domain": "DASH",
       "title": "Vérifier sources métier canoniques du dashboard",
       "priority": "P1",
-      "workflow_state": "À QUALIFIER",
-      "development_state": "MOTEUR dashboardSynthesis EN BRANCHE",
+      "workflow_state": "À TESTER",
+      "development_state": "CONTRATS CANONIQUES STATIQUEMENT QUALIFIÉS; MOTEUR V2 EN BRANCHE NON INTÉGRÉ",
       "integration_state": "NON INTÉGRÉ",
-      "qa_state": "AUDIT DOCUMENTAIRE PARTIEL ; AUCUN TEST RUNTIME",
+      "qa_state": "AUDIT DES CONTRATS TERMINÉ; TESTS ET RLS RUNTIME NON REJOUÉS",
       "delegation_level": "A",
       "execution_mode": "Work/Codex",
       "historical_owner": "Chantier tableau de bord V2 — conversation exacte non vérifiée",
-      "active_agent": "SUPERVISION DOCUMENTAIRE (PAS DE CODEX CONTINU)",
+      "active_agent": "AUCUN — AUDIT #18 CLÔTURABLE; CORRECTIONS NON ENGAGÉES",
       "branches": [
         "tableau-de-bord-v2"
       ],
@@ -1416,16 +1416,18 @@
         "MPV-DEFIS-01"
       ],
       "needs_user_decision": false,
-      "evidence": "Rapport #16 terminé ; premier relevé sources canoniques publié sur Issue #18, commentaire 6128354090 (Poids/Extras/Idéaux/Défis), vérifié le 2026-10-12",
+      "evidence": "Issue #18 : 3 relevés documentés sur poids, Extras, Défis, Idéaux, repas/alignement, périodes, Fast-food, ownership ; HEADs main-consolidation 23f27e3 / tableau-de-bord-v2 bf9f5f4",
       "verified_at": "2026-10-12",
       "source_links": [
         "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
         "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/18",
         "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16",
-        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/18#issuecomment-6128354090"
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/18#issuecomment-6128354090",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/19"
       ],
-      "notes": "Prochaine étape : matrice de raccord métier canonique, contrats user_id/périodes, préserver conso; mission A #18. Dépendances métier restent ouvertes. | Premier contrôle de contrats métier publié le 12/10 (weight objectif non passé; extras moteur identique mais liste sans filtre explicite user_id; tableaux Défis/Idéaux non raccordés). Audit restant sur périodes, sécurité, défis/idéaux réels et autres sources.",
-      "github_issue": 18
+      "notes": "Prochaine étape : matrice de raccord métier canonique, contrats user_id/périodes, préserver conso; mission A #18. Dépendances métier restent ouvertes. | Premier contrôle de contrats métier publié le 12/10 (weight objectif non passé; extras moteur identique mais liste sans filtre explicite user_id; tableaux Défis/Idéaux non raccordés). Audit restant sur périodes, sécurité, défis/idéaux réels et autres sources. | Qualification statique achevée avec relevés #18. Ne pas considérer Idéaux/Extras/Défis indépendamment certifiés. Tests cross-module, intégration et revue RLS restent à faire.",
+      "github_issue": 18,
+      "audit_status": "MISSION DOCUMENTAIRE #18 TERMINÉE; QUALIFICATION TECHNIQUE/RUNTIME NON CERTIFIÉE"
     },
     {
       "id": "MPV-DASH-02",
@@ -1434,13 +1436,13 @@
       "title": "Conserver les deux niveaux Vue principale / Détails",
       "priority": "P1",
       "workflow_state": "À TESTER",
-      "development_state": "COUCHE 1 PARTIELLEMENT CODÉE (HEAD bf9f5f4d), COUCHE 2 NON CONSTRUITE",
-      "integration_state": "NON INTÉGRÉE DANS main-consolidation",
-      "qa_state": "13 TESTS ÉCRITS MAIS NON REJOUÉS; RECETTE UTILISATEUR NON PROUVÉE",
+      "development_state": "COUCHE 1 PARTIELLEMENT CODÉE, COUCHE 2 NON CONSTRUITE ; LOT RESTAURATIF #19 NON DÉMARRÉ",
+      "integration_state": "NON INTÉGRÉE SUR main-consolidation",
+      "qa_state": "TESTS V2 ÉCRITS NON REJOUÉS ; RECETTE UTILISATEUR ABSENTE",
       "delegation_level": "B",
       "execution_mode": "Work/Codex",
       "historical_owner": "Chantier tableau de bord V2 — conversation exacte non vérifiée",
-      "active_agent": "AUCUN — WORK A LIVRÉ LE RAPPORT ET N'EST PAS UN AGENT PERMANENT",
+      "active_agent": "AUCUN AGENT DE CODE AFFECTÉ",
       "branches": [
         "tableau-de-bord-v2"
       ],
@@ -1456,11 +1458,12 @@
       "source_links": [
         "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
         "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16",
-        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/18"
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/18",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/19"
       ],
-      "notes": "Mission GitHub créée : https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16 ; affectation/exécution autonome non démarrée. | Audit #16 terminé. Ne pas confondre la clôture de la mission d'audit et la certification du module. Première couche partielle, seconde couche absente, aucun merge ni recette.",
+      "notes": "Mission GitHub créée : https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16 ; affectation/exécution autonome non démarrée. | Audit #16 terminé. Ne pas confondre la clôture de la mission d'audit et la certification du module. Première couche partielle, seconde couche absente, aucun merge ni recette. | Issue #19 : mandat technique B préparé, PAS AUTORISÉ ; uniquement future branche isolée fondée sur main-consolidation, sans suppression ou fusion.",
       "github_issue": 16,
-      "audit_status": "AUDIT DE REPRISE TERMINÉ — FONCTIONNALITÉ NON VALIDÉE"
+      "audit_status": "ISSUE #16 CLÔTURÉE : AUDIT UNIQUEMENT ; ISSUES #18 ET #19 POUR SUITE"
     },
     {
       "id": "MPV-PER-01",
