@@ -1,0 +1,40 @@
+name: "MPV cockpit — contrôle gratuit (lecture seule)"
+
+on:
+  schedule:
+    - cron: "37 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mpv-cockpit-read-only
+  cancel-in-progress: true
+
+jobs:
+  watch:
+    name: "Vérifier GitHub sans API d'IA"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: "Récupérer le contrôleur uniquement"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: "Installer Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: "Lire le WBS, les SHA, les issues et les PR"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/cockpit-watch.mjs
+      - name: "Conserver le rapport pendant 3 jours"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpv-cockpit-rapport
+          path: cockpit-report.json
+          if-no-files-found: ignore
+          retention-days: 3
