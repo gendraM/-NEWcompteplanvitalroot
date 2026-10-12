@@ -211,10 +211,10 @@
       "domain": "GOV",
       "title": "Synchroniser les changements des chantiers avec le WBS",
       "priority": "P1",
-      "workflow_state": "CONCEPTION",
-      "development_state": "À PRODUIRE",
-      "integration_state": "NON APPLICABLE",
-      "qa_state": "NON COMMENCÉ",
+      "workflow_state": "À TESTER",
+      "development_state": "SUPERVISEUR GITHUB GRATUIT INSTALLÉ SUR DÉPÔT SÉPARÉ; EXÉCUTEUR IA NON INSTALLÉ",
+      "integration_state": "SUPERVISION SÉPARÉE, AUCUNE ÉCRITURE SUR LE DÉPÔT APPLICATIF",
+      "qa_state": "PREMIER RUN GITHUB ACTIONS RÉUSSI (cfb3e882, ID 38275780011); EXÉCUTION IA NON TESTÉE",
       "delegation_level": "B",
       "execution_mode": "Work/Codex",
       "historical_owner": "Présente conversation — Cockpit Mon Plan Vital (pilote de conception, non exécutant permanent)",
@@ -227,13 +227,15 @@
         "MPV-GOV-03"
       ],
       "needs_user_decision": false,
-      "evidence": "À VÉRIFIER / historiques GitHub",
+      "evidence": "https://github.com/gendraM/mpv-cockpit-runner/actions/runs/38275780011 ; workflow lecture seule terminé success 2026-10-12 et rapport produit",
       "verified_at": "2026-10-12",
       "source_links": [
         "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
-        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/17"
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/17",
+        "https://github.com/gendraM/mpv-cockpit-runner/actions/runs/38275780011",
+        "https://github.com/gendraM/mpv-cockpit-runner"
       ],
-      "notes": "| Exécution automatique du code NON ACTIVÉE. Supervision ChatGPT planifiée le 12/10/2026, première exécution non encore vérifiée. Nécessite un runner indépendant, des permissions explicites et une clé/API sécurisée à budget plafonné.",
+      "notes": "Exécution automatique du code NON ACTIVÉE. Supervision ChatGPT planifiée le 12/10/2026, première exécution non encore vérifiée. Nécessite un runner indépendant, des permissions explicites et une clé/API sécurisée à budget plafonné. | Contrôleur GitHub Actions gratuit ACTIVÉ (surveillance seulement). Première exécution réussie, artefact produit. Aucune génération de code autonome ni appel API payant.",
       "github_issue": 17
     },
     {
@@ -1397,11 +1399,11 @@
       "workflow_state": "À QUALIFIER",
       "development_state": "MOTEUR dashboardSynthesis EN BRANCHE",
       "integration_state": "NON INTÉGRÉ",
-      "qa_state": "NON REJOUÉ",
-      "delegation_level": "B",
+      "qa_state": "AUDIT DES CONTRATS NON EXÉCUTÉ",
+      "delegation_level": "A",
       "execution_mode": "Work/Codex",
       "historical_owner": "Chantier tableau de bord V2 — conversation exacte non vérifiée",
-      "active_agent": "NON CONFIRMÉ",
+      "active_agent": "AUCUN — ISSUE OUVERTE NON EXÉCUTÉE",
       "branches": [
         "tableau-de-bord-v2"
       ],
@@ -1414,12 +1416,15 @@
         "MPV-DEFIS-01"
       ],
       "needs_user_decision": false,
-      "evidence": "À VÉRIFIER / historiques GitHub",
+      "evidence": "Issue #16 (rapport audit V2) -> Issue #18 (mission de qualification en lecture seule)",
       "verified_at": "2026-10-12",
       "source_links": [
-        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation"
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/18",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16"
       ],
-      "notes": ""
+      "notes": "Prochaine étape : matrice de raccord métier canonique, contrats user_id/périodes, préserver conso; mission A #18. Dépendances métier restent ouvertes.",
+      "github_issue": 18
     },
     {
       "id": "MPV-DASH-02",
@@ -1428,13 +1433,13 @@
       "title": "Conserver les deux niveaux Vue principale / Détails",
       "priority": "P1",
       "workflow_state": "À TESTER",
-      "development_state": "PLAN UX V2 PRÉSENT",
-      "integration_state": "NON INTÉGRÉ",
-      "qa_state": "NON REJOUÉ",
+      "development_state": "COUCHE 1 PARTIELLEMENT CODÉE (HEAD bf9f5f4d), COUCHE 2 NON CONSTRUITE",
+      "integration_state": "NON INTÉGRÉE DANS main-consolidation",
+      "qa_state": "13 TESTS ÉCRITS MAIS NON REJOUÉS; RECETTE UTILISATEUR NON PROUVÉE",
       "delegation_level": "B",
       "execution_mode": "Work/Codex",
       "historical_owner": "Chantier tableau de bord V2 — conversation exacte non vérifiée",
-      "active_agent": "NON CONFIRMÉ",
+      "active_agent": "AUCUN — WORK A LIVRÉ LE RAPPORT ET N'EST PAS UN AGENT PERMANENT",
       "branches": [
         "tableau-de-bord-v2"
       ],
@@ -1445,14 +1450,16 @@
         "MPV-DASH-01"
       ],
       "needs_user_decision": false,
-      "evidence": "À VÉRIFIER / historiques GitHub",
+      "evidence": "Rapport de reprise du 12/10/2026 publié dans Issue #16; HEAD V2 bf9f5f4df68a8209818dc6e4aa39402f0ee3fd68 ; constat statique de Link non défini sur V2",
       "verified_at": "2026-10-12",
       "source_links": [
         "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
-        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16"
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/18"
       ],
-      "notes": "Mission GitHub créée : https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16 ; affectation/exécution autonome non démarrée.",
-      "github_issue": 16
+      "notes": "Mission GitHub créée : https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16 ; affectation/exécution autonome non démarrée. | Audit #16 terminé. Ne pas confondre la clôture de la mission d'audit et la certification du module. Première couche partielle, seconde couche absente, aucun merge ni recette.",
+      "github_issue": 16,
+      "audit_status": "AUDIT DE REPRISE TERMINÉ — FONCTIONNALITÉ NON VALIDÉE"
     },
     {
       "id": "MPV-PER-01",
