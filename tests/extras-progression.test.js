@@ -4,11 +4,11 @@ const vm = require('vm');
 
 const source = fs.readFileSync(path.join(__dirname, '../lib/extrasProgression.js'), 'utf8')
   .replace(/export\s+/g, '')
-  .concat('\nmodule.exports = { calculerProgressionExtras, evaluerSemaineExtras, getVerbatimProgressionExtras, getEtatConstanceExtras };');
+  .concat('\nmodule.exports = { calculerProgressionExtras, evaluerSemaineExtras, calculerMeilleureConstanceExtras, getVerbatimProgressionExtras, getEtatConstanceExtras };');
 const context = { module: { exports: {} }, exports: {}, console, Date, Math, Set };
 vm.createContext(context);
 vm.runInContext(source, context);
-const { calculerProgressionExtras, evaluerSemaineExtras, getVerbatimProgressionExtras, getEtatConstanceExtras } = context.module.exports;
+const { calculerProgressionExtras, evaluerSemaineExtras, calculerMeilleureConstanceExtras, getVerbatimProgressionExtras, getEtatConstanceExtras } = context.module.exports;
 
 function semaine(index, extras, kcal = 300, budget = 450, autres = {}) {
   const date = new Date('2026-01-05T12:00:00Z');
@@ -159,5 +159,42 @@ describe('états de constance visibles', () => {
   });
   test('GROW reconnaît le retour à un ancien palier', () => {
     expect(getEtatConstanceExtras({ rythmeRetrouve: true }).code).toBe('GROW');
+  });
+});
+
+describe('meilleure période de constance', () => {
+  test('retient la plus longue série consécutive respectant les deux repères', () => {
+    const resultat = calculerMeilleureConstanceExtras([
+      semaine(0, 3), semaine(1, 3), semaine(2, 4),
+      semaine(3, 2), semaine(4, 3), semaine(5, 1),
+    ], 3);
+    expect(resultat).toEqual({
+      nombreSemaines: 3,
+      debut: '2026-01-26',
+      fin: '2026-02-09',
+    });
+  });
+
+  test('ignore les semaines antérieures à l’obtention du palier', () => {
+    const resultat = calculerMeilleureConstanceExtras([
+      semaine(0, 2), semaine(1, 2), semaine(2, 2), semaine(3, 2),
+    ], 3, '2026-01-19');
+    expect(resultat).toEqual({
+      nombreSemaines: 2,
+      debut: '2026-01-19',
+      fin: '2026-01-26',
+    });
+  });
+
+  test('une semaine absente, non validée ou hors budget interrompt la série', () => {
+    const resultat = calculerMeilleureConstanceExtras([
+      semaine(0, 2), semaine(1, 2),
+      semaine(3, 2), semaine(4, 2, 700), semaine(5, 2),
+    ], 3);
+    expect(resultat).toEqual({
+      nombreSemaines: 2,
+      debut: '2026-01-05',
+      fin: '2026-01-12',
+    });
   });
 });
