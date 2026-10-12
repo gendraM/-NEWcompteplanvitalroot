@@ -1399,11 +1399,11 @@
       "workflow_state": "À QUALIFIER",
       "development_state": "MOTEUR dashboardSynthesis EN BRANCHE",
       "integration_state": "NON INTÉGRÉ",
-      "qa_state": "AUDIT DES CONTRATS NON EXÉCUTÉ",
+      "qa_state": "AUDIT DOCUMENTAIRE PARTIEL ; AUCUN TEST RUNTIME",
       "delegation_level": "A",
       "execution_mode": "Work/Codex",
       "historical_owner": "Chantier tableau de bord V2 — conversation exacte non vérifiée",
-      "active_agent": "AUCUN — ISSUE OUVERTE NON EXÉCUTÉE",
+      "active_agent": "SUPERVISION DOCUMENTAIRE (PAS DE CODEX CONTINU)",
       "branches": [
         "tableau-de-bord-v2"
       ],
@@ -1416,14 +1416,15 @@
         "MPV-DEFIS-01"
       ],
       "needs_user_decision": false,
-      "evidence": "Issue #16 (rapport audit V2) -> Issue #18 (mission de qualification en lecture seule)",
+      "evidence": "Rapport #16 terminé ; premier relevé sources canoniques publié sur Issue #18, commentaire 6128354090 (Poids/Extras/Idéaux/Défis), vérifié le 2026-10-12",
       "verified_at": "2026-10-12",
       "source_links": [
         "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
         "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/18",
-        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16"
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/18#issuecomment-6128354090"
       ],
-      "notes": "Prochaine étape : matrice de raccord métier canonique, contrats user_id/périodes, préserver conso; mission A #18. Dépendances métier restent ouvertes.",
+      "notes": "Prochaine étape : matrice de raccord métier canonique, contrats user_id/périodes, préserver conso; mission A #18. Dépendances métier restent ouvertes. | Premier contrôle de contrats métier publié le 12/10 (weight objectif non passé; extras moteur identique mais liste sans filtre explicite user_id; tableaux Défis/Idéaux non raccordés). Audit restant sur périodes, sécurité, défis/idéaux réels et autres sources.",
       "github_issue": 18
     },
     {
