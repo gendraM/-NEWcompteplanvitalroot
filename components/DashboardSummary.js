@@ -1,7 +1,6 @@
 import Link from 'next/link';
 
-// Restauration de la synthèse V2 existante. Les règles de priorité et highlights
-// non validées ne sont pas affichées tant que l'arbitrage produit reste ouvert.
+// Synthèse factuelle validée, sans classement ou seuil de réussite inventé.
 export default function DashboardSummary({ synthese, errors = [] }) {
   const { weightStatus: poids, extrasStatus: extras, mealSignals: repas, activeIdeal, activeChallenge } = synthese;
   const card = { background: '#fff', border: '1px solid #edf1f5', borderRadius: 14, padding: 16 };
@@ -39,6 +38,10 @@ export default function DashboardSummary({ synthese, errors = [] }) {
       {' '}{synthese.couverture.joursReconstitues} reconstitués,
       {' '}{synthese.couverture.joursSansDonnee} sans donnée sur la période. Une absence de saisie n’est pas un échec.
     </p>}
+    {synthese.highlights.length > 0 && <div>
+      <h3>À retenir</h3>
+      <ul>{synthese.highlights.filter(item => !errors.includes(item.domaine === 'extras' ? 'semaines' : item.domaine)).map(item => <li key={item.code}>{item.message}</li>)}</ul>
+    </div>}
     <h3>En ce moment</h3>
     <p>{errors.includes('defis') ? 'Défis indisponibles pour le moment.' : activeChallenge?.anomaliePlusieursActifs ? 'Plusieurs défis sont marqués en cours : à vérifier dans le module.' : activeChallenge ? `Défi : ${activeChallenge.nom}. La progression détaillée est indisponible pour le moment.` : 'Aucun défi actif renseigné.'} <Link href="/defis">Mes défis</Link></p>
     <p>{errors.includes('ideaux') ? 'Idéaux indisponibles pour le moment.' : activeIdeal ? `Cap actif : ${activeIdeal.titre}.` : 'Aucun Idéal actif renseigné.'} <Link href="/ideaux">Mes Idéaux</Link></p>

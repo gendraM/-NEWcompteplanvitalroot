@@ -1,57 +1,53 @@
 import { useState, useEffect } from 'react';
 import { SupabaseProvider, supabase } from '../lib/supabaseClient';
-import { AuthProvider } from '../contexts/AuthContext';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { DefisProvider } from '../components/DefisContext';
 import BandeauCompletionProfil from '../components/BandeauCompletionProfil';
 import Navigation from '../components/Navigation';
 import ModeTestParcoursJeune from '../components/ModeTestParcoursJeune';
+import { chargerProfilNavigation } from '../lib/navigationOwnedData';
 
-function MyApp({ Component, pageProps }) {
+function AppContent({ Component, pageProps }) {
+  const { user, loading: authLoading } = useAuth();
+  const [profilUserId, setProfilUserId] = useState(null);
   const [afficherBandeau, setAfficherBandeau] = useState(false);
   const [profilVerifie, setProfilVerifie] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    setAfficherBandeau(false);
+    setProfilVerifie(false);
+    setProfilUserId(null);
+    if (authLoading || !user?.id) return;
     const verifierProfilComplet = async () => {
       try {
-        const { data: profil, error } = await supabase
-          .from('profil')
-          .select('sexe, niveau_activite')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (!error && profil) {
-          // Si sexe ou niveau_activite manquants → afficher bandeau
-          if (!profil.sexe || !profil.niveau_activite) {
-            setAfficherBandeau(true);
-          }
-        }
+        const profil = await chargerProfilNavigation(supabase, user.id);
+        if (cancelled) return;
+        setAfficherBandeau(Boolean(profil && (!profil.sexe || !profil.niveau_activite)));
+        setProfilUserId(user.id);
         setProfilVerifie(true);
-      } catch (err) {
-        console.error('Erreur vérification profil:', err);
-        setProfilVerifie(true);
+      } catch {
+        if (!cancelled) setProfilVerifie(true);
       }
     };
-
     verifierProfilComplet();
-  }, []);
+    return () => { cancelled = true; };
+  }, [user?.id, authLoading]);
 
-  const masquerBandeau = () => {
-    setAfficherBandeau(false);
-  };
+  return <>
+    <Navigation />
+    <ModeTestParcoursJeune />
+    {profilVerifie && profilUserId === user?.id && afficherBandeau && <BandeauCompletionProfil onClose={() => setAfficherBandeau(false)} />}
+    <Component {...pageProps} />
+  </>;
+}
 
-  return (
-    <SupabaseProvider>
-      <AuthProvider>
-        <DefisProvider>
-          <Navigation />
-          <ModeTestParcoursJeune />
-          {profilVerifie && afficherBandeau && <BandeauCompletionProfil onClose={masquerBandeau} />}
-          <Component {...pageProps} />
-        </DefisProvider>
-      </AuthProvider>
-    </SupabaseProvider>
-  );
+function MyApp(props) {
+  return <SupabaseProvider>
+    <AuthProvider>
+      <DefisProvider><AppContent {...props} /></DefisProvider>
+    </AuthProvider>
+  </SupabaseProvider>;
 }
 
 export default MyApp;

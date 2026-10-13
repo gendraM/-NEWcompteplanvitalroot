@@ -120,7 +120,7 @@ const Navigation = () => {
                 onClose={() => setShowModal(false)}
                 onSave={handleStartPreparation}
             />
-            <DefisEnCoursBanner />
+            <DefisEnCoursBanner descriptif={router.pathname === "/tableau-de-bord"} />
         </>
     );
 };

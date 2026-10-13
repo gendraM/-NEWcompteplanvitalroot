@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-12",
+  "date": "2026-10-13",
   "base_sha": "23f27e3b59f0ea6a3e3f987a1c433602a0fba6bb",
   "baseline": {
     "suites_passed": 39,
@@ -9,12 +9,12 @@
     "build": "PASS"
   },
   "delivered": {
-    "suites_passed": 43,
+    "suites_passed": 45,
     "suites_failed": 1,
-    "tests_passed": 360,
+    "tests_passed": 374,
     "tests_failed": 1,
-    "dashboard_suites_passed": 4,
-    "dashboard_tests_passed": 50,
+    "targeted_suites_passed": 6,
+    "targeted_tests_passed": 64,
     "build": "PASS"
   },
   "preexisting_failure": {
@@ -27,42 +27,74 @@
       "scenario": "mobile",
       "runtimeErrors": 0,
       "horizontalOverflow": false,
-      "interceptedRequests": 41,
+      "interceptedRequests": 43,
       "writesAttempted": 0
     },
     {
       "scenario": "desktop",
       "runtimeErrors": 0,
       "horizontalOverflow": false,
-      "interceptedRequests": 41,
+      "interceptedRequests": 43,
       "writesAttempted": 0
     },
     {
       "scenario": "empty",
       "runtimeErrors": 0,
       "horizontalOverflow": false,
-      "interceptedRequests": 38,
+      "interceptedRequests": 40,
       "writesAttempted": 0
     },
     {
       "scenario": "partial",
       "runtimeErrors": 0,
       "horizontalOverflow": false,
-      "interceptedRequests": 41,
+      "interceptedRequests": 43,
       "writesAttempted": 0
     },
     {
       "scenario": "anonymous",
       "runtimeErrors": 0,
       "horizontalOverflow": false,
-      "interceptedRequests": 2,
+      "interceptedRequests": 0,
+      "writesAttempted": 0
+    },
+    {
+      "scenario": "other_account",
+      "runtimeErrors": 0,
+      "horizontalOverflow": false,
+      "interceptedRequests": 43,
+      "writesAttempted": 0
+    },
+    {
+      "scenario": "session_change",
+      "runtimeErrors": 0,
+      "horizontalOverflow": false,
+      "interceptedRequests": 60,
       "writesAttempted": 0
     }
   ],
   "limits": [
-    "No real RLS verification",
-    "Unfiltered inherited reads in _app.js and DefisContext.js",
-    "No production data or mutations",
-    "Layer 2 and KPI/highlight arbitration pending"
+    "No real RLS or production account verification",
+    "Challenge V2 engine/RPC/migrations not integrated",
+    "Fast-food profile field and RepasBloc dependency",
+    "Persistent fasting/recovery and Align-Life not newly connected",
+    "Legacy preparation localStorage ownership not certified",
+    "Independent product review and real test-environment recipe still needed"
+  ],
+  "previous_delivery_sha": "4e44f813b69927ffea832a1e7ad56538156453ff",
+  "approved_and_completed": [
+    "Ten collapsible domains preserve existing detail content",
+    "Factual synthesis without unvalidated priority scores or success thresholds",
+    "Shared profile/challenge reads authenticated and user-filtered",
+    "Chart selection and open domains survive period changes"
+  ],
+  "browser_checks": [
+    "Keyboard opening of domain sections",
+    "Four evolution views",
+    "All REST reads scoped to expected synthetic user",
+    "No table read while anonymous",
+    "Same-page session change discards prior account data",
+    "No external network requests passed through",
+    "No database mutations attempted"
   ]
 }

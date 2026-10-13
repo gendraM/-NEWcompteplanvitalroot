@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import DashboardSummary from "../components/DashboardSummary";
+import DashboardDetails from "../components/DashboardDetails";
+import DashboardEvolution from "../components/DashboardEvolution";
 import { useAuth } from "../contexts/AuthContext";
 import { chargerDonneesDashboard } from "../lib/dashboardData";
 import { construireSyntheseTableauDeBord, construireMealSignals, compterExtrasObserves } from "../lib/dashboardSynthesis";
@@ -73,13 +75,15 @@ export default function TableauDeBord() {
   const [ideauxList, setIdeauxList] = useState([]);
   const [ideauxProgress, setIdeauxProgress] = useState([]);
   // Ajout : gestion de la période sélectionnée
+  const [evolutionView, setEvolutionView] = useState('poids');
+  const [openDomains, setOpenDomains] = useState([]);
   const [periode, setPeriode] = useState('semaine'); // 'semaine', 'mois', 'annee'
   const [periodeLabel, setPeriodeLabel] = useState('');
-  
+
   // État pour la bannière de préparation jeûne
   const [preparationData, setPreparationData] = useState(null);
   const [joursRestants, setJoursRestants] = useState(null);
-  
+
   // État pour le drawer de validation rétroactive
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [nbSemainesNonValidees, setNbSemainesNonValidees] = useState(0);
@@ -355,15 +359,15 @@ export default function TableauDeBord() {
   // Détecter préparation jeûne active
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     try {
       const prepData = localStorage.getItem('preparationData');
       const prepActive = localStorage.getItem('preparationActive');
-      
+
       if (prepActive === 'true' && prepData) {
         const data = JSON.parse(prepData);
         setPreparationData(data);
-        
+
         // Calculer jours restants - utiliser startDate (nom correct dans localStorage)
         if (data.startDate) {
           const dateJeune = new Date(data.startDate);
@@ -477,16 +481,16 @@ export default function TableauDeBord() {
     const encoreCourant = () => validationSequence === requestSequence.current;
     try {
       if (!weekStartArray || weekStartArray.length === 0) return false;
-      
+
       // Trier les dates pour avoir min/max
       const sorted = [...weekStartArray].sort();
       const premiereLundi = sorted[0];
       const dernierLundi = sorted[sorted.length - 1];
-      
+
       // Calculer la fin de la dernière semaine (dimanche)
       const dernierDimanche = new Date(dernierLundi);
       dernierDimanche.setDate(dernierDimanche.getDate() + 6);
-      
+
       const { data: authData, error: authError } = await supabase.auth.getUser();
       const currentUserId = authData?.user?.id;
       if (authError || !currentUserId || currentUserId !== loadedUserId || !encoreCourant()) return false;
@@ -505,12 +509,12 @@ export default function TableauDeBord() {
         const extrasInfo = calculerExtrasSemaine(weekStart, repasReels || []);
         const message = genererMessageFeedback(extrasInfo.count, palier);
         const variation = calculerVariation(extrasInfo.count, historiqueProgression, weekStart);
-        
+
         // Calculer fin de semaine (dimanche)
         const finSemaine = new Date(weekStart);
         finSemaine.setDate(finSemaine.getDate() + 6);
         const finSemaineStr = formatDate(finSemaine, 'yyyy-MM-dd');
-        
+
         const { data: budgetSemaine } = await supabase
           .from('extras_budget')
           .select('budget_hebdo')
@@ -575,13 +579,13 @@ export default function TableauDeBord() {
         .select('*').eq('user_id', currentUserId);
       if (!encoreCourant()) return false;
       setSemainesValidees(semaines || []);
-      
+
       const semainesNonValidees = getSemainesNonValidees(semaines || [], 8);
       setNbSemainesNonValidees(semainesNonValidees.length);
-      
+
       // getSemainesNonValidees retourne déjà le format attendu
       setSemainesNonValideesFormatees(semainesNonValidees);
-      
+
       return true;
     } catch (error) {
       console.error('Erreur validation batch:', error);
@@ -589,296 +593,36 @@ export default function TableauDeBord() {
     }
   };
 
-  // Affichage
-  if (loading || authLoading || (user?.id && loadedUserId && user.id !== loadedUserId)) {
-    return (
-      <div style={{
-        padding: "2rem",
-        maxWidth: "1200px",
-        margin: "0 auto",
-        fontFamily: "Arial, sans-serif",
-      }}>
-        <div style={{textAlign:'center', fontSize:'1.4rem', color:'#1976d2', marginTop:'3rem'}}>
-          Chargement de vos statistiques...
-        </div>
-      </div>
-    );
-  }
+  const extrasEvolutionChartData = { labels: evolutionExtras.map(e => e.label), datasets: [{ label: 'Moments Extras observés', data: evolutionExtras.map(e => e.count), borderColor: COLORS[2], spanGaps: false }] };
+  const repasParJour = new Map();
+  regrouperRepasReelsParOccurrence(repasReels).forEach(({ lignes }) => {
+    const date = lignes[0]?.date;
+    if (date) repasParJour.set(date, (repasParJour.get(date) || 0) + 1);
+  });
+  const repasDates = [...repasParJour.keys()].sort();
+  const repasEvolutionChartData = { labels: repasDates.map(date => new Date(date + 'T12:00:00').toLocaleDateString('fr-FR')), datasets: [{ label: 'Occurrences renseignées', data: repasDates.map(date => repasParJour.get(date)), borderColor: COLORS[0], showLine: false }] };
+  const detailsDescriptions = {
+    poids: 'Mesures observées, évolution agrégée et historique de la période.',
+    extras: 'Moments de la période, repères du parcours et événements des paliers.',
+    repas: 'Repas par occurrence, faim, satiété et accès aux notes.',
+    bienetre: 'Répartition descriptive des humeurs renseignées, sans explication causale.',
+    defis: 'États des défis renseignés et accès au module pour agir.',
+    ideaux: 'Paliers canoniques, séances réalisées et états des Idéaux.',
+    jeune: 'Préparation locale et accès au jeûne et à la reprise.',
+    badges: 'Collection existante et récompenses Fast-food historiques.',
+    fastfood: 'Événements de période et rythme personnel calculé sur le dernier événement global.',
+    regularite: 'Observations, périodes reconstituées et validations hebdomadaires.',
+  };
 
-  if (!user?.id || loadError || !loadedUserId) return (
-    <main style={{ padding: '2rem', maxWidth: 900, margin: 'auto' }}>
-      <h1>Tableau de bord</h1>
-      <p role="status">{loadError || 'Connecte-toi pour consulter ton parcours.'}</p>
-      <Link href="/login">Me connecter</Link>
-      {user?.id && <button type="button" onClick={handleRefresh}>Réessayer</button>}
-    </main>
-  );
-
-  return (
-    <div style={{
-      padding: "2rem",
-      maxWidth: "1200px",
-      margin: "0 auto",
-      fontFamily: "Arial, sans-serif"
-    }}>
-      <h1
-        style={{
-          textAlign: "center",
-          marginBottom: "2.2rem",
-          color: "#1976d2",
-          fontWeight: 800,
-          fontSize: "2.7rem",
-          letterSpacing: "0.5px",
-        }}
-      >
-        Tableau de Bord
-      </h1>
-      
-      <DashboardSummary synthese={dashboardV2} errors={domainErrors} />
-      <div id="dashboard-details-existants" style={{ scrollMarginTop: 24 }} />
-
-      {/* Badge de notification pour semaines non validées */}
-      {nbSemainesNonValidees > 0 && (
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <button
-            onClick={() => setDrawerOpen(true)}
-            style={{
-              background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '24px',
-              padding: '12px 24px',
-              fontSize: '16px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'transform 0.2s, box-shadow 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 16px rgba(255, 107, 107, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 107, 107, 0.3)';
-            }}
-          >
-            🔔 {nbSemainesNonValidees} semaine{nbSemainesNonValidees > 1 ? 's' : ''} à valider
-          </button>
-        </div>
-      )}
-      
-      {/* Bannière Préparation Jeûne */}
-      {preparationData && joursRestants !== null && joursRestants >= 0 && (
-        <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '16px',
-          padding: '20px 24px',
-          marginBottom: '24px',
-          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '16px'
-        }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              🎯 Préparation au jeûne en cours
-            </div>
-            <div style={{ fontSize: '1.05rem', opacity: 0.95, marginBottom: '4px' }}>
-              <strong>Date prévue :</strong> {new Date(preparationData.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            </div>
-            <div style={{ fontSize: '1.05rem', opacity: 0.95, marginBottom: '4px' }}>
-              <strong>Durée :</strong> {preparationData.duration} jours
-            </div>
-            {preparationData.goal && (
-              <div style={{ fontSize: '0.95rem', opacity: 0.9, fontStyle: 'italic', marginTop: '8px' }}>
-                💭 "{preparationData.goal}"
-              </div>
-            )}
-          </div>
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            gap: '12px',
-            minWidth: '180px'
-          }}>
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.25)',
-              borderRadius: '12px',
-              padding: '12px 20px',
-              textAlign: 'center',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, lineHeight: 1 }}>
-                J-{joursRestants}
-              </div>
-              <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '4px' }}>
-                {joursRestants === 0 ? "C'est aujourd'hui !" : joursRestants === 1 ? 'jour restant' : 'jours restants'}
-              </div>
-            </div>
-            <Link 
-              href="/preparation-jeune"
-              style={{
-                background: '#fff',
-                color: '#667eea',
-                padding: '10px 20px',
-                borderRadius: '8px',
-                fontWeight: 600,
-                textDecoration: 'none',
-                fontSize: '0.95rem',
-                transition: 'transform 0.2s',
-                display: 'inline-block',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                cursor: 'pointer'
-              }}
-            >
-              📋 Voir ma préparation
-            </Link>
-          </div>
-        </div>
-      )}
-      
-      {/* Sélecteur de période + affichage période */}
-      <div style={{textAlign:'center', marginBottom:'1rem', fontSize:'1.15rem', color:'#888', fontWeight:500}}>
-        <span style={{marginRight:12}}>Période affichée :</span>
-        <select value={periode} onChange={e => setPeriode(e.target.value)} style={{fontSize:'1rem', padding:'4px 10px', borderRadius:6, border:'1px solid #ccc', fontWeight:600}}>
-          <option value="semaine">Semaine</option>
-          <option value="mois">Mois</option>
-          <option value="annee">Année</option>
-        </select>
-        <span style={{marginLeft:16}}>{periodeLabel}</span>
-      </div>
-      <div style={{textAlign:'center', marginBottom:'1.5rem'}}>
-        <button onClick={handleRefresh} style={{
-          background:'#1976d2', color:'#fff', border:'none', borderRadius:8, padding:'8px 22px', fontWeight:600, fontSize:16, cursor:'pointer'
-        }}>🔄 Rafraîchir les statistiques</button>
-      </div>
-
-
-      {/* --- Récapitulatif synthétique --- */}
-      <div style={{display:'flex', flexWrap:'wrap', gap:'1rem', justifyContent:'center', margin:'2rem 0'}}>
-        {/* Carte repas */}
-        <div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
-          <div style={{fontSize:'2.1rem', fontWeight:700, color:'#1976d2'}}>
-            🍽️ {dashboardV2.mealSignals.nombreRepas}
-          </div>
-          <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Repas sur la période</div>
-        </div>
-        {/* Carte extras */}
-        <div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
-          <div style={{fontSize:'2.1rem', fontWeight:700, color:'#e65100'}}>
-            🍔 {domainErrors.includes('repas') ? '—' : fastFoodCount}
-          </div>
-          <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Fast food sur la période</div>
-          {fastFoodHistory && fastFoodHistory.length > 0 && (
-            <div style={{marginTop:8, fontSize:'0.90rem', color:'#666', fontStyle:'italic'}}>
-              Dernier : {fastFoodHistory[0]?.tag || "Non identifié"}
-            </div>
-          )}
-          <div style={{ marginTop: 8, fontSize: '0.98rem', color: '#1976d2' }}>
-            {!fastFoodRhythm ? 'Rythme personnel indisponible pour le moment.' : <>
-              Repère personnel : <b>{fastFoodRhythm.targetDays} jours</b><br />
-              {fastFoodRhythm.hasHistory ? <>
-                Dernier événement global : <b>{fastFoodRhythm.lastFastFoodDate.toLocaleDateString('fr-FR')}</b><br />
-                Prochain repère : <b>{nextFastFoodDate?.toLocaleDateString('fr-FR')}</b><br />
-                {fastFoodRhythm.targetReached ? 'Repère atteint.' : `Délai restant : ${fastFoodDelay} jours.`}
-              </> : 'Aucun événement Fast-food connu dans ton historique.'}
-            </>}
-          </div>
-          <p style={{ color: '#666', fontSize: 14 }}>
-            {domainErrors.includes('repas') ? 'Historique de période indisponible pour le moment.' : fastFoodHistory.length ? 'Historique disponible pour cette période.' : 'Aucun événement renseigné sur cette période. Le rythme utilise ton historique global.'}
-          </p>
-          {fastFoodRhythm?.targetDays === 45 && fastFoodHistory.length >= 2 && <p>
-            {getFastFoodRewards([...fastFoodHistory].sort((a, b) => a.date.localeCompare(b.date))).message}
-          </p>}
-            <button
-              style={{marginTop:12, padding:'7px 18px', background:'#e65100', color:'#fff', border:'none', borderRadius:8, fontWeight:600, cursor:'pointer'}}
-              onClick={()=>window.location.href='/historique-fast-food'}
-            >
-              En savoir plus
-            </button>
-        </div>
-        {/* Carte satiété */}
-        <div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
-          <div style={{fontSize:'2.1rem', fontWeight:700, color:'#2980b9'}}>
-            {tauxSatiete === null ? '—' : `${tauxSatiete === null ? '—' : `${tauxSatiete}%`}`}
-          </div>
-          <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Repas pris par faim renseignée</div>
-        </div>
-        {/* Carte humeur dominante */}
-        <div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
-          <div style={{fontSize:'2.1rem', fontWeight:700, color:'#9c27b0'}}>
-            {humeurCounts && Object.keys(humeurCounts).length > 0 ? Object.entries(humeurCounts).sort((a,b)=>b[1]-a[1])[0][0] : '—'}
-          </div>
-          <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Humeur dominante</div>
-        </div>
-        {/* Carte poids moyen */}
-        <div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
+  const detailsContent = {
+poids: <>
+<div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
           <div style={{fontSize:'2.1rem', fontWeight:700, color:'#ffa726'}}>
             {Array.isArray(poidsData) && poidsData.length > 0 ? (poidsData.reduce((acc,p)=>acc+p.poids,0)/poidsData.length).toFixed(1) : '—'}
           </div>
           <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Poids moyen</div>
         </div>
-      </div>
-
-      {/* --- Graphique évolution Extras --- */}
-      {/* --- Progression des idéaux (widget) --- */}
-      {ideauxProgress && ideauxProgress.length > 0 && (
-        <div style={{padding:'1.2rem', background:'#fff', borderRadius:12, boxShadow:'0 2px 8px #e0e0e0', marginBottom:'1.2rem'}}>
-          <h2 style={{marginTop:0, color:'#00bcd4'}}>Progression de mes idéaux</h2>
-          <div style={{display:'flex', gap:12, flexWrap:'wrap'}}>
-            {ideauxProgress.map(ip => (
-              <div key={ip.id} style={{flex:'1 1 260px', minWidth:220, background:'#fafafa', borderRadius:12, padding:12, display:'flex', gap:12, alignItems:'center'}}>
-                <div style={{width:64, height:64, borderRadius:10, overflow:'hidden', flexShrink:0, background:'#eee'}}>
-                  {ip.image_url ? (
-                    <img src={ip.image_url} alt="visuel" style={{width:'100%', height:'100%', objectFit:'cover', display:'block', filter: `blur(${Math.round(12 * (1 - (ip.pourcentage/100)))}px)`, transition:'filter 0.4s'}} />
-                  ) : (
-                    <div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'#888'}}>{ip.titre ? ip.titre[0] : '–'}</div>
-                  )}
-                </div>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:700, color:'#1976d2', marginBottom:6, fontSize:15}}>{ip.titre}</div>
-                  <div style={{height:10, background:'#e0e0e0', borderRadius:8, overflow:'hidden', marginBottom:6}} aria-hidden>
-                    <div style={{width:`${Math.min(100, ip.pourcentage)}%`, height:'100%', background: ip.pourcentage >= 80 ? '#43a047' : ip.pourcentage >= 50 ? '#ffa726' : '#1976d2', transition:'width 0.5s'}} />
-                  </div>
-                  <div style={{fontSize:13, color:'#555', display:'flex', justifyContent:'space-between'}}>
-                    <div>{ip.prevues > 0 ? `${ip.realise} / ${ip.prevues} séances` : "Aucune séance prévue renseignée"}</div>
-                    <div style={{fontWeight:800}}>{ip.pourcentage === null ? "—" : `${ip.pourcentage}%`}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      <div style={{padding:'1.5rem', background:'#fafafa', borderRadius:'15px', boxShadow:'0 2px 8px #e0e0e0', textAlign:'center', marginBottom:'2rem'}}>
-        <h2 style={{marginTop:0, color:COLORS[2]}}>Évolution des Extras</h2>
-        <Line
-          data={{
-            labels: evolutionExtras.map(e => e.label),
-            datasets: [{
-              label: 'Extras',
-              data: evolutionExtras.map(e => e.count),
-              borderColor: COLORS[2],
-              backgroundColor: COLORS[2],
-              fill: false,
-              tension: 0.2,
-              pointRadius: 5,
-              pointBackgroundColor: COLORS[3],
-            }],
-          }}
-        />
-      </div>
-
-      {/* --- Graphique évolution Poids --- */}
-      <div style={{padding:'1.5rem', background:'#fafafa', borderRadius:'15px', boxShadow:'0 2px 8px #e0e0e0', textAlign:'center', marginBottom:'2rem'}}>
+<div style={{padding:'1.5rem', background:'#fafafa', borderRadius:'15px', boxShadow:'0 2px 8px #e0e0e0', textAlign:'center', marginBottom:'2rem'}}>
         <h2 style={{marginTop:0, color:COLORS[1]}}>Évolution du Poids</h2>
         <Line
           data={{
@@ -896,34 +640,87 @@ export default function TableauDeBord() {
           }}
         />
       </div>
+<div
+          style={{
+            padding: "1.5rem",
+            background: "#fafafa",
+            borderRadius: "15px",
+            boxShadow: "0 2px 8px #e0e0e0",
+            gridColumn: "1 / -1",
+          }}
+        >
+          <h2 style={{ marginTop: 0, color: COLORS[1] }}>
+            Évolution du Poids
+          </h2>
+          <Line data={poidsChartData} />
+        </div>
 
-      {/* Dopamine / encouragement */}
-      <div
-        style={{
-          background: "#e3f2fd",
-          borderRadius: "15px",
-          padding: "1.4rem",
-          boxShadow: "0 2px 12px #e0e0e0",
-          marginBottom: "2rem",
-          textAlign: "center",
-          fontSize: "1.2rem",
-          color: "#1976d2",
-          fontWeight: 600,
-        }}
-      >
-        {motivation}
+</>,
+extras: <>
+<div
+          style={{
+            padding: "1.5rem",
+            background: "#fafafa",
+            borderRadius: "15px",
+            boxShadow: "0 2px 8px #e0e0e0",
+            textAlign: "center",
+          }}
+        >
+          <h2 style={{ marginTop: 0, color: COLORS[2] }}>Extras sur la période</h2>
+          <p
+            style={{
+              fontSize: "2.2rem",
+              fontWeight: "bold",
+              color: "#1976d2",
+              margin: "1.1rem 0 0.2rem 0",
+            }}
+          >
+            {repasReels.length ? extrasData.current : '—'} moments · palier {extrasData.quota}/semaine
+          </p>
+          <p>
+            {repasReels.length ? "Moments observés sur la période affichée." : "Aucune observation sur cette période."}
+          </p>
+        </div>
+<div style={{padding:'1.5rem', background:'#fafafa', borderRadius:'15px', boxShadow:'0 2px 8px #e0e0e0', textAlign:'center', marginBottom:'2rem'}}>
+        <h2 style={{marginTop:0, color:COLORS[2]}}>Évolution des Extras</h2>
+        <Line
+          data={{
+            labels: evolutionExtras.map(e => e.label),
+            datasets: [{
+              label: 'Extras',
+              data: evolutionExtras.map(e => e.count),
+              borderColor: COLORS[2],
+              backgroundColor: COLORS[2],
+              fill: false,
+              tension: 0.2,
+              pointRadius: 5,
+              pointBackgroundColor: COLORS[3],
+            }],
+          }}
+        />
       </div>
+<TimelineProgression history={weeklyHistory.filter(semaine => {
+        const fin = new Date(`${semaine.weekStart}T12:00:00`);
+        fin.setDate(fin.getDate() + 6);
+        return semaine.validee || repasReels.some(r => r.date >= semaine.weekStart && r.date <= formatDate(fin, 'yyyy-MM-dd'));
+      })} />
+<ExtrasBadgesSection badges={badges.filter(badge => badge.type === 'extras_palier')} events={extrasPalierEvents} />
 
-      {/* ...le reste du tableau de bord... */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))",
-          gap: "2.5rem",
-        }}
-      >
-        {/* --- Indicateur de Satiété --- */}
-        <div
+</>,
+repas: <>
+<div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
+          <div style={{fontSize:'2.1rem', fontWeight:700, color:'#1976d2'}}>
+            🍽️ {dashboardV2.mealSignals.nombreRepas}
+          </div>
+          <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Repas sur la période</div>
+        </div>
+<div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
+          <div style={{fontSize:'2.1rem', fontWeight:700, color:'#2980b9'}}>
+            {tauxSatiete === null ? '—' : `${tauxSatiete}%`}
+          </div>
+          <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Repas pris par faim renseignée</div>
+        </div>
+<div
           style={{
             padding: "1.5rem",
             background: "#fafafa",
@@ -983,54 +780,16 @@ export default function TableauDeBord() {
             </div>
           </div>
         </div>
-
-        {/* --- Extras de la semaine --- */}
-        <div
-          style={{
-            padding: "1.5rem",
-            background: "#fafafa",
-            borderRadius: "15px",
-            boxShadow: "0 2px 8px #e0e0e0",
-            textAlign: "center",
-          }}
-        >
-          <h2 style={{ marginTop: 0, color: COLORS[2] }}>Extras sur la période</h2>
-          <p
-            style={{
-              fontSize: "2.2rem",
-              fontWeight: "bold",
-              color:
-                extrasData.current <= extrasData.quota
-                  ? "#43a047"
-                  : "#e53935",
-              margin: "1.1rem 0 0.2rem 0",
-            }}
-          >
-            {repasReels.length ? extrasData.current : '—'} moments · palier {extrasData.quota}/semaine
-          </p>
-          <p>
-            {repasReels.length ? "Moments observés sur la période affichée." : "Aucune observation sur cette période."}
-          </p>
+<p>Satiété respectée : {dashboardV2.mealSignals.satiete.pourcentageRespectee === null ? 'non renseignée' : dashboardV2.mealSignals.satiete.pourcentageRespectee + '% des occurrences renseignées'}. Alignement confirmé : {dashboardV2.mealSignals.alignementPlan.pourcentage === null ? 'non renseigné' : dashboardV2.mealSignals.alignementPlan.pourcentage + '% des occurrences renseignées'}.</p>
+</>,
+bienetre: <>
+<div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
+          <div style={{fontSize:'2.1rem', fontWeight:700, color:'#9c27b0'}}>
+            {humeurCounts && Object.keys(humeurCounts).length > 0 ? Object.entries(humeurCounts).sort((a,b)=>b[1]-a[1])[0][0] : '—'}
+          </div>
+          <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Humeur dominante</div>
         </div>
-
-        {/* --- Graphique de Poids --- */}
-        <div
-          style={{
-            padding: "1.5rem",
-            background: "#fafafa",
-            borderRadius: "15px",
-            boxShadow: "0 2px 8px #e0e0e0",
-            gridColumn: "1 / -1",
-          }}
-        >
-          <h2 style={{ marginTop: 0, color: COLORS[1] }}>
-            Évolution du Poids
-          </h2>
-          <Line data={poidsChartData} />
-        </div>
-
-        {/* --- Graphique d'Humeurs --- */}
-        <div
+<div
           style={{
             padding: "1.5rem",
             background: "#fafafa",
@@ -1045,15 +804,119 @@ export default function TableauDeBord() {
           <Pie data={humeurChartData} />
         </div>
 
-        {/* --- Section Succès / Badges --- */}
-      {/* --- Timeline visuelle façon Instagram/TikTok --- */}
-      <TimelineProgression history={weeklyHistory.filter(semaine => {
-        const fin = new Date(`${semaine.weekStart}T12:00:00`);
-        fin.setDate(fin.getDate() + 6);
-        return semaine.validee || repasReels.some(r => r.date >= semaine.weekStart && r.date <= formatDate(fin, 'yyyy-MM-dd'));
-      })} />
-        <ExtrasBadgesSection badges={badges.filter(badge => badge.type === 'extras_palier')} events={extrasPalierEvents} />
-        <div
+</>,
+defis: <>
+
+<p>La progression détaillée est indisponible pour le moment. Retrouve les actions et le suivi dans le module Défis.</p>{defisDashboard.length ? <ul>{defisDashboard.map(defi => <li key={defi.id}>{defi.nom} — {defi.status || 'état non renseigné'}</li>)}</ul> : <p>Aucun défi renseigné.</p>}
+</>,
+ideaux: <>
+{ideauxProgress && ideauxProgress.length > 0 && (
+        <div style={{padding:'1.2rem', background:'#fff', borderRadius:12, boxShadow:'0 2px 8px #e0e0e0', marginBottom:'1.2rem'}}>
+          <h2 style={{marginTop:0, color:'#00bcd4'}}>Progression de mes idéaux</h2>
+          <div style={{display:'flex', gap:12, flexWrap:'wrap'}}>
+            {ideauxProgress.map(ip => (
+              <div key={ip.id} style={{flex:'1 1 260px', minWidth:220, background:'#fafafa', borderRadius:12, padding:12, display:'flex', gap:12, alignItems:'center'}}>
+                <div style={{width:64, height:64, borderRadius:10, overflow:'hidden', flexShrink:0, background:'#eee'}}>
+                  {ip.image_url ? (
+                    <img src={ip.image_url} alt="visuel" style={{width:'100%', height:'100%', objectFit:'cover', display:'block', filter: `blur(${Math.round(12 * (1 - (ip.pourcentage/100)))}px)`, transition:'filter 0.4s'}} />
+                  ) : (
+                    <div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'#888'}}>{ip.titre ? ip.titre[0] : '–'}</div>
+                  )}
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700, color:'#1976d2', marginBottom:6, fontSize:15}}>{ip.titre}</div>
+                  <div style={{height:10, background:'#e0e0e0', borderRadius:8, overflow:'hidden', marginBottom:6}} aria-hidden>
+                    <div style={{width:`${Math.min(100, ip.pourcentage)}%`, height:'100%', background: ip.pourcentage >= 80 ? '#43a047' : ip.pourcentage >= 50 ? '#ffa726' : '#1976d2', transition:'width 0.5s'}} />
+                  </div>
+                  <div style={{fontSize:13, color:'#555', display:'flex', justifyContent:'space-between'}}>
+                    <div>{ip.prevues > 0 ? `${ip.realise} / ${ip.prevues} séances` : "Aucune séance prévue renseignée"}</div>
+                    <div style={{fontWeight:800}}>{ip.pourcentage === null ? "—" : `${ip.pourcentage}%`}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+{!ideauxList.length && <p>Aucun Idéal renseigné.</p>}<ul>{ideauxList.map(ideal => <li key={ideal.id}>{ideal.titre} — {ideal.statut || 'état non renseigné'}{ideal.cycle_palier?.repriseNecessaire && ' · Une reprise est à examiner dans le module, sans activation automatique.'}</li>)}</ul>
+</>,
+jeune: <>
+{preparationData && joursRestants !== null && joursRestants >= 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '16px',
+          padding: '20px 24px',
+          marginBottom: '24px',
+          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px'
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              🎯 Préparation au jeûne en cours
+            </div>
+            <div style={{ fontSize: '1.05rem', opacity: 0.95, marginBottom: '4px' }}>
+              <strong>Date prévue :</strong> {new Date(preparationData.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+            <div style={{ fontSize: '1.05rem', opacity: 0.95, marginBottom: '4px' }}>
+              <strong>Durée :</strong> {preparationData.duration} jours
+            </div>
+            {preparationData.goal && (
+              <div style={{ fontSize: '0.95rem', opacity: 0.9, fontStyle: 'italic', marginTop: '8px' }}>
+                💭 "{preparationData.goal}"
+              </div>
+            )}
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+            minWidth: '180px'
+          }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.25)',
+              borderRadius: '12px',
+              padding: '12px 20px',
+              textAlign: 'center',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <div style={{ fontSize: '2.2rem', fontWeight: 800, lineHeight: 1 }}>
+                J-{joursRestants}
+              </div>
+              <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '4px' }}>
+                {joursRestants === 0 ? "C'est aujourd'hui !" : joursRestants === 1 ? 'jour restant' : 'jours restants'}
+              </div>
+            </div>
+            <Link
+              href="/preparation-jeune"
+              style={{
+                background: '#fff',
+                color: '#667eea',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                fontSize: '0.95rem',
+                transition: 'transform 0.2s',
+                display: 'inline-block',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                cursor: 'pointer'
+              }}
+            >
+              📋 Voir ma préparation
+            </Link>
+          </div>
+        </div>
+      )}
+{!preparationData && <p>Aucune préparation locale renseignée. Consulte les modules pour retrouver ton parcours.</p>}<p>La préparation ci-dessus vient de cet appareil ; l'état persistant du jeûne et de la reprise n'est pas disponible dans cette synthèse.</p><Link href="/preparation-jeune">Ma préparation</Link>{' · '}<Link href="/reprise-alimentaire-apres-jeune">Ma reprise alimentaire</Link>
+</>,
+badges: <>
+<div
           style={{
             padding: "1.5rem",
             background: "#fafafa",
@@ -1103,8 +966,7 @@ export default function TableauDeBord() {
               );
             })()}
         </div>
-        {/* Section dédiée Badges Fast Food */}
-        <div style={{padding:'1.5rem', background:'#fffbe6', borderRadius:'15px', boxShadow:'0 2px 8px #ffe0b2', textAlign:'center', margin:'2rem 0'}}>
+<div style={{padding:'1.5rem', background:'#fffbe6', borderRadius:'15px', boxShadow:'0 2px 8px #ffe0b2', textAlign:'center', margin:'2rem 0'}}>
           <h2 style={{marginTop:0, color:'#e65100'}}>Badges Fast Food</h2>
           {badgesFastFood.length === 0 ? (
             <p style={{color:'#e65100'}}>Aucun badge fast food débloqué pour le moment.</p>
@@ -1119,10 +981,144 @@ export default function TableauDeBord() {
             </ul>
           )}
         </div>
-      </div>
 
-      {/* --- Actions rapides/navigation --- */}
-      <div
+</>,
+fastfood: <>
+<div style={{background:'#fff', borderRadius:14, boxShadow:'0 2px 8px #e0e0e0', padding:'1.2rem 2rem', minWidth:170, textAlign:'center'}}>
+          <div style={{fontSize:'2.1rem', fontWeight:700, color:'#e65100'}}>
+            🍔 {domainErrors.includes('repas') ? '—' : fastFoodCount}
+          </div>
+          <div style={{color:'#888', fontWeight:600, fontSize:'1.08rem'}}>Fast food sur la période</div>
+          {fastFoodHistory && fastFoodHistory.length > 0 && (
+            <div style={{marginTop:8, fontSize:'0.90rem', color:'#666', fontStyle:'italic'}}>
+              Dernier : {fastFoodHistory[0]?.tag || "Non identifié"}
+            </div>
+          )}
+          <div style={{ marginTop: 8, fontSize: '0.98rem', color: '#1976d2' }}>
+            {!fastFoodRhythm ? 'Rythme personnel indisponible pour le moment.' : <>
+              Repère personnel : <b>{fastFoodRhythm.targetDays} jours</b><br />
+              {fastFoodRhythm.hasHistory ? <>
+                Dernier événement global : <b>{fastFoodRhythm.lastFastFoodDate.toLocaleDateString('fr-FR')}</b><br />
+                Prochain repère : <b>{nextFastFoodDate?.toLocaleDateString('fr-FR')}</b><br />
+                {fastFoodRhythm.targetReached ? 'Repère atteint.' : `Délai restant : ${fastFoodDelay} jours.`}
+              </> : 'Aucun événement Fast-food connu dans ton historique.'}
+            </>}
+          </div>
+          <p style={{ color: '#666', fontSize: 14 }}>
+            {domainErrors.includes('repas') ? 'Historique de période indisponible pour le moment.' : fastFoodHistory.length ? 'Historique disponible pour cette période.' : 'Aucun événement renseigné sur cette période. Le rythme utilise ton historique global.'}
+          </p>
+          {fastFoodRhythm?.targetDays === 45 && fastFoodHistory.length >= 2 && <p>
+            {getFastFoodRewards([...fastFoodHistory].sort((a, b) => a.date.localeCompare(b.date))).message}
+          </p>}
+            <button
+              style={{marginTop:12, padding:'7px 18px', background:'#e65100', color:'#fff', border:'none', borderRadius:8, fontWeight:600, cursor:'pointer'}}
+              onClick={()=>window.location.href='/historique-fast-food'}
+            >
+              En savoir plus
+            </button>
+        </div>
+
+</>,
+regularite: <>
+{nbSemainesNonValidees > 0 && (
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <button
+            onClick={() => setDrawerOpen(true)}
+            style={{
+              background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '24px',
+              padding: '12px 24px',
+              fontSize: '16px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'transform 0.2s, box-shadow 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(255, 107, 107, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 107, 107, 0.3)';
+            }}
+          >
+            🔔 {nbSemainesNonValidees} semaine{nbSemainesNonValidees > 1 ? 's' : ''} à valider
+          </button>
+        </div>
+      )}
+{dashboardV2.couverture && <p>{dashboardV2.couverture.joursObserves} jours observés, {dashboardV2.couverture.joursReconstitues} reconstitués, {dashboardV2.couverture.joursSansDonnee} sans donnée. Une absence de saisie n’est pas un échec.</p>}{!nbSemainesNonValidees && <p>Aucune semaine en attente de validation.</p>}
+</>,
+  };
+
+  // Affichage
+  if (loading || authLoading || (user?.id && loadedUserId && user.id !== loadedUserId)) {
+    return (
+      <div style={{
+        padding: "2rem",
+        maxWidth: "1200px",
+        margin: "0 auto",
+        fontFamily: "Arial, sans-serif",
+      }}>
+        <div style={{textAlign:'center', fontSize:'1.4rem', color:'#1976d2', marginTop:'3rem'}}>
+          Chargement de vos statistiques...
+        </div>
+      </div>
+    );
+  }
+
+  if (!user?.id || loadError || !loadedUserId) return (
+    <main style={{ padding: '2rem', maxWidth: 900, margin: 'auto' }}>
+      <h1>Tableau de bord</h1>
+      <p role="status">{loadError || 'Connecte-toi pour consulter ton parcours.'}</p>
+      <Link href="/login">Me connecter</Link>
+      {user?.id && <button type="button" onClick={handleRefresh}>Réessayer</button>}
+    </main>
+  );
+
+    return (
+    <main style={{ padding: 'clamp(16px, 4vw, 32px)', maxWidth: 1200, margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
+<h1
+        style={{
+          textAlign: "center",
+          marginBottom: "2.2rem",
+          color: "#1976d2",
+          fontWeight: 800,
+          fontSize: "2.7rem",
+          letterSpacing: "0.5px",
+        }}
+      >
+        Tableau de Bord
+      </h1>
+<div style={{textAlign:'center', marginBottom:'1rem', fontSize:'1.15rem', color:'#888', fontWeight:500}}>
+        <span style={{marginRight:12}}>Période affichée :</span>
+        <select aria-label="Période affichée" value={periode} onChange={e => setPeriode(e.target.value)} style={{fontSize:'1rem', padding:'4px 10px', borderRadius:6, border:'1px solid #ccc', fontWeight:600}}>
+          <option value="semaine">Semaine</option>
+          <option value="mois">Mois</option>
+          <option value="annee">Année</option>
+        </select>
+        <span style={{marginLeft:16}}>{periodeLabel}</span>
+      </div>
+<div style={{textAlign:'center', marginBottom:'1.5rem'}}>
+        <button onClick={handleRefresh} style={{
+          background:'#1976d2', color:'#fff', border:'none', borderRadius:8, padding:'8px 22px', fontWeight:600, fontSize:16, cursor:'pointer'
+        }}>🔄 Rafraîchir les statistiques</button>
+      </div>
+<DashboardSummary synthese={dashboardV2} errors={domainErrors} />
+{preparationData && joursRestants !== null && joursRestants >= 0 && <p>Préparation enregistrée sur cet appareil : J-{joursRestants}. <Link href="/preparation-jeune">Voir ma préparation</Link></p>}
+<DashboardEvolution view={evolutionView} onViewChange={setEvolutionView} poids={poidsChartData} extras={extrasEvolutionChartData} repas={repasEvolutionChartData} wellbeing={humeurChartData} errors={domainErrors} />
+<DashboardDetails content={detailsContent} descriptions={detailsDescriptions} errors={domainErrors} openDomains={openDomains} onDomainToggle={(id, open) => {
+  setOpenDomains(previous => {
+    if (previous.includes(id) === open) return previous;
+    return open ? [...previous, id] : previous.filter(domain => domain !== id);
+  });
+}} />
+<div
         style={{
           textAlign: "center",
           marginTop: "3.5rem",
@@ -1260,9 +1256,7 @@ export default function TableauDeBord() {
           </button>
         </Link>
       </div>
-      
-      {/* Drawer de validation rétroactive */}
-      <DrawerValidation
+<DrawerValidation
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         semainesNonValidees={semainesNonValideesFormatees}
@@ -1279,6 +1273,6 @@ export default function TableauDeBord() {
           // TODO: Implémenter l'ouverture du ModalFeedbackValidation
         }}
       />
-    </div>
+</main>
   );
 }

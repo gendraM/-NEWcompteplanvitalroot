@@ -3,35 +3,49 @@
     "scenario": "mobile",
     "runtimeErrors": 0,
     "horizontalOverflow": false,
-    "interceptedRequests": 41,
+    "interceptedRequests": 43,
     "writesAttempted": 0
   },
   {
     "scenario": "desktop",
     "runtimeErrors": 0,
     "horizontalOverflow": false,
-    "interceptedRequests": 41,
+    "interceptedRequests": 43,
     "writesAttempted": 0
   },
   {
     "scenario": "empty",
     "runtimeErrors": 0,
     "horizontalOverflow": false,
-    "interceptedRequests": 38,
+    "interceptedRequests": 40,
     "writesAttempted": 0
   },
   {
     "scenario": "partial",
     "runtimeErrors": 0,
     "horizontalOverflow": false,
-    "interceptedRequests": 41,
+    "interceptedRequests": 43,
     "writesAttempted": 0
   },
   {
     "scenario": "anonymous",
     "runtimeErrors": 0,
     "horizontalOverflow": false,
-    "interceptedRequests": 2,
+    "interceptedRequests": 0,
+    "writesAttempted": 0
+  },
+  {
+    "scenario": "other_account",
+    "runtimeErrors": 0,
+    "horizontalOverflow": false,
+    "interceptedRequests": 43,
+    "writesAttempted": 0
+  },
+  {
+    "scenario": "session_change",
+    "runtimeErrors": 0,
+    "horizontalOverflow": false,
+    "interceptedRequests": 60,
     "writesAttempted": 0
   }
 ]

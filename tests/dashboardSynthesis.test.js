@@ -234,3 +234,16 @@ test('les graphiques Extras distinguent une période sans saisie d’un zéro ob
   expect(compterExtrasObserves([{ id: 'r', est_extra: false }])).toBe(0);
   expect(compterExtrasObserves([{ id: 'r', occurrence_repas_id: 'm', est_extra: true }, { id: 's', occurrence_repas_id: 'm', est_extra: true }])).toBe(1);
 });
+
+
+test.each([-0.1, 0, 0.1, 2])('une variation de %s kg est un fait, pas une réussite sous condition de seuil', variationDepuisDepart => {
+  const lecture = construireLectureParcours({ weightStatus: { suffisantPourTendance: true, variationDepuisDepart } });
+  expect(lecture.highlights).toHaveLength(1);
+  expect(lecture.highlights[0].message).toContain('de la période');
+  expect(lecture.highlights[0]).not.toHaveProperty('priorite');
+  expect(lecture.pointsAppui).toEqual([]);
+});
+test('70 % et trois repas ne deviennent pas un jugement d’organisation ou de progrès', () => {
+  const lecture = construireLectureParcours({ mealSignals: { reculSuffisant: true, satiete: { renseignee: 3, pourcentageRespectee: 100 }, alignementPlan: { renseigne: 3, pourcentage: 100 } } });
+  expect(lecture).toEqual({ highlights: [], pointsAppui: [], pointsObservation: [] });
+});
