@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getFastFoodRewards } from "../lib/fastFoodRewards";
 import { DEFAULT_FAST_FOOD_INTERVAL_DAYS, getFastFoodRhythm, normalizeIntervalDays } from "../lib/fastFoodRhythm";
