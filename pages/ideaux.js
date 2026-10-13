@@ -11,6 +11,7 @@ import { analyserRealisationSeance } from '../lib/ideauxRealiteSeance';
 import { chargerIdeauxAvecProgression } from '../lib/ideauxProgression';
 import { obtenirUserIdIdeaux } from '../lib/ideauxAuth';
 import { construirePropositionReprise, creerArchivePalier } from '../lib/ideauxCycle';
+import { analyserSemaineIdeal } from '../lib/ideauxFeedbackSemaine';
 
 function extraireSemainesPourParametres(plan, params) {
   return extraireSemainesPalier(plan, {
@@ -151,6 +152,7 @@ export default function IdeauxPage() {
     niveauActuel: 'semblable',
     rythmeRealiste: 3,
     nouvelleDateCible: '',
+    strategieTrajectoire: 'conserver_date',
   });
 
   async function handleGeneratePlan(ideal) {
@@ -643,6 +645,9 @@ export default function IdeauxPage() {
       niveauActuel: 'semblable',
       rythmeRealiste: Number(ideal.plan_params_valides?.frequence || 3),
       nouvelleDateCible: '',
+      strategieTrajectoire: ideal.trajectoire_objectif?.projection?.objectifAtteignable === false
+        ? 'etape_intermediaire'
+        : 'conserver_date',
     });
   }
 
@@ -729,6 +734,7 @@ export default function IdeauxPage() {
         joursProposes: repriseProposition.joursProposes,
         palierDuree: repriseProposition.palierDuree,
         dateDebut: repriseProposition.dateDebut,
+        strategieTrajectoire: repriseProposition.strategieTrajectoire,
       };
       const { error: idealError } = await supabase.from('ideaux').update({
         plan_data: nouveauPlan,
@@ -849,6 +855,9 @@ export default function IdeauxPage() {
         )}
         {ideaux.map(ideal => {
           const progressionPalier = ideal.progression_palier;
+          const trajectoire = ideal.trajectoire_objectif;
+          const afficherNombre = (valeur, suffixe = '') => Number.isFinite(valeur) ? `${String(valeur).replace('.', ',')}${suffixe}` : '—';
+          const afficherEcart = (valeur, suffixe = '') => Number.isFinite(valeur) ? `${valeur > 0 ? '+' : ''}${String(valeur).replace('.', ',')}${suffixe}` : 'non comparable';
           return (
             <div key={ideal.id} style={{
               background: '#fff',
@@ -930,6 +939,20 @@ export default function IdeauxPage() {
                 <div style={{fontSize:15, marginBottom:6, color:'#1976d2', fontWeight:600}}>
                   Palier {ideal.cycle_palier?.numero || ideal.palier_numero || 1} : {progressionPalier.faites}/{progressionPalier.total} séances réalisées ({progressionPalier.pourcentage} %)
                 </div>
+              )}
+              {trajectoire && (
+                <details style={{marginTop:12, padding:'10px 12px', background:'#f3f8ff', border:'1px solid #bbdefb', borderRadius:10}}>
+                  <summary style={{cursor:'pointer', fontWeight:800, color:'#1565c0'}}>📊 Mon évolution et ma trajectoire</summary>
+                  <div style={{marginTop:10, fontSize:14, lineHeight:1.55}}>
+                    <div><b>Palier actuel :</b> {trajectoire.courant.faites}/{trajectoire.courant.prevues} séances réalisées</div>
+                    <div>Durée moyenne réelle : <b>{afficherNombre(trajectoire.courant.dureeMoyenne, ' min')}</b></div>
+                    <div>Vitesse moyenne réelle : <b>{afficherNombre(trajectoire.courant.vitesseMoyenne, ' km/h')}</b></div>
+                    {trajectoire.comparaison && <div style={{marginTop:8, padding:'8px 10px', background:'#fff', borderRadius:8}}><b>Depuis le palier précédent :</b><br />Régularité : {afficherEcart(trajectoire.comparaison.regularitePoints, ' points')} · durée : {afficherEcart(trajectoire.comparaison.dureeMinutes, ' min')} · vitesse : {afficherEcart(trajectoire.comparaison.vitesseKmh, ' km/h')}</div>}
+                    {(trajectoire.capFinal.distanceKm || trajectoire.capFinal.vitesseKmh) && <div style={{marginTop:8}}><b>Cap final :</b> {trajectoire.capFinal.texte}{trajectoire.projection.dureeRequise && <> — environ <b>{afficherNombre(trajectoire.projection.dureeRequise, ' min')}</b> à tenir au rythme cible.</>}</div>}
+                    {trajectoire.sousObjectif.texte && <div style={{marginTop:5}}><b>Sous-objectif conservé :</b> {trajectoire.sousObjectif.texte}{trajectoire.sousObjectif.dureeMinutes && <> · durée {trajectoire.sousObjectifAtteint.duree ? 'atteinte ✅' : 'à consolider'}</>}{trajectoire.sousObjectif.vitesseKmh && <> · vitesse {trajectoire.sousObjectifAtteint.vitesse ? 'atteinte ✅' : 'encore à construire'}</>}</div>}
+                    {trajectoire.projection.objectifAtteignable !== null && <div style={{marginTop:9, padding:'9px 10px', borderRadius:8, background:trajectoire.projection.objectifAtteignable ? '#e8f5e9' : '#fff8e1'}}>À progression prudente identique, capacité estimée à la date cible : <b>{afficherNombre(trajectoire.projection.dureeProjetee, ' min')}</b> à <b>{afficherNombre(trajectoire.projection.vitesseProjetee, ' km/h')}</b>. {' '}{trajectoire.projection.objectifAtteignable ? 'La trajectoire reste cohérente avec le cap.' : 'Cela ne suffit pas encore pour le cap final : au prochain bilan, tu pourras garder cette date comme étape intermédiaire ou rallonger le plan.'}</div>}
+                  </div>
+                </details>
               )}
               {(ideal.cycle_palier?.repriseNecessaire || ideal.reprise_etat?.statut === 'pause') && (
                 <div style={{marginTop:12, padding:'12px 14px', borderRadius:10, background:'#fff8e1', border:'1px solid #ffe082', color:'#6d4c41'}}>
@@ -1028,7 +1051,15 @@ export default function IdeauxPage() {
                       <input type="number" min="1" max="7" value={repriseForm.rythmeRealiste} onChange={(e) => setRepriseForm({...repriseForm, rythmeRealiste:Number(e.target.value)})} style={{display:'block', width:90, marginTop:5, padding:9, borderRadius:7}} />
                       <span style={{fontWeight:400, fontSize:14}}>séance(s) par semaine</span>
                     </label>
-                    {(repriseIdeal.cycle_palier?.cibleDepassee || !repriseIdeal.date_cible) && (
+                    {repriseIdeal.trajectoire_objectif?.projection?.objectifAtteignable === false && !repriseIdeal.cycle_palier?.cibleDepassee && (
+                      <label style={{display:'block', marginBottom:14, fontWeight:700}}>La projection actuelle n’atteint pas encore le cap à la date prévue. Que préfères-tu ?
+                        <select value={repriseForm.strategieTrajectoire} onChange={(e) => setRepriseForm({...repriseForm, strategieTrajectoire:e.target.value, nouvelleDateCible:''})} style={{display:'block', width:'100%', marginTop:5, padding:9, borderRadius:7}}>
+                          <option value="etape_intermediaire">Garder la date comme étape intermédiaire</option>
+                          <option value="rallonger_date">Rallonger le plan vers l’objectif final</option>
+                        </select>
+                      </label>
+                    )}
+                    {(repriseIdeal.cycle_palier?.cibleDepassee || !repriseIdeal.date_cible || repriseForm.strategieTrajectoire === 'rallonger_date') && (
                       <label style={{display:'block', marginBottom:14, fontWeight:700}}>{repriseIdeal.cycle_palier?.cibleDepassee ? 'La date cible est passée. Quelle nouvelle date souhaites-tu choisir ?' : 'Quelle date cible souhaites-tu choisir ?'}
                         <input required type="date" min={new Date().toISOString().slice(0,10)} value={repriseForm.nouvelleDateCible} onChange={(e) => setRepriseForm({...repriseForm, nouvelleDateCible:e.target.value})} style={{display:'block', width:'100%', marginTop:5, padding:9, borderRadius:7}} />
                       </label>
@@ -1052,6 +1083,8 @@ export default function IdeauxPage() {
                   <div>Rythme : <b>{repriseProposition.frequence} séance(s)/semaine</b>, {repriseProposition.duree} min</div>
                   {repriseProposition.intensite && <div>Repère d’intensité : <b>{repriseProposition.intensite}</b></div>}
                   <div>Date cible : <b>{repriseProposition.dateCible}</b></div>
+                  {repriseProposition.strategieTrajectoire === 'etape_intermediaire' && <div style={{marginTop:10, padding:'9px 11px', background:'#fff8e1', borderRadius:8, fontSize:14}}>🧭 Cette date devient une étape intermédiaire. Le cap final reste conservé.</div>}
+                  {repriseProposition.strategieTrajectoire === 'rallonger_date' && <div style={{marginTop:10, padding:'9px 11px', background:'#e3f2fd', borderRadius:8, fontSize:14}}>📅 La date est rallongée pour préserver une progression réaliste vers le cap final.</div>}
                   {repriseProposition.progressionObservee?.type === 'progresser' && (
                     <div style={{marginTop:10, padding:'9px 11px', background:'#e8f5e9', borderRadius:8, fontSize:14}}>
                       📈 D’après tes réalisations, le repère <b>{repriseProposition.progressionObservee.dimension}</b> est proposé à {repriseProposition.progressionObservee.nouvelleCible}. Une seule dimension évolue.
@@ -1303,6 +1336,18 @@ export default function IdeauxPage() {
                         <> / Bonus : {reel[selectedSemaine].filter(obj => obj.bonus && seanceEstFaite(obj)).length}</>
                       )}
                     </div>
+                    {(() => {
+                      const vitessePrevue = planParams.vitesse || planParams.intensite || planData.objectif?.intensite;
+                      const feedback = analyserSemaineIdeal(semaines[selectedSemaine].actions.map((action, index) => ({
+                        fait: reel[selectedSemaine]?.[index]?.fait === true,
+                        bonus: false,
+                        duree_prevue: action.duree || planParams.duree,
+                        duree_reelle: reel[selectedSemaine]?.[index]?.duree,
+                        vitesse_prevue: vitessePrevue,
+                        vitesse_reelle: reel[selectedSemaine]?.[index]?.vitesse,
+                      })));
+                      return <div style={{marginBottom:10, padding:'10px 12px', borderRadius:8, background:feedback.niveau === 'signal_progression' ? '#e8f5e9' : '#fff', border:'1px solid #b2dfdb', color:'#37474f', fontSize:14, lineHeight:1.45}}><b>Retour de la semaine :</b> {feedback.message}</div>;
+                    })()}
                     <ul style={{margin:'6px 0 0 18px', padding:0}}>
                       {semaines[selectedSemaine].actions.map((a, j) => (
                         <li key={j} style={{marginBottom:6, display:'flex', alignItems:'center', flexWrap:'wrap'}}>
