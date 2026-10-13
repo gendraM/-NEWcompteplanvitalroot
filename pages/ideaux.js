@@ -11,6 +11,7 @@ import { analyserRealisationSeance } from '../lib/ideauxRealiteSeance';
 import { chargerIdeauxAvecProgression } from '../lib/ideauxProgression';
 import { obtenirUserIdIdeaux } from '../lib/ideauxAuth';
 import { construirePropositionReprise, creerArchivePalier } from '../lib/ideauxCycle';
+import { analyserSemaineIdeal } from '../lib/ideauxFeedbackSemaine';
 
 function extraireSemainesPourParametres(plan, params) {
   return extraireSemainesPalier(plan, {
@@ -1289,6 +1290,22 @@ export default function IdeauxPage() {
                         <> / Bonus : {reel[selectedSemaine].filter(obj => obj.bonus && seanceEstFaite(obj)).length}</>
                       )}
                     </div>
+                    {(() => {
+                      const vitessePrevue = planParams.vitesse || planParams.intensite || planData.objectif?.intensite;
+                      const feedback = analyserSemaineIdeal(semaines[selectedSemaine].actions.map((action, index) => ({
+                        fait: reel[selectedSemaine]?.[index]?.fait === true,
+                        bonus: false,
+                        duree_prevue: action.duree || planParams.duree,
+                        duree_reelle: reel[selectedSemaine]?.[index]?.duree,
+                        vitesse_prevue: vitessePrevue,
+                        vitesse_reelle: reel[selectedSemaine]?.[index]?.vitesse,
+                      })));
+                      return (
+                        <div style={{marginBottom:10, padding:'10px 12px', borderRadius:8, background:feedback.niveau === 'signal_progression' ? '#e8f5e9' : '#fff', border:'1px solid #b2dfdb', color:'#37474f', fontSize:14, lineHeight:1.45}}>
+                          <b>Retour de la semaine :</b> {feedback.message}
+                        </div>
+                      );
+                    })()}
                     <ul style={{margin:'6px 0 0 18px', padding:0}}>
                       {semaines[selectedSemaine].actions.map((a, j) => (
                         <li key={j} style={{marginBottom:6, display:'flex', alignItems:'center', flexWrap:'wrap'}}>

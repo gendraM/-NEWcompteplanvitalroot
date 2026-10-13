@@ -41,6 +41,10 @@ Pour la compatibilité avec OBSERVE / Align-Life, une séance accomplie est prou
 - Chaque bilan compare la régularité et, lorsqu’elles existent, la durée, la vitesse et la distance réellement réalisées avec le palier précédent.
 - Une projection est indicative : elle montre ce que le rythme prudent actuel permettrait à la date cible, sans promettre un résultat.
 - Si la projection est insuffisante, l’utilisateur choisit soit de conserver la date comme étape intermédiaire, soit de rallonger le plan. La direction finale reste conservée.
+- Le feedback de semaine reste factuel : prévu, réalisé, écarts mesurés et prochaine action concrète.
+- Une performance supérieure est reconnue sans devenir une nouvelle exigence sur une seule occurrence.
+- Même en cas de surperformance, une semaine incomplète rappelle d’abord la prochaine séance prévue ; régularité et progression doivent avancer ensemble.
+- Une semaine tenue n’est pas présentée comme un aboutissement : elle doit être confirmée avant toute augmentation prudente du palier suivant.
 
 - Une performance isolée supérieure au repère est valorisée mais ne devient pas automatiquement une nouvelle exigence.
 - Une dimension ne devient candidate à la progression que lorsqu'un signal répété existe sur plusieurs réalisations.
