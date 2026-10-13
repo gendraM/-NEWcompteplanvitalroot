@@ -242,7 +242,7 @@ Le chantier est réussi lorsque l’utilisateur peut organiser un repas dans son
 - Combinaison initiale sans correction : Jest avec `TZ=Europe/Paris`, 297/300 tests réussis, 36/37 suites ; les trois échecs concernent la clé de profil avec marque nulle.
 - Build de cette combinaison initiale : Next.js 15.5.7, compilation et génération de 36 pages réussies.
 - Branche métier corrigée : Jest avec `TZ=Europe/Paris`, 273/273 tests, 31/31 suites réussis ; `git diff --check` réussi.
-- Auth et RLS du point d'ajustement auditées dans le code : `getUser(accessToken)`, filtre propriétaire sur les lectures/fermetures, insertion sous `user.id`, unicité utilisateur/semaine, politique propriétaire avec `USING` et `WITH CHECK`, privilèges UPDATE limités. État réel de la table et migration appliquée non encore vérifié ; aucune écriture en base effectuée.
+- Auth et RLS du point d'ajustement auditées dans le code : `getUser(accessToken)`, filtre propriétaire sur les lectures/fermetures, insertion sous `user.id`, unicité utilisateur/semaine, politique propriétaire avec `USING` et `WITH CHECK`, privilèges UPDATE limités dans le fichier de migration. L'audit du catalogue live est détaillé ci-dessous ; aucune écriture en base effectuée.
 - Aucun test utilisateur authentifié ni contrôle visuel mobile déclaré réussi à ce stade.
 
 ### Dépendances et arbitrages restants
@@ -267,3 +267,35 @@ Le chantier est réussi lorsque l’utilisateur peut organiser un repas dans son
 7. Tester le point d'ajustement séparément, uniquement si sa table et sa configuration IA sont vérifiées. Ne pas confondre absence de carte et validation du moteur.
 
 Les liens et commits de livraison sont à consigner après vérification du déploiement exact.
+
+### Jalon Preview livré le 13 octobre 2026
+
+- Correctif métier publié : `d08cf187e52f81a736b75a8f9c72b4bcb60ba467`.
+- Combinaison Preview publiée : `ffa78afc96c449bce8e6a5beff970dc37e82fc63`, parents `9d311645c17604b8e1b2cb6786f2f497eb072fac` et `d08cf187e52f81a736b75a8f9c72b4bcb60ba467`. Mise à jour normale, sans force push.
+- [Preview /plan](https://ne-wcompteplanvitalroot-9puzvwbgh-gendrams-projects.vercel.app/plan).
+- Déploiement `dpl_8yUUKbgsqLGHLspnVYifvXJtXuCH` : READY, cible Preview, commit et branche confirmés via Vercel. Journaux : « Build Completed in /vercel/output [45s] » puis « Deployment completed ».
+- Combinaison finale : 37/37 suites, 302/302 tests réussis avec `TZ=Europe/Paris`, build local réussi (36 pages), `git diff --check` réussi. Les fichiers des moteurs trous de suivi, leurs migrations, leur carte, le bilan hebdomadaire, le référentiel et les moteurs de badges/progression Extras sont identiques à l'ancienne Preview.
+- Build distinct de la branche métier corrigée : réussi avec 36 pages générées ; ses 31 suites et 273 tests sont vérifiés séparément de la combinaison Preview.
+- Navigateur Chromium sur le build local correspondant à la Preview : `/plan` HTTP 200 ; à 390 et 1280 pixels, ajout de saumon, poêlée de légumes, riz complet et avocat, quatre rôles repérés ; retrait de la poêlée actualisé ; ratatouille reconnue ; aucune erreur JavaScript ; bloc pédagogique contenu dans la largeur du viewport. Avocat testé avec quantité explicitement saisie à 1 portion. Aucune sauvegarde en base lors de ces vérifications.
+- Captures locales : `/tmp/plan-vital-browser/plan-390-composition.png` et `/tmp/plan-vital-browser/plan-1280-composition.png`. Le contrôle distant automatisé a rencontré l'authentification Vercel (302 vers `/sso-api`) malgré le mécanisme de partage de l'outil. La protection n'a pas été désactivée. Les contrôles locaux ne constituent pas une preuve de fonctionnement authentifié distant.
+- Validation utilisateur encore attendue : accès Vercel avec le compte autorisé, connexion à l'application, sauvegarde/relecture, repas composés et parcours Suivi/Extras selon le protocole ci-dessus.
+
+### Écart Supabase constaté, sans modification
+
+Le projet correspondant à l'URL configurée dans le dépôt est `rvpysxqnomslngxjinge`. Les seules requêtes exécutées sont des lectures du catalogue et de l'historique des migrations, sans lecture des repas personnels ni modification.
+
+La table `points_ajustement_alimentaires` existe, sa RLS est activée et sa politique propriétaire possède bien `USING` et `WITH CHECK` sur `auth.uid() = user_id`. Cependant, les privilèges live sont plus larges que le fichier du dépôt : `anon` et `authenticated` possèdent des droits de table incluant UPDATE, DELETE et TRUNCATE ; authenticated peut modifier toutes les colonnes, dont `carte`, plutôt que les seuls champs de fermeture/affichage. RLS et privilèges SQL sont deux niveaux distincts ; aucun accès inter-utilisateur n'a été testé ni déclaré possible.
+
+Avant consolidation du point d'ajustement : auditer l'origine de ces droits et faire valider une restriction par migration additive dédiée, sans modifier la migration historique ni réinitialiser la table. Aucune correction de droits appliquée dans cette reprise. La disponibilité réelle de l'IA et le parcours authentifié restent non vérifiés.
+
+### Préparation de la PR de consolidation
+
+Titre proposé : `Planification : composition pédagogique et profils alimentaires fiables`.
+
+Source obligatoire : `planification-gamification-chatgpt` ; cible : `main-consolidation`. Aucun départ depuis la Preview, aucune PR créée ni fusionnée avant validation du jalon.
+
+Le diff de PR calculé depuis l'ancêtre commun de consolidation contient 33 fichiers au jalon `d08cf18`. Il comprend aussi les travaux antérieurs de valeurs sûres et de point d'ajustement : ne pas présenter cette branche comme un lot exclusivement composition. Le renommage ASCII de `analyseRepasSynthétique.js` et son import corrigé sont conservés.
+
+Simulation locale d'intégration avec la consolidation `23f27e3` : un seul conflit de contenu, dans les états React de `pages/suivi.js`, identique à celui résolu pour la Preview. Les deux groupes doivent être conservés. Les fonctionnalités Ideaux et les autres différences de consolidation ne doivent jamais être remplacées par un arbre complet de la branche métier. Le diff direct entre deux HEAD divergents ne décrit pas à lui seul les changements d'une PR.
+
+La description finale de PR devra préciser le périmètre validé (composition seule ou branche entière avec point d'ajustement), les preuves ci-dessus et les limites authentifiées. Cet arbitrage, les droits live et la contradiction `/plan` versus `/suivi` pour le point d'ajustement restent à résoudre avant intégration.
