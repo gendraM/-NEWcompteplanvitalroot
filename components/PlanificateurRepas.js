@@ -17,6 +17,7 @@ import {
   supprimerRepasCompose
 } from '../lib/repasComposes';
 import FormAjoutAliment from './FormAjoutAliment';
+import CompositionAssiettePedagogique from './CompositionAssiettePedagogique';
 
 const typesRepas = ['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Collation'];
 const bouton = {
@@ -405,6 +406,7 @@ export default function PlanificateurRepas({
           </div>
         ))}
         {assiette.length > 0 && <div className="total">Total du repas : {totalKcal} kcal</div>}
+        <CompositionAssiettePedagogique composition={assiette} />
       </div>
 
       {assiette.length > 1 && !modeleCharge && (

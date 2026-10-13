@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getAnalyse3DerniersJoursRepas } from '../lib/analyseRepas3Jours';
-import { genererAnalyseSynthétiqueRepas } from '../lib/analyseRepasSynthétique';
+import { genererAnalyseSynthétiqueRepas } from '../lib/analyseRepasSynthetique';
 import {
   getPhaseDuJour,
   getCriteresDuJour,

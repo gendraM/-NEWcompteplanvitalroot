@@ -15,8 +15,9 @@ describe('Raccord des repas repères au planning', () => {
 
   test('montre une proposition principale et au plus deux propositions secondaires', () => {
     expect(carte).toContain('const propositions = candidats.slice(0, 3)');
-    expect(carte).toContain('Une assiette qui semble bien te convenir');
+    expect(carte).toContain('Une de tes valeurs sûres');
     expect(carte).toContain('Voir ${autres.length} autre');
+    expect(carte).toContain('Mes valeurs sûres');
     expect(carte).toContain('Pas cette semaine');
   });
 

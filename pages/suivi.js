@@ -95,8 +95,18 @@ import RepasEnCours from "../components/RepasEnCours";
 import TimelineProgression from "../components/TimelineProgression";
 import SaisieDefiAlimentaire from "../components/SaisieDefiAlimentaire";
 import SaisieRepriseJeune from "../components/SaisieRepriseJeune";
+import PointAjustementPlanning from "../components/PointAjustementPlanning";
 import { harmoniserJoursProgramme } from '../lib/repriseJeuneMetier';
 import { useDefis } from "../components/DefisContext";
+import {
+  ACTIONS_POINT_AJUSTEMENT_AUTORISEES,
+  obtenirFenetrePointAjustementAlimentaire
+} from '../lib/pointAjustementAlimentaire';
+import {
+  fermerPointAjustementAlimentaire,
+  lirePointAjustementAlimentaire,
+  obtenirPointAjustementAlimentaire
+} from '../lib/pointAjustementClient';
 
 // Utilitaire message cyclique
 function pickMessage(array, key) {
@@ -117,6 +127,13 @@ function isInLast7Days(dateString, refDateString) {
   sevenDaysAgo.setDate(now.getDate() - 6);
   const target = new Date(dateString);
   return target >= sevenDaysAgo && target <= now;
+}
+
+function dateLocaleYYYYMMDD(date = new Date()) {
+  const annee = date.getFullYear();
+  const mois = String(date.getMonth() + 1).padStart(2, '0');
+  const jour = String(date.getDate()).padStart(2, '0');
+  return `${annee}-${mois}-${jour}`;
 }
 
 function Snackbar({ open, message, type = "info", onClose }) {
@@ -479,6 +496,7 @@ export default function Suivi() {
   const [suggestionTrouSuivi, setSuggestionTrouSuivi] = useState(null);
   const [trouSuiviSaving, setTrouSuiviSaving] = useState(false);
   const [trouSuiviError, setTrouSuiviError] = useState('');
+  const [pointAjustement, setPointAjustement] = useState(null);
   
   // ═══════════════════════════════════════════════════════════
   // NOUVEAUX HOOKS VALIDATION SEMAINE (9 janvier 2026)
@@ -766,6 +784,66 @@ export default function Suivi() {
   // Affichage de la saisie dédiée au défi alimentaire en cours (ex : 1 portion ça suffit)
   // Respecte la checklist : hooks, logique, handlers déclarés avant le rendu
   // Affiche le composant avant la sélection du type de repas
+  const essayerAfficherPointAjustement = async userIdActif => {
+    if (!userIdActif || typeof window === 'undefined') return;
+
+    const dateDuJour = dateLocaleYYYYMMDD();
+    const fenetre = obtenirFenetrePointAjustementAlimentaire(dateDuJour);
+    if (!fenetre?.disponible) return;
+
+    try {
+      const resultat = await obtenirPointAjustementAlimentaire(dateDuJour);
+      setPointAjustement(resultat?.status === 'FACTS' ? resultat.carte : null);
+    } catch (_) {
+      // Une indisponibilité de la synthèse ne doit jamais perturber l’enregistrement du repas.
+    }
+  };
+
+  useEffect(() => {
+    if (!userId) return;
+    const dateDuJour = dateLocaleYYYYMMDD();
+    const fenetre = obtenirFenetrePointAjustementAlimentaire(dateDuJour);
+    if (!fenetre?.disponible) return;
+
+    let actif = true;
+    lirePointAjustementAlimentaire(dateDuJour)
+      .then(resultat => {
+        if (actif) setPointAjustement(resultat?.status === 'FACTS' ? resultat.carte : null);
+      })
+      .catch(() => {});
+    return () => { actif = false; };
+  }, [userId]);
+
+  const fermerPointAjustement = async () => {
+    setPointAjustement(null);
+    try {
+      await fermerPointAjustementAlimentaire(dateLocaleYYYYMMDD());
+    } catch (_) {
+      // La fermeture visuelle reste immédiate même si la synchronisation est momentanément indisponible.
+    }
+  };
+
+  const agirDepuisPointAjustement = async proposition => {
+    await fermerPointAjustement();
+    if (!proposition || typeof window === 'undefined') return;
+
+    if (
+      proposition.action === ACTIONS_POINT_AJUSTEMENT_AUTORISEES.UTILISER_VALEUR_SURE
+      && proposition.valeurSure
+    ) {
+      sessionStorage.setItem(
+        'plan-vital:point-ajustement:valeur-sure',
+        JSON.stringify(proposition.valeurSure)
+      );
+      router.push('/plan?source=point-ajustement');
+      return;
+    }
+
+    if (proposition.action === ACTIONS_POINT_AJUSTEMENT_AUTORISEES.AJUSTER_REPAS_PLANIFIE) {
+      router.push('/plan#planning-alimentaire-horizon');
+    }
+  };
+
   const handleSaveRepas = async (repasData, { afficherSucces = true } = {}) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -796,6 +874,7 @@ export default function Suivi() {
       if (afficherSucces) {
         setSnackbar({ open: true, message: "Repas enregistré !", type: "success" });
       }
+      void essayerAfficherPointAjustement(user?.id || userId);
       return { ok: true, data };
     } catch (error) {
       setSnackbar({ open: true, message: "Erreur lors de l'enregistrement du repas.", type: "error" });
@@ -2245,6 +2324,11 @@ export default function Suivi() {
               setSnackbar={setSnackbar}
               repasSemaine={repasSemaine}
               onChangeChampsRepas={isMounted && preparationActive ? setChampsRepasEnCours : undefined}
+            />
+            <PointAjustementPlanning
+              carte={pointAjustement}
+              onAction={agirDepuisPointAjustement}
+              onDismiss={fermerPointAjustement}
             />
             {/* Bouton de validation de la semaine, affiché uniquement si showValidation est vrai */}
             {showValidation && (

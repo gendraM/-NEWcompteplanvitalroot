@@ -1375,4 +1375,6 @@ Ces fonctions devront distinguer clairement les faits mesurés, les hypothèses 
 
 ### 27.3 Raccord avec la suite du Plan alimentaire intelligent
 
-Les étapes suivantes doivent rester séquentielles : synthèse S-1 le mercredi, ajustements facultatifs, vigilances répétées, puis enrichissement financier de la liste. Une proposition acceptée passe toujours par le planificateur existant ; la liste de courses se contente ensuite de refléter le plan modifié et conserve ses règles actuelles de recalcul et de persistance.
+Les étapes suivantes doivent rester séquentielles : point d'ajustement disponible du jeudi au samedi, ajustements facultatifs, vigilances répétées, regroupement visuel de « Gérer mes repas », puis enrichissement financier de la liste. Le point analyse d'abord les journées complètes du lundi au mercredi et consulte l'historique récent uniquement pour confirmer les répétitions. Il ne remplace pas le bilan du dimanche.
+
+Une proposition acceptée passe toujours par le planificateur existant ; aucune écriture automatique n'est autorisée. La liste de courses se contente ensuite de refléter le plan modifié et conserve ses règles actuelles de recalcul et de persistance. L'IA peut aider à comprendre les notes et à restituer les faits, mais toute action proposée doit appartenir à la liste fermée des fonctions réellement disponibles dans Mon Plan Vital.

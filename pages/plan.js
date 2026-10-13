@@ -230,6 +230,32 @@ export default function Plan() {
     return () => { actif = false; };
   }, [userId, dateDuJour]);
 
+  useEffect(() => {
+    if (!router.isReady || typeof window === 'undefined') return;
+    const source = Array.isArray(router.query.source) ? router.query.source[0] : router.query.source;
+    if (source !== 'point-ajustement') return;
+
+    const cleTransfert = 'plan-vital:point-ajustement:valeur-sure';
+    try {
+      const valeurSure = JSON.parse(sessionStorage.getItem(cleTransfert) || 'null');
+      if (!valeurSure?.cle || !Array.isArray(valeurSure?.composition) || valeurSure.composition.length === 0) {
+        sessionStorage.removeItem(cleTransfert);
+        return;
+      }
+      setRepasRepereACharger({
+        cleComposition: valeurSure.cle,
+        composition: valeurSure.composition,
+        kcalTotal: valeurSure.kcalTotal ?? null,
+        chargementId: `${valeurSure.cle}-${Date.now()}`
+      });
+      setFeedbackPlanning('Ta valeur sûre est prête à être adaptée dans le planificateur. Rien n’est encore enregistré.');
+      sessionStorage.removeItem(cleTransfert);
+      setTimeout(() => document.getElementById('planificateur-repas')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+    } catch (_) {
+      sessionStorage.removeItem(cleTransfert);
+    }
+  }, [router.isReady, router.query.source]);
+
   const masquerRepasReperesCetteSemaine = () => {
     if (!userId) return;
     const cleSemaine = obtenirCleSemaineRepasReperes(dateDuJour);
@@ -240,7 +266,7 @@ export default function Plan() {
   const utiliserRepasRepere = repere => {
     setRepasRepereACharger({ ...repere, chargementId: `${repere.cleComposition}-${Date.now()}` });
     masquerRepasReperesCetteSemaine();
-    setFeedbackPlanning('L’assiette repère est prête à être adaptée dans le planificateur. Rien n’est encore enregistré.');
+    setFeedbackPlanning('Ta valeur sûre est prête à être adaptée dans le planificateur. Rien n’est encore enregistré.');
     setTimeout(() => document.getElementById('planificateur-repas')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   };
 
@@ -578,21 +604,23 @@ export default function Plan() {
         </div>
       </div>
 
-      <HorizonPlanning
-        mode={modeAffichage}
-        periode={periode}
-        planning={planning}
-        selectedDate={selectedDate}
-        referentiel={referentielComplet}
-        totauxPlanning={totauxPlanning}
-        onModeChange={changerHorizon}
-        onPrevious={() => naviguer(-1)}
-        onNext={() => naviguer(1)}
-        onToday={revenirAujourdhui}
-        onSelectDate={choisirDate}
-        onMove={deplacerRepas}
-        onDelete={supprimerLignePlanifiee}
-      />
+      <div id="planning-alimentaire-horizon">
+        <HorizonPlanning
+          mode={modeAffichage}
+          periode={periode}
+          planning={planning}
+          selectedDate={selectedDate}
+          referentiel={referentielComplet}
+          totauxPlanning={totauxPlanning}
+          onModeChange={changerHorizon}
+          onPrevious={() => naviguer(-1)}
+          onNext={() => naviguer(1)}
+          onToday={revenirAujourdhui}
+          onSelectDate={choisirDate}
+          onMove={deplacerRepas}
+          onDelete={supprimerLignePlanifiee}
+        />
+      </div>
 
       <div className="repere-periode">
         {loading

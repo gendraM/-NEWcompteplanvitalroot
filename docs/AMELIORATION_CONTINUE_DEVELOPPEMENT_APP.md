@@ -2117,3 +2117,61 @@ La page « Gérer mes repas » présente encore ces lignes séparément. Lors du
 ### Statut
 
 **À faire dans l'étape 19 de la feuille de route consolidée.** Le chemin « Repas conforme au planning » et le raccord des repas repères sont désormais terminés ; cette entrée ne doit plus les présenter comme prochaines étapes.
+
+---
+
+## AJOUT — POINT D'AJUSTEMENT INTELLIGENT ET VOCABULAIRE « MES VALEURS SÛRES » (2026-09-09)
+
+Cette entrée complète la feuille de route précédente sans la supprimer ni la réécrire. En cas de différence, les décisions ci-dessous constituent l'évolution fonctionnelle validée la plus récente.
+
+### Moment d'apparition dans l'application
+
+- Le bilan existant du dimanche conserve son rôle de clôture de la semaine terminée.
+- Le nouveau point d'ajustement devient disponible dans `/plan` à la première ouverture comprise entre le jeudi et le samedi.
+- Il analyse d'abord les journées complètes du lundi au mercredi de la semaine en cours.
+- L'historique récent est consulté uniquement pour confirmer qu'un élément est répété.
+- Le point n'est généré qu'une fois par semaine, ne se rouvre pas à chaque visite et n'apparaît pas le dimanche.
+- Si les données sont insuffisantes, aucun message n'est affiché et la planification reste entièrement disponible.
+
+### Expérience unique pour les étapes 16 à 18
+
+La même carte peut contenir, uniquement lorsque les données le justifient :
+
+1. ce qui fonctionne déjà ;
+2. ce qui mérite l'attention ;
+3. ce qui peut être ajusté pour les jours restants ou les prochains jours planifiés.
+
+La partie « point de vigilance » reste absente lorsqu'aucune répétition fiable n'est détectée. Une proposition reste absente lorsqu'aucune action existante n'est pertinente.
+
+### Répartition entre l'application et l'IA
+
+- L'application calcule les faits structurés : occurrences, alignement, catégories, calories, QN connu, satiété, ressenti, horaires et extras.
+- L'IA peut comprendre le sens de notes formulées avec des mots différents, rapprocher les formulations réellement comparables, hiérarchiser les constats fiables et les restituer naturellement.
+- L'IA restitue ce que la personne a écrit et l'aide à l'observer ; elle ne décide pas à sa place de ce qui est vrai.
+- Les faits mesurés sont énoncés directement. Une association reste une association et n'est jamais présentée comme une causalité.
+- Aucune interprétation psychologique, médicale ou morale n'est autorisée.
+
+### Propositions encadrées et non injonctives
+
+- Ce qui fonctionne déjà est écarté des éléments à améliorer.
+- La proposition se concentre sur le véritable point de difficulté et évite de demander de tout modifier.
+- La prise de conscience est transformée en expérimentation limitée et mesurable, avec comparaison prévue lors du point suivant.
+- Le constat peut être direct, mais l'action est formulée comme un conseil et jamais comme un ordre.
+- L'utilisateur peut accepter, modifier ou ignorer chaque proposition.
+- Aucun planning déjà rempli n'est modifié automatiquement.
+- L'IA ne peut pas inventer librement un conseil alimentaire. Elle sélectionne, ou non, une action dans une liste fermée construite à partir des fonctions réellement disponibles dans Mon Plan Vital.
+- Une action acceptée passe par le planificateur existant ; la liste de courses est ensuite recalculée par son moteur actuel.
+
+### Vocabulaire visible
+
+L'expression visible **Mes valeurs sûres** remplace `repas repères` et `go-to meals` dans l'expérience utilisateur. Les anciens termes restent conservés dans l'historique de ce fichier et peuvent rester provisoirement dans les identifiants techniques afin d'éviter une refonte sans valeur fonctionnelle.
+
+### Continuité des étapes restantes
+
+- L'étape 19 consacrée au regroupement visuel de « Gérer mes repas » reste intégralement prévue.
+- L'étape 20 consacrée à l'estimation automatique et à l'historique du coût des courses reste intégralement prévue.
+- Ces étapes ne sont ni remplacées ni absorbées par le chantier IA.
+
+### Règle documentaire permanente
+
+Toute nouvelle décision ajoutée à ce fichier doit prendre la forme d'une entrée complémentaire datée. Aucun contenu historique existant ne doit être supprimé, remplacé ou réécrit lors d'une mise à jour d'amélioration continue.
