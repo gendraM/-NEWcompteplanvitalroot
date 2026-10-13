@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
+import dashboardStyles from "../styles/dashboard.module.css";
 import DashboardSummary from "../components/DashboardSummary";
 import DashboardDetails from "../components/DashboardDetails";
 import DashboardEvolution from "../components/DashboardEvolution";
@@ -421,11 +422,11 @@ export default function TableauDeBord() {
         label: "Évolution du poids (kg)",
         data: poidsData.map((p) => p.poids),
         fill: false,
-        borderColor: COLORS[1],
-        backgroundColor: COLORS[1],
+        borderColor: "#4d86de",
+        backgroundColor: "#4d86de",
         tension: 0.2,
         pointRadius: 5,
-        pointBackgroundColor: COLORS[3],
+        pointBackgroundColor: "#4d86de",
       },
     ],
   };
@@ -593,14 +594,14 @@ export default function TableauDeBord() {
     }
   };
 
-  const extrasEvolutionChartData = { labels: evolutionExtras.map(e => e.label), datasets: [{ label: 'Moments Extras observés', data: evolutionExtras.map(e => e.count), borderColor: COLORS[2], spanGaps: false }] };
+  const extrasEvolutionChartData = { labels: evolutionExtras.map(e => e.label), datasets: [{ label: 'Moments Extras observés', data: evolutionExtras.map(e => e.count), borderColor: '#20b5a5', backgroundColor: '#20b5a5', spanGaps: false }] };
   const repasParJour = new Map();
   regrouperRepasReelsParOccurrence(repasReels).forEach(({ lignes }) => {
     const date = lignes[0]?.date;
     if (date) repasParJour.set(date, (repasParJour.get(date) || 0) + 1);
   });
   const repasDates = [...repasParJour.keys()].sort();
-  const repasEvolutionChartData = { labels: repasDates.map(date => new Date(date + 'T12:00:00').toLocaleDateString('fr-FR')), datasets: [{ label: 'Occurrences renseignées', data: repasDates.map(date => repasParJour.get(date)), borderColor: COLORS[0], showLine: false }] };
+  const repasEvolutionChartData = { labels: repasDates.map(date => new Date(date + 'T12:00:00').toLocaleDateString('fr-FR')), datasets: [{ label: 'Occurrences renseignées', data: repasDates.map(date => repasParJour.get(date)), borderColor: '#ee956a', backgroundColor: '#ee956a', showLine: false }] };
   const detailsDescriptions = {
     poids: 'Mesures observées, évolution agrégée et historique de la période.',
     extras: 'Moments de la période, repères du parcours et événements des paliers.',
@@ -1082,36 +1083,14 @@ regularite: <>
   );
 
     return (
-    <main style={{ padding: 'clamp(16px, 4vw, 32px)', maxWidth: 1200, margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
-<h1
-        style={{
-          textAlign: "center",
-          marginBottom: "2.2rem",
-          color: "#1976d2",
-          fontWeight: 800,
-          fontSize: "2.7rem",
-          letterSpacing: "0.5px",
-        }}
-      >
-        Tableau de Bord
-      </h1>
-<div style={{textAlign:'center', marginBottom:'1rem', fontSize:'1.15rem', color:'#888', fontWeight:500}}>
-        <span style={{marginRight:12}}>Période affichée :</span>
-        <select aria-label="Période affichée" value={periode} onChange={e => setPeriode(e.target.value)} style={{fontSize:'1rem', padding:'4px 10px', borderRadius:6, border:'1px solid #ccc', fontWeight:600}}>
-          <option value="semaine">Semaine</option>
-          <option value="mois">Mois</option>
-          <option value="annee">Année</option>
-        </select>
-        <span style={{marginLeft:16}}>{periodeLabel}</span>
-      </div>
-<div style={{textAlign:'center', marginBottom:'1.5rem'}}>
-        <button onClick={handleRefresh} style={{
-          background:'#1976d2', color:'#fff', border:'none', borderRadius:8, padding:'8px 22px', fontWeight:600, fontSize:16, cursor:'pointer'
-        }}>🔄 Rafraîchir les statistiques</button>
-      </div>
-<DashboardSummary synthese={dashboardV2} errors={domainErrors} />
-{preparationData && joursRestants !== null && joursRestants >= 0 && <p>Préparation enregistrée sur cet appareil : J-{joursRestants}. <Link href="/preparation-jeune">Voir ma préparation</Link></p>}
+    <main className={dashboardStyles.dashboard}>
+<div className="mpv-header"><div><span className="mpv-eyebrow">MON TABLEAU DE BORD</span><h1>Tableau de Bord</h1><p>Mon parcours, en un regard. L’essentiel pour comprendre ce qui évolue.</p></div><Link href="/suivi">Mon suivi →</Link></div>
+<div className="mpv-controls"><label>Période affichée : <select aria-label="Période affichée" value={periode} onChange={e => setPeriode(e.target.value)}><option value="semaine">Semaine</option><option value="mois">Mois</option><option value="annee">Année</option></select></label><span>{periodeLabel}</span><button onClick={handleRefresh}>Rafraîchir les statistiques</button></div>
+<DashboardSummary synthese={dashboardV2} errors={domainErrors} extrasChart={<section className="mpv-panel"><h3>Mes moments Extras</h3><p>Moments observés sur la période ; aucune estimation des jours sans saisie.</p>{domainErrors.includes('repas') ? <p role="status">Données indisponibles pour le moment.</p> : evolutionExtras.some(e => e.count != null) ? <div style={{ height: 190 }}><Line data={extrasEvolutionChartData} options={{ maintainAspectRatio: false, spanGaps: false, plugins: { legend: { display: false } } }} /></div> : <p>Aucune observation sur cette période.</p>}<Link href="/extras">Explorer mes Extras →</Link></section>}>
 <DashboardEvolution view={evolutionView} onViewChange={setEvolutionView} poids={poidsChartData} extras={extrasEvolutionChartData} repas={repasEvolutionChartData} wellbeing={humeurChartData} errors={domainErrors} />
+</DashboardSummary>
+{preparationData && joursRestants !== null && joursRestants >= 0 && <p>Préparation enregistrée sur cet appareil : J-{joursRestants}. <Link href="/preparation-jeune">Voir ma préparation</Link></p>}
+
 <DashboardDetails content={detailsContent} descriptions={detailsDescriptions} errors={domainErrors} openDomains={openDomains} onDomainToggle={(id, open) => {
   setOpenDomains(previous => {
     if (previous.includes(id) === open) return previous;

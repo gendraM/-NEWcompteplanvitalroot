@@ -21,3 +21,15 @@ test('les liens restaurés et les repères du profil restent accessibles avec un
     expect(html).toContain(`href="${href}"`);
   }
 });
+
+test('le graphique de satiété utilise les occurrences explicites et exclut les réponses inconnues', () => {
+  const synthese = construireSyntheseTableauDeBord({ repas: [
+    { id: 'a1', occurrence_repas_id: 'a', satiete: 'oui' },
+    { id: 'a2', occurrence_repas_id: 'a', satiete: 'oui' },
+    { id: 'b', occurrence_repas_id: 'b', satiete: 'non' },
+    { id: 'c', occurrence_repas_id: 'c', satiete: 'pas de faim' },
+  ] });
+  const html = renderToStaticMarkup(<DashboardSummary synthese={synthese} />);
+  expect(html).toContain('50% de satiété respectée sur 2 occurrences renseignées');
+  expect(html).toContain('réponses absentes ou inconnues sont exclues');
+});

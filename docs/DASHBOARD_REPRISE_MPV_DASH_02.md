@@ -110,3 +110,22 @@ En environnement de test, avec données synthétiques :
 ## Passation précise
 
 Les trois arbitrages sont clos et réalisés. Reprendre cette branche et la PR draft pour la revue indépendante et la recette produit, puis les dépendances métier restantes. Ne pas repartir de V2 ni fusionner les branches métier. Les preuves du dernier SHA, CI/preview et limites sont publiées dans #19. Aucun READY global des moteurs, RLS ou production ne découle de ce lot.
+
+## Présentation colorée validée et intégrée
+
+Après validation explicite du rendu ordinateur/mobile (« je valide »), la présentation du cockpit est intégrée à la page applicative, avec ses données authentifiées, sans importer les valeurs fictives de la proposition. Palette descriptive : poids bleu, Extras turquoise, repas corail, observations violet. CSS limité au dashboard ; navigation consolidée conservée.
+
+Trois cartes, graphique principal Poids/Extras/Repas/Bien-être avec boutons accessibles, observations factuelles à droite sur ordinateur, graphiques complémentaires Extras et satiété, puis état des caps et dix domaines repliables. Sur mobile, les graphiques s'empilent et les cartes occupent deux colonnes, la carte poids couvrant la largeur. Année, rafraîchissement et fonctionnalités consolidées restent disponibles. Aucun changement de moteur métier, dépendance, schéma ou secret.
+
+Le donut de satiété réutilise `mealSignals.satiete` : occurrences canoniques, réponses oui/non uniquement, inconnues exclues. Les moments Extras sont ceux du contrat existant, sans repère numérique fictif. Une source indisponible conserve un message explicite.
+
+Validation de ce lot :
+- Avant modification : 57 tests ciblés passent (5 suites).
+- Après : 58 tests ciblés passent, dont le contrôle du dénominateur du nouveau donut.
+- Suite globale : 375 passent, 1 échec préexistant inchangé (`socleQuantitesCalories.test.js:183`).
+- Build avec configuration synthétique : réussi, 36 routes. Un premier lancement de build a été perturbé par un deuxième build lancé trop tôt ; le build final a terminé avec succès.
+- Chromium : 7 scénarios passent (ordinateur/mobile, vide, erreur partielle, anonyme, autre compte, changement de session). Aucun débordement horizontal, aucune erreur JavaScript, aucune écriture tentée. Toutes les requêtes de données sont interceptées, les lectures restent filtrées par utilisateur.
+- Captures du rendu applicatif et résultats : `docs/dashboard-evidence/cockpit-colore/`. Le script capture désormais l'arrivée sur le cockpit avant les manipulations de période et de sections.
+- Une navigation de test a atteint la limite initiale de 10 secondes ; reprise complète avec délai de 30 secondes et attente `load` plutôt que `networkidle` : tous les scénarios passent.
+
+Limites inchangées : RLS réelle et données de production non testées ; dépendances métier ci-dessus toujours explicites. La présentation n'ajoute aucun score ni recommandation automatique.

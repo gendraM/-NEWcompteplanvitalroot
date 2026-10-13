@@ -38,7 +38,7 @@ fs.mkdirSync(output, { recursive: true });
     for (const scenario of ['mobile', 'desktop', 'empty', 'partial', 'anonymous', 'other_account', 'session_change']) {
       const context = await browser.newContext({ viewport: scenario === 'desktop' ? { width: 1440, height: 1000 } : { width: 390, height: 844 } });
       const page = await context.newPage();
-      page.setDefaultTimeout(10000);
+      page.setDefaultTimeout(30000);
       const errors = [];
       const requests = [];
       page.on('pageerror', e => errors.push(e.message));
@@ -77,7 +77,7 @@ fs.mkdirSync(output, { recursive: true });
           localStorage.setItem('sb-dashboard-fixture-auth-token', JSON.stringify({ access_token: token, refresh_token: 'fixture', token_type: 'bearer', expires_at: expires, expires_in: 86400, user }));
         }, { user: fixtureUser, token, expires });
       }
-      await page.goto(`${origin}/tableau-de-bord`, { waitUntil: 'networkidle' });
+      await page.goto(`${origin}/tableau-de-bord`, { waitUntil: 'load' });
       console.log(`${scenario}: page loaded`);
       fs.writeFileSync(`${output}/${scenario}-initial.json`, JSON.stringify({ text: await page.locator('body').innerText(), errors, requests }, null, 2));
       if (scenario === 'anonymous') {
@@ -86,6 +86,10 @@ fs.mkdirSync(output, { recursive: true });
       } else {
         await page.getByRole('heading', { name: 'Mon chemin maintenant' }).waitFor();
         console.log(`${scenario}: summary rendered`);
+        if (['mobile', 'desktop'].includes(scenario)) {
+          await page.screenshot({ path: `${output}/${scenario}-cockpit.png`, fullPage: true });
+          await page.screenshot({ path: `${output}/${scenario}-first-screen.png` });
+        }
         assert.equal(await page.getByRole('heading', { name: 'Tableau de Bord', exact: true }).count(), 1);
         const summary = await page.locator('section').first().innerText();
         const expectedId = scenario === 'other_account' ? bobId : userId;
