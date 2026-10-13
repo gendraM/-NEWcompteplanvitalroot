@@ -8,7 +8,7 @@ function chargerModule() {
   const source = fs.readFileSync(path.join(__dirname, '../data/profilsAlimentaires.js'), 'utf8')
     .replace(/export const /g, 'const ')
     .replace(/export function /g, 'function ')
-    .concat('\nmodule.exports = { PROFILS_ALIMENTAIRES, cleProfilAlimentaire, enrichirAvecProfilAlimentaire, enrichirReferentielAvecProfils };');
+    .concat('\nmodule.exports = { PROFILS_ALIMENTAIRES, cleProfilAlimentaire, enrichirAvecProfilAlimentaire, enrichirReferentielAvecProfils, fusionnerReferentielsAvecProfils };');
   vm.runInContext(source, context, { filename: 'profilsAlimentaires.js' });
   return context.module.exports;
 }
@@ -16,7 +16,8 @@ function chargerModule() {
 const {
   cleProfilAlimentaire,
   enrichirAvecProfilAlimentaire,
-  enrichirReferentielAvecProfils
+  enrichirReferentielAvecProfils,
+  fusionnerReferentielsAvecProfils
 } = chargerModule();
 
 describe('Profils alimentaires additifs', () => {
@@ -61,5 +62,18 @@ describe('Profils alimentaires additifs', () => {
     ]);
     expect(resultat[0]).toBe(riz);
     expect(resultat[1].profilAlimentaire.rolesRepas).toEqual(['legume']);
+  });
+
+  test('la fusion enrichit le global sans attribuer son profil à un aliment personnel homonyme', () => {
+    const global = { nom: 'Poêlée de légumes', categorie: 'accompagnement', marque: null };
+    const personnel = { ...global };
+    const explicite = { ...global, profilAlimentaire: { rolesRepas: ['proteine'] } };
+    const resultat = fusionnerReferentielsAvecProfils([global], [personnel, explicite]);
+    expect(resultat[0].profilAlimentaire.rolesRepas).toEqual(['legume']);
+    expect(resultat[1]).toBe(personnel);
+    expect(resultat[1].profilAlimentaire).toBeUndefined();
+    expect(resultat[2]).toBe(explicite);
+    expect(resultat[2].profilAlimentaire.rolesRepas).toEqual(['proteine']);
+    expect(global.profilAlimentaire).toBeUndefined();
   });
 });

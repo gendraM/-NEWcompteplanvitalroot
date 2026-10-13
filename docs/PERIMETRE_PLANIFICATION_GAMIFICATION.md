@@ -214,3 +214,56 @@ Le défi de réduction progressive des quantités et l’introduction progressiv
 ## Critère de réussite global
 
 Le chantier est réussi lorsque l’utilisateur peut organiser un repas dans son planning, comprendre simplement la composition de son assiette, recevoir une information réellement contextualisée, éventuellement transformer cette piste en travail comportemental, retrouver son défi dans le contexte où il est utile et faire remonter ses apprentissages réels vers ses prochaines planifications — sans culpabilisation, sans duplication fonctionnelle et sans perte de données.
+
+## Reprise technique du 13 octobre 2026
+
+### État audité et décisions de reprise
+
+- Branche métier au début de la reprise : `cd6c51148dbe7bf1dec8966ec9615c6b19cada81`.
+- Preview avant combinaison : `9d311645c17604b8e1b2cb6786f2f497eb072fac`, arbre `1d7d13f4cb69e2b26f762a91e5af26224628b3f2`.
+- Consolidation consultée en lecture seule : `23f27e3b59f0ea6a3e3f987a1c433602a0fba6bb`.
+- L'utilisatrice a autorisé une combinaison préservant les acquis de la Preview, au lieu de remplacer son arbre par celui de la branche métier. Aucun changement de `main` ou `main-consolidation`, aucune fusion de PR, aucune migration appliquée.
+- Ancien déploiement `dpl_DSn3gswCM2RbfAVcNJZfSvPXKGwf` : réponse Vercel 404 lors de la reprise ; aucune preuve de disponibilité actuelle.
+- Projet Vercel identifié : `ne-wcompteplanvitalroot` (`prj_o7fFbCapbRJkxCpMETXtt42cBTcp`), équipe `team_sZ2c6qQ6kigXmb88BNH2yrQs`. Les autres déploiements READY consultés concernent d'autres branches.
+
+### Travaux conservés et corrections
+
+- Moteur des quatre dimensions, distinction présent/absent/inconnu, profils additifs et propagation dans les repas composés présents.
+- Intégration de `CompositionAssiettePedagogique` limitée à un import et un rendu dans le planificateur ; aucun remplacement du planificateur.
+- Trois tests existants échouaient : `null` était converti en texte dans la clé de profil. Correction de normalisation pour retrouver les deux enrichissements déjà validés.
+- Correction de la priorité d'un profil fruit explicite sur une catégorie historique appartenant aux quatre dimensions ; aucune nouvelle règle de qualification.
+- Fusion du référentiel : enrichissement limité au global ; les aliments personnels homonymes et leurs profils explicites restent inchangés.
+- Régression couverte sur le profil fruit et sur un aliment personnel homonyme.
+- Le point d'ajustement provient des commits `fbf1237` et `8b207f7` et existe aussi sur `plan-alimentaire-intelligent-chatgpt`. Il est conservé, sans être déclaré validé en production.
+- La combinaison avec la Preview rencontre un unique conflit de contenu dans `pages/suivi.js`, entre les états React des trous de suivi et celui du point d'ajustement. Les deux groupes sont conservés. Le diff de ce fichier par rapport à l'ancienne Preview ne contient que des ajouts.
+
+### Vérifications exécutées
+
+- Combinaison initiale sans correction : Jest avec `TZ=Europe/Paris`, 297/300 tests réussis, 36/37 suites ; les trois échecs concernent la clé de profil avec marque nulle.
+- Build de cette combinaison initiale : Next.js 15.5.7, compilation et génération de 36 pages réussies.
+- Branche métier corrigée : Jest avec `TZ=Europe/Paris`, 273/273 tests, 31/31 suites réussis ; `git diff --check` réussi.
+- Auth et RLS du point d'ajustement auditées dans le code : `getUser(accessToken)`, filtre propriétaire sur les lectures/fermetures, insertion sous `user.id`, unicité utilisateur/semaine, politique propriétaire avec `USING` et `WITH CHECK`, privilèges UPDATE limités. État réel de la table et migration appliquée non encore vérifié ; aucune écriture en base effectuée.
+- Aucun test utilisateur authentifié ni contrôle visuel mobile déclaré réussi à ce stade.
+
+### Dépendances et arbitrages restants
+
+- Cuisson : moteur capable de lire une option `modeCuisson`, mais option non alimentée par le planificateur et interface provisoire « bientôt disponible ». Contrat de saisie/référentiel/persistance à valider avant ajout.
+- Capsules : vision validée ; catalogue, contenu exact, déclencheurs et règles d'anti-répétition non définis. Ne pas les implémenter avant arbitrage.
+- Défis V2 audité sur `df1ea4c` : `demarrerDefi(id)` appelle la RPC `demarrer_defi`, contexte chargé par utilisateur, un seul défi en cours vérifié dans l'interface. Durée, occurrences et preuves restent la responsabilité de ce moteur. La branche n'est pas intégrée globalement ; PR existante #9 vers consolidation non fusionnée.
+- Recettes audité sur `0ec384a` : changements notamment dans `pages/suivi.js`, `SaisieRepasCompose` et identité des modèles ; aucune réimplémentation ni intégration globale dans cette reprise.
+- Envies et AVANT/PENDANT/APRÈS : modèle métier général documenté, persistance et nouvelles saisies non validées. Une envie seule ne crée jamais une consommation.
+- Micro-circuits : nouveaux déclencheurs et preuves à définir avec l'utilisatrice.
+- Point d'ajustement : documentation historique annonce une apparition dans `/plan`, code actuel et tests imposent une carte dans `/suivi` après une sauvegarde. Ne pas déplacer la carte sans arbitrage. Vérification authentifiée et configuration serveur IA restent nécessaires.
+- Aucun cockpit WBS ajouté ou modifié. Aucune PR Planification existante retrouvée ; préparation de consolidation après validation du jalon.
+
+### Protocole utilisateur prévu pour la Preview
+
+1. Ouvrir le lien Preview exact et se connecter avec un compte de test autorisé.
+2. Dans `/plan`, ouvrir le planificateur, ajouter une protéine, un légume, un féculent puis une matière grasse ; vérifier les repères et leur actualisation au retrait d'un aliment.
+3. Vérifier poêlée de légumes et ratatouille ; un plat préparé sans profil doit rester « Pas encore repéré », sans jugement négatif.
+4. Charger un repas composé enregistré, modifier ponctuellement une quantité et vérifier la composition et les calories, sans altérer le modèle initial.
+5. À largeur mobile, vérifier recherche, ajout, défilement, sauvegarde et lisibilité des repères.
+6. Dans `/suivi`, vérifier les parcours mono/multi, les Extras et le questionnaire de trou de suivi ; ne pas créer de consommation fictive pour tester une envie.
+7. Tester le point d'ajustement séparément, uniquement si sa table et sa configuration IA sont vérifiées. Ne pas confondre absence de carte et validation du moteur.
+
+Les liens et commits de livraison sont à consigner après vérification du déploiement exact.

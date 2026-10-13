@@ -2,7 +2,7 @@
 // Ne remplace jamais data/referentiel.js et ne duplique pas les recettes.
 
 function normaliserCle(valeur = '') {
-  return String(valeur)
+  return String(valeur ?? '')
     .trim()
     .toLocaleLowerCase('fr')
     .replace(/œ/g, 'oe')
@@ -54,4 +54,12 @@ export function enrichirAvecProfilAlimentaire(aliment = {}) {
 export function enrichirReferentielAvecProfils(aliments = []) {
   if (!Array.isArray(aliments)) return [];
   return aliments.map(enrichirAvecProfilAlimentaire);
+}
+
+export function fusionnerReferentielsAvecProfils(global = [], personnels = []) {
+  // Les profils globaux ne qualifient jamais les aliments personnels homonymes.
+  return [
+    ...enrichirReferentielAvecProfils(global),
+    ...(Array.isArray(personnels) ? personnels : [])
+  ];
 }

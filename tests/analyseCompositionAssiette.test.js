@@ -114,6 +114,12 @@ describe('Analyse pédagogique de composition de l’assiette', () => {
     expect(resultat.qualiteDonnees.categoriesNonReconnues).toHaveLength(1);
   });
 
+  test('un profil fruit explicite reste prioritaire sur une catégorie historique de légume', () => {
+    const aliment = { categorie: 'légume', profilAlimentaire: { rolesRepas: ['fruit'] } };
+    expect(dimensionsPourAliment(aliment)).toEqual([]);
+    expect(analyserCompositionAssiette([aliment]).dimensions.legume.statut).toBe('absent');
+  });
+
   test('ne classe pas automatiquement les laitages comme protéines', () => {
     expect(dimensionsPourCategorie('laitier')).toEqual([]);
     expect(dimensionsPourCategorie('fromage')).toEqual([]);
