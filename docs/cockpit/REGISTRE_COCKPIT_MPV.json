@@ -1436,32 +1436,36 @@
       "title": "Conserver les deux niveaux Vue principale / Détails",
       "priority": "P1",
       "workflow_state": "À TESTER",
-      "development_state": "COUCHE 1 PARTIELLEMENT CODÉE, COUCHE 2 NON CONSTRUITE ; LOT RESTAURATIF #19 NON DÉMARRÉ",
-      "integration_state": "NON INTÉGRÉE SUR main-consolidation",
-      "qa_state": "TESTS V2 ÉCRITS NON REJOUÉS ; RECETTE UTILISATEUR ABSENTE",
+      "development_state": "COUCHE 1 V2 REPRISE ADDITIVEMENT SUR BRANCHE ISOLÉE; COUCHE 2 NON CONSTRUITE",
+      "integration_state": "PR DRAFT #21 VERS main-consolidation — NON FUSIONNÉE",
+      "qa_state": "13/13 CAS DU MOTEUR (39 ASSERTIONS) PASSENT EN HARNAIS JS; NEXT.JS PREVIEW VERCEL READY; JEST NATIF/MOBILE/RLS À QUALIFIER",
       "delegation_level": "B",
       "execution_mode": "Work/Codex",
       "historical_owner": "Chantier tableau de bord V2 — conversation exacte non vérifiée",
-      "active_agent": "AUCUN AGENT DE CODE AFFECTÉ",
+      "active_agent": "AUCUN AGENT PERMANENT — COMMIT ET PR DRAFT CRÉÉS PAR L'ASSISTANT EN SESSION",
       "branches": [
         "tableau-de-bord-v2"
       ],
-      "pull_requests": [],
+      "pull_requests": [
+        21
+      ],
       "description": "Couche 1 synthétique, couche 2 profondeur + modules, sans suppression de données.",
       "ready_criteria": "Mobile lisible, pas de perte de fonctionnalité, indicateurs dynamiques pertinents.",
       "dependencies": [
         "MPV-DASH-01"
       ],
       "needs_user_decision": false,
-      "evidence": "Rapport de reprise du 12/10/2026 publié dans Issue #16; HEAD V2 bf9f5f4df68a8209818dc6e4aa39402f0ee3fd68 ; constat statique de Link non défini sur V2",
-      "verified_at": "2026-10-12",
+      "evidence": "GitHub PR #21 HEAD 23881059e11b2ae7a5e37a670f0f13c21f8780bb (base 23f27e3b), 3 fichiers, +565/-1 ; Vercel deployment dpl_52cxLXNcyYAxShrUx5uUzugzFpUK READY pour SHA 23881059; moteur/tests V2 blobs identiques",
+      "verified_at": "2026-10-13",
       "source_links": [
         "https://github.com/gendraM/-NEWcompteplanvitalroot/tree/main-consolidation",
         "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16",
         "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/18",
-        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/19"
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/issues/19",
+        "https://github.com/gendraM/-NEWcompteplanvitalroot/pull/21",
+        "https://vercel.com/gendrams-projects/ne-wcompteplanvitalroot/52cxLXNcyYAxShrUx5uUzugzFpUK"
       ],
-      "notes": "Mission GitHub créée : https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16 ; affectation/exécution autonome non démarrée. | Audit #16 terminé. Ne pas confondre la clôture de la mission d'audit et la certification du module. Première couche partielle, seconde couche absente, aucun merge ni recette. | Issue #19 : mandat technique B préparé, PAS AUTORISÉ ; uniquement future branche isolée fondée sur main-consolidation, sans suppression ou fusion.",
+      "notes": "Mission GitHub créée : https://github.com/gendraM/-NEWcompteplanvitalroot/issues/16 ; affectation/exécution autonome non démarrée. | Audit #16 terminé. Ne pas confondre la clôture de la mission d'audit et la certification du module. Première couche partielle, seconde couche absente, aucun merge ni recette. | Issue #19 : mandat technique B préparé, PAS AUTORISÉ ; uniquement future branche isolée fondée sur main-consolidation, sans suppression ou fusion. | Lot #19 autorisé 12/10 : branche dash-v2-reprise-couche1 créée depuis consolidation, reprise sans effacement; PR #21 draft. Harnais JS 13/13 et Vercel READY au bon SHA. Tests Jest, recette navigateur, isolation RLS et UX non validés. Aucun merge et aucune modification production.",
       "github_issue": 16,
       "audit_status": "ISSUE #16 CLÔTURÉE : AUDIT UNIQUEMENT ; ISSUES #18 ET #19 POUR SUITE"
     },
