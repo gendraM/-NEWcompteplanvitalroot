@@ -35,6 +35,13 @@ Pour la compatibilité avec OBSERVE / Align-Life, une séance accomplie est prou
 
 ## Choix de la dimension du palier suivant
 
+### Cap final, sous-objectifs et feedback
+
+- Le titre de l’Idéal porte le cap final ; l’indicateur saisi peut représenter un sous-objectif utile et ne doit pas être écrasé.
+- Chaque bilan compare la régularité et, lorsqu’elles existent, la durée, la vitesse et la distance réellement réalisées avec le palier précédent.
+- Une projection est indicative : elle montre ce que le rythme prudent actuel permettrait à la date cible, sans promettre un résultat.
+- Si la projection est insuffisante, l’utilisateur choisit soit de conserver la date comme étape intermédiaire, soit de rallonger le plan. La direction finale reste conservée.
+
 - Une performance isolée supérieure au repère est valorisée mais ne devient pas automatiquement une nouvelle exigence.
 - Une dimension ne devient candidate à la progression que lorsqu'un signal répété existe sur plusieurs réalisations.
 - Si plusieurs dimensions progressent simultanément, l'indicateur principal lié au cap est prioritaire.

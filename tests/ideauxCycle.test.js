@@ -31,6 +31,26 @@ const ideal = {
 };
 
 describe('cycle de reprise Idéaux', () => {
+  test('garde une date future quand elle devient une étape intermédiaire', () => {
+    const idealFutur = { ...ideal, date_cible: '2027-01-17' };
+    const proposition = construirePropositionReprise(idealFutur, {
+      objectifToujoursSouhaite: 'oui', niveauActuel: 'semblable', rythmeRealiste: 3,
+      strategieTrajectoire: 'etape_intermediaire',
+    }, new Date('2026-02-01T12:00:00Z'));
+    expect(proposition.dateCible).toBe('2027-01-17');
+    expect(proposition.strategieTrajectoire).toBe('etape_intermediaire');
+  });
+
+  test('utilise la nouvelle date quand le plan est rallongé', () => {
+    const idealFutur = { ...ideal, date_cible: '2027-01-17' };
+    const proposition = construirePropositionReprise(idealFutur, {
+      objectifToujoursSouhaite: 'oui', niveauActuel: 'semblable', rythmeRealiste: 3,
+      strategieTrajectoire: 'rallonger_date', nouvelleDateCible: '2027-04-01',
+    }, new Date('2026-02-01T12:00:00Z'));
+    expect(proposition.dateCible).toBe('2027-04-01');
+    expect(proposition.strategieTrajectoire).toBe('rallonger_date');
+  });
+
   test('détecte un palier échu et une longue interruption', () => {
     expect(evaluerEtatCycle(ideal, new Date('2026-09-21T12:00:00Z'))).toMatchObject({
       numero: 1,
