@@ -373,7 +373,8 @@ export default function IdeauxPage() {
               duree: bonus.duree_reelle || 15,
               distance_km: bonus.distance_km || 0,
               vitesse: bonus.vitesse || null,
-              date: bonus.date_prevue,
+              date: bonus.date_reelle || bonus.date_prevue,
+              id: bonus.id,
               bonus: true
             });
           });
@@ -422,6 +423,48 @@ export default function IdeauxPage() {
     if (error) throw error;
     setMessage('✓ Séance enregistrée');
     await fetchIdeaux();
+  }
+
+  async function enregistrerBonus(semIdx, bonusIdx, seance) {
+    if (!currentIdealId || !seance?.date || !seance?.duree) {
+      setMessage('❌ Renseigne la date et la durée de la séance bonus');
+      return;
+    }
+    const userId = await obtenirUserIdIdeaux(supabase);
+    const semaines = extraireSemainesPourParametres(planData, planParams);
+    const sem = semaines[semIdx];
+    if (!sem) return;
+    const payload = {
+      user_id: userId, ideal_id: currentIdealId,
+      palier_numero: Number(ideaux.find(i => i.id === currentIdealId)?.palier_numero || 1),
+      date_prevue: seance.date, date_reelle: seance.date,
+      duree_prevue: seance.duree, duree_reelle: seance.duree,
+      distance_km: seance.distance_km || null, vitesse: seance.vitesse || null,
+      fait: true, bonus: true, statut: 'fait',
+      semaine_numero: sem.numero, mois_numero: sem.mois, annee: sem.annee
+    };
+    const query = seance.id
+      ? supabase.from('seances_reelles').update(payload).eq('id', seance.id).eq('user_id', userId).eq('ideal_id', currentIdealId).eq('bonus', true).select('id').single()
+      : supabase.from('seances_reelles').insert(payload).select('id').single();
+    const { data, error } = await query;
+    if (error) throw error;
+    setReel(prev => prev.map((arr, i) => i !== semIdx ? arr : arr.map(obj =>
+      obj === seance || (seance.id && obj.id === seance.id) ? {...obj, id:data.id} : obj
+    )));
+    setMessage('✓ Séance bonus enregistrée');
+    await fetchIdeaux();
+  }
+
+  async function supprimerBonus(semIdx, seance) {
+    if (!window.confirm('Supprimer cette séance bonus ?')) return;
+    if (seance.id) {
+      const userId = await obtenirUserIdIdeaux(supabase);
+      const {error} = await supabase.from('seances_reelles').delete()
+        .eq('id', seance.id).eq('user_id', userId).eq('ideal_id', currentIdealId).eq('bonus', true);
+      if (error) { setMessage('❌ Suppression impossible'); return; }
+    }
+    setReel(prev => prev.map((arr,i) => i === semIdx ? arr.filter(x => x !== seance) : arr));
+    setMessage('Séance bonus supprimée');
   }
 
   // Sauvegarder les séances réelles de la semaine sélectionnée
@@ -1253,11 +1296,18 @@ export default function IdeauxPage() {
                 const handleDureeChange = (semIdx, actIdx, val) => {
                   modifierEtSauvegarderSeance(semIdx, actIdx, { duree: parseInt(val) || null });
                 };
+                const modifierBonus = (semIdx, bonus, patch) => {
+                  const prochaine = {...bonus, ...patch};
+                  setReel(prev => prev.map((arr,i)=>i===semIdx ? arr.map(obj=>obj===bonus ? prochaine : obj) : arr));
+                  if (bonus.id) {
+                    enregistrerBonus(semIdx,0,prochaine).catch(()=>setMessage('❌ Autosauvegarde du bonus impossible'));
+                  }
+                };
                 // Ajouter une séance bonus
                 const handleAddBonus = (semIdx) => {
                   setReel(reel => {
                     const copy = reel.map(arr => arr.map(obj => ({...obj})));
-                    copy[semIdx].push({ fait: true, duree: planParams.duree || 15, bonus: true, date: semaines[semIdx].debut });
+                    copy[semIdx].push({ fait: true, duree: planParams.duree || 15, bonus: true, date: new Date().toISOString().slice(0,10) });
                     return copy;
                   });
                 };
@@ -1348,79 +1398,18 @@ export default function IdeauxPage() {
                           )}
                         </li>
                       ))}
-                      {/* Affichage des séances bonus */}
+                      {/* Bonus : création explicite puis modifications enregistrées par identifiant */}
                       {reel[selectedSemaine]?.filter(obj => obj.bonus).map((b, idx) => (
-                        <li key={'bonus'+idx} style={{marginBottom:6, display:'flex', alignItems:'center', background:'#ffe082', borderRadius:6, padding:'2px 8px'}}>
-                          <span onClick={() => {
-                            setReel(reel => {
-                              const copy = reel.map(arr => arr.map(obj => ({...obj})));
-                              let bonusIdx = 0;
-                              for(let i=0;i<copy[selectedSemaine].length;i++){
-                                if(copy[selectedSemaine][i].bonus){
-                                  if(bonusIdx===idx){
-                                    copy[selectedSemaine][i].fait = !copy[selectedSemaine][i].fait;
-                                    break;
-                                  }
-                                  bonusIdx++;
-                                }
-                              }
-                              return copy;
-                            });
-                          }} style={{marginRight:8, cursor:'pointer', fontSize:20}}>{b.fait ? '✅' : '⬜'}</span>
-                          <span style={{background:'#ffa726', color:'#fff', borderRadius:6, padding:'2px 10px', fontSize:13, fontWeight:700, marginRight:6}}>Bonus</span>
-                          <input type="date" value={b.date || ''} onChange={e=>{
-                            const val = e.target.value;
-                            setReel(reel => {
-                              const copy = reel.map(arr => arr.map(obj => ({...obj})));
-                              // Trouver l'index réel dans le tableau (bonus = tous les objets avec .bonus)
-                              let bonusIdx = 0;
-                              for(let i=0;i<copy[selectedSemaine].length;i++){
-                                if(copy[selectedSemaine][i].bonus){
-                                  if(bonusIdx===idx){
-                                    copy[selectedSemaine][i].date = val;
-                                    break;
-                                  }
-                                  bonusIdx++;
-                                }
-                              }
-                              return copy;
-                            });
-                          }} style={{marginLeft:6, marginRight:6, borderRadius:6, border:'1px solid #b2ebf2', padding:'2px 6px', fontWeight:600}} />
-                          <input type="number" min="1" max="300" value={b.duree || ''} onChange={e=>handleDureeChange(selectedSemaine, semaines[selectedSemaine].actions.length + idx, e.target.value)} placeholder="Durée (min)" style={{marginLeft:6, width:60, borderRadius:6, border:'1px solid #b2ebf2', padding:'2px 6px', fontWeight:600}} />
-                          <input type="number" min="0" step="0.1" value={b.distance_km || ''} onChange={e=>{
-                            const val = e.target.value;
-                            setReel(reel => {
-                              const copy = reel.map(arr => arr.map(obj => ({...obj})));
-                              let bonusIdx = 0;
-                              for(let i=0;i<copy[selectedSemaine].length;i++){
-                                if(copy[selectedSemaine][i].bonus){
-                                  if(bonusIdx===idx){
-                                    copy[selectedSemaine][i].distance_km = val ? parseFloat(val) : null;
-                                    break;
-                                  }
-                                  bonusIdx++;
-                                }
-                              }
-                              return copy;
-                            });
-                          }} placeholder="km" style={{marginLeft:6, width:50, borderRadius:6, border:'1px solid #b2ebf2', padding:'2px 6px', fontWeight:600}} />
-                          <input type="number" min="0" step="0.1" value={b.vitesse || ''} onChange={e=>{
-                            const val = e.target.value;
-                            setReel(reel => {
-                              const copy = reel.map(arr => arr.map(obj => ({...obj})));
-                              let bonusIdx = 0;
-                              for(let i=0;i<copy[selectedSemaine].length;i++){
-                                if(copy[selectedSemaine][i].bonus){
-                                  if(bonusIdx===idx){
-                                    copy[selectedSemaine][i].vitesse = val ? parseFloat(val) : null;
-                                    break;
-                                  }
-                                  bonusIdx++;
-                                }
-                              }
-                              return copy;
-                            });
-                          }} placeholder="km/h" style={{marginLeft:6, width:55, borderRadius:6, border:'1px solid #b2ebf2', padding:'2px 6px', fontWeight:600}} />
+                        <li key={b.id || 'new-bonus-'+idx} style={{marginBottom:8, background:'#ffe082', borderRadius:8, padding:8}}>
+                          <strong>✨ Séance supplémentaire {b.id ? '✓ Enregistrée' : '— À enregistrer'}</strong>
+                          <div style={{display:'flex', gap:8, flexWrap:'wrap', marginTop:6}}>
+                            <label>Date <input type="date" value={b.date || ''} onChange={e=>modifierBonus(selectedSemaine,b,{date:e.target.value})}/></label>
+                            <label>Minutes <input type="number" min="1" value={b.duree ?? ''} style={{width:60}} onChange={e=>modifierBonus(selectedSemaine,b,{duree:Number(e.target.value)||null})}/></label>
+                            <label>Km <input type="number" min="0" step="0.1" value={b.distance_km ?? ''} style={{width:65}} onChange={e=>modifierBonus(selectedSemaine,b,{distance_km:e.target.value===''?null:Number(e.target.value)})}/></label>
+                            <label>Km/h <input type="number" min="0" step="0.1" value={b.vitesse ?? ''} style={{width:65}} onChange={e=>modifierBonus(selectedSemaine,b,{vitesse:e.target.value===''?null:Number(e.target.value)})}/></label>
+                            {!b.id && <button onClick={()=>enregistrerBonus(selectedSemaine,idx,b).catch(()=>setMessage('❌ Enregistrement impossible'))}>Enregistrer la séance</button>}
+                            <button onClick={()=>supprimerBonus(selectedSemaine,b)}>Supprimer</button>
+                          </div>
                         </li>
                       ))}
                     </ul>
