@@ -7,7 +7,7 @@ const formatDate = (value) => {
   return d ? d.toLocaleDateString('fr-FR') : '—';
 };
 const dayKey = (value) => String(value || '').slice(0, 10);
-const card = { background:'#fff', padding:20, borderRadius:14, boxShadow:'0 2px 12px #e6e6e6', marginBottom:18 };
+const card = { background:'#fff', padding:'clamp(14px, 4vw, 20px)', borderRadius:14, boxShadow:'0 2px 12px #e6e6e6', marginBottom:18 };
 
 export default function HistoriqueFastFood() {
   const [events, setEvents] = useState([]);
@@ -50,7 +50,8 @@ export default function HistoriqueFastFood() {
     const dates = [...new Set(events.map(e => dayKey(e.date)).filter(Boolean))].sort();
     return dates.map((date, index) => {
       const spacing = index === 0 ? null : differenceInCalendarDays(date, dates[index - 1]);
-      return {date, spacing, reached: spacing !== null && spacing >= intervalDays, meals: events.filter(e => dayKey(e.date) === date)};
+      const previousSpacing = index < 2 ? null : differenceInCalendarDays(dates[index - 1], dates[index - 2]);
+      return {date, spacing, previousSpacing, reached: spacing !== null && spacing >= intervalDays, meals: events.filter(e => dayKey(e.date) === date)};
     }).reverse();
   }, [events, intervalDays]);
   const completed = timeline.filter(t => t.spacing !== null);
@@ -67,10 +68,12 @@ export default function HistoriqueFastFood() {
     if (period === 'year') return d.getFullYear() === now.getFullYear();
     return true;
   });
-  const knownDetails = (day) => legacy.filter(item => dayKey(item.date) === day);
+  // Legacy records are not automatically matched by date: two different meals can share a date.
+  const unmatchedLegacy = legacy.filter(item => !timeline.some(t => t.date === dayKey(item.date)));
+  const recordDate = completed.find(t => t.spacing === record)?.date;
 
   return <main style={{maxWidth:850,margin:'0 auto',padding:'24px 16px',color:'#263238'}}>
-    <h1>🍔 Mon parcours Fast Food</h1>
+    <h1 style={{fontSize:'clamp(25px, 5vw, 34px)',lineHeight:1.2}}>🍔 Mon parcours Fast Food</h1>
     <p style={{color:'#607d8b'}}>Observe ton rythme, tes progrès et les étapes déjà franchies, sans jugement.</p>
     {loading ? <p>Chargement de ton historique…</p> : error ? <p role="alert" style={{color:'#b71c1c'}}>{error}</p> : <>
       <section style={card}>
@@ -83,11 +86,11 @@ export default function HistoriqueFastFood() {
         </> : <p>Aucune consommation enregistrée dans tes repas réels pour le moment.</p>}
       </section>
       <section style={card}>
-        <h2 style={{marginTop:0}}>Mes progrès dans le temps</h2>
+        <h2 style={{marginTop:0,fontSize:'clamp(20px, 4vw, 26px)'}}>Mes progrès dans le temps</h2>
         <div style={{display:'flex',flexWrap:'wrap',gap:16}}>
           <div><strong>{completed.length}</strong><div>Intervalles mesurés</div></div>
           <div><strong>{completed.filter(t=>t.reached).length}</strong><div>Objectifs atteints</div></div>
-          <div><strong>{record === null ? '—' : record+' j'}</strong><div>Plus long espacement</div></div>
+          <div><strong>{record === null ? '—' : record+' j'}</strong><div>Record personnel{recordDate ? ' · '+formatDate(recordDate) : ''}</div></div>
           <div><strong>{average === null ? '—' : average+' j'}</strong><div>Espacement moyen</div></div>
         </div>
         <p style={{fontSize:13,color:'#607d8b'}}>Les intervalles sont calculés entre deux dates de consommation distinctes. Le rythme en cours est présenté séparément.</p>
@@ -102,22 +105,38 @@ export default function HistoriqueFastFood() {
         </div>}
       </section>
       <section style={card}>
-        <h2 style={{marginTop:0}}>Mes consommations et mes intervalles</h2>
+        <h2 style={{marginTop:0,fontSize:'clamp(20px, 4vw, 26px)',lineHeight:1.25}}>Mes consommations et mes intervalles</h2>
         <label htmlFor="ff-period">Période affichée : </label>
         <select id="ff-period" value={period} onChange={e=>setPeriod(e.target.value)} style={{padding:8,marginBottom:16}}>
           <option value="all">Tout l'historique</option><option value="month">Ce mois</option><option value="year">Cette année</option>
         </select>
         <p style={{fontSize:13,color:'#607d8b'}}>Les intervalles sont calculés sur l'historique complet, même si tu filtres l'affichage.</p>
-        {visible.length === 0 ? <p>Aucun Fast Food enregistré sur cette période.</p> : visible.map(item => <article key={item.date} style={{borderTop:'1px solid #e2e8eb',padding:'14px 0'}}>
-          <strong>{formatDate(item.date)}</strong>
-          <div style={{marginTop:6}}>{item.spacing === null ? 'Premier repère enregistré : pas encore d’intervalle à mesurer.' : <span style={{color:item.reached?'#2e7d32':'#a64b16'}}>{item.spacing} jours depuis le précédent Fast Food — {item.reached?'objectif atteint':'objectif non atteint'}</span>}</div>
-          <div style={{fontSize:14,color:'#455a64',marginTop:6}}>
-            {item.meals.map((meal,index) => <div key={meal.id || index}>{meal.aliment || meal.tag || 'Repas Fast Food'}{meal.heure ? ' · '+meal.heure : ''}</div>)}
-            {knownDetails(item.date).map(detail => <div key={detail.id}>Restaurant : {detail.restaurant || 'Non renseigné'}</div>)}
-          </div>
-        </article>)}
+        {visible.length === 0 ? <p>Aucun Fast Food enregistré sur cette période.</p> : visible.map(item => {
+          const change = item.previousSpacing === null || item.spacing === null ? null : item.spacing - item.previousSpacing;
+          const progress = item.spacing === null ? 0 : Math.min(100, Math.round(item.spacing / intervalDays * 100));
+          return <article key={item.date} style={{borderTop:'1px solid #e2e8eb',padding:'16px 0'}}>
+            <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:8}}>
+              <strong style={{fontSize:18}}>{formatDate(item.date)}</strong>
+              {item.spacing !== null && <span style={{fontSize:12,padding:'5px 9px',borderRadius:20,background:item.reached?'#e8f5e9':'#fff3e0',color:item.reached?'#216c35':'#94521c',fontWeight:600}}>{item.reached?'✓ Objectif atteint':'Objectif à poursuivre'}</span>}
+            </div>
+            <div style={{color:'#455a64',fontSize:14,margin:'8px 0'}}>
+              {item.meals.map((meal,index) => <div key={meal.id || index}>{meal.aliment || meal.tag || 'Repas Fast Food'}{meal.heure ? ' · '+meal.heure : ''}</div>)}
+            </div>
+            {item.spacing === null ? <p style={{color:'#607d8b',fontSize:14}}>Premier repère enregistré : pas encore d'intervalle à comparer.</p> : <>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(125px,1fr))',gap:8,marginTop:12}}>
+                <div style={{background:'#f4f7f8',padding:12,borderRadius:10}}><div style={{fontSize:12,color:'#607d8b'}}>Espacement réalisé</div><strong style={{fontSize:23}}>{item.spacing} j</strong></div>
+                <div style={{background:'#f4f7f8',padding:12,borderRadius:10}}><div style={{fontSize:12,color:'#607d8b'}}>Intervalle précédent</div><strong style={{fontSize:23}}>{item.previousSpacing === null ? '—' : item.previousSpacing+' j'}</strong></div>
+              </div>
+              <div style={{height:9,background:'#edf2f5',borderRadius:9,overflow:'hidden',marginTop:12}} role="progressbar" aria-label="Part de l'objectif d'espacement réalisée" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
+                <div style={{width:progress+'%',height:'100%',background:item.reached?'#2e7d32':'#ed8a45',borderRadius:9}} />
+              </div>
+              <div style={{fontSize:12,color:'#607d8b',marginTop:5}}>{item.spacing} jours sur {intervalDays} jours d'objectif</div>
+              {change !== null && <p style={{fontSize:14,fontWeight:600,color:change>0?'#2e7d32':'#607d8b',margin:'10px 0 0'}}>{change>0?'↗ +'+change+' jours : ton espacement progresse !':change===0?'→ Espacement stable par rapport au précédent.':'↘ '+Math.abs(change)+' jours de moins que le précédent intervalle.'}</p>}
+            </>}
+          </article>;
+        })}
       </section>
-      {legacy.some(item=>!timeline.some(t=>t.date===dayKey(item.date))) && <p style={{color:'#607d8b',fontSize:13}}>Certaines anciennes entrées existent dans un autre historique et ne sont pas encore rapprochées des repas réels. Elles ne sont pas intégrées aux statistiques afin d'éviter les doublons.</p>}
+      {unmatchedLegacy.length > 0 && <p style={{color:'#607d8b',fontSize:13}}>{unmatchedLegacy.length} ancienne(s) entrée(s) non rapprochée(s) des repas réels. Elles sont préservées, mais exclues des statistiques pour éviter les doublons.</p>}
     </>}
   </main>;
 }
