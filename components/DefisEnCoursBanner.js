@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDefis } from './DefisContext';
 
-export default function DefisEnCoursBanner() {
+export default function DefisEnCoursBanner({ descriptif = false }) {
     const { defisEnCours, loading } = useDefis();
     if (loading || !defisEnCours.length) return null;
     return (
@@ -10,8 +10,8 @@ export default function DefisEnCoursBanner() {
             <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'inline' }}>
                 {defisEnCours.map(defi => (
                     <li key={defi.id} style={{ display: 'inline', marginRight: 24 }}>
-                        <span style={{ fontWeight: 600 }}>{defi.nom}</span> :
-                        <span style={{ marginLeft: 6 }}>{defi.progress} / {defi.duree || '?'} {defi.unite || ''}</span>
+                        <span style={{ fontWeight: 600 }}>{defi.nom}</span>{!descriptif && ' :'}
+                        {!descriptif && <span style={{ marginLeft: 6 }}>{defi.progress} / {defi.duree || '?'} {defi.unite || ''}</span>}
                     </li>
                 ))}
             </ul>
